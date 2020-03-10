@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+  database:
+    image: amsterdam/postgres11
+    ports:
+      - "5416:5432"
+    environment:
+      POSTGRES_DB: ds_airflow
+      POSTGRES_USER: ds_airflow
+      POSTGRES_PASSWORD: insecure
+
+  airflow:
+    build: src
+    container_name: airflow
+    environment:
+    ports:
+      - "8088:8088"
