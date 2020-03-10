@@ -16,4 +16,3 @@ upgrade:
 	pur --patch=Django -r requirements.in
 	pur --no-recursive -r requirements_dev.txt
 	pip-compile -v --upgrade --output-file requirements.txt requirements.in
-
