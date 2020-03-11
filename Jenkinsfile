@@ -22,15 +22,16 @@ node {
         checkout scm
     }
 
-    stage('Test') {
-        tryStep "test", {
-            sh "docker-compose -p gob_airflow -f src/.jenkins/test/docker-compose.yml build --no-cache && " +
-               "docker-compose -p gob_airflow -f src/.jenkins/test/docker-compose.yml run -u root --rm test"
+//For now, there is nothing to test
+    /* stage('Test') { */
+    /*     tryStep "test", { */
+    /*         sh "docker-compose -p dataservices_airflow -f src/.jenkins/test/docker-compose.yml build --no-cache && " + */
+    /*            "docker-compose -p dataservicesgob_airflow -f src/.jenkins/test/docker-compose.yml run -u root --rm test" */
 
-        }, {
-            sh "docker-compose -p gob_airflow -f src/.jenkins/test/docker-compose.yml down"
-        }
-    }
+    /*     }, { */
+    /*         sh "docker-compose -p dataservicesgob_airflow -f src/.jenkins/test/docker-compose.yml down" */
+    /*     } */
+    /* } */
 
     stage("Build image") {
         tryStep "build", {
