@@ -51,23 +51,8 @@ node {
 String BRANCH = "${env.BRANCH_NAME}"
 
 
-if (BRANCH == "develop") {
 
-    node {
-        stage('Push develop image') {
-            tryStep "image tagging", {
-                docker.withRegistry("${DOCKER_REGISTRY_HOST}", 'docker_registry_auth') {
-                    def image = docker.image("datapunt/dataservices/dataservices_airflow:${env.BUILD_NUMBER}")
-                    image.pull()
-                    image.push("develop")
-                }
-            }
-        }
-    }
-}
-
-
-if (BRANCH == "develop") {
+if (BRANCH == "master") {
 
     node {
         stage('Push acceptance image') {
@@ -94,7 +79,7 @@ if (BRANCH == "develop") {
     }
 
     stage('Waiting for approval') {
-        slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_import_client service is waiting for Production Release - please confirm'
+        slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
         input "Deploy to Production?"
     }
 
