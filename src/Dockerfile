@@ -24,5 +24,5 @@ COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]
-# CMD ["airflow", "webserver"]
-CMD ["sleep", "infinity"]
+CMD ["airflow", "webserver"]
+# CMD ["sleep", "infinity"]
