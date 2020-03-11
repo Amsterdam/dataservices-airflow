@@ -25,5 +25,5 @@ COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]
 # CMD ["sleep", "infinity"]
-# CMD ["airflow", "webserver"]
-CMD ["sh", "-c", "airflow webserver && airflow scheduler"]
+# Do not use -D to run processes daemonized, does not work!
+CMD ["sh", "-c", "airflow scheduler & airflow webserver"]

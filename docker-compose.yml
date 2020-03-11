@@ -13,6 +13,13 @@ services:
     build: src
     container_name: airflow
     environment:
+      POSTGRES_HOST: "database"
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ds_airflow
+      POSTGRES_USER: ds_airflow
+      POSTGRES_PASSWORD: insecure
       FERNET_KEY: ${FERNET_KEY}
     ports:
       - "8080:8080"
+        #    command:
+        #sleep infinity
