@@ -26,4 +26,5 @@ WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]
 # CMD ["sleep", "infinity"]
 # Do not use -D to run processes daemonized, does not work!
+# The & puts scheduler in background (not &&)
 CMD ["sh", "-c", "airflow scheduler & airflow webserver"]
