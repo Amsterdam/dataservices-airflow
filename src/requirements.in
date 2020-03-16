@@ -1,3 +1,4 @@
 apache-airflow[crypto,postgres]
-cattrs==1.0.0
+cattrs
 flake8
+python-swiftclient

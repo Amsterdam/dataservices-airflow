@@ -2,6 +2,9 @@
 FROM amsterdam/python:3.7-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
+# Seems that pg_comparator installs full postgresql, that's not what we want
+# RUN apt-get update && apt-get install -y postgresql-comparator
+
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
