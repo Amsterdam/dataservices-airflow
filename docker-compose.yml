@@ -18,7 +18,18 @@ services:
       POSTGRES_DB: ds_airflow
       POSTGRES_USER: ds_airflow
       POSTGRES_PASSWORD: insecure
+      AIRFLOW_CONN_POSTGRES_DEFAULT: postgresql://ds_airflow:insecure@database:5432/ds_airflow
       FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
+      OS_USERNAME: vsd_user
+      OS_PASSWORD: ***REMOVED***
+      OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
+      OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
+    volumes:
+      - ./src/dags:/usr/local/airflow/dags
+      - ./src/vars:/usr/local/airflow/vars
+
+
     ports:
       - "8080:8080"
         #    command:
