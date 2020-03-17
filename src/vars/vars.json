@@ -1,0 +1,9 @@
+{
+  "dag_config": {
+    "vsd": {
+      "afval": {
+        "files": ["afval_weging", "afval_container", "afval_cluster"]
+      }
+    }
+  }
+}
