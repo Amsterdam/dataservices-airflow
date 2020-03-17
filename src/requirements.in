@@ -1,4 +1,6 @@
 apache-airflow[crypto,postgres]
 cattrs
 flake8
+python-keystoneclient
 python-swiftclient
+environs

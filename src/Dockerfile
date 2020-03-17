@@ -4,13 +4,17 @@ MAINTAINER datapunt@amsterdam.nl
 
 # Seems that pg_comparator installs full postgresql, that's not what we want
 # RUN apt-get update && apt-get install -y postgresql-comparator
-
+RUN apt-get update \
+ && apt-get dist-upgrade -y \
+ && apt-get autoremove -y \
+ && apt-get install --no-install-recommends -y build-essential
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
 
 # Start runtime image,
 FROM amsterdam/python:3.7-slim-buster
+
 
 # Copy python build artifacts from builder image
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
@@ -24,10 +28,12 @@ RUN chmod +x /docker-entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
 # copy dags and plugins here
+COPY dags ${AIRFLOW_USER_HOME}/dags/
+COPY vars ${AIRFLOW_USER_HOME}/vars/
 
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]
 # CMD ["sleep", "infinity"]
 # Do not use -D to run processes daemonized, does not work!
 # The & puts scheduler in background (not &&)
-CMD ["sh", "-c", "airflow scheduler & airflow webserver"]
+CMD ["sh", "-c", "airflow variables -i vars/vars.json & airflow scheduler & airflow webserver"]
