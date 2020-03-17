@@ -74,7 +74,7 @@ with DAG(
         unzip_dumps.append(
             BashOperator(
                 task_id=f"unzip_{ds_filename}",
-                bash_command="unzip -f /tmp/afval_cluster.zip -d /tmp",
+                bash_command="unzip -o /tmp/{ds_filename}.zip -d /tmp",
             )
         )
 
