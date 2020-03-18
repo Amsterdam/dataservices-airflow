@@ -24,7 +24,8 @@ ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
+COPY scripts/run.sh /run.sh
+RUN chmod +x /docker-entrypoint.sh /run.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
 # copy dags and plugins here
@@ -36,4 +37,5 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 # CMD ["sleep", "infinity"]
 # Do not use -D to run processes daemonized, does not work!
 # The & puts scheduler in background (not &&)
-CMD ["sh", "-c", "airflow variables -i vars/vars.json & airflow scheduler & airflow webserver"]
+# CMD ["sh", "-c", "airflow variables -i vars/vars.json & airflow scheduler & airflow webserver"]
+CMD /run.sh

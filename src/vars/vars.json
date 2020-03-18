@@ -3,6 +3,10 @@
     "vsd": {
       "afval": {
         "files": ["afval_weging", "afval_container", "afval_cluster"]
+      },
+      "reclamebelasting": {
+        "zip_file": "reclame-tarief-gebieden.zip",
+        "shp_file": "Reclame_tariefgebieden.shp"
       }
     }
   }

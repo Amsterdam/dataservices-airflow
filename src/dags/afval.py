@@ -16,6 +16,13 @@ RECREATE_SCHEMA_SQL = """
     COMMIT;
 """
 
+RENAME_TABLES_SQL = """
+    BEGIN;
+    DROP TABLE IF EXISTS public.{ds_filename};
+    ALTER TABLE pte.{ds_filename} SET SCHEMA public;
+    COMMIT;
+"""
+
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
@@ -41,8 +48,6 @@ pg_params = " ".join(
         env("POSTGRES_PORT"),
         "-U",
         env("POSTGRES_USER"),
-        "-W",
-        env("POSTGRES_PASSWORD"),
     ]
 )
 
@@ -61,6 +66,7 @@ with DAG(
     fetch_dumps = []
     unzip_dumps = []
     load_dumps = []
+    rename_tables = []
 
     for ds_filename in vsd_config["afval"]["files"]:
         fetch_dumps.append(
@@ -74,7 +80,7 @@ with DAG(
         unzip_dumps.append(
             BashOperator(
                 task_id=f"unzip_{ds_filename}",
-                bash_command="unzip -o /tmp/{ds_filename}.zip -d /tmp",
+                bash_command=f"unzip -o /tmp/{ds_filename}.zip -d /tmp",
             )
         )
 
@@ -84,8 +90,16 @@ with DAG(
                 bash_command=f"psql {pg_params} < /tmp/{ds_filename}.backup",
             )
         )
+        rename_tables.append(
+            PostgresOperator(
+                task_id=f"rename_table_for_{ds_filename}",
+                sql=RENAME_TABLES_SQL.format(ds_filename=ds_filename),
+            )
+        )
 
 
-for fetch, unzip, load in zip(fetch_dumps, unzip_dumps, load_dumps):
-    fetch >> unzip >> load
-recreate_schema >> load_dumps
+for fetch, unzip, load, rename in zip(
+    fetch_dumps, unzip_dumps, load_dumps, rename_tables
+):
+    fetch >> unzip >> load >> rename
+recreate_schema >> fetch_dumps
