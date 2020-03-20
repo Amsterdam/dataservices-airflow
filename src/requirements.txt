@@ -10,10 +10,11 @@ apispec[yaml]==1.3.3      # via flask-appbuilder
 argcomplete==1.11.1       # via apache-airflow
 attrs==19.3.0             # via apache-airflow, cattrs, jsonschema
 babel==2.8.0              # via flask-babel, oslo.i18n
+bcrypt==3.1.7             # via flask-bcrypt
 cached-property==1.5.1    # via apache-airflow
 cattrs==0.9.0             # via -r requirements.in, apache-airflow
 certifi==2019.11.28       # via requests
-cffi==1.14.0              # via cryptography
+cffi==1.14.0              # via bcrypt, cryptography
 chardet==3.0.4            # via requests
 click==7.1.1              # via flask, flask-appbuilder
 colorama==0.4.3           # via flask-appbuilder
@@ -31,6 +32,7 @@ flake8==3.7.9             # via -r requirements.in
 flask-admin==1.5.4        # via apache-airflow
 flask-appbuilder==2.2.4   # via apache-airflow
 flask-babel==1.0.0        # via flask-appbuilder
+flask-bcrypt==0.7.1       # via -r requirements.in
 flask-caching==1.3.3      # via apache-airflow
 flask-jwt-extended==3.24.1  # via flask-appbuilder
 flask-login==0.4.1        # via apache-airflow, flask-appbuilder
@@ -38,7 +40,7 @@ flask-openid==1.2.5       # via flask-appbuilder
 flask-sqlalchemy==2.4.1   # via flask-appbuilder
 flask-swagger==0.2.13     # via apache-airflow
 flask-wtf==0.14.3         # via apache-airflow, flask-appbuilder
-flask==1.1.1              # via apache-airflow, flask-admin, flask-appbuilder, flask-babel, flask-caching, flask-jwt-extended, flask-login, flask-openid, flask-sqlalchemy, flask-swagger, flask-wtf
+flask==1.1.1              # via apache-airflow, flask-admin, flask-appbuilder, flask-babel, flask-bcrypt, flask-caching, flask-jwt-extended, flask-login, flask-openid, flask-sqlalchemy, flask-swagger, flask-wtf
 funcsigs==1.0.2           # via apache-airflow
 future==0.16.0            # via apache-airflow
 graphviz==0.13.2          # via apache-airflow
@@ -94,7 +96,7 @@ pyyaml==5.3               # via apispec, flask-swagger, oslo.config, oslo.serial
 requests==2.23.0          # via apache-airflow, keystoneauth1, oslo.config, python-keystoneclient, python-swiftclient
 rfc3986==1.3.2            # via oslo.config
 setproctitle==1.1.10      # via apache-airflow
-six==1.14.0               # via cryptography, debtcollector, flask-jwt-extended, jsonschema, keystoneauth1, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, prison, pyrsistent, python-dateutil, python-keystoneclient, python-swiftclient, sqlalchemy-utils, stevedore, tenacity, thrift
+six==1.14.0               # via bcrypt, cryptography, debtcollector, flask-jwt-extended, jsonschema, keystoneauth1, oslo.config, oslo.i18n, oslo.serialization, oslo.utils, prison, pyrsistent, python-dateutil, python-keystoneclient, python-swiftclient, sqlalchemy-utils, stevedore, tenacity, thrift
 sqlalchemy-jsonfield==0.9.0  # via apache-airflow
 sqlalchemy-utils==0.36.1  # via flask-appbuilder
 sqlalchemy==1.3.13        # via alembic, apache-airflow, flask-sqlalchemy, marshmallow-sqlalchemy, sqlalchemy-jsonfield, sqlalchemy-utils

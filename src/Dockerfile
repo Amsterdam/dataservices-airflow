@@ -20,11 +20,19 @@ FROM amsterdam/python:3.7-slim-buster
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
 
+# Copy patch binary, needed to patch airflow bug
+COPY --from=builder /usr/bin/patch /usr/bin/patch
+
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
+# Fix problem with env vars that prevents useage of 'airflow shell'
+COPY patches/cli.py.patch /tmp/cli.py.patch
+RUN patch -d/ -p0 < /tmp/cli.py.patch
+
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 COPY scripts/run.sh /run.sh
+COPY scripts/mkuser.py ${AIRFLOW_USER_HOME}/mkuser.py
 RUN chmod +x /docker-entrypoint.sh /run.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 

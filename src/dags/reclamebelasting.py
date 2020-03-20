@@ -4,7 +4,8 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.utils.dates import days_ago
+
+# from airflow.utils.dates import days_ago
 
 
 env = Env()
@@ -23,7 +24,7 @@ RENAME_TABLES_SQL = """
 default_args = {
     "owner": "airflow",
     "depends_on_past": False,
-    "start_date": days_ago(1),
+    "start_date": "2020-03-18",
     "email": ["airflow@example.com"],
     "email_on_failure": False,
     "email_on_retry": False,
@@ -61,7 +62,7 @@ with DAG(
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
 
     fetch_zip = BashOperator(
-        task_id="fetch_shp",
+        task_id="fetch_zip",
         bash_command=f"swift download reclame {zip_file} " f"-o {tmp_dir}/{zip_file}",
     )
 

@@ -4,3 +4,4 @@ flake8
 python-keystoneclient
 python-swiftclient
 environs
+flask_bcrypt
