@@ -22,7 +22,7 @@ RENAME_TABLES_SQL = """
 """
 
 default_args = {
-    "owner": "airflow",
+    "owner": "dataservices",
     "depends_on_past": False,
     "start_date": "2020-03-18",
     "email": ["airflow@example.com"],
@@ -63,7 +63,7 @@ with DAG(
 
     fetch_zip = BashOperator(
         task_id="fetch_zip",
-        bash_command=f"swift download reclame {zip_file} " f"-o {tmp_dir}/{zip_file}",
+        bash_command=f"swift download reclame {zip_file} -o {tmp_dir}/{zip_file}",
     )
 
     extract_zip = BashOperator(

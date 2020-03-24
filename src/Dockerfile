@@ -38,6 +38,7 @@ COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
 # copy dags and plugins here
 COPY dags ${AIRFLOW_USER_HOME}/dags/
+COPY plugins ${AIRFLOW_USER_HOME}/plugins/
 COPY vars ${AIRFLOW_USER_HOME}/vars/
 
 WORKDIR ${AIRFLOW_USER_HOME}

@@ -24,7 +24,7 @@ RENAME_TABLES_SQL = """
 """
 
 default_args = {
-    "owner": "airflow",
+    "owner": "dataservices",
     "depends_on_past": False,
     "start_date": days_ago(1),
     "email": ["airflow@example.com"],
@@ -52,10 +52,7 @@ pg_params = " ".join(
 )
 
 with DAG(
-    "VSD",
-    default_args=default_args,
-    description="VSD",
-    schedule_interval="*/15 * * * *",
+    "VSD", default_args=default_args, description="VSD", schedule_interval="@daily",
 ) as dag:
 
     # Uses postgres_default connection, defined in env var

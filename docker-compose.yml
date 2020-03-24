@@ -27,10 +27,11 @@ services:
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
     volumes:
       - ./src/dags:/usr/local/airflow/dags
+      - ./src/plugins:/usr/local/airflow/plugins
       - ./src/vars:/usr/local/airflow/vars
 
 
     ports:
       - "8080:8080"
-        #    command:
-        #sleep infinity
+    
+    # command: sleep infinity

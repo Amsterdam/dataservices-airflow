@@ -10,6 +10,7 @@ def make_user(username, email):
     user = PasswordUser(models.User())
     user.username = username
     user.email = email
+    user.superuser = True
     user.password = click.prompt("Password")
     session = settings.Session()
     session.add(user)
