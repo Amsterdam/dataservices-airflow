@@ -32,7 +32,8 @@ RUN patch -d/ -p0 < /tmp/cli.py.patch
 
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 COPY scripts/run.sh /run.sh
-COPY scripts/mkuser.py ${AIRFLOW_USER_HOME}/mkuser.py
+COPY scripts/mkvars.py ${AIRFLOW_USER_HOME}/scripts/mkvars.py
+COPY scripts/mkuser.py ${AIRFLOW_USER_HOME}/scripts/mkuser.py
 RUN chmod +x /docker-entrypoint.sh /run.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 

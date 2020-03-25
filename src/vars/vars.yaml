@@ -1,0 +1,19 @@
+dag_config:
+  vsd:
+    afval:
+      files:
+      - afval_weging
+      - afval_container
+      - afval_cluster
+    parkeerzones:
+      shp_files: 
+        - act_RDW_3EXP_VERGUNNINGGEBIED.shp 
+        - act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
+      tables:
+        - parkeerzones_new
+        - parkeerzones_uitz_new
+      zip_folder: 20190606_Vergunninggebieden
+      zip_file: "{dag_config.vsd.parkeerzones.zip_folder} v3.zip"
+    reclamebelasting:
+      shp_file: Reclame_tariefgebieden.shp
+      zip_file: reclame-tarief-gebieden.zip
