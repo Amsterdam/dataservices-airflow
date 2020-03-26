@@ -4,7 +4,12 @@
 echo "$POSTGRES_HOST:$POSTGRES_PORT:$POSTGRES_DB:$POSTGRES_USER:$POSTGRES_PASSWORD" > /root/.pgpass
 chmod 500 /root/.pgpass
 
-python mkvars.py
+python scripts/mkvars.py
+# Airflow does not support slack connection config through environment var
+# So we (re-)create the slack connection on startup.
+airflow connections --delete --conn_id slack
+airflow connections --add  --conn_id slack --conn_host $SLACK_WEBHOOK_HOST \
+    --conn_password "/$SLACK_WEBHOOK" --conn_type http
 airflow variables -i vars/vars.json & 
 airflow scheduler & 
 airflow webserver

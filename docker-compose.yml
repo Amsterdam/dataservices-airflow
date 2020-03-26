@@ -21,6 +21,8 @@ services:
       AIRFLOW_CONN_POSTGRES_DEFAULT: postgresql://ds_airflow:insecure@database:5432/ds_airflow
       FERNET_KEY: ${FERNET_KEY}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
+      SLACK_WEBHOOK_HOST: https://hooks.slack.com/services
+      SLACK_WEBHOOK: ${SLACK_WEBHOOK}
       OS_USERNAME: vsd_user
       OS_PASSWORD: ${VSD_PASSWD}
       OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
