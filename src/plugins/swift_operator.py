@@ -1,10 +1,7 @@
-import logging
 from pathlib import Path
 from swiftclient.service import SwiftService, SwiftError
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
-
-logger = logging.getLogger(__name__)
 
 
 class SwiftOperator(BaseOperator):
@@ -31,9 +28,9 @@ class SwiftOperator(BaseOperator):
                     options=download_options,
                 ):
                     if down_res["success"]:
-                        logger.info("downloaded: %s", down_res["object"])
+                        self.log.info("downloaded: %s", down_res["object"])
                     else:
-                        logger.error("download failed: %s", down_res["object"])
+                        self.log.error("download failed: %s", down_res["object"])
 
             except SwiftError as e:
-                logger.error(e.value)
+                self.log.error(e.value)

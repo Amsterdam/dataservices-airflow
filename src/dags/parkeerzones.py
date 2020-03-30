@@ -1,6 +1,4 @@
 import pathlib
-from datetime import timedelta
-from environs import Env
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
@@ -9,40 +7,13 @@ from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperato
 
 # from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
+from common import pg_params, default_args, slack_webhook_token
 
-env = Env()
-
-default_args = {
-    "owner": "dataservices",
-    "depends_on_past": False,
-    "start_date": "2020-03-18",
-    "email": ["airflow@example.com"],
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "retries": 1,
-    "retry_delay": timedelta(minutes=15),
-    "catchup": False,  # do not backfill
-}
 
 dag_id = "parkeerzones"
 config = Variable.get("dag_config", deserialize_json=True)
 dag_config = config["vsd"][dag_id]
-# slack_webhook_token = BaseHook.get_connection("slack").password
-slack_webhook_token = env("SLACK_WEBHOOK")
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
-pg_params = " ".join(
-    [
-        "-X",
-        "--set",
-        "ON_ERROR_STOP",
-        "-h",
-        env("POSTGRES_HOST"),
-        "-p",
-        env("POSTGRES_PORT"),
-        "-U",
-        env("POSTGRES_USER"),
-    ]
-)
 
 with DAG(dag_id, default_args=default_args,) as dag:
 
@@ -117,6 +88,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
             )
         )
 
+    # XXX switch to generic sql
     rename_tables = PostgresOperator(
         task_id="rename_tables",
         sql=table_renames,
