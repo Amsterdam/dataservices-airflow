@@ -59,7 +59,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=sql_check_count,
-        params=dict(tablename=f"{dag_id}_new", mincount=3),
+        params=dict(tablename=f"{dag_id}_new", mincount=1000),
     )
 
     check_geo = PostgresCheckOperator(
