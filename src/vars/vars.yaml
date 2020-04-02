@@ -25,6 +25,18 @@ dag_config:
             RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
         {% endfor %}
         COMMIT;
+      sql_check_count: |
+        SELECT 1 FROM {{ params.tablename }} HAVING count(*) >= {{ params.mincount }}
+      sql_check_geo: |
+          SELECT 1 WHERE NOT EXISTS (
+              SELECT FROM {{ params.tablename }} WHERE
+                wkb_geometry IS null OR ST_IsValid(wkb_geometry) = false 
+                  OR ST_GeometryType(wkb_geometry) <> '{{ params.geotype }}'
+              )
+      sql_check_colnames: |
+        SELECT column_name FROM information_schema.columns WHERE
+          table_schema = 'public' AND table_name = '{{ params.tablename }}'
+        ORDER BY column_name
     afval:
       files:
       - afval_weging
@@ -105,5 +117,10 @@ dag_config:
         BEGIN;
         ALTER TABLE bekendmakingen_new DROP column bbox;
         COMMIT;
+      geotype: ST_Point
+      colnames: [['beschrijving'], ['categorie'], ['datum'], ['id'], 
+        ['ogc_fid'], ['oid_'], ['onderwerp'], ['overheid'],
+        ['plaats'], ['postcodehuisnummer'], ['straat'], ['titel'], ['url'], ['wkb_geometry']]
     hoofdroutes:
-      test: blaat
+      geotype: ST_MultiLineString
+      colnames: [["id"], ["name"], ["ogc_fid"], ["route"],[ "type"], ["wkb_geometry"]] 
