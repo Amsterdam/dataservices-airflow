@@ -52,7 +52,10 @@ pg_params = " ".join(
 )
 
 with DAG(
-    "VSD", default_args=default_args, description="VSD", schedule_interval="@daily",
+    "huishoudelijkafval",
+    default_args=default_args,
+    description="huishoudelijkafval",
+    schedule_interval="@daily",
 ) as dag:
 
     # Uses postgres_default connection, defined in env var
