@@ -23,7 +23,7 @@ with DAG("testdag", default_args=default_args,) as dag:
         task_id="swift_task",
         container="afval",
         object_id="acceptance/afval_cluster.zip",
-        output_path="/tmp/blaat/out.zip",
+        output_path="/tmp/blaat/out2.zip",
     )
 
     # This needs a working connection object
