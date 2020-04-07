@@ -7,7 +7,7 @@ MAINTAINER datapunt@amsterdam.nl
 RUN apt-get update \
  && apt-get dist-upgrade -y \
  && apt-get autoremove -y \
- && apt-get install --no-install-recommends -y build-essential
+ && apt-get install --no-install-recommends -y build-essential rsync
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
@@ -22,6 +22,7 @@ COPY --from=builder /usr/local/lib/python3.7/site-packages/ /usr/local/lib/pytho
 
 # Copy patch binary, needed to patch airflow bug
 COPY --from=builder /usr/bin/patch /usr/bin/patch
+COPY --from=builder /usr/bin/rsync /usr/bin/rsync
 
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}

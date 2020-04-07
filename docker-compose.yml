@@ -28,6 +28,7 @@ services:
       OS_PASSWORD: ${VSD_PASSWD}
       OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
+      DAG_SYNC_PATH: /tmp/synced-dags
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
