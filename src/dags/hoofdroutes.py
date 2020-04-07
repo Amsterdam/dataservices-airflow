@@ -8,25 +8,24 @@ from airflow.models import Variable
 
 
 from common import pg_params, default_args
+from common.sql import (
+    SQL_TABLE_RENAME,
+    SQL_CHECK_COUNT,
+    SQL_CHECK_COLNAMES,
+    SQL_CHECK_GEO,
+)
 from importscripts.import_hoofdroutes import import_hoofdroutes
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 
 
 dag_id = "hoofdroutes"
-config = Variable.get("dag_config", deserialize_json=True)
-generic_config = config["vsd"]["generic"]
-dag_config = config["vsd"][dag_id]
+dag_config = Variable.get(dag_id, deserialize_json=True)
 
 with DAG(dag_id, default_args=default_args,) as dag:
 
     tmp_dir = f"/tmp/{dag_id}"
     tmp_file_prefix = f"{tmp_dir}/{dag_id}"
-    sql_check_count = generic_config["sql_check_count"]
-    sql_check_geo = generic_config["sql_check_geo"]
-    sql_check_colnames = generic_config["sql_check_colnames"]
-    geotype = dag_config["geotype"]
-    colnames = dag_config["colnames"]
-    sql_table_rename = generic_config["sql_table_rename"]
+    colnames = [["id"], ["name"], ["ogc_fid"], ["route"], ["type"], ["wkb_geometry"]]
 
     import_routes = PythonOperator(
         task_id="import_routes",
@@ -48,25 +47,25 @@ with DAG(dag_id, default_args=default_args,) as dag:
 
     check_count = PostgresCheckOperator(
         task_id="check_count",
-        sql=sql_check_count,
+        sql=SQL_CHECK_COUNT,
         params=dict(tablename=f"{dag_id}_new", mincount=3),
     )
 
     check_geo = PostgresCheckOperator(
         task_id="check_geo",
-        sql=sql_check_geo,
-        params=dict(tablename=f"{dag_id}_new", geotype=geotype),
+        sql=SQL_CHECK_GEO,
+        params=dict(tablename=f"{dag_id}_new", geotype="ST_MultiLineString"),
     )
 
     check_colnames = PostgresValueCheckOperator(
         task_id="check_colnames",
-        sql=sql_check_colnames,
+        sql=SQL_CHECK_COLNAMES,
         pass_value=colnames,
         params=dict(tablename=f"{dag_id}_new"),
     )
 
     rename_table = PostgresOperator(
-        task_id="rename_table", sql=sql_table_rename, params=dict(tablename=dag_id),
+        task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
     )
 
 import_routes >> extract_geojson >> load_table >> [

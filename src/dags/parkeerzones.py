@@ -11,9 +11,45 @@ from common import pg_params, default_args, slack_webhook_token
 
 
 dag_id = "parkeerzones"
-config = Variable.get("dag_config", deserialize_json=True)
-dag_config = config["vsd"][dag_id]
+dag_config = Variable.get(dag_id, deserialize_json=True)
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
+
+SQL_RENAME = """
+{% for from_col, to_col in params.col_rename.items() %}
+  ALTER TABLE {{ params.tablename }} RENAME COLUMN {{ from_col }} TO {{ to_col }};
+{% endfor %}
+"""
+
+SQL_ADD_COLOR = """
+    ALTER TABLE parkeerzones_new ADD COLUMN color VARCHAR(7);
+    DROP TABLE IF EXISTS parkeerzones_map_color;
+"""
+
+SQL_UPDATE_COLORS = """
+    UPDATE parkeerzones_new p SET color = pmc.color
+    FROM parkeerzones_map_color pmc WHERE p.ogc_fid = pmc.ogc_fid
+      AND p.gebied_code = pmc.gebied_code;
+    DROP TABLE parkeerzones_map_color;
+"""
+
+SQL_DELETE_UNUSED = """
+    DELETE FROM parkeerzones_uitz_new WHERE show = 'FALSE';
+    DELETE FROM parkeerzones_new WHERE show = 'FALSE';
+"""
+
+SQL_TABLE_RENAMES = """
+    BEGIN;
+    {% for tablename in params.tablenames %}
+      ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
+      ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
+      DROP TABLE IF EXISTS {{ tablename }}_old;
+      ALTER INDEX {{ tablename }}_new_pk RENAME TO {{ tablename }}_pk;
+      ALTER INDEX {{ tablename }}_new_wkb_geometry_geom_idx
+        RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
+    {% endfor %}
+    COMMIT;
+"""
+
 
 with DAG(dag_id, default_args=default_args,) as dag:
 
@@ -25,11 +61,6 @@ with DAG(dag_id, default_args=default_args,) as dag:
     zip_file = dag_config["zip_file"]
     shp_files = dag_config["shp_files"]
     col_renames = dag_config["col_renames"]
-    sql_rename = dag_config["sql_rename"]
-    sql_add_color = dag_config["sql_add_color"]
-    sql_update_colors = dag_config["sql_update_colors"]
-    sql_delete_unused = dag_config["sql_delete_unused"]
-    table_renames = dag_config["table_renames"]
     tables = dag_config["tables"]
     rename_tablenames = dag_config["rename_tablenames"]
     tmp_dir = f"/tmp/{dag_id}"
@@ -83,7 +114,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         rename_cols.append(
             PostgresOperator(
                 task_id=f"rename_cols_{tablename}",
-                sql=sql_rename,
+                sql=SQL_RENAME,
                 params=dict(tablename=tablename, col_rename=col_rename),
             )
         )
@@ -91,14 +122,14 @@ with DAG(dag_id, default_args=default_args,) as dag:
     # XXX switch to generic sql
     rename_tables = PostgresOperator(
         task_id="rename_tables",
-        sql=table_renames,
+        sql=SQL_TABLE_RENAMES,
         params=dict(tablenames=rename_tablenames),
     )
 
-    add_color = PostgresOperator(task_id="add_color", sql=sql_add_color)
-    update_colors = PostgresOperator(task_id="update_colors", sql=sql_update_colors)
+    add_color = PostgresOperator(task_id="add_color", sql=SQL_ADD_COLOR)
+    update_colors = PostgresOperator(task_id="update_colors", sql=SQL_UPDATE_COLORS)
 
-    delete_unused = PostgresOperator(task_id="delete_unused", sql=sql_delete_unused)
+    delete_unused = PostgresOperator(task_id="delete_unused", sql=SQL_DELETE_UNUSED)
 
     load_map_colors = BashOperator(
         task_id="load_map_colors",

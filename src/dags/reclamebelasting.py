@@ -6,14 +6,13 @@ from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
 
 from common import pg_params, default_args
+from common.sql import SQL_TABLE_RENAME
 
 env = Env()
 
 
 dag_id = "reclamebelasting"
-config = Variable.get("dag_config", deserialize_json=True)
-generic_config = config["vsd"]["generic"]
-dag_config = config["vsd"][dag_id]
+dag_config = Variable.get(dag_id, deserialize_json=True)
 
 with DAG(
     "reclamebelasting", default_args=default_args, description="reclamebelasting",
@@ -21,16 +20,15 @@ with DAG(
 
     zip_file = dag_config["zip_file"]
     shp_file = dag_config["shp_file"]
-    sql_table_rename = generic_config["sql_table_rename"]
     tmp_dir = f"/tmp/{dag_id}"
 
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
 
     fetch_zip = SwiftOperator(
         task_id="fetch_zip",
-        container=dag_id,
+        container="reclame",
         object_id=zip_file,
-        output_path=f"/tmp/{dag_id}/{zip_file}",
+        output_path=f"{tmp_dir}/{zip_file}",
     )
 
     extract_zip = BashOperator(
@@ -56,7 +54,7 @@ with DAG(
     )
 
     rename_table = PostgresOperator(
-        task_id="rename_table", sql=sql_table_rename, params=dict(tablename=dag_id),
+        task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
     )
 
 mk_tmp_dir >> fetch_zip >> extract_zip >> extract_shp >> convert_shp >> import_sql >> rename_table

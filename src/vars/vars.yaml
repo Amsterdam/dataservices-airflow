@@ -1,126 +1,53 @@
-dag_config:
-  vsd:
-    generic:
-      sql_drop_table: |
-        BEGIN;
-        DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
-        COMMIT;
-      sql_table_rename: |
-        BEGIN;
-        ALTER TABLE IF EXISTS {{ params.tablename }} RENAME TO {{ params.tablename }}_old;
-        ALTER TABLE {{ params.tablename }}_new RENAME TO {{ params.tablename }};
-        DROP TABLE IF EXISTS {{ params.tablename }}_old;
-        ALTER INDEX {{ params.tablename }}_new_pk RENAME TO {{ params.tablename }}_pk;
-        ALTER INDEX {{ params.tablename }}_new_wkb_geometry_geom_idx 
-          RENAME TO {{ params.tablename }}_wkb_geometry_geom_idx;
-        COMMIT;
-      sql_table_renames: |
-        BEGIN;
-        {% for tablename in params.tablenames %}
-          ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
-          ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
-          DROP TABLE IF EXISTS {{ tablename }}_old;
-          ALTER INDEX {{ tablename }}_new_pk RENAME TO {{ tablename }}_pk;
-          ALTER INDEX {{ tablename }}_new_wkb_geometry_geom_idx 
-            RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
-        {% endfor %}
-        COMMIT;
-      sql_check_count: |
-        SELECT 1 FROM {{ params.tablename }} HAVING count(*) >= {{ params.mincount }}
-      sql_check_geo: |
-          SELECT 1 WHERE NOT EXISTS (
-              SELECT FROM {{ params.tablename }} WHERE
-                wkb_geometry IS null OR ST_IsValid(wkb_geometry) = false 
-                  OR ST_GeometryType(wkb_geometry) <> '{{ params.geotype }}'
-              )
-      sql_check_colnames: |
-        SELECT column_name FROM information_schema.columns WHERE
-          table_schema = 'public' AND table_name = '{{ params.tablename }}'
-        ORDER BY column_name
-    afval:
-      files:
-      - afval_weging
-      - afval_container
-      - afval_cluster
-    parkeerzones:
-      shp_files: 
-        - act_RDW_3EXP_VERGUNNINGGEBIED.shp 
-        - act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
-      tables:
-        - parkeerzones_new
-        - parkeerzones_uitz_new
-      zip_folder: 20190606_Vergunninggebieden
-      zip_file: "${dag_config.vsd.parkeerzones.zip_folder} v3.zip"
-      col_renames:
-        - b_dat_gebi: begin_datum_gebied
-          gebied_cod: gebied_code
-          gebied_oms: gebied_omschrijving
-          e_dat_gebi: eind_datum_gebied
-          domein_cod: domein_code
-          gebruiks_d: gebruiks_doel
-          gebied_naa: gebied_naam
-        - b_dat_gebi: begin_datum_gebied
-          gebied_cod: gebied_code
-          omschrijvi: gebied_omschrijving
-          e_dat_gebi: eind_datum_gebied
-          domein_cod: domein_code
-          gebruiks_d: gebruiks_doel
-          gebied_naa: gebied_naam
-      sql_rename: |
-        {% for from_col, to_col in params.col_rename.items() %}
-          ALTER TABLE {{ params.tablename }} RENAME COLUMN {{ from_col }} TO {{ to_col }};
-        {% endfor %}
-      sql_add_color: |
-        ALTER TABLE parkeerzones_new ADD COLUMN color VARCHAR(7);
-        DROP TABLE IF EXISTS parkeerzones_map_color;
-      sql_update_colors: |
-        UPDATE parkeerzones_new p SET color = pmc.color
-        FROM parkeerzones_map_color pmc WHERE p.ogc_fid = pmc.ogc_fid 
-          AND p.gebied_code = pmc.gebied_code;
-        DROP TABLE parkeerzones_map_color;
-      sql_delete_unused: |
-        DELETE FROM parkeerzones_uitz_new WHERE show = 'FALSE';
-        DELETE FROM parkeerzones_new WHERE show = 'FALSE';
-      rename_tablenames:
-        - parkeerzones
-        - parkeerzones_uitz
-      table_renames: |
-        BEGIN;
-        {% for tablename in params.tablenames %}
-          ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
-          ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
-          DROP TABLE IF EXISTS {{ tablename }}_old;
-          ALTER INDEX {{ tablename }}_new_pk RENAME TO {{ tablename }}_pk;
-          ALTER INDEX {{ tablename }}_new_wkb_geometry_geom_idx 
-            RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
-        {% endfor %}
-        COMMIT;
-    reclamebelasting:
-      shp_file: Reclame_tariefgebieden.shp
-      zip_file: reclame-tarief-gebieden.zip
-    bekendmakingen:
-      wfs_endpoint: wfs
-      wfs_params:
-        request: GetFeature
-        SERVICE: WFS
-        VERSION: 1.2.0
-        TYPENAME: geozet:bekendmakingen_punt
-        FILTER: |
-            <Filter>
-              <PropertyIsEqualTo>
-                <PropertyName>geozet:overheid</PropertyName>
-                <Literal>Amsterdam</Literal>
-              </PropertyIsEqualTo>
-            </Filter>
-        outputFormat: application/json
-      sql_drop_bbox: |
-        BEGIN;
-        ALTER TABLE bekendmakingen_new DROP column bbox;
-        COMMIT;
-      geotype: ST_Point
-      colnames: [['beschrijving'], ['categorie'], ['datum'], ['id'], 
-        ['ogc_fid'], ['oid_'], ['onderwerp'], ['overheid'],
-        ['plaats'], ['postcodehuisnummer'], ['straat'], ['titel'], ['url'], ['wkb_geometry']]
-    hoofdroutes:
-      geotype: ST_MultiLineString
-      colnames: [["id"], ["name"], ["ogc_fid"], ["route"],[ "type"], ["wkb_geometry"]] 
+generic:
+  test: []
+huishoudelijkafval:
+  files:
+  - afval_weging
+  - afval_container
+  - afval_cluster
+parkeerzones:
+  shp_files: 
+    - act_RDW_3EXP_VERGUNNINGGEBIED.shp 
+    - act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
+  tables:
+    - parkeerzones_new
+    - parkeerzones_uitz_new
+  zip_folder: 20190606_Vergunninggebieden
+  zip_file: "${parkeerzones.zip_folder} v3.zip"
+  col_renames:
+    - b_dat_gebi: begin_datum_gebied
+      gebied_cod: gebied_code
+      gebied_oms: gebied_omschrijving
+      e_dat_gebi: eind_datum_gebied
+      domein_cod: domein_code
+      gebruiks_d: gebruiks_doel
+      gebied_naa: gebied_naam
+    - b_dat_gebi: begin_datum_gebied
+      gebied_cod: gebied_code
+      omschrijvi: gebied_omschrijving
+      e_dat_gebi: eind_datum_gebied
+      domein_cod: domein_code
+      gebruiks_d: gebruiks_doel
+      gebied_naa: gebied_naam
+  rename_tablenames:
+    - parkeerzones
+    - parkeerzones_uitz
+reclamebelasting:
+  shp_file: Reclame_tariefgebieden.shp
+  zip_file: reclame-tarief-gebieden.zip
+bekendmakingen:
+  wfs_endpoint: wfs
+  wfs_params:
+    request: GetFeature
+    SERVICE: WFS
+    VERSION: 1.2.0
+    TYPENAME: geozet:bekendmakingen_punt
+    FILTER: |
+        <Filter>
+          <PropertyIsEqualTo>
+            <PropertyName>geozet:overheid</PropertyName>
+            <Literal>Amsterdam</Literal>
+          </PropertyIsEqualTo>
+        </Filter>
+    outputFormat: application/json
+  geotype: ST_Point
