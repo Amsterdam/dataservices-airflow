@@ -26,17 +26,19 @@ with DAG("testdag", default_args=default_args,) as dag:
         output_path="/tmp/blaat/out2.zip",
     )
 
-    # This needs a working connection object
-    # and volume connection to the docker socket
-    # docker_task = DockerOperator(
-    #     task_id="docker_command",
-    #     docker_conn_id="docker",
-    #     image="dcatd:production",
-    #     api_version="auto",
-    #     auto_remove=True,
-    #     command="/bin/sleep 30",
-    #     # docker_url="unix://var/run/docker.sock",
-    #     network_mode="bridge",
-    # )
+swift_task
+
+# This needs a working connection object
+# and volume connection to the docker socket
+# docker_task = DockerOperator(
+#     task_id="docker_command",
+#     docker_conn_id="docker",
+#     image="dcatd:production",
+#     api_version="auto",
+#     auto_remove=True,
+#     command="/bin/sleep 30",
+#     # docker_url="unix://var/run/docker.sock",
+#     network_mode="bridge",
+# )
 
 # docker-registry.data.amsterdam.nl/datapunt/dcatd:production
