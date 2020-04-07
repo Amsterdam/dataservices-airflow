@@ -5,7 +5,7 @@
          env = os.environ.copy()
          env['PGHOST'] = url.host or ""
 -        env['PGPORT'] = url.port or ""
-+        env['PGPORT'] = str(url.port) or ""  # JJM patched, env vars should be strings
++        env['PGPORT'] = str(url.port or "")  # JJM patched, env vars should be strings
          env['PGUSER'] = url.username or ""
          # PostgreSQL does not allow the use of PGPASSFILE if the current user is root.
          env["PGPASSWORD"] = url.password or ""
