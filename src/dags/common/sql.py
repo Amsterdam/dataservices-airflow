@@ -33,10 +33,12 @@ SQL_CHECK_COUNT = """
 """
 
 SQL_CHECK_GEO = """
+  {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
   SELECT 1 WHERE NOT EXISTS (
       SELECT FROM {{ params.tablename }} WHERE
-        wkb_geometry IS null OR ST_IsValid(wkb_geometry) = false
-          OR ST_GeometryType(wkb_geometry) <> '{{ params.geotype }}'
+        {{ geo_column }} IS null OR
+        ST_IsValid({{ geo_column }}) = false
+          OR ST_GeometryType({{ geo_column }}) <> '{{ params.geotype }}'
       )
 """
 

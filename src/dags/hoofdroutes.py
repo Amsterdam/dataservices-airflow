@@ -4,7 +4,6 @@ from airflow.operators.python_operator import PythonOperator
 
 # from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from airflow import DAG
-from airflow.models import Variable
 
 
 from common import pg_params, default_args
@@ -19,7 +18,6 @@ from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOpe
 
 
 dag_id = "hoofdroutes"
-dag_config = Variable.get(dag_id, deserialize_json=True)
 
 with DAG(dag_id, default_args=default_args,) as dag:
 

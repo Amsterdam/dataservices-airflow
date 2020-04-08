@@ -51,3 +51,21 @@ bekendmakingen:
         </Filter>
     outputFormat: application/json
   geotype: ST_Point
+asbest:
+  zip_file:
+    Amsterdam_Asbestverdachte_daken_Shape.zip
+  shp_files:
+    - Asbestverdachte_daken_gegevens.shp
+    - Asbestverdachte_Percelen.shp
+  tables:
+    - asbest_daken_new 
+    - asbest_percelen_new 
+  rename_tablenames:
+    - asbest_daken
+    - asbest_percelen
+bed_and_breakfast:
+  sql_file_base:
+    bb_quotum
+biz:
+  base_filename:
+    BIZZONES

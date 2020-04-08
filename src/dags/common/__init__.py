@@ -5,6 +5,7 @@ from airflow.utils.dates import days_ago
 env = Env()
 
 slack_webhook_token = env("SLACK_WEBHOOK")
+DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
 default_args = {
     "owner": "dataservices",

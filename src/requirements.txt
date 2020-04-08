@@ -116,6 +116,7 @@ websocket-client==0.57.0  # via docker
 werkzeug==0.16.1          # via apache-airflow, flask, flask-caching, flask-jwt-extended
 wrapt==1.12.1             # via debtcollector
 wtforms==2.2.1            # via flask-admin, flask-wtf
+xlrd==1.2.0               # via -r requirements.in
 yamlip==0.0.2             # via -r requirements.in
 zope.deprecation==4.4.0   # via apache-airflow
 

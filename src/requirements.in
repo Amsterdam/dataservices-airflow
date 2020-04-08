@@ -8,3 +8,4 @@ flask_bcrypt
 docker
 supervisor
 yamlip
+xlrd
