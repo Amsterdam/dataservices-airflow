@@ -21,6 +21,7 @@ default_args = {
 
 pg_params = " ".join(
     [
+        "-1",
         "-X",
         "--set",
         "ON_ERROR_STOP",

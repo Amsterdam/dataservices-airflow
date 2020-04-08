@@ -13,6 +13,10 @@ airflow connections --add  --conn_id slack --conn_host $SLACK_WEBHOOK_HOST \
 airflow connections --delete --conn_id geozet_conn_id
 airflow connections --add  --conn_id geozet_conn_id --conn_host http://geozet.koop.overheid.nl \
     --conn_type http
+airflow connections --delete --conn_id hior_conn_id
+airflow connections --add  --conn_id hior_conn_id \
+    --conn_host http://131f4363709c46b89a6ba5bc764b38b9.objectstore.eu \
+    --conn_type http
 # airflow variables -i vars/vars.json & 
 # airflow scheduler & 
 # airflow webserver

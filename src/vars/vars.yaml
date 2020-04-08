@@ -69,3 +69,6 @@ bed_and_breakfast:
 biz:
   base_filename:
     BIZZONES
+hior:
+  xls_endpoint:
+    "hior/HIOR Amsterdam.xlsx"
