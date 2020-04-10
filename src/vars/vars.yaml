@@ -72,3 +72,8 @@ biz:
 hior:
   xls_endpoint:
     "hior/HIOR Amsterdam.xlsx"
+iot:
+  objects:
+    - 3D sensor 
+    - WiFi sensor
+    - Telcamera

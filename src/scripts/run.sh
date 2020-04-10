@@ -17,6 +17,10 @@ airflow connections --delete --conn_id hior_conn_id
 airflow connections --add  --conn_id hior_conn_id \
     --conn_host http://131f4363709c46b89a6ba5bc764b38b9.objectstore.eu \
     --conn_type http
+airflow connections --delete --conn_id ams_maps_conn_id
+airflow connections --add  --conn_id ams_maps_conn_id \
+    --conn_host https://maps.amsterdam.nl \
+    --conn_type http
 # airflow variables -i vars/vars.json & 
 # airflow scheduler & 
 # airflow webserver

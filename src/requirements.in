@@ -9,3 +9,4 @@ docker
 supervisor
 yamlip
 xlrd
+python-string-utils
