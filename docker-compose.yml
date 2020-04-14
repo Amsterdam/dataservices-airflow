@@ -22,6 +22,7 @@ services:
         postgresql://ds_airflow:insecure@database:5432/ds_airflow?cursor=dictcursor&
       FERNET_KEY: ${FERNET_KEY}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
+      DATAPUNT_ENVIRONMENT: development
       SLACK_WEBHOOK_HOST: https://hooks.slack.com/services
       SLACK_WEBHOOK: ${SLACK_WEBHOOK}
       OS_USERNAME: vsd_user

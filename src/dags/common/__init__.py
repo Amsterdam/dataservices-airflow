@@ -2,10 +2,17 @@ from datetime import timedelta
 from environs import Env
 from airflow.utils.dates import days_ago
 
+from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
+from airflow.operators.dummy_operator import DummyOperator
+
 env = Env()
 
 slack_webhook_token = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
+
+MessageOperator = (
+    DummyOperator if DATAPUNT_ENVIRONMENT == "development" else SlackWebhookOperator
+)
 
 default_args = {
     "owner": "dataservices",
