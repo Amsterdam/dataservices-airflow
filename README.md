@@ -28,7 +28,7 @@ The `SLACK_WEBHOOK` is used to adress the Slack API.
     docker-compose up airflow
 
 Airflow is running as two separate processes, a webserver with the Airflow UI and
-a scheduler. The script `src/scripts/run.sh` is preparing some Airflow configuration
+a scheduler. The script `scripts/run.sh` is preparing some Airflow configuration
 (variables and connections) and then spawn the webserver and scheduler process using
 supervisor.
 
@@ -99,4 +99,30 @@ Inside the container:
 The output is sent to stdout. These test runs are not visible in the web UI.
 When the PythonOperator is used, it is even possible to use the python pdb debugger.
 
+# Updating of DAGs
+
+When the Airflow container is re-deployed, all DAGs are included in the Docker container.
+However, to update the DAGs it is not needed to re-deploy the full Airflow container.
+There is one special DAG called `update_dags` that periodically pulls the latest DAGs
+from the github repo into the container.
+
+
+# Variables
+
+Configuration that is needed for the DAGs can be stored in variables. These variable can be
+changed through the web UI, however, that is only relevant for testing.
+
+Variables are imported from a json file `vars/vars.json` during startup of the container. These json file
+is generated from a yaml file in `vars/vars.yaml`.
+
+In a running containers, the following commands can update the variables:
+
+    python scripts/mkvars.py
+    airflow variables -i vars/vars.json
+
+# Connections
+
+Airflow maintains a list of connections (DB connections, http connections etc.). 
+These connections can be maintained through the web UI.
+During startup a set of connections is created/updated (see `scripts/run.sh`)
 
