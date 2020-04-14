@@ -79,7 +79,7 @@ def create_count(value):
     return "null" if value == "nvt" else value
 
 
-def import_fietspaaltjes(file_path):
+def import_fietspaaltjes(file_path, output_path):
 
     value_lines = []
     ids = set()
@@ -111,11 +111,12 @@ def import_fietspaaltjes(file_path):
             except DuplicateError:
                 pass
 
-    print(
-        INSERT_TMPL.format(
-            names=", ".join(MAPPING.keys()), values=",\n".join(value_lines)
+    with open(output_path, "w") as outfile:
+        outfile.write(
+            INSERT_TMPL.format(
+                names=", ".join(MAPPING.keys()), values=",\n".join(value_lines)
+            )
         )
-    )
 
 
 if __name__ == "__main__":

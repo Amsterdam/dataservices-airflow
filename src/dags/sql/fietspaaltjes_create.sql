@@ -1,5 +1,3 @@
-BEGIN;
-
 DROP TABLE IF EXISTS fietspaaltjes_new;
 
 CREATE TABLE fietspaaltjes_new (
@@ -24,4 +22,4 @@ CREATE TABLE fietspaaltjes_new (
     noodzaak varchar(64)[]
 );
 
-COMMIT;
+CREATE INDEX fietspaaltjes_new_wkb_geometry_geom_idx ON fietspaaltjes_new USING gist (geometry);

@@ -5,14 +5,13 @@ SQL_DROP_TABLE = """
 """
 
 SQL_TABLE_RENAME = """
-    BEGIN;
+    {% set pk = params.pk|default("pk", true) %}
     ALTER TABLE IF EXISTS {{ params.tablename }} RENAME TO {{ params.tablename }}_old;
     ALTER TABLE {{ params.tablename }}_new RENAME TO {{ params.tablename }};
     DROP TABLE IF EXISTS {{ params.tablename }}_old;
-    ALTER INDEX {{ params.tablename }}_new_pk RENAME TO {{ params.tablename }}_pk;
+    ALTER INDEX {{ params.tablename }}_new_{{ pk }} RENAME TO {{ params.tablename }}_pk;
     ALTER INDEX {{ params.tablename }}_new_wkb_geometry_geom_idx
       RENAME TO {{ params.tablename }}_wkb_geometry_geom_idx;
-    COMMIT;
 """
 
 SQL_TABLE_RENAMES = """
