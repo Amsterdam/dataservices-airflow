@@ -40,6 +40,12 @@ once inside of the PostgreSQL database using this command:
 
 This script prompts for a password and stores the credentials in the PostgreSQL database.
 
+# Init the airflow database tables
+
+The database tables that Airflow needs for its own administration need to be create once.
+This can be done with:
+
+    docker-compose exec airflow airflow initdb
 
 
 # Managing requirements.txt
@@ -74,7 +80,7 @@ in the data pipeline using Airflow Operators or Dataservices specific operator.
 
 Make sure the Operators are connected into a DAG (using the `>>` Airflow syntax).
 
-Airflow polls the `src/dags` directory at regular interval, so it will pick up the new DAG.
+Airflow polls the `src/dags` directory at regular intervals, so it will pick up the new DAG.
 In the Airflow web UI, the new DAG can be activated using (On/Off) switch in column 2 of DAG overview.
 
 In the tree view of a DAG the status of the Operator steps are visible and the logs can be checked.
