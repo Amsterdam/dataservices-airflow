@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS fietspaaltjes_new;
+DROP TABLE IF EXISTS fietspaaltjes_fietspaaltjes_new;
 
-CREATE TABLE fietspaaltjes_new (
+CREATE TABLE fietspaaltjes_fietspaaltjes_new (
     id varchar(32) PRIMARY KEY NOT NULL,
     geometry geometry(Geometry, 28992),
     street varchar(128),
@@ -22,4 +22,5 @@ CREATE TABLE fietspaaltjes_new (
     noodzaak varchar(64)[]
 );
 
-CREATE INDEX fietspaaltjes_new_wkb_geometry_geom_idx ON fietspaaltjes_new USING gist (geometry);
+CREATE INDEX fietspaaltjes_fietspaaltjes_new_wkb_geometry_geom_idx 
+    ON fietspaaltjes_fietspaaltjes_new USING gist (geometry);

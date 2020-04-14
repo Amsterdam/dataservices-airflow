@@ -51,7 +51,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     rename_table = PostgresOperator(
         task_id="rename_table",
         sql=SQL_TABLE_RENAME,
-        params=dict(tablename="fietspaaltjes", pk="pkey"),
+        params=dict(tablename=f"{dag_id}_{dag_id}", pk="pkey"),
     )
 
 slack_at_start >> fetch_json >> create_sql >> create_and_fill_table >> rename_table

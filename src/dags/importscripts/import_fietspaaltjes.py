@@ -3,7 +3,7 @@ from jsonpointer import resolve_pointer
 import requests
 
 INSERT_TMPL = """
-    INSERT INTO fietspaaltjes_new (
+    INSERT INTO fietspaaltjes_fietspaaltjes_new (
         {names}
     )
     VALUES
@@ -34,7 +34,15 @@ MAPPING = {
 }
 
 
-class DuplicateError(ValueError):
+class ValidationError(Exception):
+    pass
+
+
+class DuplicateError(ValidationError):
+    pass
+
+
+class InvalidValueError(ValidationError):
     pass
 
 
@@ -79,6 +87,24 @@ def create_count(value):
     return "null" if value == "nvt" else value
 
 
+def check_data(field_name, value):
+    invalid = {
+        "paaltjes_weg": {
+            "2013 wel, nu weg",
+            "verwijderen paal(en)",
+            "verwijderen paal en poer",
+        },
+        "noodzaak": {"niet functioneel/ niet noodzakelijk", "er past nu een auto door"},
+    }
+
+    values = invalid.get(field_name)
+    if values is None:
+        return
+
+    if set(value) & values:
+        raise InvalidValueError
+
+
 def import_fietspaaltjes(file_path, output_path):
 
     value_lines = []
@@ -92,9 +118,10 @@ def import_fietspaaltjes(file_path, output_path):
                 values = []
                 for field_name, ptr in MAPPING.items():
                     value = resolve_pointer(point, ptr)
+                    check_data(field_name, value)
                     if field_name.startswith("id"):
                         if value in ids:
-                            raise DuplicateError("Dupplicate ID")
+                            raise DuplicateError("Duplicate ID")
                         ids.add(value)
                     if field_name == "count":
                         value = create_count(value)
@@ -108,7 +135,7 @@ def import_fietspaaltjes(file_path, output_path):
 
                 value_line = ", ".join(values)
                 value_lines.append(f"({value_line})")
-            except DuplicateError:
+            except ValidationError:
                 pass
 
     with open(output_path, "w") as outfile:
