@@ -284,15 +284,6 @@ VALUES"""
             f.write(";")
 
 
-def import_things(item, arg):
-    if item == "cameras":
-        return import_cameras(arg)
-    elif item == "beacons":
-        return import_beacons(arg)
-    else:
-        return import_sensors(arg)
-
-
 def import_iot(cameras, beacons, sensors, out_dir):
 
     for f in Path(out_dir).glob("*.sql"):
@@ -307,7 +298,3 @@ def import_iot(cameras, beacons, sensors, out_dir):
     ):
         things, locations = func(arg)
         write_inserts(out_dir, things, locations)
-
-    # for item in [cameras, beacons, sensors]:
-    #     things, locations = import_things(item)
-    #     write_inserts(out_dir, things, locations)
