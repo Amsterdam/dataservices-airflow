@@ -52,6 +52,7 @@ iso8601==0.1.12           # via apache-airflow, keystoneauth1, oslo.utils
 itsdangerous==1.1.0       # via flask, flask-wtf
 jinja2==2.10.3            # via apache-airflow, flask, flask-babel
 json-merge-patch==0.2     # via apache-airflow
+jsonpointer==2.0          # via -r requirements.in
 jsonschema==3.2.0         # via apache-airflow, flask-appbuilder
 keystoneauth1==3.18.0     # via python-keystoneclient
 lazy-object-proxy==1.4.3  # via apache-airflow
