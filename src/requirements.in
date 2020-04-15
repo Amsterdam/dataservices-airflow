@@ -13,3 +13,5 @@ python-string-utils
 jsonpointer
 GeoAlchemy2
 Shapely
+simplejson
+geojson

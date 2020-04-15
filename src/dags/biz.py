@@ -14,14 +14,12 @@ from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_CHECK_COLNAMES
 from importscripts.convert_biz_data import convert_biz_data
 
 SQL_TABLE_RENAME = """
-    BEGIN;
     ALTER TABLE IF EXISTS biz_data RENAME TO biz_data_old;
     ALTER TABLE biz_data_new RENAME TO biz_data;
     DROP TABLE IF EXISTS biz_data_old CASCADE;
     ALTER VIEW biz_view_new RENAME TO biz_view;
     ALTER INDEX naam_unique_new RENAME TO naam_unique;
     ALTER INDEX biz_data_new_wkb_geometry_geom_idx RENAME TO biz_data_wkb_geometry_geom_idx;
-    COMMIT;
 """
 
 dag_id = "biz"
