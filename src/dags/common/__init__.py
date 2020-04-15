@@ -32,7 +32,7 @@ pg_params = " ".join(
 
 
 def slack_failed_task(context):
-    failed_alert = SlackWebhookOperator(
+    failed_alert = MessageOperator(
         task_id="failed_alert",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
