@@ -6,8 +6,8 @@ huishoudelijkafval:
   - afval_container
   - afval_cluster
 parkeerzones:
-  shp_files: 
-    - act_RDW_3EXP_VERGUNNINGGEBIED.shp 
+  shp_files:
+    - act_RDW_3EXP_VERGUNNINGGEBIED.shp
     - act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
   tables:
     - parkeerzones_new
@@ -58,8 +58,8 @@ asbest:
     - Asbestverdachte_daken_gegevens.shp
     - Asbestverdachte_Percelen.shp
   tables:
-    - asbest_daken_new 
-    - asbest_percelen_new 
+    - asbest_daken_new
+    - asbest_percelen_new
   rename_tablenames:
     - asbest_daken
     - asbest_percelen
@@ -74,6 +74,9 @@ hior:
     "hior/HIOR Amsterdam.xlsx"
 iot:
   objects:
-    - 3D sensor 
+    - 3D sensor
     - WiFi sensor
     - Telcamera
+grex:
+  csv_file:
+    "grex_plannen.csv"

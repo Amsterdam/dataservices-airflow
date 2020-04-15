@@ -11,3 +11,5 @@ yamlip
 xlrd
 python-string-utils
 jsonpointer
+GeoAlchemy2
+Shapely
