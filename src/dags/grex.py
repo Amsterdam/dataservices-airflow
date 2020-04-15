@@ -55,9 +55,11 @@ def load_grex(input_csv, table_name):
         dayfirst=True,
         index_col="PLANNR",
     )
-    df.rename(columns=lambda x: x.lower(), inplace=True)
+    df.rename(
+        columns=lambda x: "geometry" if x == "GEOMETRIE" else x.lower(), inplace=True
+    )
     df.index.name = "id"
-    df["geometrie"] = df["geometrie"].apply(wkt_loads_wrapped)
+    df["geometry"] = df["geometry"].apply(wkt_loads_wrapped)
 
     grex_rapportage_dtype = {
         "id": Integer(),
@@ -66,7 +68,7 @@ def load_grex(input_csv, table_name):
         "startdatum": Date(),
         "planstatus": Text(),
         "oppervlakte": Float(),
-        "geometrie": Geometry(geometry_type="MULTIPOLYGON", srid=4326),
+        "geometry": Geometry(geometry_type="MULTIPOLYGON", srid=4326),
     }
 
     df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
@@ -82,9 +84,9 @@ table_name_new = f"{dag_id}_new"
 SQL_TABLE_RENAME = f"""
     DROP TABLE IF EXISTS {table_name} CASCADE;
     ALTER TABLE {table_name_new} RENAME TO {table_name};
-    ALTER TABLE {table_name} RENAME CONSTRAINT {table_name_new}_pkey TO grex_pkey;
+    ALTER TABLE {table_name} RENAME CONSTRAINT {table_name_new}_pkey TO {table_name}_pkey;
     ALTER INDEX ix_{table_name_new}_id RENAME TO ix_{table_name}_id;
-    ALTER INDEX idx_{table_name_new}_geometrie RENAME TO idx_{table_name}_geometrie;
+    ALTER INDEX idx_{table_name_new}_geometry RENAME TO idx_{table_name}_geometry;
 """
 
 
@@ -118,7 +120,7 @@ with DAG("grex", default_args=default_args, description="GrondExploitatie",) as 
     #     task_id="check_geo",
     #     sql=SQL_CHECK_GEO,
     #     params=dict(
-    #         tablename="grex_new", geotype="ST_MultiPolygon", geo_column="geometrie"
+    #         tablename="grex_new", geotype="ST_MultiPolygon", geo_column="geometry"
     #     ),
     # )
 
