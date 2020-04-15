@@ -14,17 +14,6 @@ MessageOperator = (
     DummyOperator if DATAPUNT_ENVIRONMENT == "development" else SlackWebhookOperator
 )
 
-default_args = {
-    "owner": "dataservices",
-    "depends_on_past": False,
-    "start_date": days_ago(1),
-    "email": ["airflow@example.com"],
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "retries": 1,
-    "retry_delay": timedelta(minutes=15),
-    "catchup": False,  # do not backfill
-}
 
 pg_params = " ".join(
     [
@@ -40,3 +29,28 @@ pg_params = " ".join(
         env("POSTGRES_USER"),
     ]
 )
+
+
+def slack_failed_task(context):
+    failed_alert = SlackWebhookOperator(
+        task_id="failed_alert",
+        http_conn_id="slack",
+        webhook_token=slack_webhook_token,
+        message=f"Failed task {context}",
+        username="admin",
+    )
+    return failed_alert.execute(context=context)
+
+
+default_args = {
+    "owner": "dataservices",
+    "depends_on_past": False,
+    "start_date": days_ago(1),
+    "email": ["airflow@example.com"],
+    "email_on_failure": False,
+    "email_on_retry": False,
+    "on_failure_callback": slack_failed_task,
+    "retries": 1,
+    "retry_delay": timedelta(minutes=15),
+    "catchup": False,  # do not backfill
+}

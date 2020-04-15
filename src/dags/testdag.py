@@ -1,25 +1,21 @@
-from datetime import timedelta
 from airflow import DAG
 
 # from swift_operator import SwiftOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
 
+# from airflow.operators.dummy_operator import DummyOperator
+
+from common import default_args
 from common import pg_params
 
 # from airflow.operators.docker_operator import DockerOperator
 
-default_args = {
-    "owner": "dataservices",
-    "depends_on_past": False,
-    "start_date": "2020-04-01",
-    "email": ["airflow@example.com"],
-    "email_on_failure": False,
-    "email_on_retry": False,
-    "retries": 1,
-    "retry_delay": timedelta(minutes=15),
-    "catchup": False,  # do not backfill
-}
+
+def create_error(*args, **kwargs):
+    raise Exception
+
 
 with DAG("testdag", default_args=default_args,) as dag:
 
@@ -40,6 +36,11 @@ with DAG("testdag", default_args=default_args,) as dag:
     bashtest = BashOperator(
         task_id="bashtest", bash_command=f"psql {pg_params} < /tmp/doit.sql",
     )
+
+    failing_task = PythonOperator(
+        task_id="failing_task", python_callable=create_error, provide_context=True,
+    )
+
 
 # This needs a working connection object
 # and volume connection to the docker socket
