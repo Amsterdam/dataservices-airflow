@@ -29,6 +29,12 @@ airflow connections --delete --conn_id fietspaaltjes_conn_id
 airflow connections --add  --conn_id fietspaaltjes_conn_id \
     --conn_host https://cdn.endora.nl \
     --conn_type http
+
+airflow connections --delete --conn_id verlichting_conn_id
+airflow connections --add  --conn_id verlichting_conn_id \
+    --conn_host https://asd2.techtek.eu \
+    --conn_type http
+
 # airflow variables -i vars/vars.json & 
 # airflow scheduler & 
 # airflow webserver

@@ -56,3 +56,6 @@ default_args = {
     "retry_delay": timedelta(minutes=15),
     "catchup": False,  # do not backfill
 }
+
+vsd_default_args = default_args.copy()
+vsd_default_args["postgres_default"] = "blaat"
