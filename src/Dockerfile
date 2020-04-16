@@ -5,9 +5,7 @@ MAINTAINER datapunt@amsterdam.nl
 # Seems that pg_comparator installs full postgresql, that's not what we want
 # RUN apt-get update && apt-get install -y postgresql-comparator
 RUN apt-get update \
- && apt-get dist-upgrade -y \
- && apt-get autoremove -y \
- && apt-get install --no-install-recommends -y build-essential rsync
+ && apt-get install --no-install-recommends -y rsync
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
