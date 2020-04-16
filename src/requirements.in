@@ -1,17 +1,17 @@
-apache-airflow[crypto,postgres]
-cattrs
-flake8
-python-keystoneclient
-python-swiftclient
-environs
-flask_bcrypt
-docker
-supervisor
-yamlip
-xlrd
-python-string-utils
-jsonpointer
-GeoAlchemy2
-Shapely
-simplejson
-geojson
+apache-airflow[crypto,postgres] == 1.10.10
+cattrs == 0.9
+flake8 == 3.7.9
+python-keystoneclient == 4.0.0
+python-swiftclient == 3.9.0
+environs == 7.3.1
+flask_bcrypt == 0.7.1
+docker == 4.2.0
+supervisor == 4.1.0
+yamlip == 0.0.2
+xlrd == 1.2.0
+python-string-utils == 1.0.0
+jsonpointer == 2.0
+GeoAlchemy2 == 0.7.0
+Shapely == 1.7.0
+simplejson == 3.17.0
+geojson == 2.5.0

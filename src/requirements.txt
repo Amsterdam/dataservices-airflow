@@ -5,7 +5,7 @@
 #    pip-compile --output-file=requirements.txt requirements.in
 #
 alembic==1.4.2            # via apache-airflow
-apache-airflow[crypto,postgres]==1.10.9  # via -r requirements.in
+apache-airflow[crypto,postgres]==1.10.10  # via -r requirements.in
 apispec[yaml]==1.3.3      # via flask-appbuilder
 argcomplete==1.11.1       # via apache-airflow
 attrdict==2.0.1           # via yamlip
@@ -34,7 +34,6 @@ flake8==3.7.9             # via -r requirements.in
 flask-admin==1.5.4        # via apache-airflow
 flask-appbuilder==2.3.0   # via apache-airflow
 flask-babel==1.0.0        # via flask-appbuilder
-flask-bcrypt==0.7.1       # via -r requirements.in
 flask-caching==1.3.3      # via apache-airflow
 flask-jwt-extended==3.24.1  # via flask-appbuilder
 flask-login==0.4.1        # via apache-airflow, flask-appbuilder
@@ -43,6 +42,7 @@ flask-sqlalchemy==2.4.1   # via flask-appbuilder
 flask-swagger==0.2.13     # via apache-airflow
 flask-wtf==0.14.3         # via apache-airflow, flask-appbuilder
 flask==1.1.1              # via apache-airflow, flask-admin, flask-appbuilder, flask-babel, flask-bcrypt, flask-caching, flask-jwt-extended, flask-login, flask-openid, flask-sqlalchemy, flask-swagger, flask-wtf
+flask_bcrypt==0.7.1       # via -r requirements.in
 funcsigs==1.0.2           # via apache-airflow
 future==0.16.0            # via apache-airflow
 geoalchemy2==0.7.0        # via -r requirements.in
@@ -50,6 +50,7 @@ geojson==2.5.0            # via -r requirements.in
 graphviz==0.13.2          # via apache-airflow
 gunicorn==19.10.0         # via apache-airflow
 idna==2.9                 # via requests
+importlib-metadata==1.6.0  # via argcomplete, jsonschema
 iso8601==0.1.12           # via apache-airflow, keystoneauth1, oslo.utils
 itsdangerous==1.1.0       # via flask, flask-wtf
 jinja2==2.10.3            # via apache-airflow, flask, flask-babel
@@ -92,7 +93,7 @@ python-daemon==2.1.2      # via apache-airflow
 python-dateutil==2.8.1    # via alembic, apache-airflow, croniter, flask-appbuilder, pandas, pendulum
 python-dotenv==0.12.0     # via environs
 python-editor==1.0.4      # via alembic
-python-keystoneclient==3.22.0  # via -r requirements.in
+python-keystoneclient==4.0.0  # via -r requirements.in
 python-string-utils==1.0.0  # via -r requirements.in
 python-swiftclient==3.9.0  # via -r requirements.in
 python3-openid==3.1.0     # via flask-openid
@@ -115,6 +116,7 @@ tenacity==4.12.0          # via apache-airflow
 termcolor==1.1.0          # via apache-airflow
 text-unidecode==1.2       # via apache-airflow
 thrift==0.13.0            # via apache-airflow
+typing-extensions==3.7.4.2  # via apache-airflow
 tzlocal==1.5.1            # via apache-airflow, pendulum
 unicodecsv==0.14.1        # via apache-airflow
 urllib3==1.25.8           # via requests
@@ -124,6 +126,7 @@ wrapt==1.12.1             # via debtcollector
 wtforms==2.2.1            # via flask-admin, flask-wtf
 xlrd==1.2.0               # via -r requirements.in
 yamlip==0.0.2             # via -r requirements.in
+zipp==3.1.0               # via importlib-metadata
 zope.deprecation==4.4.0   # via apache-airflow
 
 # The following packages are considered to be unsafe in a requirements file:
