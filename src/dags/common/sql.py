@@ -37,7 +37,12 @@ SQL_CHECK_GEO = """
       SELECT FROM {{ params.tablename }} WHERE
         {{ geo_column }} IS null
         {% if params.check_valid|default(true) %} OR ST_IsValid({{ geo_column }}) = false {% endif %}
-          OR ST_GeometryType({{ geo_column }}) <> '{{ params.geotype }}'
+          OR ST_GeometryType({{ geo_column }})
+        {% if params.geotype is string %}
+          <> '{{ params.geotype }}'
+        {% else %}
+          NOT IN ({{ params.geotype | map('quote') | join(", ") }})
+        {% endif %}
       )
 """
 

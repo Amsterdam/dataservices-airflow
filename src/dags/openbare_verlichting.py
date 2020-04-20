@@ -34,7 +34,6 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"]) as da
         username="admin",
     )
 
-    # XXX maybe use wget, or make HttpFetchOperator stream to disk
     objects_fetch = HttpFetchOperator(
         task_id="objects_fetch",
         endpoint="{{ var.json.openbare_verlichting.objects_endpoint }}",
