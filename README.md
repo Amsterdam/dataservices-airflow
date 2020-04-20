@@ -40,13 +40,6 @@ once inside of the PostgreSQL database using this command:
 
 This script prompts for a password and stores the credentials in the PostgreSQL database.
 
-# Init the airflow database tables
-
-The database tables that Airflow needs for its own administration need to be create once.
-This can be done with:
-
-    docker-compose exec airflow airflow initdb
-
 
 # Managing requirements.txt
 

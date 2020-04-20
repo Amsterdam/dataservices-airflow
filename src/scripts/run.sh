@@ -4,6 +4,7 @@
 echo "$POSTGRES_HOST:$POSTGRES_PORT:$POSTGRES_DB:$POSTGRES_USER:$POSTGRES_PASSWORD" > /root/.pgpass
 chmod 500 /root/.pgpass
 
+airflow initdb  # initdb is not destructive, so can be re-run at startup
 python scripts/mkvars.py
 # Airflow does not support slack connection config through environment var
 # So we (re-)create the slack connection on startup.
