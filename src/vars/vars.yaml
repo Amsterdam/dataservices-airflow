@@ -83,3 +83,12 @@ grex:
 openbare_verlichting:
   objects_endpoint: asd/services/rest_sia.php/SIAService/objecten
   types_endpoint: asd/services/rest_sia.php/SIAService/types
+trm:
+  - 
+    zip: Tram KGEs.zip
+    name: tram
+    shp: KGE_hartlijnen_Amsterdam_2.054.shp
+  - 
+    zip: Metro KGEs.zip
+    name: metro
+    shp: Metro KGEs.shp

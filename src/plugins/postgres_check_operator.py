@@ -96,6 +96,8 @@ class PostgresValueCheckOperator(BaseOperator):
     :type sql: str
     :param pass_value: the sql to be executed
     :type pass_value: Any
+    :param result_checker: function (if not None) to be used to compare result with pass_value
+    :type result_checker: Function
     """
 
     template_fields = (
@@ -106,12 +108,19 @@ class PostgresValueCheckOperator(BaseOperator):
 
     @apply_defaults
     def __init__(
-        self, sql, pass_value, postgres_conn_id="postgres_default", *args, **kwargs
+        self,
+        sql,
+        pass_value,
+        postgres_conn_id="postgres_default",
+        result_checker=None,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.sql = sql
         self.pass_value = pass_value
         self.postgres_conn_id = postgres_conn_id
+        self.result_checker = result_checker
 
     def execute(self, context=None):
         self.log.info("Executing SQL value check: %s", self.sql)
@@ -120,8 +129,11 @@ class PostgresValueCheckOperator(BaseOperator):
         if not records:
             raise AirflowException("The query returned None")
 
-        if records != self.pass_value:
-            raise AirflowException(f"{records} != {self.pass_value}")
+        checker = self.result_checker or (
+            lambda records, pass_value: records == pass_value
+        )
+        if not checker(records, self.pass_value):
+            raise AirflowException(f"{records} does not match {self.pass_value}")
 
     def get_db_hook(self):
         return PostgresHook(postgres_conn_id=self.postgres_conn_id)

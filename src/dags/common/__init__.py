@@ -38,7 +38,7 @@ def slack_failed_task(context):
         task_id="failed_alert",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Failed task {context}",
+        message="Failed task",
         username="admin",
     )
     return failed_alert.execute(context=context)
@@ -58,4 +58,4 @@ default_args = {
 }
 
 vsd_default_args = default_args.copy()
-vsd_default_args["postgres_default"] = "blaat"
+vsd_default_args["postgres_conn_id"] = "postgres_default"
