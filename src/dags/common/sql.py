@@ -15,7 +15,6 @@ SQL_TABLE_RENAME = """
 """
 
 SQL_TABLE_RENAMES = """
-    BEGIN;
     {% for tablename in params.tablenames %}
       ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
       ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
@@ -24,7 +23,6 @@ SQL_TABLE_RENAMES = """
       ALTER INDEX {{ tablename }}_new_wkb_geometry_geom_idx
         RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
     {% endfor %}
-    COMMIT;
 """
 
 SQL_CHECK_COUNT = """

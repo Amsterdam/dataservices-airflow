@@ -106,7 +106,7 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
                 sql=SQL_CHECK_COLNAMES,
                 pass_value=colnames,
                 result_checker=checker,
-                params=dict(tablename=f"trm_{name}_new"),
+                params=dict(tablename=f"{dag_id}_{name}_new"),
             )
         )
 
