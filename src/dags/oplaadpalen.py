@@ -47,7 +47,12 @@ def choose_branch(**kwargs):
     return "update_oplaadpalen" if oplaadpalen_exists else "create_oplaadpalen"
 
 
-with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as dag:
+with DAG(
+    dag_id,
+    default_args=vsd_default_args,
+    template_searchpath=["/"],
+    schedule_interval="@hourly",
+) as dag:
 
     tmp_dir = f"/tmp/{dag_id}"
 
