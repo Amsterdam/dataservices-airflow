@@ -334,7 +334,7 @@ def import_oplaadpalen(pg_conn, max_inserts=100):
                     status = opl["st"]
                     if status == "Deleted":
                         continue
-                    log.info(f"{id1} {status}")
+                    log.debug(f"{id1} {status}")
                     oplaadpaal_db = get_oplaadpaal(curs, table_name, id1)
                     if oplaadpaal_db:
                         # randomize complete update

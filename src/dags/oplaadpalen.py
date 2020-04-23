@@ -80,9 +80,11 @@ with DAG(
         task_id="create_oplaadpalen", sql=f"{sql_path}/oplaadpalen_create.sql"
     )
 
+    # The trigger_rule is essential, otherwise the skipped path blocks progress
     import_allego = PythonOperator(
         task_id="import_allego",
         python_callable=import_oplaadpalen,
+        trigger_rule="none_failed_or_skipped",
         op_args=[
             PostgresHook(
                 postgres_conn_id=dag.default_args["postgres_conn_id"]
@@ -104,12 +106,7 @@ with DAG(
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME,)
 
-(
-    slack_at_start
-    >> check_table_exists
-    >> branch_task
-    >> [update_oplaadpalen, create_oplaadpalen]
-    >> import_allego
-    >> [check_count, check_geo]
-    >> rename_table
-)
+slack_at_start >> check_table_exists >> branch_task
+branch_task >> update_oplaadpalen >> import_allego
+branch_task >> create_oplaadpalen >> import_allego
+import_allego >> [check_count, check_geo] >> rename_table
