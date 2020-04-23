@@ -2,7 +2,6 @@ import pathlib
 from airflow import DAG
 
 
-from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from postgres_check_operator import PostgresCheckOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.postgres_hook import PostgresHook
@@ -10,7 +9,12 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.python_operator import BranchPythonOperator
 from postgres_xcom_operator import PostgresXcomOperator
 
-from common import vsd_default_args, slack_webhook_token, DATAPUNT_ENVIRONMENT
+from common import (
+    vsd_default_args,
+    slack_webhook_token,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+)
 from importscripts.oplaadpalen.import_oplaadpalen_allego import import_oplaadpalen
 
 from common.sql import (
@@ -56,7 +60,7 @@ with DAG(
 
     tmp_dir = f"/tmp/{dag_id}"
 
-    slack_at_start = SlackWebhookOperator(
+    slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,

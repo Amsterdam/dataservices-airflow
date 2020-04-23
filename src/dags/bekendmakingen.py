@@ -1,14 +1,19 @@
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
-# from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from airflow import DAG
 from airflow.models import Variable
 from http_fetch_operator import HttpFetchOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 
 # from .common import pg_params, default_args, slack_webhook_token
-from common import pg_params, default_args
+from common import (
+    pg_params,
+    default_args,
+    slack_webhook_token,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+)
 from common.sql import (
     SQL_TABLE_RENAME,
     SQL_CHECK_COUNT,
@@ -46,6 +51,14 @@ with DAG(dag_id, default_args=default_args,) as dag:
         ["url"],
         ["wkb_geometry"],
     ]
+
+    slack_at_start = MessageOperator(
+        task_id="slack_at_start",
+        http_conn_id="slack",
+        webhook_token=slack_webhook_token,
+        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        username="admin",
+    )
 
     wfs_fetch = HttpFetchOperator(
         task_id="wfs_fetch",
@@ -97,7 +110,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
     )
 
-    wfs_fetch >> extract_wfs >> drop_table >> load_table >> drop_bbox >> [
+    slack_at_start >> wfs_fetch >> extract_wfs >> drop_table >> load_table >> drop_bbox >> [
         check_count,
         check_geo,
         check_colnames,

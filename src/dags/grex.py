@@ -11,17 +11,13 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from postgres_check_operator import PostgresCheckOperator
 from airflow.operators.python_operator import PythonOperator
 
 from common import default_args
 from swift_operator import SwiftOperator
-from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 
-from common.sql import (
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
-)
+from common.sql import SQL_CHECK_COUNT
 
 
 def wkt_loads_wrapped(data):

@@ -8,10 +8,14 @@ from airflow.models import Variable
 # from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from http_fetch_operator import HttpFetchOperator
 
-from common import default_args, slack_webhook_token, DATAPUNT_ENVIRONMENT
+from common import (
+    default_args,
+    slack_webhook_token,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+)
 from importscripts.import_iot import import_iot
 
 dag_id = "iot"
@@ -62,7 +66,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     fetch_jsons = []
     tmp_dir = f"/tmp/{dag_id}"
 
-    slack_at_start = SlackWebhookOperator(
+    slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,

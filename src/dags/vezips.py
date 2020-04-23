@@ -2,11 +2,15 @@ import pathlib
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from http_fetch_operator import HttpFetchOperator
 
-from common import vsd_default_args, slack_webhook_token
+from common import (
+    vsd_default_args,
+    slack_webhook_token,
+    MessageOperator,
+    DATAPUNT_ENVIRONMENT,
+)
 
 from common.sql import (
     SQL_TABLE_RENAME,
@@ -42,11 +46,11 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         "bijzonderheden",
     ]
 
-    slack_at_start = SlackWebhookOperator(
+    slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id}",
+        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 

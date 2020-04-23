@@ -2,20 +2,20 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
-from environs import Env
 
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from swift_operator import SwiftOperator
-from common import default_args, slack_webhook_token
+from common import (
+    default_args,
+    slack_webhook_token,
+    MessageOperator,
+    DATAPUNT_ENVIRONMENT,
+)
 from common.sql import (
     SQL_CHECK_COUNT,
     SQL_CHECK_GEO,
 )
 
-env = Env()
-
-DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
 SQL_RENAME_COL = """
 ALTER TABLE asbest_daken_new RENAME COLUMN identifica TO pandidentificatie
@@ -61,7 +61,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     sql_file_path = f"{tmp_dir}/{DATAPUNT_ENVIRONMENT}/{sql_file}"
     sql_file_new_path = f"{tmp_dir}/{sql_file_new}"
 
-    slack_at_start = SlackWebhookOperator(
+    slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
