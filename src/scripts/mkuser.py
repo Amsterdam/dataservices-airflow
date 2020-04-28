@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import click
 from airflow import models, settings
 from airflow.contrib.auth.backends.password_auth import PasswordUser
