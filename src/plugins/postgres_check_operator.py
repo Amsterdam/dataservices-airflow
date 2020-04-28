@@ -1,139 +1,243 @@
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import BaseOperator
+import operator
+import re
+
 from airflow.exceptions import AirflowException
-from airflow.operators.check_operator import (
-    CheckOperator,
-    ValueCheckOperator,
-)
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.check_operator import CheckOperator, ValueCheckOperator
+from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.decorators import apply_defaults
+
+RE_SAFE_IDENTIFIER = re.compile(r"\A[a-z][a-z0-9_\-]+\Z", re.I)
 
 
 class PostgresCheckOperator(CheckOperator):
-    """
-    Performs checks against Postgres. The ``PostgresCheckOperator`` expects
-    a sql query that will return a single row. Each value on that
-    first row is evaluated using python ``bool`` casting. If any of the
-    values return ``False`` the check is failed and errors out.
-
-    Note that Python bool casting evals the following as ``False``:
-
-    * ``False``
-    * ``0``
-    * Empty string (``""``)
-    * Empty list (``[]``)
-    * Empty dictionary or set (``{}``)
-
-    Given a query like ``SELECT COUNT(*) FROM foo``, it will fail only if
-    the count ``== 0``. You can craft much more complex query that could,
-    for instance, check that the table has the same number of rows as
-    the source table upstream, or that the count of today's partition is
-    greater than yesterday's partition, or that a set of metrics are less
-    than 3 standard deviation for the 7 day average.
-
-    This operator can be used as a data quality check in your pipeline, and
-    depending on where you put it in your DAG, you have the choice to
-    stop the critical path, preventing from
-    publishing dubious data, or on the side and receive email alerts
-    without stopping the progress of the DAG.
-
-    :param sql: the sql to be executed
-    :type sql: str
-    :param postgres_conn_id: reference to the Postgres database
-    :type postgres_conn_id: str
-    """
+    """The output of a single query is compased against a row."""
 
     template_fields = ("sql",)
     template_ext = (".sql",)
 
-    @apply_defaults
-    def __init__(self, sql, postgres_conn_id="postgres_default", *args, **kwargs):
-        super(PostgresCheckOperator, self).__init__(sql=sql, *args, **kwargs)
-        self.postgres_conn_id = postgres_conn_id
-        self.sql = sql
+    def __init__(self, sql, parameters=(), conn_id="postgres_default", **kwargs):
+        super().__init__(sql=sql, conn_id=conn_id, **kwargs)
+        self.parameters = parameters
+
+    def execute(self, context=None):
+        """Overwritten to support SQL 'parameters' for safe SQL escaping."""
+        self.log.info(
+            "Executing SQL check: %s with %s", self.sql, repr(self.parameters)
+        )
+        records = self.get_db_hook().get_first(self.sql, self.parameters)
+
+        if records != [1]:  # Avoid unneeded "SELECT 1" in logs
+            self.log.info("Record: %s", records)
+        if not records:
+            raise AirflowException("Check failed, query returned no records")
+        elif not all([bool(r) for r in records]):
+            raise AirflowException(
+                "Test failed.\nQuery:\n{query}\nResults:\n{records!s}".format(
+                    query=self.sql, records=records
+                )
+            )
+
+        self.log.info("Success.")
 
     def get_db_hook(self):
-        return PostgresHook(postgres_conn_id=self.postgres_conn_id)
+        return PostgresHook(postgres_conn_id=self.conn_id)
 
 
-class PostgresValueCheckOneOperator(ValueCheckOperator):
-    """
-    Performs a simple value check using sql code.
+class PostgresCountCheckOperator(PostgresCheckOperator):
+    """Check the number of records in a table."""
 
-    :param sql: the sql to be executed
-    :type sql: str
-    """
-
-    template_fields = (
-        "sql",
-        "pass_value",
-    )
-    template_ext = (".sql",)
-
-    @apply_defaults
     def __init__(
         self,
-        sql,
-        pass_value,
-        tolerance=None,
+        table_name,
+        min_count,
         postgres_conn_id="postgres_default",
-        *args,
+        task_id="check_count",
         **kwargs,
     ):
-        super(PostgresValueCheckOperator, self).__init__(
-            sql=sql, pass_value=pass_value, tolerance=tolerance, *args, **kwargs
+        check_safe_name(table_name)
+        super().__init__(
+            sql=f'SELECT COUNT(*) >= %s FROM "{table_name}"',
+            parameters=(min_count,),  # params is jinja, parameters == sql!
+            conn_id=postgres_conn_id,
+            task_id=task_id,
+            **kwargs,
         )
-        self.postgres_conn_id = postgres_conn_id
-
-    def get_db_hook(self):
-        return PostgresHook(postgres_conn_id=self.postgres_conn_id)
 
 
-class PostgresValueCheckOperator(BaseOperator):
-    """
-    Performs a simple value check using sql code.
+class PostgresGeometryTypeCheckOperator(PostgresCheckOperator):
+    """Check the geometry type of a table."""
+
+    def __init__(
+        self,
+        table_name,
+        geometry_type,
+        geometry_column="geometry",
+        postgres_conn_id="postgres_default",
+        task_id="check_geo",
+        **kwargs,
+    ):
+        check_safe_name(table_name)
+        check_safe_name(geometry_column)
+        super().__init__(
+            # using GeometryType() returns "POINT", ST_GeometryType() returns 'ST_Point'
+            sql=(
+                f"SELECT 1 WHERE NOT EXISTS ("
+                f'SELECT FROM "{table_name}" WHERE'
+                f' "{geometry_column}" IS null '
+                f' OR NOT ST_IsValid("{geometry_column}") '
+                f' OR GeometryType("{geometry_column}") != %s'
+                ")"
+            ),
+            parameters=(geometry_type.upper(),),  # params is jinja, parameters == sql!
+            conn_id=postgres_conn_id,
+            task_id=task_id,
+            **kwargs,
+        )
+
+
+class PostgresValueCheckOperator(ValueCheckOperator):
+    """Performs a simple value check using sql code.
 
     :param sql: the sql to be executed
     :type sql: str
-    :param pass_value: the sql to be executed
-    :type pass_value: Any
+    :param conn_id: reference to the Postgres database
+    :type conn_id: str
     :param result_checker: function (if not None) to be used to compare result with pass_value
     :type result_checker: Function
     """
 
-    template_fields = (
-        "sql",
-        "pass_value",
-    )
-    template_ext = (".sql",)
-
-    @apply_defaults
     def __init__(
         self,
         sql,
         pass_value,
-        postgres_conn_id="postgres_default",
+        parameters=(),
+        conn_id="postgres_default",
         result_checker=None,
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
-        self.sql = sql
-        self.pass_value = pass_value
-        self.postgres_conn_id = postgres_conn_id
+        super().__init__(sql=sql, pass_value=pass_value, conn_id=conn_id, **kwargs)
+        self.parameters = parameters
+        self.pass_value = pass_value  # avoid str() cast
         self.result_checker = result_checker
 
     def execute(self, context=None):
-        self.log.info("Executing SQL value check: %s", self.sql)
-        records = self.get_db_hook().get_records(self.sql)
+        self.log.info(
+            "Executing SQL value check: %s with %r", self.sql, self.parameters
+        )
+        records = self.get_db_hook().get_records(self.sql, self.parameters)
 
         if not records:
             raise AirflowException("The query returned None")
 
-        checker = self.result_checker or (
-            lambda records, pass_value: records == pass_value
-        )
+        checker = self.result_checker or operator.eq
         if not checker(records, self.pass_value):
-            raise AirflowException(f"{records} does not match {self.pass_value}")
+            raise AirflowException(f"{records} != {self.pass_value}")
 
     def get_db_hook(self):
-        return PostgresHook(postgres_conn_id=self.postgres_conn_id)
+        return PostgresHook(postgres_conn_id=self.conn_id)
+
+
+class PostgresColumnNamesCheckOperator(PostgresValueCheckOperator):
+    """Check whether the expected column names are present."""
+
+    def __init__(
+        self,
+        table_name,
+        column_names,
+        conn_id="postgres_default",
+        task_id="check_column_names",
+        **kwargs,
+    ):
+        check_safe_name(table_name)
+        super().__init__(
+            sql=(
+                "SELECT column_name FROM information_schema.columns"
+                " WHERE table_schema = 'public' AND table_name = %s"
+                " ORDER BY column_name"
+            ),
+            parameters=(table_name,),  # params is jinja, parameters == sql!
+            pass_value=[
+                [col] for col in sorted(column_names)
+            ],  # each col is in a separate row
+            conn_id=conn_id,
+            task_id=task_id,
+            **kwargs,
+        )
+
+
+class PostgresTableRenameOperator(PostgresOperator):
+    """Rename a table"""
+
+    @apply_defaults
+    def __init__(
+        self,
+        old_table_name: str,
+        new_table_name: str,
+        postgres_conn_id="postgres_default",
+        task_id="rename_table",
+        **kwargs,
+    ):
+        check_safe_name(old_table_name)
+        check_safe_name(new_table_name)
+        super().__init__(
+            task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs
+        )
+        self.old_table_name = old_table_name
+        self.new_table_name = new_table_name
+
+    def execute(self, context):
+        # First get all index names, so it's known which indices to rename
+        hook = PostgresHook(
+            postgres_conn_id=self.postgres_conn_id, schema=self.database
+        )
+        with hook.get_cursor() as cursor:
+            cursor.execute(
+                "SELECT indexname FROM pg_indexes"
+                " WHERE schemaname = 'public'"
+                " ORDER BY indexname;"
+            )
+            indexes = list(cursor.fetchall())
+
+        index_renames = [
+            (
+                row["indexname"],
+                re.sub(
+                    pattern=_get_complete_word_pattern(self.old_table_name),
+                    repr=self.new_table_name,
+                    string=row["indexname"],
+                    count=1,
+                ),
+            )
+            for row in indexes
+            if row["indexname"].startswith(self.old_table_name)
+        ]
+
+        backup_table = f"{self.new_table_name}_old"
+
+        # Define the SQL to execute by the super class.
+        # This supports executing multiple statements in a single transaction:
+        self.sql = [
+            f"ALTER TABLE IF EXISTS {self.new_table_name} RENAME TO {backup_table}",
+            f"ALTER TABLE {self.old_table_name} RENAME TO {self.new_table_name}",
+            f"DROP TABLE IF EXISTS {backup_table}",
+        ] + [
+            f"ALTER INDEX {old_index} RENAME TO {new_index}"
+            for old_index, new_index in index_renames
+        ]
+
+        return super().execute(context)
+
+
+def check_safe_name(sql_identifier):
+    """Check whether an identifier can safely be used inside an SQL statement.
+    This avoids causing SQL injections when the identifier ever becomes user-input.
+    """
+    if not RE_SAFE_IDENTIFIER.match(sql_identifier):
+        raise RuntimeError(f"Unsafe input used as table/field-name: {sql_identifier}")
+
+
+def _get_complete_word_pattern(word):
+    """Create a search pattern that looks for whole words only."""
+    return r"\b{word}\b".format(word=re.escape(word))

@@ -11,13 +11,12 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from postgres_check_operator import PostgresCheckOperator
 from airflow.operators.python_operator import PythonOperator
 
 from common import default_args
-from swift_operator import SwiftOperator
-
 from common.sql import SQL_CHECK_COUNT
+from postgres_check_operator import PostgresCheckOperator
+from swift_operator import SwiftOperator
 
 
 def wkt_loads_wrapped(data):
