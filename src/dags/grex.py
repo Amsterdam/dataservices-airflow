@@ -17,6 +17,19 @@ from airflow.operators.python_operator import PythonOperator
 from common import default_args
 from swift_operator import SwiftOperator
 
+dag_id = "grex"
+dag_config = Variable.get(dag_id, deserialize_json=True)
+
+table_name = f"{dag_id}_projecten"
+table_name_new = f"{table_name}_new"
+SQL_TABLE_RENAME = f"""
+    DROP TABLE IF EXISTS {table_name} CASCADE;
+    ALTER TABLE {table_name_new} RENAME TO {table_name};
+    ALTER TABLE {table_name} RENAME CONSTRAINT {table_name_new}_pkey TO {table_name}_pkey;
+    ALTER INDEX ix_{table_name_new}_id RENAME TO ix_{table_name}_id;
+    ALTER INDEX idx_{table_name_new}_geometry RENAME TO idx_{table_name}_geometry;
+"""
+
 from common.sql import SQL_CHECK_COUNT
 
 
@@ -69,21 +82,7 @@ def load_grex(input_csv, table_name):
 
     df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
     with db_engine.connect() as connection:
-        connection.execute("ALTER TABLE grex_new ADD PRIMARY KEY (id)")
-
-
-dag_id = "grex"
-dag_config = Variable.get(dag_id, deserialize_json=True)
-
-table_name = dag_id
-table_name_new = f"{dag_id}_new"
-SQL_TABLE_RENAME = f"""
-    DROP TABLE IF EXISTS {table_name} CASCADE;
-    ALTER TABLE {table_name_new} RENAME TO {table_name};
-    ALTER TABLE {table_name} RENAME CONSTRAINT {table_name_new}_pkey TO {table_name}_pkey;
-    ALTER INDEX ix_{table_name_new}_id RENAME TO ix_{table_name}_id;
-    ALTER INDEX idx_{table_name_new}_geometry RENAME TO idx_{table_name}_geometry;
-"""
+        connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
 
 
 with DAG("grex", default_args=default_args, description="GrondExploitatie",) as dag:
@@ -109,14 +108,14 @@ with DAG("grex", default_args=default_args, description="GrondExploitatie",) as 
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
-        params=dict(tablename="grex_new", mincount=400),
+        params=dict(tablename=table_name_new, mincount=400),
     )
 
     # check_geo = PostgresCheckOperator(
     #     task_id="check_geo",
     #     sql=SQL_CHECK_GEO,
     #     params=dict(
-    #         tablename="grex_new", geotype="ST_MultiPolygon", geo_column="geometry"
+    #         tablename=table_name_new, geotype="ST_MultiPolygon", geo_column="geometry"
     #     ),
     # )
 
