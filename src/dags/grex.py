@@ -1,20 +1,18 @@
-from environs import Env
 import pandas as pd
-from sqlalchemy import create_engine
-from sqlalchemy.types import Integer, Text, Float, Date
-from geoalchemy2 import Geometry, WKTElement
-from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.polygon import Polygon
-from shapely import wkt
-
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+from geoalchemy2 import Geometry, WKTElement
+from shapely import wkt
+from shapely.geometry.multipolygon import MultiPolygon
+from shapely.geometry.polygon import Polygon
+from sqlalchemy.types import Date, Float, Integer, Text
 
 from common import default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
+from common.db import get_engine
 from swift_operator import SwiftOperator
 from postgres_check_operator import PostgresCheckOperator
 
@@ -46,14 +44,7 @@ def wkt_loads_wrapped(data):
 
 
 def load_grex(input_csv, table_name):
-    env = Env()
-    user = env("POSTGRES_USER")
-    password = env("POSTGRES_PASSWORD")
-    host = env("POSTGRES_HOST")
-    port = env("POSTGRES_PORT")
-    db = env("POSTGRES_DB")
-
-    db_engine = create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db}")
+    db_engine = get_engine()
     df = pd.read_csv(
         input_csv,
         delimiter=";",
