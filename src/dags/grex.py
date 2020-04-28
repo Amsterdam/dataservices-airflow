@@ -11,11 +11,12 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from postgres_check_operator import PostgresCheckOperator
 from airflow.operators.python_operator import PythonOperator
 
 from common import default_args
+from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from swift_operator import SwiftOperator
+from postgres_check_operator import PostgresCheckOperator
 
 dag_id = "grex"
 dag_config = Variable.get(dag_id, deserialize_json=True)
@@ -29,8 +30,6 @@ SQL_TABLE_RENAME = f"""
     ALTER INDEX ix_{table_name_new}_id RENAME TO ix_{table_name}_id;
     ALTER INDEX idx_{table_name_new}_geometry RENAME TO idx_{table_name}_geometry;
 """
-
-from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 
 
 def wkt_loads_wrapped(data):
@@ -83,17 +82,22 @@ def load_grex(input_csv, table_name):
     df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
     with db_engine.connect() as connection:
         connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
-        connection.execute(f"""
+        connection.execute(
+            f"""
             ALTER TABLE {table_name}
             ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
             USING ST_Transform(geometry,28992)
-        """)
+        """
+        )
         connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
-        connection.execute(f"""
+        connection.execute(
+            f"""
             UPDATE {table_name}
             SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
             WHERE ST_IsValid(geometry) = False;
-        """)
+        """
+        )
+
 
 with DAG("grex", default_args=default_args, description="GrondExploitatie",) as dag:
 
