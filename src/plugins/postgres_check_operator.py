@@ -195,8 +195,9 @@ class PostgresTableRenameOperator(PostgresOperator):
         with hook.get_cursor() as cursor:
             cursor.execute(
                 "SELECT indexname FROM pg_indexes"
-                " WHERE schemaname = 'public'"
-                " ORDER BY indexname;"
+                " WHERE schemaname = 'public' AND indexname like %s"
+                " ORDER BY indexname;",
+                (f"%{self.old_table_name}%",),
             )
             indexes = list(cursor.fetchall())
 
@@ -205,13 +206,12 @@ class PostgresTableRenameOperator(PostgresOperator):
                 row["indexname"],
                 re.sub(
                     pattern=_get_complete_word_pattern(self.old_table_name),
-                    repr=self.new_table_name,
+                    repl=self.new_table_name,
                     string=row["indexname"],
                     count=1,
                 ),
             )
             for row in indexes
-            if row["indexname"].startswith(self.old_table_name)
         ]
 
         backup_table = f"{self.new_table_name}_old"
@@ -240,4 +240,4 @@ def check_safe_name(sql_identifier):
 
 def _get_complete_word_pattern(word):
     """Create a search pattern that looks for whole words only."""
-    return r"\b{word}\b".format(word=re.escape(word))
+    return r"{word}".format(word=re.escape(word))
