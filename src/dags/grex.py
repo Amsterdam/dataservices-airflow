@@ -83,6 +83,11 @@ def load_grex(input_csv, table_name):
     df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
     with db_engine.connect() as connection:
         connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
+        connection.execute(f"""
+            ALTER TABLE {table_name}
+            ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
+            USING ST_Transform(geometry,28992)
+        """)
 
 
 with DAG("grex", default_args=default_args, description="GrondExploitatie",) as dag:
