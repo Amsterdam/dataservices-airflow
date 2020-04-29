@@ -130,3 +130,6 @@ dmypy.json
 
 # MacOSX
 .DS_Store
+
+# Local pip -e checkouts, only for development
+/develop
