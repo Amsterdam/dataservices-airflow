@@ -30,7 +30,7 @@ SQL_TABLE_RENAME = f"""
     ALTER INDEX idx_{table_name_new}_geometry RENAME TO idx_{table_name}_geometry;
 """
 
-from common.sql import SQL_CHECK_COUNT
+from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 
 
 def wkt_loads_wrapped(data):
@@ -88,7 +88,12 @@ def load_grex(input_csv, table_name):
             ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
             USING ST_Transform(geometry,28992)
         """)
-
+        connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
+        connection.execute(f"""
+            UPDATE {table_name}
+            SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
+            WHERE ST_IsValid(geometry) = False;
+        """)
 
 with DAG("grex", default_args=default_args, description="GrondExploitatie",) as dag:
 
@@ -116,15 +121,15 @@ with DAG("grex", default_args=default_args, description="GrondExploitatie",) as 
         params=dict(tablename=table_name_new, mincount=400),
     )
 
-    # check_geo = PostgresCheckOperator(
-    #     task_id="check_geo",
-    #     sql=SQL_CHECK_GEO,
-    #     params=dict(
-    #         tablename=table_name_new, geotype="ST_MultiPolygon", geo_column="geometry"
-    #     ),
-    # )
+    check_geo = PostgresCheckOperator(
+        task_id="check_geo",
+        sql=SQL_CHECK_GEO,
+        params=dict(
+            tablename=table_name_new, geotype="ST_MultiPolygon", geo_column="geometry"
+        ),
+    )
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
 
-mk_tmp_dir >> fetch_csv >> load_data >> check_count >> rename_table
+mk_tmp_dir >> fetch_csv >> load_data >> check_count >> check_geo >> rename_table
