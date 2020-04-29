@@ -5,6 +5,8 @@ from typing import Optional
 
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.hooks.postgres_hook import PostgresHook
 
 from common import default_args
 from common.db import get_engine
@@ -32,6 +34,7 @@ class Route:
     columns: list
     schema_table_name: Optional[str] = None
     db_table_name: Optional[str] = None
+    post_process: Optional[str] = None
 
     def __post_init__(self):
         if self.schema_table_name is None:
@@ -51,6 +54,12 @@ ROUTES = [
         "https://api.data.amsterdam.nl/dcatd/datasets/ZtMOaEZSOnXM9w/purls/1",
         geometry_type="MultiLineString",
         columns=["geometry", "title", "type"],
+        post_process=[
+            """
+            UPDATE hoofdroutes_routes_gevaarlijke_stoffen_new
+                SET geometry = ST_CollectionExtract(ST_MakeValid("geometry"), 2)
+                WHERE NOT ST_IsValid("geometry")"""
+        ],
     ),
     Route(
         "tunnels-gevaarlijke-stoffen",
@@ -67,8 +76,16 @@ ROUTES = [
     ),
 ]
 
+DROP_TMPL = """
+    {% for tablename in params.tablenames %}
+    DROP TABLE IF EXISTS {{ tablename }} CASCADE;
+    {% endfor %}
+"""
 
-def _load_geojson():
+TABLES_TO_DROP = [r.tmp_db_table_name for r in ROUTES]
+
+
+def _load_geojson(postgres_conn_id):
     """As airflow executes tasks at different hosts,
     these tasks need to happen in a single call.
 
@@ -90,6 +107,7 @@ def _load_geojson():
     schema = introspect_geojson_files("gevaarlijke-routes", files=list(files.values()))
     schema = DatasetSchema.from_dict(schema)  # TODO: move to schema-tools?
 
+    # XXX This is not running as one transaction atm, but autocommitting per chunk
     # 3. import data
     db_engine = get_engine()
     importer = GeoJSONImporter(schema, db_engine, logger=logger)
@@ -102,38 +120,67 @@ def _load_geojson():
             db_table_name=route.tmp_db_table_name,
             truncate=True,  # when reexecuting the same task
         )
+        if route.post_process:
+            hook = PostgresHook(postgres_conn_id=postgres_conn_id)
+            hook.run(route.post_process)
 
 
 with DAG(dag_id, default_args=default_args) as dag:
+
+    check_counts = []
+    check_geos = []
+    check_columns = []
+    renames = []
+
+    drop_old_tables = PostgresOperator(
+        task_id="drop_old_tables", sql=DROP_TMPL, params=dict(tablenames=TABLES_TO_DROP)
+    )
+
     import_geojson = PythonOperator(
-        task_id="import_geojson", python_callable=_load_geojson
+        task_id="import_geojson",
+        python_callable=_load_geojson,
+        op_args=[default_args.get("postgres_conn_id", "postgres_default")],
     )
 
     # Can't chain operator >> list >> list,
     # so need to create these in a single loop
     for route in ROUTES:
-        check_count = PostgresCountCheckOperator(
-            task_id=f"check_count_{route.name}",
-            table_name=route.tmp_db_table_name,
-            min_count=3,
+        check_counts.append(
+            PostgresCountCheckOperator(
+                task_id=f"check_count_{route.name}",
+                table_name=route.tmp_db_table_name,
+                min_count=3,
+            )
         )
 
-        check_geo = PostgresGeometryTypeCheckOperator(
-            task_id=f"check_geo_{route.name}",
-            table_name=route.tmp_db_table_name,
-            geometry_type=route.geometry_type,
+        check_geos.append(
+            PostgresGeometryTypeCheckOperator(
+                task_id=f"check_geo_{route.name}",
+                table_name=route.tmp_db_table_name,
+                geometry_type=route.geometry_type,
+            )
         )
 
-        check_columns = PostgresColumnNamesCheckOperator(
-            task_id=f"check_columns_{route.name}",
-            table_name=route.tmp_db_table_name,
-            column_names=route.columns,
+        check_columns.append(
+            PostgresColumnNamesCheckOperator(
+                task_id=f"check_columns_{route.name}",
+                table_name=route.tmp_db_table_name,
+                column_names=route.columns,
+            )
         )
 
-        rename = PostgresTableRenameOperator(
-            task_id=f"rename_{route.name}",
-            old_table_name=route.tmp_db_table_name,
-            new_table_name=route.db_table_name,
+        renames.append(
+            PostgresTableRenameOperator(
+                task_id=f"rename_{route.name}",
+                old_table_name=route.tmp_db_table_name,
+                new_table_name=route.db_table_name,
+            )
         )
 
-        import_geojson >> check_count >> check_geo >> check_columns >> rename
+
+for check_count, check_geo, check_column, rename in zip(
+    check_counts, check_geos, check_columns, renames
+):
+    check_count >> check_geo >> check_column >> rename
+
+drop_old_tables >> import_geojson >> check_counts
