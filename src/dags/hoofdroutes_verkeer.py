@@ -53,19 +53,23 @@ ROUTES = [
         "routes-gevaarlijke-stoffen",
         "https://api.data.amsterdam.nl/dcatd/datasets/ZtMOaEZSOnXM9w/purls/1",
         geometry_type="MultiLineString",
-        columns=["geometry", "title", "type"],
+        columns=["id", "geometry", "title", "type"],
         post_process=[
             """
             UPDATE hoofdroutes_routes_gevaarlijke_stoffen_new
                 SET geometry = ST_CollectionExtract(ST_MakeValid("geometry"), 2)
-                WHERE NOT ST_IsValid("geometry")"""
+                WHERE NOT ST_IsValid("geometry")""",
+            "ALTER TABLE hoofdroutes_routes_gevaarlijke_stoffen_new ADD COLUMN id SERIAL PRIMARY KEY",
         ],
     ),
     Route(
         "tunnels-gevaarlijke-stoffen",
         "https://api.data.amsterdam.nl/dcatd/datasets/ZtMOaEZSOnXM9w/purls/2",
         geometry_type="Point",
-        columns=["geometry", "title", "categorie", "type"],
+        columns=["id", "geometry", "title", "categorie", "type"],
+        post_process=[
+            "ALTER TABLE hoofdroutes_tunnels_gevaarlijke_stoffen_new ADD COLUMN id SERIAL PRIMARY KEY"
+        ],
     ),
     Route(
         "u-routes",
