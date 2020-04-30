@@ -1,14 +1,16 @@
 from airflow import DAG
 
-# from swift_operator import SwiftOperator
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
+from swift_operator import SwiftOperator
+
+# from airflow.operators.postgres_operator import PostgresOperator
+# from airflow.operators.bash_operator import BashOperator
+# from airflow.operators.python_operator import PythonOperator
 
 # from airflow.operators.dummy_operator import DummyOperator
 
 from common import default_args
-from common import pg_params
+
+# from common import pg_params
 
 # from airflow.operators.docker_operator import DockerOperator
 
@@ -19,27 +21,32 @@ def create_error(*args, **kwargs):
 
 with DAG("testdag", default_args=default_args,) as dag:
 
-    # swift_task = SwiftOperator(
-    #     task_id="swift_task",
-    #     container="afval",
-    #     object_id="acceptance/afval_cluster.zip",
-    #     output_path="/tmp/blaat/out2.zip",
+    swift_task = SwiftOperator(
+        task_id="swift_task",
+        container="tijdregimes",
+        object_id="nivo_20200416.zip",
+        output_path="/tmp/blaat/nivo_20200416.zip",
+        # container="afval",
+        # object_id="acceptance/afval_cluster.zip",
+        # output_path="/tmp/blaat/out2.zip",
+        # conn_id="afval",
+        conn_id="parkeervakken",
+    )
+
+    # # swift_task
+    # sqls = [
+    #     "delete from biz_data where biz_id = 123456789",
+    #     "insert into biz_data (biz_id, naam) values (123456789, 'testje')",
+    # ]
+    # pgtest = PostgresOperator(task_id="pgtest", sql=sqls)
+
+    # bashtest = BashOperator(
+    #     task_id="bashtest", bash_command=f"psql {pg_params} < /tmp/doit.sql",
     # )
 
-    # swift_task
-    sqls = [
-        "delete from biz_data where biz_id = 123456789",
-        "insert into biz_data (biz_id, naam) values (123456789, 'testje')",
-    ]
-    pgtest = PostgresOperator(task_id="pgtest", sql=sqls)
-
-    bashtest = BashOperator(
-        task_id="bashtest", bash_command=f"psql {pg_params} < /tmp/doit.sql",
-    )
-
-    failing_task = PythonOperator(
-        task_id="failing_task", python_callable=create_error, provide_context=True,
-    )
+    # failing_task = PythonOperator(
+    #     task_id="failing_task", python_callable=create_error, provide_context=True,
+    # )
 
 
 # This needs a working connection object
