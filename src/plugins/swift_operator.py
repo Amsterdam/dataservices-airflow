@@ -34,7 +34,6 @@ class SwiftOperator(BaseOperator):
             options["os_username"] = connection.login
             options["os_password"] = connection.password
             options["os_tenant_name"] = connection.host
-        # breakpoint()
         with SwiftService(options=options) as swift:
             try:
                 for down_res in swift.download(
