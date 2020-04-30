@@ -27,14 +27,6 @@ class SwiftOperator(BaseOperator):
         download_options = {
             "out_file": self.output_path,
         }
-        # SwiftService needs proper setup of env vars.
-        # Here we need to set options for different swift objectstores
-        # OS_USERNAME: vsd_user
-        # OS_PASSWORD: ${VSD_PASSWD}
-        # OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
-        # "os_username": environ.get('OS_USERNAME'),
-        # "os_password": environ.get('OS_PASSWORD'),
-        # "os_tenant_name": environ.get('OS_TENANT_NAME'),
         options = None
         if self.conn_id is not None:
             options = {}
