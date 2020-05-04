@@ -139,16 +139,16 @@ def find_export_date():
     if today.weekday() == 3:
         date = today
     elif today.weekday() > 3:
-        # find last Thursday
+        # This week
         date = today - datetime.timedelta(days=today.weekday() - 3)
     else:
-        date = today - datetime.timedelta(days=today.weekday() + 3)
+        # Last week
+        date = today - datetime.timedelta(days=today.weekday() + 4)
     return date.strftime("%Y%m%d")
 
 
 with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
     last_date = find_export_date()
-    # last_date = '20200416'
     zip_file = "nivo_{}.zip".format(last_date)
     source = pathlib.Path(TMP_DIR)
 
@@ -156,7 +156,7 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
 
     fetch_zip = SwiftOperator(
         task_id="fetch_zip",
-        container=dag_id,
+        container="tijdregimes",
         object_id=zip_file,
         output_path=f"{TMP_DIR}/{zip_file}",
         conn_id="parkeervakken",
