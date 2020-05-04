@@ -30,11 +30,13 @@ services:
       OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
       DAG_SYNC_PATH: /tmp/synced-dags
+      PARKEERVAKKEN: ${PARKEERVAKKEN}
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
       - ./src/vars:/usr/local/airflow/vars
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./tmp:/tmp/
 
 
     ports:
