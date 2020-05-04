@@ -58,22 +58,16 @@ SQL_RENAME_TEMP_TABLES = """
 TMP_DIR = f"/tmp/{dag_id}"
 
 
-def import_data(shp_file):
+def import_data(shp_file, ids):
     """
     Import Shape File into database.
     """
     env = Env()
-    user = env("POSTGRES_USER")
-    password = env("POSTGRES_PASSWORD")
-    host = env("POSTGRES_HOST")
-    port = env("POSTGRES_PORT")
-    db = env("POSTGRES_DB")
-    db_engine = create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db}")
+    db_engine = create_engine(env("PARKEERVAKKEN_DB"))
 
     parkeervakken_sql = []
     regimes_sql = []
     print(f"Processing: {shp_file}")
-    ids = []
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
             if int(row.record.PARKEER_ID) in ids:
@@ -147,6 +141,18 @@ def find_export_date():
     return date.strftime("%Y%m%d")
 
 
+def run_imports(last_date):
+    """
+    Run imports for all files in zip that match date.
+    """
+    ids = []
+    for shp_file in source.glob("*{}.shp".format(last_date)):
+        duplicates = import_data(str(shp_file), ids)
+
+        if len(duplicates):
+            print("Duplicates found: {}".format(", ".join(duplicates)))
+
+
 with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
     last_date = find_export_date()
     zip_file = "nivo_{}.zip".format(last_date)
@@ -173,16 +179,12 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
         params=dict(base_table=f"{dag_id}_{dag_id}"),
     )
 
-    run_imports = []
-    for shp_file in source.glob("*{}.shp".format(last_date)):
-        task_id = f"import_{shp_file.stem}"
-        task = PythonOperator(
-            task_id=task_id,
-            op_kwargs={"shp_file": f"{shp_file}"},
-            python_callable=import_data,
-            dag=dag,
-        )
-        run_imports.append(task)
+    run_import_task = PythonOperator(
+        task_id="run_import_task",
+        op_kwargs={"last_date": last_date},
+        python_callable=run_imports,
+        dag=dag,
+    )
 
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
@@ -195,7 +197,7 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
     >> fetch_zip
     >> extract_zip
     >> create_temp_tables
-    >> run_imports
+    >> run_import_task
     >> rename_temp_tables
 )
 
