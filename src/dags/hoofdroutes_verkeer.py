@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+import operator
 from pathlib import Path
 from typing import Optional
 
@@ -15,8 +16,15 @@ from postgres_check_operator import (
     PostgresColumnNamesCheckOperator,
     PostgresCountCheckOperator,
     PostgresGeometryTypeCheckOperator,
-    PostgresTableRenameOperator,
 )
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    COLNAMES_CHECK,
+    GEO_CHECK,
+)
+from postgres_rename_operator import PostgresTableRenameOperator
+from check_helpers import make_params
 from schematools.importer.geojson import GeoJSONImporter
 from schematools.introspect.geojson import introspect_geojson_files
 from schematools.types import DatasetSchema
@@ -139,6 +147,9 @@ def _load_geojson(postgres_conn_id):
 
 with DAG(dag_id, default_args=default_args) as dag:
 
+    count_checks = []
+    colname_checks = []
+    geo_checks = []
     check_counts = []
     check_geos = []
     check_columns = []
@@ -152,6 +163,41 @@ with DAG(dag_id, default_args=default_args) as dag:
         task_id="import_geojson",
         python_callable=_load_geojson,
         op_args=[default_args.get("postgres_conn_id", "postgres_default")],
+    )
+
+    for route in ROUTES:
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{route.name}",
+                pass_value=3,
+                params=dict(table_name=route.tmp_db_table_name),
+                result_checker=operator.ge,
+            )
+        )
+
+        colname_checks.append(
+            COLNAMES_CHECK.make_check(
+                check_id=f"colname_check_{route.name}",
+                parameters=[route.tmp_db_table_name],
+                pass_value=set(route.columns),
+                result_checker=operator.ge,
+            )
+        )
+
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{route.name}",
+                params=dict(
+                    table_name=route.tmp_db_table_name,
+                    geotype=route.geometry_type.upper(),
+                ),
+                pass_value=1,
+            )
+        )
+
+    checks = count_checks + colname_checks + geo_checks
+    multi = PostgresMultiCheckOperator(
+        task_id="multi", checks=checks, params=make_params(checks)
     )
 
     # Can't chain operator >> list >> list,

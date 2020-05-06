@@ -1,13 +1,130 @@
+from dataclasses import dataclass
+from functools import partial
 import operator
-import re
+from string import Template
+from typing import Dict, List, Any, Callable, Iterable, ClassVar
 
 from airflow.exceptions import AirflowException
+from airflow.models import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.check_operator import CheckOperator, ValueCheckOperator
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.decorators import apply_defaults
+from airflow.operators.check_operator import CheckOperator, ValueCheckOperator
 
-RE_SAFE_IDENTIFIER = re.compile(r"\A[a-z][a-z0-9_\-]+\Z", re.I)
+from check_helpers import check_safe_name
+
+
+@dataclass
+class Check:
+    check_id: str
+    sql: str
+    result_fetcher: Callable
+    pass_value: Any
+    template_fields: ClassVar = ["sql"]
+    params: Dict[str, str] = None
+    parameters: List[str] = None
+    result_checker: Callable = None
+
+
+def record_by_name(colname, records):
+    return records[0][colname]
+
+
+def flattened_records(records):
+    return [r[0] for r in records]
+
+
+def first_flattened_record(records):
+    return flattened_records(records)[0]
+
+
+def flattened_records_as_set(records):
+    return set([r[0] for r in records])
+
+
+class CheckFactory:
+    def __init__(self, sql, result_fetcher=lambda x: x):
+        self.sql = sql
+        self.result_fetcher = result_fetcher
+
+    def make_check(
+        self, check_id, pass_value, params=None, parameters=None, result_checker=None
+    ):
+        return Check(
+            check_id,
+            Template(self.sql).safe_substitute(check_id=check_id),
+            self.result_fetcher,
+            pass_value,
+            params,
+            parameters,
+            result_checker,
+        )
+
+
+COUNT_CHECK = CheckFactory(
+    "SELECT COUNT(*) AS count FROM \"{{ params['$check_id'].table_name }}\"",
+    result_fetcher=partial(record_by_name, "count"),
+)
+COLNAMES_CHECK = CheckFactory(
+    """
+    SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = %s
+     ORDER BY column_name
+""",
+    result_fetcher=flattened_records_as_set,
+)
+
+GEO_CHECK = CheckFactory(
+    """
+  {% set lparams = params['$check_id'] %}
+  {% set geo_column = lparams.geo_column|default("geometry", true) %}
+  SELECT 1 WHERE NOT EXISTS (
+      SELECT FROM {{ lparams.table_name }} WHERE
+        {{ geo_column }} IS null
+        {% if lparams.check_valid|default(true) %} OR ST_IsValid({{ geo_column }}) = false {% endif %}
+          OR GeometryType({{ geo_column }})
+        {% if lparams.geotype is string %}
+          <> '{{ lparams.geotype }}'
+        {% else %}
+          NOT IN ({{ lparams.geotype | map('quote') | join(", ") }})
+        {% endif %}
+      )
+""",
+    result_fetcher=first_flattened_record,
+)
+
+
+class PostgresMultiCheckOperator(BaseOperator):
+
+    # We use the possibilty to have nested template fields here
+    template_fields: Iterable[str] = ["checks"]
+
+    @apply_defaults
+    def __init__(
+        self, postgres_conn_id="postgres_default", checks=[], *args, **kwargs,
+    ):
+        super(PostgresMultiCheckOperator, self).__init__(*args, **kwargs)
+        self.postgres_conn_id = postgres_conn_id
+        self.checks = checks
+
+    def execute(self, context=None):
+
+        hook = self.get_db_hook()
+
+        for checker in self.checks:
+            self.log.info(
+                "Executing SQL check: %s with %s", checker.sql, repr(checker.parameters)
+            )
+            records = hook.get_records(checker.sql, checker.parameters)
+
+            if not records:
+                raise AirflowException("The query returned None")
+
+            checker_fie = checker.result_checker or operator.eq
+            if not checker_fie(checker.result_fetcher(records), checker.pass_value):
+                raise AirflowException(f"{records} != {checker.pass_value}")
+
+    def get_db_hook(self):
+        return PostgresHook(postgres_conn_id=self.postgres_conn_id)
 
 
 class PostgresCheckOperator(CheckOperator):
@@ -165,79 +282,3 @@ class PostgresColumnNamesCheckOperator(PostgresValueCheckOperator):
             task_id=task_id,
             **kwargs,
         )
-
-
-class PostgresTableRenameOperator(PostgresOperator):
-    """Rename a table"""
-
-    @apply_defaults
-    def __init__(
-        self,
-        old_table_name: str,
-        new_table_name: str,
-        postgres_conn_id="postgres_default",
-        task_id="rename_table",
-        **kwargs,
-    ):
-        check_safe_name(old_table_name)
-        check_safe_name(new_table_name)
-        super().__init__(
-            task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs
-        )
-        self.old_table_name = old_table_name
-        self.new_table_name = new_table_name
-
-    def execute(self, context):
-        # First get all index names, so it's known which indices to rename
-        hook = PostgresHook(
-            postgres_conn_id=self.postgres_conn_id, schema=self.database
-        )
-        with hook.get_cursor() as cursor:
-            cursor.execute(
-                "SELECT indexname FROM pg_indexes"
-                " WHERE schemaname = 'public' AND indexname like %s"
-                " ORDER BY indexname;",
-                (f"%{self.old_table_name}%",),
-            )
-            indexes = list(cursor.fetchall())
-
-        index_renames = [
-            (
-                row["indexname"],
-                re.sub(
-                    pattern=_get_complete_word_pattern(self.old_table_name),
-                    repl=self.new_table_name,
-                    string=row["indexname"],
-                    count=1,
-                ),
-            )
-            for row in indexes
-        ]
-
-        backup_table = f"{self.new_table_name}_old"
-
-        # Define the SQL to execute by the super class.
-        # This supports executing multiple statements in a single transaction:
-        self.sql = [
-            f"ALTER TABLE IF EXISTS {self.new_table_name} RENAME TO {backup_table}",
-            f"ALTER TABLE {self.old_table_name} RENAME TO {self.new_table_name}",
-            f"DROP TABLE IF EXISTS {backup_table}",
-        ] + [
-            f"ALTER INDEX {old_index} RENAME TO {new_index}"
-            for old_index, new_index in index_renames
-        ]
-
-        return super().execute(context)
-
-
-def check_safe_name(sql_identifier):
-    """Check whether an identifier can safely be used inside an SQL statement.
-    This avoids causing SQL injections when the identifier ever becomes user-input.
-    """
-    if not RE_SAFE_IDENTIFIER.match(sql_identifier):
-        raise RuntimeError(f"Unsafe input used as table/field-name: {sql_identifier}")
-
-
-def _get_complete_word_pattern(word):
-    """Create a search pattern that looks for whole words only."""
-    return r"{word}".format(word=re.escape(word))
