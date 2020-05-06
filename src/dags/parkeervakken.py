@@ -1,19 +1,18 @@
 import datetime
 import pathlib
-import re
 import dateutil
 import shapefile
 from airflow import DAG
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from environs import Env
 from shapely.geometry import Polygon
-from sqlalchemy import create_engine
 from swift_operator import SwiftOperator
 from common import default_args
 
 dag_id = "parkeervakken"
+postgres_conn_id = "parkeervakken_postgres"
 
 # CONFIG = Variable.get(DAG_ID, deserialize_json=True)
 
@@ -62,16 +61,15 @@ def import_data(shp_file, ids):
     """
     Import Shape File into database.
     """
-    env = Env()
-    db_engine = create_engine(env("PARKEERVAKKEN_DB"))
-
     parkeervakken_sql = []
     regimes_sql = []
+    duplicates = []
     print(f"Processing: {shp_file}")
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
             if int(row.record.PARKEER_ID) in ids:
                 # Exclude dupes
+                duplicates.append(ids)
                 continue
             ids.append(int(row.record.PARKEER_ID))
             parkeervakken_sql.append(create_parkeervaak(row=row))
@@ -105,23 +103,24 @@ def import_data(shp_file, ids):
         ") VALUES {};"
     ).format(TABLES["REGIMES_TEMP"], ",".join(regimes_sql))
 
-    with db_engine.connect() as connection:
-        if len(parkeervakken_sql):
-            try:
-                connection.execute(create_parkeervakken_sql)
-            except Exception as e:
-                raise Exception(
-                    "Failed to create parkeervakken: {}".format(str(e)[0:150])
-                )
-        if len(regimes_sql):
-            try:
-                connection.execute(create_regimes_sql)
-            except Exception as e:
-                raise Exception("Failed to create regimes: {}".format(str(e)[0:150]))
+    hook = PostgresHook(postgres_conn_id=postgres_conn_id)
+    if len(parkeervakken_sql):
+        try:
+            hook.run(create_parkeervakken_sql)
+        except Exception as e:
+            raise Exception("Failed to create parkeervakken: {}".format(str(e)[0:150]))
+    if len(regimes_sql):
+        try:
+            hook.run(create_regimes_sql)
+        except Exception as e:
+            raise Exception("Failed to create regimes: {}".format(str(e)[0:150]))
 
-    return "Created: {} parkeervakken and {} regimes".format(
-        len(parkeervakken_sql), len(regimes_sql)
+    print(
+        "Created: {} parkeervakken and {} regimes".format(
+            len(parkeervakken_sql), len(regimes_sql)
+        )
     )
+    return duplicates
 
 
 def find_export_date():
@@ -165,7 +164,7 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
         container="tijdregimes",
         object_id=zip_file,
         output_path=f"{TMP_DIR}/{zip_file}",
-        conn_id="parkeervakken",
+        conn_id="parkeervakken_objectstore",
     )
 
     extract_zip = BashOperator(
@@ -175,6 +174,7 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
 
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
+        postgres_conn_id=postgres_conn_id,
         sql=SQL_CREATE_TEMP_TABLES,
         params=dict(base_table=f"{dag_id}_{dag_id}"),
     )
@@ -188,6 +188,7 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
 
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
+        postgres_conn_id=postgres_conn_id,
         sql=SQL_RENAME_TEMP_TABLES,
         params=dict(base_table=f"{dag_id}_{dag_id}"),
     )
