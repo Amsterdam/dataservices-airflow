@@ -192,16 +192,14 @@ with DAG(dag_id, default_args=default_args) as dag:
         task_id="multi_check", checks=checks, params=make_params(checks)
     )
 
-    # Can't chain operator >> list >> list,
-    # so need to create these in a single loop
-    for route in ROUTES:
-        renames.append(
-            PostgresTableRenameOperator(
-                task_id=f"rename_{route.name}",
-                old_table_name=route.tmp_db_table_name,
-                new_table_name=route.db_table_name,
-            )
+    renames = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_{route.name}",
+            old_table_name=route.tmp_db_table_name,
+            new_table_name=route.db_table_name,
         )
+        for route in ROUTES
+   ]
 
 
 drop_old_tables >> import_geojson >> multi_check >> renames

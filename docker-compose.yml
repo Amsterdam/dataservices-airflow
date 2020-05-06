@@ -9,6 +9,15 @@ services:
       POSTGRES_USER: ds_airflow
       POSTGRES_PASSWORD: insecure
 
+  dso_database:
+    image: amsterdam/postgres11
+    ports:
+      - "5417:5432"
+    environment:
+      POSTGRES_DB: dataservices
+      POSTGRES_USER: dataservices
+      POSTGRES_PASSWORD: insecure
+
   airflow:
     build: src
     container_name: airflow
@@ -30,14 +39,12 @@ services:
       OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
       DAG_SYNC_PATH: /tmp/synced-dags
-      PARKEERVAKKEN: ${PARKEERVAKKEN}
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
       - ./src/vars:/usr/local/airflow/vars
       - ./develop:/usr/local/airflow/develop
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./tmp:/tmp/
 
 
     ports:
