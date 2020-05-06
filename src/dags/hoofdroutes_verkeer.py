@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass
+import operator
 from pathlib import Path
 from typing import Optional
 
@@ -12,11 +13,13 @@ from common import default_args
 from common.db import get_engine
 from common.http import download_file
 from postgres_check_operator import (
-    PostgresColumnNamesCheckOperator,
-    PostgresCountCheckOperator,
-    PostgresGeometryTypeCheckOperator,
-    PostgresTableRenameOperator,
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    COLNAMES_CHECK,
+    GEO_CHECK,
 )
+from postgres_rename_operator import PostgresTableRenameOperator
+from check_helpers import make_params
 from schematools.importer.geojson import GeoJSONImporter
 from schematools.introspect.geojson import introspect_geojson_files
 from schematools.types import DatasetSchema
@@ -139,9 +142,9 @@ def _load_geojson(postgres_conn_id):
 
 with DAG(dag_id, default_args=default_args) as dag:
 
-    check_counts = []
-    check_geos = []
-    check_columns = []
+    count_checks = []
+    colname_checks = []
+    geo_checks = []
     renames = []
 
     drop_old_tables = PostgresOperator(
@@ -154,33 +157,44 @@ with DAG(dag_id, default_args=default_args) as dag:
         op_args=[default_args.get("postgres_conn_id", "postgres_default")],
     )
 
+    for route in ROUTES:
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{route.name}",
+                pass_value=3,
+                params=dict(table_name=route.tmp_db_table_name),
+                result_checker=operator.ge,
+            )
+        )
+
+        colname_checks.append(
+            COLNAMES_CHECK.make_check(
+                check_id=f"colname_check_{route.name}",
+                parameters=[route.tmp_db_table_name],
+                pass_value=set(route.columns),
+                result_checker=operator.ge,
+            )
+        )
+
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{route.name}",
+                params=dict(
+                    table_name=route.tmp_db_table_name,
+                    geotype=route.geometry_type.upper(),
+                ),
+                pass_value=1,
+            )
+        )
+
+    checks = count_checks + colname_checks + geo_checks
+    multi_check = PostgresMultiCheckOperator(
+        task_id="multi_check", checks=checks, params=make_params(checks)
+    )
+
     # Can't chain operator >> list >> list,
     # so need to create these in a single loop
     for route in ROUTES:
-        check_counts.append(
-            PostgresCountCheckOperator(
-                task_id=f"check_count_{route.name}",
-                table_name=route.tmp_db_table_name,
-                min_count=3,
-            )
-        )
-
-        check_geos.append(
-            PostgresGeometryTypeCheckOperator(
-                task_id=f"check_geo_{route.name}",
-                table_name=route.tmp_db_table_name,
-                geometry_type=route.geometry_type,
-            )
-        )
-
-        check_columns.append(
-            PostgresColumnNamesCheckOperator(
-                task_id=f"check_columns_{route.name}",
-                table_name=route.tmp_db_table_name,
-                column_names=route.columns,
-            )
-        )
-
         renames.append(
             PostgresTableRenameOperator(
                 task_id=f"rename_{route.name}",
@@ -190,9 +204,4 @@ with DAG(dag_id, default_args=default_args) as dag:
         )
 
 
-for check_count, check_geo, check_column, rename in zip(
-    check_counts, check_geos, check_columns, renames
-):
-    check_count >> check_geo >> check_column >> rename
-
-drop_old_tables >> import_geojson >> check_counts
+drop_old_tables >> import_geojson >> multi_check >> renames

@@ -96,6 +96,7 @@ pygments==2.6.1           # via apache-airflow
 pyjwt==1.7.1              # via flask-appbuilder, flask-jwt-extended
 pyparsing==2.4.6          # via oslo.utils
 pyrsistent==0.16.0        # via jsonschema
+pyshp==2.1.0              # via -r requirements.in
 python-daemon==2.1.2      # via apache-airflow
 python-dateutil==2.8.1    # via alembic, amsterdam-schema-tools, apache-airflow, croniter, flask-appbuilder, pandas, pendulum
 python-dotenv==0.12.0     # via environs
@@ -125,6 +126,7 @@ termcolor==1.1.0          # via apache-airflow
 text-unidecode==1.2       # via apache-airflow
 thrift==0.13.0            # via apache-airflow
 typing-extensions==3.7.4.2  # via apache-airflow
+typing==3.7.4.1           # via sqlalchemy-jsonfield
 tzlocal==1.5.1            # via apache-airflow, pendulum
 unicodecsv==0.14.1        # via apache-airflow
 urllib3==1.25.8           # via requests, sentry-sdk
