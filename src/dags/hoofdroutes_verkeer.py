@@ -19,7 +19,6 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 from postgres_rename_operator import PostgresTableRenameOperator
-from check_helpers import make_params
 from schematools.importer.geojson import GeoJSONImporter
 from schematools.introspect.geojson import introspect_geojson_files
 from schematools.types import DatasetSchema
@@ -188,9 +187,7 @@ with DAG(dag_id, default_args=default_args) as dag:
         )
 
     checks = count_checks + colname_checks + geo_checks
-    multi_check = PostgresMultiCheckOperator(
-        task_id="multi_check", checks=checks, params=make_params(checks)
-    )
+    multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
     renames = [
         PostgresTableRenameOperator(
@@ -199,7 +196,7 @@ with DAG(dag_id, default_args=default_args) as dag:
             new_table_name=route.db_table_name,
         )
         for route in ROUTES
-   ]
+    ]
 
 
 drop_old_tables >> import_geojson >> multi_check >> renames

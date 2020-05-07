@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from functools import partial, reduce
+from functools import partial
 import operator
 from string import Template
 from typing import Dict, List, Any, Callable, Iterable, ClassVar
@@ -117,15 +117,7 @@ class PostgresMultiCheckOperator(BaseOperator):
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.checks = checks
-        self.check_checks_for_params(kwargs.get("params"))
-
-    def check_checks_for_params(self, params):
-        if not params and reduce(
-            lambda acc, d: {**acc, **(d or {})},
-            list(make_params(self.checks).values()),
-            {},
-        ):
-            raise ValueError("One of the checks needs params")
+        self.params = {**kwargs.get("params"), **make_params(self.checks)}
 
     def execute(self, context=None):
 
