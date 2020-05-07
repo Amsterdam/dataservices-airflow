@@ -64,6 +64,7 @@ COUNT_CHECK = CheckFactory(
     "SELECT COUNT(*) AS count FROM \"{{ params['$check_id'].table_name }}\"",
     result_fetcher=partial(record_by_name, "count"),
 )
+
 COLNAMES_CHECK = CheckFactory(
     """
     SELECT column_name FROM information_schema.columns

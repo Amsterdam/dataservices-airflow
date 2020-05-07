@@ -13,11 +13,6 @@ from common import default_args
 from common.db import get_engine
 from common.http import download_file
 from postgres_check_operator import (
-    PostgresColumnNamesCheckOperator,
-    PostgresCountCheckOperator,
-    PostgresGeometryTypeCheckOperator,
-)
-from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
     COLNAMES_CHECK,
@@ -150,9 +145,6 @@ with DAG(dag_id, default_args=default_args) as dag:
     count_checks = []
     colname_checks = []
     geo_checks = []
-    check_counts = []
-    check_geos = []
-    check_columns = []
     renames = []
 
     drop_old_tables = PostgresOperator(
@@ -196,37 +188,13 @@ with DAG(dag_id, default_args=default_args) as dag:
         )
 
     checks = count_checks + colname_checks + geo_checks
-    multi = PostgresMultiCheckOperator(
-        task_id="multi", checks=checks, params=make_params(checks)
+    multi_check = PostgresMultiCheckOperator(
+        task_id="multi_check", checks=checks, params=make_params(checks)
     )
 
     # Can't chain operator >> list >> list,
     # so need to create these in a single loop
     for route in ROUTES:
-        check_counts.append(
-            PostgresCountCheckOperator(
-                task_id=f"check_count_{route.name}",
-                table_name=route.tmp_db_table_name,
-                min_count=3,
-            )
-        )
-
-        check_geos.append(
-            PostgresGeometryTypeCheckOperator(
-                task_id=f"check_geo_{route.name}",
-                table_name=route.tmp_db_table_name,
-                geometry_type=route.geometry_type,
-            )
-        )
-
-        check_columns.append(
-            PostgresColumnNamesCheckOperator(
-                task_id=f"check_columns_{route.name}",
-                table_name=route.tmp_db_table_name,
-                column_names=route.columns,
-            )
-        )
-
         renames.append(
             PostgresTableRenameOperator(
                 task_id=f"rename_{route.name}",
@@ -236,9 +204,4 @@ with DAG(dag_id, default_args=default_args) as dag:
         )
 
 
-for check_count, check_geo, check_column, rename in zip(
-    check_counts, check_geos, check_columns, renames
-):
-    check_count >> check_geo >> check_column >> rename
-
-drop_old_tables >> import_geojson >> check_counts
+drop_old_tables >> import_geojson >> multi_check >> renames
