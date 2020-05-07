@@ -52,6 +52,7 @@ geojson==2.5.0            # via -r requirements.in
 graphviz==0.13.2          # via apache-airflow
 gunicorn==19.10.0         # via apache-airflow
 idna==2.9                 # via requests
+importlib-metadata==1.6.0  # via argcomplete, jsonschema
 iso8601==0.1.12           # via apache-airflow, keystoneauth1, oslo.utils
 itsdangerous==1.1.0       # via flask, flask-wtf
 jinja2==2.10.3            # via amsterdam-schema-tools, apache-airflow, flask, flask-babel
@@ -124,6 +125,8 @@ tenacity==4.12.0          # via apache-airflow
 termcolor==1.1.0          # via apache-airflow
 text-unidecode==1.2       # via apache-airflow
 thrift==0.13.0            # via apache-airflow
+typing-extensions==3.7.4.2  # via apache-airflow
+typing==3.7.4.1           # via sqlalchemy-jsonfield
 tzlocal==1.5.1            # via apache-airflow, pendulum
 unicodecsv==0.14.1        # via apache-airflow
 urllib3==1.25.8           # via requests, sentry-sdk
@@ -133,6 +136,7 @@ wrapt==1.12.1             # via debtcollector
 wtforms==2.2.1            # via flask-admin, flask-wtf
 xlrd==1.2.0               # via -r requirements.in
 yamlip==0.0.2             # via -r requirements.in
+zipp==3.1.0               # via importlib-metadata
 zope.deprecation==4.4.0   # via apache-airflow
 
 # The following packages are considered to be unsafe in a requirements file:
