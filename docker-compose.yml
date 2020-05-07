@@ -43,6 +43,7 @@ services:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
       - ./src/vars:/usr/local/airflow/vars
+      - ./develop:/usr/local/airflow/develop
       - /var/run/docker.sock:/var/run/docker.sock
 
 

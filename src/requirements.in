@@ -1,3 +1,4 @@
+amsterdam-schema-tools == 0.4.2
 apache-airflow[crypto,postgres,sentry] == 1.10.10
 cattrs == 0.9
 flake8 == 3.7.9

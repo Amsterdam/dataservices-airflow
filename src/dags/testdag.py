@@ -1,6 +1,18 @@
+import operator
 from airflow import DAG
 
 from swift_operator import SwiftOperator
+
+# from airflow.operators.postgres_operator import PostgresOperator
+
+# from airflow.operators.bash_operator import BashOperator
+# from airflow.operators.python_operator import PythonOperator
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    COLNAMES_CHECK,
+    GEO_CHECK,
+)
 
 # from airflow.operators.postgres_operator import PostgresOperator
 # from airflow.operators.bash_operator import BashOperator
@@ -9,6 +21,7 @@ from swift_operator import SwiftOperator
 # from airflow.operators.dummy_operator import DummyOperator
 
 from common import default_args
+from check_helpers import make_params
 
 # from common import pg_params
 
@@ -33,9 +46,34 @@ with DAG("testdag", default_args=default_args,) as dag:
         conn_id="parkeervakken",
     )
 
-    # # swift_task
+    count_check = COUNT_CHECK.make_check(
+        check_id="count_check",
+        pass_value=1587,
+        params=dict(table_name="fietspaaltjes"),
+        result_checker=operator.ge,
+    )
+
+    colname_check = COLNAMES_CHECK.make_check(
+        check_id="colname_check",
+        parameters=["fietspaaltjes"],
+        pass_value=set(["id"]),
+        result_checker=operator.ge,
+    )
+
+    geo_check = GEO_CHECK.make_check(
+        check_id="geo_check",
+        params=dict(table_name="fietspaaltjes", geotype="POINT"),
+        pass_value=1,
+    )
+
+    checks = [count_check, colname_check, geo_check]
+    multi = PostgresMultiCheckOperator(
+        task_id="multi", checks=checks, params=make_params(checks)
+    )
+
+    # swift_task
     # sqls = [
-    #     "delete from biz_data where biz_id = 123456789",
+    #     "delete from biz_data where biz_id = {{ params.tba }}",
     #     "insert into biz_data (biz_id, naam) values (123456789, 'testje')",
     # ]
     # pgtest = PostgresOperator(task_id="pgtest", sql=sqls)
