@@ -62,7 +62,7 @@ ROUTES = [
                 SET geometry = ST_CollectionExtract(ST_MakeValid("geometry"), 2)
                 WHERE NOT ST_IsValid("geometry")""",
             "ALTER TABLE hoofdroutes_routes_gevaarlijke_stoffen_new ADD COLUMN id SERIAL PRIMARY KEY",
-            """ALTER TABLE hoofdroutes_routes_gevaarlijke_stoffen ALTER COLUMN geometry TYPE
+            """ALTER TABLE hoofdroutes_routes_gevaarlijke_stoffen_new ALTER COLUMN geometry TYPE
                 geometry(MultiLineString, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)""",
         ],
     ),
@@ -73,7 +73,7 @@ ROUTES = [
         columns=["id", "geometry", "title", "categorie", "type"],
         post_process=[
             "ALTER TABLE hoofdroutes_tunnels_gevaarlijke_stoffen_new ADD COLUMN id SERIAL PRIMARY KEY",
-            """ALTER TABLE hoofdroutes_tunnels_gevaarlijke_stoffen ALTER COLUMN geometry TYPE
+            """ALTER TABLE hoofdroutes_tunnels_gevaarlijke_stoffen_new ALTER COLUMN geometry TYPE
                 geometry(Point, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)""",
         ],
     ),
@@ -84,7 +84,7 @@ ROUTES = [
         geometry_type="MultiLineString",
         columns=["id", "geometry", "name", "route", "type"],
         post_process=[
-            """ALTER TABLE hoofdroutes_u_routes ALTER COLUMN geometry TYPE
+            """ALTER TABLE hoofdroutes_u_routes_new ALTER COLUMN geometry TYPE
                 geometry(MultiLineString, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)"""
         ],
     ),
