@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from functools import partial
+from functools import partial, reduce
 import operator
 from string import Template
 from typing import Dict, List, Any, Callable, Iterable, ClassVar
@@ -10,7 +10,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from airflow.operators.check_operator import CheckOperator, ValueCheckOperator
 
-from check_helpers import check_safe_name
+from check_helpers import check_safe_name, make_params
 
 
 @dataclass
@@ -49,6 +49,8 @@ class CheckFactory:
     def make_check(
         self, check_id, pass_value, params=None, parameters=None, result_checker=None
     ):
+        """ We use the string.Template interpolation here, because
+            that does not interfere with the jinja2 templating """
         return Check(
             check_id,
             Template(self.sql).safe_substitute(check_id=check_id),
@@ -95,6 +97,15 @@ GEO_CHECK = CheckFactory(
 
 
 class PostgresMultiCheckOperator(BaseOperator):
+    """ This operator can be used to fire a number of checks at once.
+        This is more efficient than firing up all checks separately.
+        There is one caveat. Because we want to use the efficient and
+        lazily evaluated jinja templating, the template parameters have
+        to be collected into one dict, because Airflow does the parameter
+        interpolation only once. So, when params are used, they have to
+        be collected with the 'make_params' function and fed into the
+        operator constructor.
+    """
 
     # We use the possibilty to have nested template fields here
     template_fields: Iterable[str] = ["checks"]
@@ -106,6 +117,15 @@ class PostgresMultiCheckOperator(BaseOperator):
         super(PostgresMultiCheckOperator, self).__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.checks = checks
+        self.check_checks_for_params(kwargs.get("params"))
+
+    def check_checks_for_params(self, params):
+        if not params and reduce(
+            lambda acc, d: {**acc, **(d or {})},
+            list(make_params(self.checks).values()),
+            {},
+        ):
+            raise ValueError("One of the checks needs params")
 
     def execute(self, context=None):
 

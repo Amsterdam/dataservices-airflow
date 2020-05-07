@@ -13,4 +13,7 @@ def check_safe_name(sql_identifier):
 
 
 def make_params(checks):
+    """ Collect params from all checks into one dict,
+        because Airflow does the jinja2 interpolation only once per operator run.
+    """
     return AttrDict({check.check_id: check.params for check in checks})
