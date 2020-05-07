@@ -140,8 +140,10 @@ class PostgresMultiCheckOperator(BaseOperator):
             if not records:
                 raise AirflowException("The query returned None")
 
-            checker_fie = checker.result_checker or operator.eq
-            if not checker_fie(checker.result_fetcher(records), checker.pass_value):
+            checker_function = checker.result_checker or operator.eq
+            if not checker_function(
+                checker.result_fetcher(records), checker.pass_value
+            ):
                 raise AirflowException(f"{records} != {checker.pass_value}")
 
     def get_db_hook(self):
