@@ -50,7 +50,9 @@ with DAG(
         task_id="extract_data",
         bash_command=f"ogr2ogr -f 'PGDump' "
         f"-t_srs EPSG:28992 -nln {dag_id}_new "
-        f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB",
+        f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB "
+        # the option -lco is added to rename the automated creation of the primairy key column (ogc fid) - due to use of ogr2ogr - to id so its conform the Amsterdam schema standard and passes the validation
+        f"-lco FID=ID",
     )
 
     convert_data = BashOperator(
@@ -91,14 +93,28 @@ with DAG(
         params=dict(tablename=f"{dag_id}"),
     )
 
+    (
+        slack_at_start
+        >> mkdir
+        >> extract_data
+        >> convert_data
+        >> create_table
+        >> add_category
+        >> [check_count, check_geo]
+        >> rename_table
+    )
 
-(
-    slack_at_start
-    >> mkdir
-    >> extract_data
-    >> convert_data
-    >> create_table
-    >> add_category
-    >> [check_count, check_geo]
-    >> rename_table
-)
+    dag.doc_md = '''
+        #### DAG summery
+        This DAG containts permit announcements (bekendmakingen)
+        #### Mission Critical
+        Classified as 2 (beschikbaarheid [range: 1,2,3])
+        #### On Failure Actions
+        Fix issues and rerun dag on working days
+        #### Point of Contact
+        Inform the businessowner at [businessowner]@amsterdam.nl
+        #### Business Use Case / process
+        Permit allowance (vergunningverlening)
+        #### Prerequisites/Dependencies/Resourcing
+        None
+    '''
