@@ -1,5 +1,6 @@
 from pathlib import Path
 from swiftclient.service import SwiftService, SwiftError
+from airflow.exceptions import AirflowException
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.hooks.base_hook import BaseHook
@@ -14,7 +15,7 @@ class SwiftOperator(BaseOperator):
         output_path: str,
         conn_id: str = None,
         *args,
-        **kwargs
+        **kwargs,
     ) -> None:
         self.container = container
         self.object_id = object_id
@@ -48,3 +49,4 @@ class SwiftOperator(BaseOperator):
 
             except SwiftError as e:
                 self.log.error(e.value)
+                raise AirflowException(f"Failed to fetch file: {e.value}")
