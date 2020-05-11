@@ -3,8 +3,8 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from postgres_files_operator import PostgresFilesOperator
 
-# from airflow.operators.postgres_operator import PostgresOperator
 from common import (
     vsd_default_args,
     slack_webhook_token,
@@ -114,10 +114,13 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
             )
         )
 
-    load_dumps = PostgresOperator(
+    drop_tables = PostgresOperator(
+        task_id="drop_tables", sql="DROP TABLE IF EXISTS trm_tram_new, trm_metro_new",
+    )
+
+    load_dumps = PostgresFilesOperator(
         task_id="load_dumps",
-        sql=[
-            "DROP TABLE IF EXISTS trm_tram_new, trm_metro_new",
+        sql_files=[
             f"{tmp_dir}/{dag_id}_metro.utf8.sql",
             f"{tmp_dir}/{dag_id}_tram.utf8.sql",
         ],
@@ -145,5 +148,5 @@ for check_count, check_colname in zip(check_counts, check_colnames):
     check_count >> check_colname
 
 slack_at_start >> mkdir >> extract_zips
-remove_drops >> remove_entities >> load_dumps >> check_counts
+remove_drops >> remove_entities >> drop_tables >> load_dumps >> check_counts
 check_colnames >> rename_tables
