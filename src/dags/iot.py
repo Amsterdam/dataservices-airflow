@@ -9,6 +9,7 @@ from airflow.models import Variable
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from http_fetch_operator import HttpFetchOperator
+from postgres_files_operator import PostgresFilesOperator
 
 from common import (
     default_args,
@@ -113,13 +114,16 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         ],
     )
 
-    create_tables = PostgresOperator(
-        task_id="create_tables", sql=f"{sql_path}/iot_data_create.sql",
+    create_tables = PostgresFilesOperator(
+        task_id="create_tables", sql_files=[f"{sql_path}/iot_data_create.sql"],
     )
 
-    import_data = PostgresOperator(
+    import_data = PostgresFilesOperator(
         task_id="import_data",
-        sql=[f"{tmp_dir}/iot_things_new.sql", f"{tmp_dir}/iot_locations_new.sql",],
+        sql_files=[
+            f"{tmp_dir}/iot_things_new.sql",
+            f"{tmp_dir}/iot_locations_new.sql",
+        ],
     )
 
     rename_tables = PostgresOperator(task_id="rename_tables", sql=SQL_TABLE_RENAMES)

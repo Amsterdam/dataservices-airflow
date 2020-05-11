@@ -4,6 +4,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from postgres_files_operator import PostgresFilesOperator
 
 from common import (
     default_args,
@@ -76,9 +77,11 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.geo.json",
     )
 
-    create_and_fix_table = PostgresOperator(
-        task_id="create_and_fix_table", sql=[f"{tmp_dir}/{dag_id}.sql", SQL_FIX_TABLES],
+    create_table = PostgresFilesOperator(
+        task_id="create_table", sql_files=[f"{tmp_dir}/{dag_id}.sql"],
     )
+
+    fix_table = PostgresOperator(task_id="fix_table", sql=SQL_FIX_TABLES,)
 
     check_count = PostgresCheckOperator(
         task_id="check_count",
@@ -112,7 +115,8 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     >> mkdir
     >> import_data
     >> extract_geojson
-    >> create_and_fix_table
+    >> create_table
+    >> fix_table
     >> [check_count, check_geo, check_colnames]
     >> rename_table
 )

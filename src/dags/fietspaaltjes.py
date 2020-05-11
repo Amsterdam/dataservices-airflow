@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from http_fetch_operator import HttpFetchOperator
+from postgres_files_operator import PostgresFilesOperator
 
 from common import (
     default_args,
@@ -43,9 +44,9 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         op_args=[f"{tmp_dir}/{dag_id}.json", f"{tmp_dir}/{dag_id}.sql",],
     )
 
-    create_and_fill_table = PostgresOperator(
+    create_and_fill_table = PostgresFilesOperator(
         task_id="create_and_fill_table",
-        sql=[f"{sql_path}/fietspaaltjes_create.sql", f"{tmp_dir}/{dag_id}.sql"],
+        sql_files=[f"{sql_path}/fietspaaltjes_create.sql", f"{tmp_dir}/{dag_id}.sql"],
     )
 
     rename_table = PostgresOperator(

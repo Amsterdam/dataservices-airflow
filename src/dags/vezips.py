@@ -4,6 +4,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from http_fetch_operator import HttpFetchOperator
+from postgres_files_operator import PostgresFilesOperator
 
 from common import (
     vsd_default_args,
@@ -68,11 +69,16 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.json",
     )
 
-    create_tables = PostgresOperator(
-        task_id="create_tables",
+    drop_table = PostgresOperator(
+        task_id="drop_table", sql="DROP TABLE IF EXISTS vezips_new"
+    )
+    create_table = PostgresFilesOperator(
+        task_id="create_table", sql_files=[f"{tmp_dir}/{dag_id}.sql"]
+    )
+
+    alter_table = PostgresOperator(
+        task_id="alter_table",
         sql=[
-            "DROP TABLE IF EXISTS vezips_new",
-            f"{tmp_dir}/{dag_id}.sql",
             "ALTER TABLE vezips_new RENAME COLUMN bfa_nummer TO vezip_nummer",
             "ALTER TABLE vezips_new RENAME COLUMN bfa_type TO vezip_type",
         ],
@@ -106,7 +112,9 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
     slack_at_start
     >> fetch_json
     >> extract_shp
-    >> create_tables
+    >> drop_table
+    >> create_table
+    >> alter_table
     >> [check_count, check_colnames, check_geo]
     >> rename_table
 )
