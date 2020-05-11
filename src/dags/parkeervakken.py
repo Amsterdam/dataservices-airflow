@@ -103,7 +103,7 @@ def import_data(shp_file, ids):
         ") VALUES {};"
     ).format(TABLES["REGIMES_TEMP"], ",".join(regimes_sql))
 
-    hook = PostgresHook(postgres_conn_id=postgres_conn_id)
+    hook = PostgresHook()
     if len(parkeervakken_sql):
         try:
             hook.run(create_parkeervakken_sql)
@@ -174,7 +174,6 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
 
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
-        postgres_conn_id=postgres_conn_id,
         sql=SQL_CREATE_TEMP_TABLES,
         params=dict(base_table=f"{dag_id}_{dag_id}"),
     )
@@ -188,7 +187,6 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
 
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
-        postgres_conn_id=postgres_conn_id,
         sql=SQL_RENAME_TEMP_TABLES,
         params=dict(base_table=f"{dag_id}_{dag_id}"),
     )
