@@ -93,28 +93,28 @@ with DAG(
         params=dict(tablename=f"{dag_id}"),
     )
 
-    (
-        slack_at_start
-        >> mkdir
-        >> extract_data
-        >> convert_data
-        >> create_table
-        >> add_category
-        >> [check_count, check_geo]
-        >> rename_table
-    )
+(
+    slack_at_start
+    >> mkdir
+    >> extract_data
+    >> convert_data
+    >> create_table
+    >> add_category
+    >> [check_count, check_geo]
+    >> rename_table
+)
 
-    dag.doc_md = '''
-        #### DAG summery
-        This DAG containts permit announcements (bekendmakingen)
-        #### Mission Critical
-        Classified as 2 (beschikbaarheid [range: 1,2,3])
-        #### On Failure Actions
-        Fix issues and rerun dag on working days
-        #### Point of Contact
-        Inform the businessowner at [businessowner]@amsterdam.nl
-        #### Business Use Case / process
-        Permit allowance (vergunningverlening)
-        #### Prerequisites/Dependencies/Resourcing
-        None
-    '''
+dag.doc_md = '''
+    #### DAG summery
+    This DAG containts permit announcements (bekendmakingen)
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process
+    Permit allowance (vergunningverlening)
+    #### Prerequisites/Dependencies/Resourcing
+    None
+'''
