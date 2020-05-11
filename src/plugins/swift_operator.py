@@ -46,6 +46,9 @@ class SwiftOperator(BaseOperator):
                         self.log.info("downloaded: %s", down_res["object"])
                     else:
                         self.log.error("download failed: %s", down_res["object"])
+                        raise AirflowException(
+                            f"Failed to fetch file: {down_res['object']}"
+                        )
 
             except SwiftError as e:
                 self.log.error(e.value)
