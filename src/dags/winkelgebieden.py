@@ -23,7 +23,7 @@ def quote(instr):
     return f"'{instr}'"
 
 
-dag_id = "winkgeb"
+dag_id = "winkelgebieden"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 
@@ -49,7 +49,7 @@ with DAG(
     extract_data = BashOperator(
         task_id="extract_data",
         bash_command=f"ogr2ogr -f 'PGDump' "
-        f"-t_srs EPSG:28992 -nln {dag_id}_new "
+        f"-t_srs EPSG:28992 -nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB "
         # the option -lco is added to rename the automated creation of the primairy key column (ogc fid) - due to use of ogr2ogr - to id so its conform the Amsterdam schema standard and passes the validation
         f"-lco FID=ID",
@@ -74,14 +74,14 @@ with DAG(
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
-        params=dict(tablename=f"{dag_id}_new", mincount=75),
+        params=dict(tablename=f"{dag_id}_{dag_id}_new", mincount=75),
     )
 
     check_geo = PostgresCheckOperator(
         task_id="check_geo",
         sql=SQL_CHECK_GEO,
         params=dict(
-            tablename=f"{dag_id}_new",
+            tablename=f"{dag_id}_{dag_id}_new",
             geotype=["ST_Polygon", "ST_MultiPolygon"],
             check_valid=False,
         ),
@@ -90,7 +90,7 @@ with DAG(
     rename_table = PostgresOperator(
         task_id="rename_table",
         sql=SQL_TABLE_RENAME,
-        params=dict(tablename=f"{dag_id}"),
+        params=dict(tablename=f"{dag_id}_{dag_id}"),
     )
 
 
@@ -105,7 +105,7 @@ with DAG(
     >> rename_table
 )
 
-dag.doc_md = '''
+dag.doc_md = """
     #### DAG summery
     This DAG containts permit announcements (bekendmakingen)
     #### Mission Critical
@@ -118,4 +118,4 @@ dag.doc_md = '''
     Permit allowance (vergunningverlening)
     #### Prerequisites/Dependencies/Resourcing
     None
-'''
+"""
