@@ -152,7 +152,12 @@ def run_imports(last_date):
             print("Duplicates found: {}".format(", ".join(duplicates)))
 
 
-with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
+with DAG(
+    dag_id,
+    default_args=default_args,
+    description="Parkeervakken",
+    schedule_interval="0 16 * 4 *",
+) as dag:
     last_date = find_export_date()
     zip_file = "nivo_{}.zip".format(last_date)
     source = pathlib.Path(TMP_DIR)
