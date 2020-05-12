@@ -1,6 +1,6 @@
 import datetime
 import pathlib
-import dateutil
+import dateutil.parser
 import shapefile
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
@@ -22,6 +22,7 @@ TABLES = dict(
     REGIMES=f"{dag_id}_{dag_id}_regimes",
     REGIMES_TEMP=f"{dag_id}_{dag_id}_regimes_temp",
 )
+WEEK_DAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"]
 
 
 SQL_CREATE_TEMP_TABLES = """
@@ -61,6 +62,22 @@ def import_data(shp_file, ids):
     """
     Import Shape File into database.
     """
+    base_regime_sql = (
+        "("
+        "'{parent_id}',"
+        "'{soort}',"
+        "'{e_type}',"
+        "'{bord}',"
+        "'{begin_tijd}',"
+        "'{eind_tijd}',"
+        "'{opmerking}',"
+        "{dagen},"
+        "{kenteken},"
+        "{begin_datum},"
+        "{eind_datum}"
+        ")"
+    )
+
     parkeervakken_sql = []
     regimes_sql = []
     duplicates = []
@@ -72,25 +89,33 @@ def import_data(shp_file, ids):
                 duplicates.append(row.record.PARKEER_ID)
                 continue
             ids.append(int(row.record.PARKEER_ID))
-            parkeervakken_sql.append(create_parkeervaak(row=row))
 
-            if any(
-                [
-                    row.record.KENTEKEN,
-                    row.record.BORD,
-                    row.record.E_TYPE,
-                    row.record.BEGINTIJD1,
-                    row.record.EINDTIJD1,
-                    row.record.BEGINTIJD2,
-                    row.record.EINDTIJD2,
-                    row.record.TVM_BEGINT,
-                    row.record.TVM_EINDT,
-                    row.record.TVM_BEGIND,
-                    row.record.TVM_EINDD,
-                    row.record.TVM_OPMERK,
-                ]
-            ):
-                regimes_sql += create_regimes(row=row)
+            regimes = create_regimes(row=row)
+            soort = "FISCAAL"
+            if len(regimes) == 1:
+                soort = regimes[0]["soort"]
+
+            parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
+            regimes_sql = [
+                base_regime_sql.format(
+                    parent_id=mode["parent_id"],
+                    soort=mode["soort"],
+                    e_type=mode["e_type"],
+                    bord=mode["bord"],
+                    begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
+                    eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
+                    opmerking=mode["opmerking"],
+                    dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
+                    kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
+                    begin_datum=f"'{mode['begin_datum']}'"
+                    if mode["begin_datum"]
+                    else "NULL",
+                    eind_datum=f"'{mode['eind_datum']}'"
+                    if mode["eind_datum"]
+                    else "NULL",
+                )
+                for mode in regimes
+            ]
 
     create_parkeervakken_sql = (
         "INSERT INTO {} ("
@@ -99,7 +124,7 @@ def import_data(shp_file, ids):
     ).format(TABLES["BASE_TEMP"], ",".join(parkeervakken_sql))
     create_regimes_sql = (
         "INSERT INTO {} ("
-        "parent_id, soort, e_type, begin_tijd, eind_tijd, opmerking, dagen"
+        "parent_id, soort, e_type, bord, begin_tijd, eind_tijd, opmerking, dagen, kenteken, begin_datum, eind_datum"
         ") VALUES {};"
     ).format(TABLES["REGIMES_TEMP"], ",".join(regimes_sql))
 
@@ -152,7 +177,12 @@ def run_imports(last_date):
             print("Duplicates found: {}".format(", ".join(duplicates)))
 
 
-with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
+with DAG(
+    dag_id,
+    default_args=default_args,
+    description="Parkeervakken",
+    schedule_interval="0 16 * * 4",
+) as dag:
     last_date = find_export_date()
     zip_file = "nivo_{}.zip".format(last_date)
     source = pathlib.Path(TMP_DIR)
@@ -202,7 +232,7 @@ with DAG(dag_id, default_args=default_args, description="Parkeervakken") as dag:
 
 
 # Internals
-def create_parkeervaak(row):
+def create_parkeervaak(row, soort=None):
     geom = "''"
     if row.shape.shapeTypeName == "POLYGON":
         geom = "ST_GeometryFromText('{}', 28992)".format(str(Polygon(row.shape.points)))
@@ -221,8 +251,8 @@ def create_parkeervaak(row):
         parkeer_id=row.record.PARKEER_ID,
         buurtcode=row.record.BUURTCODE,
         straatnaam=row.record.STRAATNAAM.replace("'", "\\'"),
-        soort=row.record.SOORT or "",
-        type=row.record.TYPE or "",
+        soort=row.record.SOORT or soort,
+        type="",
         aantal=row.record.AANTAL,
         geom=geom,
         e_type=row.record.E_TYPE or "",
@@ -231,60 +261,89 @@ def create_parkeervaak(row):
 
 
 def create_regimes(row):
-    sql = (
-        "("
-        "'{parent_id}',"
-        "'{soort}',"
-        "'{e_type}',"
-        "'{begin_tijd}',"
-        "'{eind_tijd}',"
-        "'{opmerking}',"
-        "{dagen}"
-        ")"
-    )
 
     output = []
 
     days = days_from_row(row)
 
     base_data = dict(
-        soort=row.record.SOORT or "",
-        e_type=row.record.E_TYPE or "",
-        bord=row.record.BORD or "",
-        begin_tijd="00:00",
-        eind_tijd="23:59",
-        opmerking=row.record.OPMERKING or "",
-        dagen=days,
         parent_id=row.record.PARKEER_ID or "",
+        soort="FISCAAL",
+        e_type="",
+        bord="",
+        begin_tijd=datetime.time(0, 0),
+        eind_tijd=datetime.time(23, 59),
+        opmerking=row.record.OPMERKING or "",
+        dagen=WEEK_DAYS,
+        kenteken=None,
+        begin_datum=None,
+        eind_datum=None,
     )
 
-    if row.record.KENTEKEN:
-        kenteken_regime = base_data.copy()
-        kenteken_regime.update(
+    mode_start = datetime.time(0, 0)
+    mode_end = datetime.time(23, 59)
+
+    modes = get_modes(row)
+    if len(modes) == 0:
+        # No time modes, but could have full override.
+        x = base_data.copy()
+        x.update(
             dict(
+                soort=row.record.SOORT or "FISCAAL",
+                bord=row.record.BORD or "",
+                e_type=row.record.E_TYPE or "",
                 kenteken=row.record.KENTEKEN,
-                begin_tijd=format_time(row.record.BEGINTIJD1, "00:00"),
-                eind_tijd=format_time(row.record.EINDTIJD1, "23:59"),
             )
         )
-        output.append(sql.format(**kenteken_regime))
-    elif any([row.record.BEGINTIJD1, row.record.EINDTIJD1]):
-        output.append(sql.format(**base_data))
+        return [x]
 
-        second_mode = base_data.copy()
-        second_mode["begin_tijd"] = format_time(row.record.BEGINTIJD1, "00:00")
-        second_mode["eind_tijd"] = format_time(row.record.EINDTIJD1, "23:59")
+    for mode in modes:
+        if mode.get("begin_tijd", datetime.time(0, 0)) > mode_start:
+            # Time bound. Start of the day mode.
+            sod_mode = base_data.copy()
+            sod_mode["dagen"] = days
+            sod_mode["begin_tijd"] = mode_start
+            sod_mode["eind_tijd"] = remove_a_minute(mode["begin_tijd"])
+            output.append(sod_mode)
 
-        output.append(sql.format(**second_mode))
-    elif any([row.record.BEGINTIJD2, row.record.EINDTIJD2]):
-        output.append(sql.format(**base_data))
+        mode_data = base_data.copy()
+        mode_data.update(mode)
+        mode_data["dagen"] = days
+        output.append(mode_data)
+        mode_start = add_a_minute(mode["eind_tijd"])
 
-        second_mode = base_data.copy()
-        second_mode["begin_tijd"] = format_time(row.record.BEGINTIJD2, "00:00")
-        second_mode["eind_tijd"] = format_time(row.record.EINDTIJD2, "23:59")
+    if mode.get("eind_tijd", datetime.time(23, 59)) < mode_end:
+        # Time bound. End of the day mode.
+        eod_mode = base_data.copy()
+        eod_mode["dagen"] = days
+        eod_mode["begin_tijd"] = add_a_minute(mode["eind_tijd"])
+        output.append(eod_mode)
+    return output
 
-        output.append(sql.format(**second_mode))
-    elif any(
+
+def add_a_minute(time):
+    return (
+        datetime.datetime.combine(datetime.date.today(), time)
+        + datetime.timedelta(minutes=1)
+    ).time()
+
+
+def remove_a_minute(time):
+    return (
+        datetime.datetime.combine(datetime.date.today(), time)
+        - datetime.timedelta(minutes=1)
+    ).time()
+
+
+def get_modes(row):
+    modes = []
+    base = dict(
+        soort=row.record.SOORT or "FISCAAL",
+        bord=row.record.BORD or "",
+        e_type=row.record.E_TYPE or "",
+        kenteken=row.record.KENTEKEN,
+    )
+    if any(
         [
             row.record.TVM_BEGINT,
             row.record.TVM_EINDT,
@@ -293,48 +352,63 @@ def create_regimes(row):
             row.record.TVM_OPMERK,
         ]
     ):
-        output.append(sql.format(**base_data))
         # TVM
-        tvm_mode = base_data.copy()
+        tvm_mode = base.copy()
         tvm_mode.update(
             dict(
+                soort=row.record.E_TYPE or "FISCAAL",
                 begin_datum=row.record.TVM_BEGIND or "",
                 eind_datum=row.record.TVM_EINDD or "",
                 opmerking=row.record.TVM_OPMERK or "",
-                begin_tijd=format_time(row.record.TVM_BEGINT, "00:00"),
-                eind_tijd=format_time(row.record.TVM_EINDT, "23:59"),
+                begin_tijd=format_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
+                eind_tijd=format_time(row.record.TVM_EINDT, datetime.time(23, 59)),
             )
         )
-        output.append(sql.format(**tvm_mode))
-    return output
+        modes.append(tvm_mode)
+
+    if any([row.record.BEGINTIJD1, row.record.EINDTIJD1]):
+        x = base.copy()
+        x.update(
+            dict(
+                begin_tijd=format_time(row.record.BEGINTIJD1, datetime.time(0, 0)),
+                eind_tijd=format_time(row.record.EINDTIJD1, datetime.time(23, 59)),
+            )
+        )
+        modes.append(x)
+    if any([row.record.BEGINTIJD2, row.record.EINDTIJD2]):
+        x = base.copy()
+        x.update(
+            dict(
+                begin_tijd=format_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
+                eind_tijd=format_time(row.record.EINDTIJD2, datetime.time(23, 59)),
+            )
+        )
+        modes.append(x)
+    return modes
 
 
 def days_from_row(row):
     """
     Parse week days from row.
     """
-    week_days = ["ma", "di", "wo", "do", "vr", "za", "zo"]
 
     if row.record.MA_VR:
         # Monday to Friday
-        days = week_days[:4]
+        days = WEEK_DAYS[:4]
     elif row.record.MA_ZA:
         # Monday to Saturday
-        days = week_days[:5]
-    elif all([getattr(row.record, day.upper()) for day in week_days]):
-        # All days apply
-        days = week_days
+        days = WEEK_DAYS[:5]
 
-    elif not any([getattr(row.record, day.upper()) for day in week_days]):
+    elif not any([getattr(row.record, day.upper()) for day in WEEK_DAYS]):
         # All days apply
-        days = week_days
+        days = WEEK_DAYS
     else:
         # One day permit
         days = [
-            day for day in week_days if getattr(row.record, day.upper()) is not None
+            day for day in WEEK_DAYS if getattr(row.record, day.upper()) is not None
         ]
 
-    return "'{" + ",".join([f'"{day}"' for day in days]) + "}'"
+    return days
 
 
 def format_time(value, default=None):
@@ -352,5 +426,5 @@ def format_time(value, default=None):
         except dateutil.parser._parser.ParserError:
             pass
         else:
-            return parsed.strftime("%H:%M")
+            return parsed.time()
     return default
