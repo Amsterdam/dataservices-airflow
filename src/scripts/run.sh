@@ -1,9 +1,5 @@
 #!/bin/bash
-
-# XXX Should we run airflow as root ?
-echo "$POSTGRES_HOST:$POSTGRES_PORT:$POSTGRES_DB:$POSTGRES_USER:$POSTGRES_PASSWORD" > /root/.pgpass
-chmod 500 /root/.pgpass
-
+export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN:$AIRFLOW_CONN_POSTGRES_DEFAULT}
 airflow initdb  # initdb is not destructive, so can be re-run at startup
 python scripts/mkvars.py
 # Airflow does not support slack connection config through environment var
@@ -36,8 +32,8 @@ airflow connections --add  --conn_id verlichting_conn_id \
     --conn_host https://asd2.techtek.eu \
     --conn_type http
 
-# airflow variables -i vars/vars.json & 
-# airflow scheduler & 
+# airflow variables -i vars/vars.json &
+# airflow scheduler &
 # airflow webserver
 airflow variables -i vars/vars.json
 /usr/local/bin/supervisord --config /usr/local/airflow/etc/supervisord.conf

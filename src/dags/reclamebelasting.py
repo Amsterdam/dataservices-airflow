@@ -50,7 +50,7 @@ with DAG(
 
     import_sql = BashOperator(
         task_id="import_sql",
-        bash_command=f"psql {pg_params} < {tmp_dir}/{dag_id}.utf8.sql",
+        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.utf8.sql",
     )
 
     rename_table = PostgresOperator(
