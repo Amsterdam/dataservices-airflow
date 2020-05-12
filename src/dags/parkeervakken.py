@@ -69,7 +69,7 @@ def import_data(shp_file, ids):
         for row in shape:
             if int(row.record.PARKEER_ID) in ids:
                 # Exclude dupes
-                duplicates.append(ids)
+                duplicates.append(row.record.PARKEER_ID)
                 continue
             ids.append(int(row.record.PARKEER_ID))
             parkeervakken_sql.append(create_parkeervaak(row=row))
