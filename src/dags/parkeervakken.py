@@ -100,7 +100,7 @@ def import_data(shp_file, ids):
             parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
             regimes_sql += [
                 base_regime_sql.format(
-                    parent_id=row.recod.PARKEER_ID,
+                    parent_id=row.record.PARKEER_ID,
                     soort=mode["soort"],
                     e_type=mode["e_type"],
                     bord=mode["bord"],
@@ -369,14 +369,20 @@ def get_modes(row):
         modes.append(tvm_mode)
 
     if any([row.record.BEGINTIJD1, row.record.EINDTIJD1]):
-        x = base.copy()
-        x.update(
-            dict(
-                begin_tijd=format_time(row.record.BEGINTIJD1, datetime.time(0, 0)),
-                eind_tijd=format_time(row.record.EINDTIJD1, datetime.time(23, 59)),
-            )
-        )
-        modes.append(x)
+        begin_tijd = format_time(row.record.BEGINTIJD1, datetime.time(0, 0))
+        eind_tijd = format_time(row.record.EINDTIJD1, datetime.time(23, 59))
+        if begin_tijd < eind_tijd:
+            x = base.copy()
+            x.update(dict(begin_tijd=begin_tijd, eind_tijd=eind_tijd))
+            modes.append(x)
+        else:
+            # Mode: 20:00, 06:00
+            x = base.copy()
+            x.update(dict(begin_tijd=datetime.time(0, 0), eind_tijd=eind_tijd))
+            y = base.copy()
+            y.update(dict(begin_tijd=begin_tijd, eind_tijd=datetime.time(23, 59)))
+            modes.append(x)
+            modes.append(y)
     if any([row.record.BEGINTIJD2, row.record.EINDTIJD2]):
         x = base.copy()
         x.update(
