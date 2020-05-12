@@ -98,9 +98,9 @@ def import_data(shp_file, ids):
                 soort = regimes[0]["soort"]
 
             parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
-            regimes_sql = [
+            regimes_sql += [
                 base_regime_sql.format(
-                    parent_id=mode["parent_id"],
+                    parent_id=row.recod.PARKEER_ID,
                     soort=mode["soort"],
                     e_type=mode["e_type"],
                     bord=mode["bord"],
