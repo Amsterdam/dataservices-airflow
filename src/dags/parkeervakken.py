@@ -98,9 +98,9 @@ def import_data(shp_file, ids):
                 soort = regimes[0]["soort"]
 
             parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
-            regimes_sql = [
+            regimes_sql += [
                 base_regime_sql.format(
-                    parent_id=mode["parent_id"],
+                    parent_id=row.record.PARKEER_ID,
                     soort=mode["soort"],
                     e_type=mode["e_type"],
                     bord=mode["bord"],
@@ -362,27 +362,33 @@ def get_modes(row):
                 begin_datum=row.record.TVM_BEGIND or "",
                 eind_datum=row.record.TVM_EINDD or "",
                 opmerking=row.record.TVM_OPMERK or "",
-                begin_tijd=format_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
-                eind_tijd=format_time(row.record.TVM_EINDT, datetime.time(23, 59)),
+                begin_tijd=parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
+                eind_tijd=parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
             )
         )
         modes.append(tvm_mode)
 
     if any([row.record.BEGINTIJD1, row.record.EINDTIJD1]):
-        x = base.copy()
-        x.update(
-            dict(
-                begin_tijd=format_time(row.record.BEGINTIJD1, datetime.time(0, 0)),
-                eind_tijd=format_time(row.record.EINDTIJD1, datetime.time(23, 59)),
-            )
-        )
-        modes.append(x)
+        begin_tijd = parse_time(row.record.BEGINTIJD1, datetime.time(0, 0))
+        eind_tijd = parse_time(row.record.EINDTIJD1, datetime.time(23, 59))
+        if begin_tijd < eind_tijd:
+            x = base.copy()
+            x.update(dict(begin_tijd=begin_tijd, eind_tijd=eind_tijd))
+            modes.append(x)
+        else:
+            # Mode: 20:00, 06:00
+            x = base.copy()
+            x.update(dict(begin_tijd=datetime.time(0, 0), eind_tijd=eind_tijd))
+            y = base.copy()
+            y.update(dict(begin_tijd=begin_tijd, eind_tijd=datetime.time(23, 59)))
+            modes.append(x)
+            modes.append(y)
     if any([row.record.BEGINTIJD2, row.record.EINDTIJD2]):
         x = base.copy()
         x.update(
             dict(
-                begin_tijd=format_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
-                eind_tijd=format_time(row.record.EINDTIJD2, datetime.time(23, 59)),
+                begin_tijd=parse_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
+                eind_tijd=parse_time(row.record.EINDTIJD2, datetime.time(23, 59)),
             )
         )
         modes.append(x)
@@ -413,9 +419,9 @@ def days_from_row(row):
     return days
 
 
-def format_time(value, default=None):
+def parse_time(value, default=None):
     """
-    Format time or return None
+    Parse time or return default
     """
     if value is not None:
         if value == "24:00":
