@@ -121,16 +121,5 @@ if (BRANCH == "master") {
         }
     }
 
-    node {
-        stage("Deploy V2") {
-            tryStep "deployment", {
-                build job: 'Subtask_Openstack_Playbook',
-                    parameters: [
-                        [$class: 'StringParameterValue', name: 'INVENTORY', value: 'production'],
-                        [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy-dataservices-airflow-v2.yml'],
-                    ]
-            }
-        }
-    }
 }
 
