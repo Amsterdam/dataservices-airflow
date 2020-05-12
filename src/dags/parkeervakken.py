@@ -198,7 +198,7 @@ with DAG(
         container="tijdregimes",
         object_id=zip_file,
         output_path=f"{TMP_DIR}/{zip_file}",
-        conn_id="parkeervakken_objectstore",
+        swift_conn_id="parkeervakken_objectstore",
     )
 
     extract_zip = BashOperator(
