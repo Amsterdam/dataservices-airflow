@@ -5,6 +5,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from swift_operator import SwiftOperator
+from postgres_files_operator import PostgresFilesOperator
 from common import (
     default_args,
     slack_webhook_token,
@@ -88,10 +89,12 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         f"{sql_file_new_path}",
     )
 
-    drop_and_import = PostgresOperator(
-        task_id="drop_and_import",
-        sql=[SQL_DROPS, sql_file_new_path],
-        params=dict(tablename=dag_id),
+    drop_tables = PostgresOperator(
+        task_id="drop_tables", sql=SQL_DROPS, params=dict(tablename=dag_id),
+    )
+
+    import_table = PostgresFilesOperator(
+        task_id="import_table", sql_files=[sql_file_new_path],
     )
 
     check_count = PostgresCheckOperator(
@@ -119,7 +122,8 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     >> fetch_sql
     >> remove_owner_alters
     >> replace_tablename
-    >> drop_and_import
+    >> drop_tables
+    >> import_table
     >> [check_count, check_geo, check_cols]
     >> rename_tables
 )
