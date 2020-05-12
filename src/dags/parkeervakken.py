@@ -76,7 +76,8 @@ def import_data(shp_file, ids):
         "{dagen},"
         "{kenteken},"
         "{begin_datum},"
-        "{eind_datum}"
+        "{eind_datum},"
+        "'{aantal}'"
         ")"
     )
 
@@ -115,6 +116,7 @@ def import_data(shp_file, ids):
                     eind_datum=f"'{mode['eind_datum']}'"
                     if mode["eind_datum"]
                     else "NULL",
+                    aantal=row.record.AANTAL,
                 )
                 for mode in regimes
             ]
@@ -126,7 +128,7 @@ def import_data(shp_file, ids):
     ).format(TABLES["BASE_TEMP"], ",".join(parkeervakken_sql))
     create_regimes_sql = (
         "INSERT INTO {} ("
-        "parent_id, soort, e_type, bord, begin_tijd, eind_tijd, opmerking, dagen, kenteken, begin_datum, eind_datum"
+        "parent_id, soort, e_type, bord, begin_tijd, eind_tijd, opmerking, dagen, kenteken, begin_datum, eind_datum, aantal"
         ") VALUES {};"
     ).format(TABLES["REGIMES_TEMP"], ",".join(regimes_sql))
 
@@ -339,6 +341,7 @@ def remove_a_minute(time):
 
 def get_modes(row):
     modes = []
+
     base = dict(
         soort=row.record.SOORT or "FISCAAL",
         bord=row.record.BORD or "",
