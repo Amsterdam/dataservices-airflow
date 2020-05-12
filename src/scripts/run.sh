@@ -1,5 +1,6 @@
 #!/bin/bash
-export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN:$AIRFLOW_CONN_POSTGRES_DEFAULT}
+export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN:-`echo $AIRFLOW_CONN_POSTGRES_DEFAULT | cut -d'?' -f 1`}
+export AIRFLOW_CONN_POSTGRES_VSD={$AIRFLOW_CONN_POSTGRES_VSD:-$AIRFLOW__CORE__SQL_ALCHEMY_CONN}
 airflow initdb  # initdb is not destructive, so can be re-run at startup
 python scripts/mkvars.py
 # Airflow does not support slack connection config through environment var
