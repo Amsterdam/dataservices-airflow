@@ -36,14 +36,14 @@ with DAG("testdag", default_args=default_args,) as dag:
 
     swift_task = SwiftOperator(
         task_id="swift_task",
-        container="tijdregimes",
-        object_id="nivo_20200416.zip",
-        output_path="/tmp/blaat/nivo_20200416.zip",
+        container="Dataservices",
+        object_id="beschermde_stads_en_dorpsgezichten/acceptance/beschermde_stadsdorpsgezichten.zip",
+        output_path="/tmp/bsd.zip",
         # container="afval",
         # object_id="acceptance/afval_cluster.zip",
         # output_path="/tmp/blaat/out2.zip",
         # conn_id="afval",
-        conn_id="parkeervakken",
+        swift_conn_id="objectstore_dataservices",
     )
 
     count_check = COUNT_CHECK.make_check(
