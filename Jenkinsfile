@@ -78,6 +78,19 @@ if (BRANCH == "master") {
         }
     }
 
+    node {
+        stage("Deploy to ACC V2") {
+            tryStep "deployment", {
+                build job: 'Subtask_Openstack_Playbook',
+                    parameters: [
+                        [$class: 'StringParameterValue', name: 'INVENTORY', value: 'acceptance'],
+                        [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy-dataservices-airflow-v2.yml'],
+                    ]
+            }
+        }
+    }
+
+
     stage('Waiting for approval') {
         slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
         input "Deploy to Production?"
@@ -103,6 +116,18 @@ if (BRANCH == "master") {
                     parameters: [
                         [$class: 'StringParameterValue', name: 'INVENTORY', value: 'production'],
                         [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy-dataservices-airflow.yml'],
+                    ]
+            }
+        }
+    }
+
+    node {
+        stage("Deploy V2") {
+            tryStep "deployment", {
+                build job: 'Subtask_Openstack_Playbook',
+                    parameters: [
+                        [$class: 'StringParameterValue', name: 'INVENTORY', value: 'production'],
+                        [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy-dataservices-airflow-v2.yml'],
                     ]
             }
         }
