@@ -63,12 +63,12 @@ with DAG(
 
     create_table = BashOperator(
         task_id="create_table",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.utf8.sql",
+        bash_command=f"psql {pg_params} < {tmp_dir}/{dag_id}.utf8.sql",
     )
 
     add_category = BashOperator(
         task_id="add_category",
-        bash_command=f"psql {pg_params()} < {sql_path}/add_categorie.sql",
+        bash_command=f"psql {pg_params} < {sql_path}/add_categorie.sql",
     )
 
     check_count = PostgresCheckOperator(

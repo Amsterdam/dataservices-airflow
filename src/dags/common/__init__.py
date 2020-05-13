@@ -4,7 +4,6 @@ from airflow.utils.dates import days_ago
 
 from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from log_message_operator import LogMessageOperator
-from airflow.hooks.base_hook import BaseHook
 
 env = Env()
 
@@ -18,9 +17,21 @@ MessageOperator = (
 )
 
 
-def pg_params(conn_id="postgres_default"):
-    connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
-    return f"{connection_uri} -X --set ON_ERROR_STOP=1"
+pg_params = " ".join(
+    [
+        "-1",
+        "-X",
+        "--set",
+        "ON_ERROR_STOP",
+        "-h",
+        env("POSTGRES_HOST"),
+        "-p",
+        env("POSTGRES_PORT"),
+        "-U",
+        env("POSTGRES_USER"),
+    ]
+)
+
 
 def slack_failed_task(context):
     failed_alert = MessageOperator(

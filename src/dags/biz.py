@@ -82,12 +82,12 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
     create_tables = BashOperator(
         task_id="create_tables",
-        bash_command=f"psql {pg_params()} < {sql_path}/biz_data_create.sql",
+        bash_command=f"psql {pg_params} < {sql_path}/biz_data_create.sql",
     )
 
     import_data = BashOperator(
         task_id="import_data",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/biz_data_insert.sql",
+        bash_command=f"psql {pg_params} < {tmp_dir}/biz_data_insert.sql",
     )
 
     check_count = PostgresCheckOperator(

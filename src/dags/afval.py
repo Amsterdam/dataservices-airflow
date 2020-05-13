@@ -61,7 +61,7 @@ with DAG(
         load_dumps.append(
             BashOperator(
                 task_id=f"load_{ds_filename}",
-                bash_command=f"psql {pg_params()} < /tmp/{ds_filename}.backup",
+                bash_command=f"psql {pg_params} < /tmp/{ds_filename}.backup",
             )
         )
         rename_tables.append(
