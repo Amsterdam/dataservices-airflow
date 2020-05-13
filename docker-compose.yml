@@ -22,7 +22,8 @@ services:
     build: src
     container_name: airflow
     environment:
-      AIRFLOW_CONN_POSTGRES_DEFAULT: "postgresql://dataservices:insecure@dso_database:5432\
+      AIRFLOW_CONN_POSTGRES_DEFAULT:
+        "postgresql://dataservices:insecure@dso_database:5432\
         /dataservices?cursor=dictcursor&"
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
       FERNET_KEY: ${FERNET_KEY}
@@ -42,8 +43,6 @@ services:
       - ./develop:/usr/local/airflow/develop
       - /var/run/docker.sock:/var/run/docker.sock
 
-
     ports:
       - "8080:8080"
-
     # command: sleep infinity

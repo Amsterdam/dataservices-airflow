@@ -1,5 +1,5 @@
-ALTER TABLE winkgeb_new ADD COLUMN categorie VARCHAR(3);
-ALTER TABLE winkgeb_new ADD COLUMN categorie_naam VARCHAR(64);
+ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie VARCHAR(3);
+ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie_naam VARCHAR(64);
 
 WITH categorie(codewg, categorie) AS ( VALUES
 ('335','BU'),
@@ -141,9 +141,9 @@ categorie_namen(categorie, categorie_naam) AS ( VALUES
 ('SC', 'Stadsdeelcentra'),
 ('PDV', 'Locatie voor perifere winkels'),
 ('TR', 'Trafficlocaties'))
-UPDATE winkgeb_new
+UPDATE winkelgebieden_winkelgebieden_new
 SET categorie = categorie.categorie
   , categorie_naam = categorie_namen.categorie_naam
 FROM categorie
 JOIN categorie_namen ON categorie.categorie = categorie_namen.categorie
-WHERE categorie.codewg = winkgeb_new.codewg;
+WHERE categorie.codewg = winkelgebieden_winkelgebieden_new.codewg;
