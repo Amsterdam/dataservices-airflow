@@ -5,6 +5,13 @@ from swiftclient.service import SwiftService, SwiftError
 
 
 class SwiftHook(BaseHook):
+    """ A Swift hook to interact with the objectstore.
+        If no swift_conn_id is provided, the default
+        connection is used. The default connection
+        is defined in OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME
+        and OS_AUTH_URL, as requested by the SwiftService
+    """
+
     def __init__(self, swift_conn_id="swift_default"):
         self.swift_conn_id = swift_conn_id
 
