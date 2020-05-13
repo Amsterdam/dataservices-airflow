@@ -21,11 +21,12 @@ RENAME_COLUMNS = """
         RENAME COLUMN geometrie TO geometry;
 """
 
+# XXX final verdict on dataset name needed
 RENAME_TABLES_SQL = """
     DROP TABLE IF EXISTS public.beschermde_stadsdorpsgezichten;
     ALTER TABLE pte.beschermde_stadsdorpsgezichten SET SCHEMA public;
     ALTER TABLE beschermde_stadsdorpsgezichten
-        RENAME TO beschermde_stadsdorpsgezichten_beschermde_stadsdorpsgezichten;
+        RENAME TO beschermdestadsdorpsgezichten_beschermdestadsdorpsgezichten;
 """
 
 dag_id = "beschermde_stadsdorpsgezichten"
