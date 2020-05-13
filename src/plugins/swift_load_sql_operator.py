@@ -8,6 +8,15 @@ from psql_cmd_hook import PsqlCmdHook
 
 
 class SwiftLoadSqlOperator(BaseOperator):
+    """ This operator combines the use of serveral hooks.
+        It downloads a zip from the objectstore,
+        unzips it and feeds the unzipped sql directly
+        to postgresql. Doing this in one go, avoids the use
+        of temporary files that are passed on between operators,
+        because this is potentially problematic in a multi-container
+        Airflow environment.
+    """
+
     @apply_defaults
     def __init__(
         self, container, object_id, swift_conn_id="swift_default", *args, **kwargs
