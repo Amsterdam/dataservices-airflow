@@ -1,18 +1,18 @@
-import os
-
 from airflow import AirflowException
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
+from airflow.hooks.postgres_hook import PostgresHook
 
 
-def get_engine() -> Engine:
+def get_engine(postgres_conn_id="postgres_default") -> Engine:
     """Construct the SQLAlchemy database engine"""
-    user = os.getenv("POSTGRES_USER")
-    password = os.getenv("POSTGRES_PASSWORD")
-    host = os.getenv("POSTGRES_HOST")
-    port = os.getenv("POSTGRES_PORT")
-    db = os.getenv("POSTGRES_DB")
+    connection = PostgresHook().get_connection(postgres_conn_id)
+    user = connection.login
+    password = connection.password
+    host = connection.host
+    port = connection.port
+    db = connection.schema
 
     try:
         return create_engine(f"postgresql://{user}:{password}@{host}:{port}/{db}")

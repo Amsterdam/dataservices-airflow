@@ -74,7 +74,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
     create_table = BashOperator(
         task_id="create_table",
-        bash_command=f"psql {pg_params} < {sql_path}/hior_data_create.sql",
+        bash_command=f"psql {pg_params()} < {sql_path}/hior_data_create.sql",
     )
 
     for path in (
@@ -85,7 +85,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         name = pathlib.Path(path).stem
         import_tables.append(
             BashOperator(
-                task_id=f"create_{name}", bash_command=f"psql {pg_params} < {path}",
+                task_id=f"create_{name}", bash_command=f"psql {pg_params()} < {path}",
             )
         )
     for path in (
@@ -95,7 +95,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         name = pathlib.Path(path).stem
         import_linked_tables.append(
             BashOperator(
-                task_id=f"create_{name}", bash_command=f"psql {pg_params} < {path}",
+                task_id=f"create_{name}", bash_command=f"psql {pg_params()} < {path}",
             )
         )
 

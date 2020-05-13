@@ -67,7 +67,7 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"]) as da
 
     create_table = BashOperator(
         task_id="create_table",
-        bash_command=f"psql {pg_params} < {tmp_dir}/objects.sql",
+        bash_command=f"psql {pg_params()} < {tmp_dir}/objects.sql",
     )
 
     check_count = PostgresCheckOperator(

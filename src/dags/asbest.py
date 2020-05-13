@@ -75,7 +75,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         load_dumps.append(
             BashOperator(
                 task_id=f"load_{tablename}",
-                bash_command=f"psql {pg_params} < {tmp_dir}/{tablename}.utf8.sql",
+                bash_command=f"psql {pg_params()} < {tmp_dir}/{tablename}.utf8.sql",
             )
         )
 
