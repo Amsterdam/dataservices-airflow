@@ -82,7 +82,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
     )
 
     load_table = BashOperator(
-        task_id="load_table", bash_command=f"psql {pg_params} < {tmp_file_prefix}.sql",
+        task_id="load_table", bash_command=f"psql {pg_params()} < {tmp_file_prefix}.sql",
     )
 
     drop_bbox = PostgresOperator(task_id="drop_bbox", sql=SQL_DROP_BBOX)

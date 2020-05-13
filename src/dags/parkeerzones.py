@@ -112,7 +112,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         load_dumps.append(
             BashOperator(
                 task_id=f"load_{tablename}",
-                bash_command=f"psql {pg_params} < {tmp_dir}/{tablename}.utf8.sql",
+                bash_command=f"psql {pg_params()} < {tmp_dir}/{tablename}.utf8.sql",
             )
         )
 
@@ -138,7 +138,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
 
     load_map_colors = BashOperator(
         task_id="load_map_colors",
-        bash_command=f"psql {pg_params} < {sql_path}/parkeerzones_map_color.sql",
+        bash_command=f"psql {pg_params()} < {sql_path}/parkeerzones_map_color.sql",
     )
 
 rename_cols[1] >> delete_unused >> rename_tables
