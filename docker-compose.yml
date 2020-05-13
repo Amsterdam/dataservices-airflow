@@ -23,8 +23,8 @@ services:
     container_name: airflow
     environment:
       AIRFLOW_CONN_POSTGRES_DEFAULT:
-        "postgresql://ds_airflow:insecure@database:5432\
-        /ds_airflow?cursor=dictcursor&"
+        "postgresql://dataservices:insecure@dso_database:5432\
+        /dataservices?cursor=dictcursor&"
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
       FERNET_KEY: ${FERNET_KEY}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
