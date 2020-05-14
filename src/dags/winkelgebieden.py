@@ -5,7 +5,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from postgres_check_operator import PostgresCheckOperator
 
 from common import (
-    vsd_default_args,
+    default_args,
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
@@ -29,7 +29,7 @@ sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 
 with DAG(
     dag_id,
-    default_args=vsd_default_args,
+    default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters=dict(quote=quote),
 ) as dag:
@@ -52,7 +52,7 @@ with DAG(
         f"-t_srs EPSG:28992 -nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB "
         # the option -lco is added to rename the automated creation of the primairy key column (ogc fid) - due to use of ogr2ogr - to id so its conform the Amsterdam schema standard and passes the validation
-        f"-lco FID=ID",
+        f"-lco FID=ID -lco GEOMETRY_NAME=geometry",
     )
 
     convert_data = BashOperator(
@@ -83,6 +83,7 @@ with DAG(
         params=dict(
             tablename=f"{dag_id}_{dag_id}_new",
             geotype=["ST_Polygon", "ST_MultiPolygon"],
+            geo_column="geometry",
             check_valid=False,
         ),
     )
@@ -90,7 +91,7 @@ with DAG(
     rename_table = PostgresOperator(
         task_id="rename_table",
         sql=SQL_TABLE_RENAME,
-        params=dict(tablename=f"{dag_id}_{dag_id}"),
+        params=dict(tablename=f"{dag_id}_{dag_id}", geo_column="geometry",),
     )
 
 
