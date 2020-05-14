@@ -29,9 +29,13 @@ class SwiftLoadSqlOperator(BaseOperator):
     def execute(self, context):
         swift_hook = SwiftHook(swift_conn_id=self.swift_conn_id)
         with tempfile.TemporaryDirectory() as tmpdirname:
-            zip_filepath = Path(tmpdirname) / "out.zip"
-            swift_hook.download(self.container, self.object_id, zip_filepath)
-            zip_hook = ZipHook(zip_filepath)
-            filenames = zip_hook.unzip(tmpdirname)
+            object_path = Path(self.container) / self.object_id
+            download_filepath = Path(tmpdirname) / object_path
+            swift_hook.download(self.container, self.object_id, download_filepath)
+            if download_filepath.suffix == ".zip":
+                zip_hook = ZipHook(download_filepath)
+                filenames = zip_hook.unzip(tmpdirname)
+            else:
+                filenames = [object_path]
             psql_cmd_hook = PsqlCmdHook()
             psql_cmd_hook.run(Path(tmpdirname) / fn for fn in filenames)
