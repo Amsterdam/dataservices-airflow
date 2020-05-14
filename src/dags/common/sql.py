@@ -5,23 +5,25 @@ SQL_DROP_TABLE = """
 """
 
 SQL_TABLE_RENAME = """
+    {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% set pk = params.pk|default("pk", true) %}
     ALTER TABLE IF EXISTS {{ params.tablename }} RENAME TO {{ params.tablename }}_old;
     ALTER TABLE {{ params.tablename }}_new RENAME TO {{ params.tablename }};
     DROP TABLE IF EXISTS {{ params.tablename }}_old;
     ALTER INDEX {{ params.tablename }}_new_{{ pk }} RENAME TO {{ params.tablename }}_pk;
-    ALTER INDEX {{ params.tablename }}_new_wkb_geometry_geom_idx
-      RENAME TO {{ params.tablename }}_wkb_geometry_geom_idx;
+    ALTER INDEX {{ params.tablename }}_new_{{ geo_column }}_geom_idx
+      RENAME TO {{ params.tablename }}_{{ geo_column }}_geom_idx;
 """
 
 SQL_TABLE_RENAMES = """
+    {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% for tablename in params.tablenames %}
       ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
       ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
       DROP TABLE IF EXISTS {{ tablename }}_old;
       ALTER INDEX {{ tablename }}_new_pk RENAME TO {{ tablename }}_pk;
-      ALTER INDEX {{ tablename }}_new_wkb_geometry_geom_idx
-        RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
+      ALTER INDEX {{ tablename }}_new_{{ geo_column }}_geom_idx
+        RENAME TO {{ tablename }}_{{ geo_column }}_geom_idx;
     {% endfor %}
 """
 
