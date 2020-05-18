@@ -24,18 +24,18 @@ RENAME_COLUMNS = """
 """
 
 RENAME_TABLES_SQL = """
-    ALTER TABLE IF EXISTS blackspots RENAME TO blackspots_old;
+    ALTER TABLE IF EXISTS blackspots_blackspots RENAME TO blackspots_blackspots_old;
     -- ALTER SEQUENCE IF EXISTS blackspots_id_seq RENAME TO blackspots_old_id_seq;
-    ALTER TABLE blackspots_spotexport RENAME TO blackspots;
+    ALTER TABLE blackspots_spotexport RENAME TO blackspots_blackspots;
     -- We do not need a sequence for the api I think?
     DROP SEQUENCE IF EXISTS blackspots_spotexport_id_seq CASCADE;
-    DROP TABLE IF EXISTS blackspots_old;
+    DROP TABLE IF EXISTS blackspots_blackspots_old;
     -- DROP SEQUENCE IF EXISTS blackspots_old_id_seq CASCADE;
-    ALTER INDEX blackspots_spotexport_pkey RENAME TO blackspots_pkey;
-    ALTER INDEX blackspots_spotexport_locatie_id_key RENAME TO blackspots_locatie_id_key;
+    ALTER INDEX blackspots_spotexport_pkey RENAME TO blackspots_blackspots_pkey;
+    ALTER INDEX blackspots_spotexport_locatie_id_key RENAME TO blackspots_blackspots_locatie_id_key;
     ALTER INDEX blackspots_spotexport_locatie_id_6d5f324e_like
-        RENAME TO blackspots_locatie_id_6d5f324e_like;
-    ALTER INDEX blackspots_spotexport_point_id RENAME TO blackspots_point_id;
+        RENAME TO blackspots_blackspots_locatie_id_6d5f324e_like;
+    ALTER INDEX blackspots_spotexport_point_id RENAME TO blackspots_blackspots_point_id;
 """
 
 dag_id = "blackspots"
