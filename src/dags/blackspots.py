@@ -19,18 +19,40 @@ DROP_IMPORT_TABLES = """
 """
 
 RENAME_COLUMNS = """
+    create or replace function is_date(s varchar) returns boolean as $$
+    begin
+      if (s = '') IS NOT FALSE then
+        return false;
+      end if;
+      perform to_date(s, 'DD/MM/YY');
+      return true;
+    exception when others then
+      return false;
+    end;
+    $$ language plpgsql;
+    -- Add extra columns for date opmerkingen
+    ALTER TABLE blackspots_spotexport ADD COLUMN start_opmerking varchar(64);
+    ALTER TABLE blackspots_spotexport ADD COLUMN eind_opmerking varchar(64);
+    UPDATE blackspots_spotexport SET
+        start_opmerking = start_uitvoering, start_uitvoering = NULL
+        WHERE NOT is_date(start_uitvoering);
+    UPDATE blackspots_spotexport SET
+        eind_opmerking = eind_uitvoering, eind_uitvoering = NULL
+        WHERE NOT is_date(eind_uitvoering);
+    ALTER TABLE blackspots_spotexport ALTER COLUMN start_uitvoering TYPE DATE
+        USING to_date(start_uitvoering, 'DD/MM/YY');
+    ALTER TABLE blackspots_spotexport ALTER COLUMN eind_uitvoering TYPE DATE
+        USING to_date(eind_uitvoering, 'DD/MM/YY');
     ALTER TABLE blackspots_spotexport
         RENAME COLUMN point TO geometry;
 """
 
 RENAME_TABLES_SQL = """
     ALTER TABLE IF EXISTS blackspots_blackspots RENAME TO blackspots_blackspots_old;
-    -- ALTER SEQUENCE IF EXISTS blackspots_id_seq RENAME TO blackspots_old_id_seq;
     ALTER TABLE blackspots_spotexport RENAME TO blackspots_blackspots;
     -- We do not need a sequence for the api I think?
     DROP SEQUENCE IF EXISTS blackspots_spotexport_id_seq CASCADE;
     DROP TABLE IF EXISTS blackspots_blackspots_old;
-    -- DROP SEQUENCE IF EXISTS blackspots_old_id_seq CASCADE;
     ALTER INDEX blackspots_spotexport_pkey RENAME TO blackspots_blackspots_pkey;
     ALTER INDEX blackspots_spotexport_locatie_id_key RENAME TO blackspots_blackspots_locatie_id_key;
     ALTER INDEX blackspots_spotexport_locatie_id_6d5f324e_like

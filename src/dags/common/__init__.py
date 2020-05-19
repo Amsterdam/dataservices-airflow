@@ -22,6 +22,7 @@ def pg_params(conn_id="postgres_default"):
     connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
     return f"{connection_uri} -X --set ON_ERROR_STOP=1"
 
+
 def slack_failed_task(context):
     failed_alert = MessageOperator(
         task_id="failed_alert",
