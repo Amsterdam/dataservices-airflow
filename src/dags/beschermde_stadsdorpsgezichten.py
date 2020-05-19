@@ -29,8 +29,9 @@ RENAME_TABLES_SQL = """
 """
 
 dag_id = "beschermde_stadsdorpsgezichten"
+owner = "team_ruimte"
 
-with DAG(dag_id, default_args=default_args,) as dag:
+with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
@@ -53,7 +54,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         swift_conn_id="objectstore_dataservices",
     )
 
-    rename_columns = PostgresOperator(task_id=f"rename_columns", sql=RENAME_COLUMNS,)
+    # rename_columns = PostgresOperator(task_id=f"rename_columns", sql=RENAME_COLUMNS,)
     rename_table = PostgresOperator(task_id=f"rename_table", sql=RENAME_TABLES_SQL,)
 
-slack_at_start >> drop_and_create_schema >> swift_load_task >> rename_columns >> rename_table
+slack_at_start >> drop_and_create_schema >> swift_load_task >> rename_table
