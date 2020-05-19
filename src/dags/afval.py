@@ -23,11 +23,12 @@ RENAME_TABLES_SQL = """
 """
 
 dag_id = "huishoudelijkafval"
+owner = "team_ruimte"
 dag_config = Variable.get(dag_id, deserialize_json=True)
 
 with DAG(
     "huishoudelijkafval",
-    default_args=default_args,
+    default_args={**default_args, **{"owner": owner}},
     description="huishoudelijkafval",
     schedule_interval="@daily",
 ) as dag:
