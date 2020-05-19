@@ -30,8 +30,8 @@ SQL_CREATE_TEMP_TABLES = """
     CREATE TABLE {{ params.base_table }}_temp (
         LIKE {{ params.base_table }} INCLUDING ALL);
     ALTER TABLE {{ params.base_table }}_temp
-        ALTER COLUMN geom TYPE geometry(Polygon,28992)
-        USING ST_Transform(geom, 28992);
+        ALTER COLUMN geometry TYPE geometry(Polygon,28992)
+        USING ST_Transform(geometry, 28992);
     DROP TABLE IF EXISTS {{ params.base_table }}_regimes_temp;
     CREATE TABLE {{ params.base_table }}_regimes_temp (
         LIKE {{ params.base_table }}_regimes INCLUDING ALL);
@@ -123,7 +123,7 @@ def import_data(shp_file, ids):
 
     create_parkeervakken_sql = (
         "INSERT INTO {} ("
-        "id, buurtcode, straatnaam, soort, type, aantal, geom, e_type"
+        "id, buurtcode, straatnaam, soort, type, aantal, geometry, e_type"
         ") VALUES {};"
     ).format(TABLES["BASE_TEMP"], ",".join(parkeervakken_sql))
     create_regimes_sql = (
@@ -237,9 +237,11 @@ with DAG(
 
 # Internals
 def create_parkeervaak(row, soort=None):
-    geom = "''"
+    geometry = "''"
     if row.shape.shapeTypeName == "POLYGON":
-        geom = "ST_GeometryFromText('{}', 28992)".format(str(Polygon(row.shape.points)))
+        geometry = "ST_GeometryFromText('{}', 28992)".format(
+            str(Polygon(row.shape.points))
+        )
     sql = (
         "("
         "'{parkeer_id}',"
@@ -248,7 +250,7 @@ def create_parkeervaak(row, soort=None):
         "'{soort}',"
         "'{type}',"
         "'{aantal}',"
-        "{geom},"
+        "{geometry},"
         "'{e_type}'"
         ")"
     ).format(
@@ -258,7 +260,7 @@ def create_parkeervaak(row, soort=None):
         soort=row.record.SOORT or soort,
         type=row.record.TYPE or "",
         aantal=row.record.AANTAL,
-        geom=geom,
+        geometry=geometry,
         e_type=row.record.E_TYPE or "",
     )
     return sql
