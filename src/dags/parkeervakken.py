@@ -9,6 +9,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from shapely.geometry import Polygon
 from swift_operator import SwiftOperator
+from swift_hook import SwiftHook
 from common import default_args
 
 dag_id = "parkeervakken"
@@ -72,7 +73,7 @@ def import_data(shp_file, ids):
         "'{bord}',"
         "'{begin_tijd}',"
         "'{eind_tijd}',"
-        "'{opmerking}',"
+        "E'{opmerking}',"
         "{dagen},"
         "{kenteken},"
         "{begin_datum},"
@@ -152,24 +153,29 @@ def import_data(shp_file, ids):
     return duplicates
 
 
-def find_export_date():
+def find_export_filename(swift_conn_id, container):
     """
-    Find closest export date.
+    Find latest export filename
     """
-    today = datetime.date.today()
-    date = today
-    if today.weekday() == 3:
-        date = today
-    elif today.weekday() > 3:
-        # This week
-        date = today - datetime.timedelta(days=today.weekday() - 3)
-    else:
-        # Last week
-        date = today - datetime.timedelta(days=today.weekday() + 4)
-    return date.strftime("%Y%m%d")
+    hook = SwiftHook(swift_conn_id=swift_conn_id)
+    latest = None
+    for x in hook.list_container(container=container):
+        if x["content_type"] != "application/zip":
+            # Skip non-zip files.
+            continue
+
+        if latest is None:
+            latest = x
+
+        if dateutil.parser.parse(x["last_modified"]) > dateutil.parser.parse(
+            latest["last_modified"]
+        ):
+            latest = x
+
+    return latest["name"]
 
 
-def run_imports(last_date):
+def run_imports():
     """
     Run imports for all files in zip that match date.
     """
@@ -187,8 +193,9 @@ with DAG(
     description="Parkeervakken",
     schedule_interval="0 16 * * 4",
 ) as dag:
-    last_date = find_export_date()
-    zip_file = "nivo_{}.zip".format(last_date)
+    zip_file = find_export_filename(
+        swift_conn_id="parkeervakken_objectstore", container="tijdregimes",
+    )
     source = pathlib.Path(TMP_DIR)
 
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_DIR}")
@@ -213,10 +220,7 @@ with DAG(
     )
 
     run_import_task = PythonOperator(
-        task_id="run_import_task",
-        op_kwargs={"last_date": last_date},
-        python_callable=run_imports,
-        dag=dag,
+        task_id="run_import_task", python_callable=run_imports, dag=dag,
     )
 
     rename_temp_tables = PostgresOperator(
@@ -366,7 +370,7 @@ def get_modes(row):
                 soort=row.record.E_TYPE or "FISCAAL",
                 begin_datum=row.record.TVM_BEGIND or "",
                 eind_datum=row.record.TVM_EINDD or "",
-                opmerking=row.record.TVM_OPMERK or "",
+                opmerking=(row.record.TVM_OPMERK or "").replace("'", "\\'"),
                 begin_tijd=parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
                 eind_tijd=parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
             )

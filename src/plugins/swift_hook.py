@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from pathlib import Path
 from airflow.hooks.base_hook import BaseHook
 from airflow.exceptions import AirflowException
@@ -15,12 +16,8 @@ class SwiftHook(BaseHook):
     def __init__(self, swift_conn_id="swift_default"):
         self.swift_conn_id = swift_conn_id
 
-    def download(self, container, object_id, output_path):
-
-        Path(output_path).parents[0].mkdir(parents=True, exist_ok=True)
-        download_options = {
-            "out_file": output_path,
-        }
+    @contextmanager
+    def connection(self):
         options = None
         if self.swift_conn_id != "swift_default":
             options = {}
@@ -28,7 +25,26 @@ class SwiftHook(BaseHook):
             options["os_username"] = connection.login
             options["os_password"] = connection.password
             options["os_tenant_name"] = connection.host
-        with SwiftService(options=options) as swift:
+        yield SwiftService(options=options)
+
+    def list_container(self, container):
+        with self.connection() as swift:
+            try:
+                for page in swift.list(container=container):
+                    if page["success"]:
+                        for item in page["listing"]:
+                            yield item
+            except SwiftError as e:
+                self.log.error(e.value)
+                raise AirflowException(f"Failed to fetch container listing: {e.value}")
+
+    def download(self, container, object_id, output_path):
+
+        Path(output_path).parents[0].mkdir(parents=True, exist_ok=True)
+        download_options = {
+            "out_file": output_path,
+        }
+        with self.connection() as swift:
             try:
                 for down_res in swift.download(
                     container=container, objects=[object_id], options=download_options,
