@@ -174,7 +174,7 @@ def run_imports(last_date):
     Run imports for all files in zip that match date.
     """
     ids = []
-    for shp_file in source.glob("*{}.shp".format(last_date)):
+    for shp_file in source.glob("*.shp"):
         duplicates = import_data(str(shp_file), ids)
 
         if len(duplicates):
