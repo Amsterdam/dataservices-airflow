@@ -7,12 +7,14 @@ from airflow.contrib.auth.backends.password_auth import PasswordUser
 @click.command()
 @click.argument("username")
 @click.argument("email")
-def make_user(username, email):
+@click.option("--superuser", default=False, is_flag=True)
+@click.password_option()
+def make_user(username, email, superuser, password):
     user = PasswordUser(models.User())
     user.username = username
     user.email = email
-    user.superuser = True
-    user.password = click.prompt("Password")
+    user.superuser = superuser
+    user.password = password
     session = settings.Session()
     session.add(user)
     session.commit()
