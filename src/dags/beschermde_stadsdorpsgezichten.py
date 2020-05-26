@@ -1,6 +1,13 @@
+import operator
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    COLNAMES_CHECK,
+    GEO_CHECK,
+)
 
 from common import (
     default_args,
@@ -33,6 +40,8 @@ owner = "team_ruimte"
 
 with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
 
+    checks = []
+
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -54,7 +63,44 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         swift_conn_id="objectstore_dataservices",
     )
 
+    checks.append(
+        COUNT_CHECK.make_check(
+            check_id="count_check",
+            pass_value=10,
+            params=dict(table_name="pte.beschermde_stadsdorpsgezichten"),
+            result_checker=operator.ge,
+        )
+    )
+
+    checks.append(
+        COLNAMES_CHECK.make_check(
+            check_id="colname_check",
+            parameters=["pte", "beschermde_stadsdorpsgezichten"],
+            pass_value={
+                "id",
+                "naam",
+                "status",
+                "aanwijzingsdatum",
+                "intrekkingsdatum",
+                "geometry",
+            },
+            result_checker=operator.ge,
+        )
+    )
+
+    checks.append(
+        GEO_CHECK.make_check(
+            check_id="geo_check",
+            params=dict(
+                table_name="pte.beschermde_stadsdorpsgezichten", geotype="MULTIPOLYGON",
+            ),
+            pass_value=1,
+        )
+    )
+
+    multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
+
     # rename_columns = PostgresOperator(task_id=f"rename_columns", sql=RENAME_COLUMNS,)
     rename_table = PostgresOperator(task_id=f"rename_table", sql=RENAME_TABLES_SQL,)
 
-slack_at_start >> drop_and_create_schema >> swift_load_task >> rename_table
+slack_at_start >> drop_and_create_schema >> swift_load_task >> multi_check, rename_table
