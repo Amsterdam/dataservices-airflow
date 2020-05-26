@@ -26,6 +26,8 @@ services:
         "postgresql://dataservices:insecure@dso_database:5432\
         /dataservices?cursor=dictcursor&"
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
+      AIRFLOW_CONN_ORACLE_DWH_STADSDELEN:
+        "oracle://oracle_user:insecure@localhost:1521/SID001?encoding=UTF-8&nencoding=UTF-8"
       AIRFLOW_CONN_OBJECTSTORE_DATASERVICES: "s3://dataservices:${DATASERVICES_PASSWD}@\
         356c76835e424b968ed6d654c51204f0"
       FERNET_KEY: ${FERNET_KEY}

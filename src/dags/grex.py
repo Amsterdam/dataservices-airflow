@@ -12,7 +12,7 @@ from sqlalchemy.types import Date, Float, Integer, Text
 
 from common import default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
-from common.db import get_engine
+from common.db import get_engine, get_ora_engine
 from swift_operator import SwiftOperator
 from postgres_check_operator import PostgresCheckOperator
 
@@ -43,71 +43,67 @@ def wkt_loads_wrapped(data):
     return p
 
 
-def load_grex(input_csv, table_name):
+def load_grex_from_dwh(table_name):
     db_engine = get_engine()
-    df = pd.read_csv(
-        input_csv,
-        delimiter=";",
-        decimal=",",
-        encoding="latin_1",
-        parse_dates=["STARTDATUM"],
-        dayfirst=True,
-        index_col="PLANNR",
-    )
-    df.rename(
-        columns=lambda x: "geometry" if x == "GEOMETRIE" else x.lower(), inplace=True
-    )
-    df.index.name = "id"
-    df["geometry"] = df["geometry"].apply(wkt_loads_wrapped)
-
-    grex_rapportage_dtype = {
-        "id": Integer(),
-        "plannaam": Text(),
-        "planbeheercode": Text(),
-        "startdatum": Date(),
-        "planstatus": Text(),
-        "oppervlakte": Float(),
-        "geometry": Geometry(geometry_type="MULTIPOLYGON", srid=4326),
-    }
-
-    df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
-    with db_engine.connect() as connection:
-        connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
-        connection.execute(
-            f"""
-            ALTER TABLE {table_name}
-            ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
-            USING ST_Transform(geometry,28992)
-        """
+    dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
+    with dwh_ora_engine.connect() as connection:
+        df = pd.read_sql(
+            """
+            SELECT PLANNR as ID
+                 , PLANNAAM
+                 , PLANBEHEERCODE
+                 , STARTDATUM
+                 , PLANSTATUS
+                 , OPPERVLAKTE
+                 , GEOMETRIE_WKT AS GEOMETRY
+            FROM DMDATA.GREX_GV_PLANNEN_V2
+        """,
+            connection,
+            index_col="id",
+            coerce_float=True,
+            params=None,
+            parse_dates=["startdatum"],
+            columns=None,
+            chunksize=None,
         )
-        connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
-        connection.execute(
-            f"""
-            UPDATE {table_name}
-            SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
-            WHERE ST_IsValid(geometry) = False;
-        """
+        df["geometry"] = df["geometry"].apply(wkt_loads_wrapped)
+        grex_rapportage_dtype = {
+            "id": Integer(),
+            "plannaam": Text(),
+            "planbeheercode": Text(),
+            "startdatum": Date(),
+            "planstatus": Text(),
+            "oppervlakte": Float(),
+            "geometry": Geometry(geometry_type="MULTIPOLYGON", srid=4326),
+        }
+        df.to_sql(
+            table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype
         )
+        with db_engine.connect() as connection:
+            connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
+            connection.execute(
+                f"""
+                 ALTER TABLE {table_name}
+                 ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
+                 USING ST_Transform(geometry,28992)
+             """
+            )
+            connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
+            connection.execute(
+                f"""
+                 UPDATE {table_name}
+                 SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
+                 WHERE ST_IsValid(geometry) = False;
+             """
+            )
 
 
 with DAG("grex", default_args=default_args, description="GrondExploitatie",) as dag:
 
-    csv_file = dag_config["csv_file"]
-    tmp_dir = f"/tmp/{dag_id}"
-
-    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
-
-    fetch_csv = SwiftOperator(
-        task_id="fetch_csv",
-        container="grex",
-        object_id=csv_file,
-        output_path=f"{tmp_dir}/{csv_file}",
-    )
-
     load_data = PythonOperator(
         task_id="load_data",
-        python_callable=load_grex,
-        op_args=[f"{tmp_dir}/{csv_file}", table_name_new],
+        python_callable=load_grex_from_dwh,
+        op_args=[table_name_new],
     )
 
     check_count = PostgresCheckOperator(
@@ -127,4 +123,4 @@ with DAG("grex", default_args=default_args, description="GrondExploitatie",) as 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
 
-mk_tmp_dir >> fetch_csv >> load_data >> check_count >> check_geo >> rename_table
+load_data >> check_count >> check_geo >> rename_table
