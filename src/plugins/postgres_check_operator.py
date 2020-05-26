@@ -63,14 +63,14 @@ class CheckFactory:
 
 
 COUNT_CHECK = CheckFactory(
-    "SELECT COUNT(*) AS count FROM \"{{ params['$check_id'].table_name }}\"",
+    "SELECT COUNT(*) AS count FROM {{ params['$check_id'].table_name }}",
     result_fetcher=partial(record_by_name, "count"),
 )
 
 COLNAMES_CHECK = CheckFactory(
     """
     SELECT column_name FROM information_schema.columns
-     WHERE table_schema = 'public' AND table_name = %s
+     WHERE table_schema = %s AND table_name = %s
      ORDER BY column_name
 """,
     result_fetcher=flattened_records_as_set,

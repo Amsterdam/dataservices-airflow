@@ -169,7 +169,7 @@ with DAG(dag_id, default_args=default_args) as dag:
         colname_checks.append(
             COLNAMES_CHECK.make_check(
                 check_id=f"colname_check_{route.name}",
-                parameters=[route.tmp_db_table_name],
+                parameters=["public", route.tmp_db_table_name],
                 pass_value=set(route.columns),
                 result_checker=operator.ge,
             )
