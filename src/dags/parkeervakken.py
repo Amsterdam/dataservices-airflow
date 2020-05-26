@@ -194,7 +194,7 @@ with DAG(
     schedule_interval="0 16 * * 4",
 ) as dag:
     zip_file = find_export_filename(
-        swift_conn_id="parkeervakken_objectstore", container="tijdregimes",
+        swift_conn_id="objectstore_parkeervakken", container="tijdregimes",
     )
     source = pathlib.Path(TMP_DIR)
 
@@ -205,7 +205,7 @@ with DAG(
         container="tijdregimes",
         object_id=zip_file,
         output_path=f"{TMP_DIR}/{zip_file}",
-        swift_conn_id="parkeervakken_objectstore",
+        swift_conn_id="objectstore_parkeervakken",
     )
 
     extract_zip = BashOperator(
