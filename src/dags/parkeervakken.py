@@ -157,7 +157,7 @@ def import_data(shp_file, ids):
     return duplicates
 
 
-def download_latest_export_file(swift_conn_id, container):
+def download_latest_export_file(swift_conn_id, container, *args, **kwargs):
     """
     Find latest export filename
     """
@@ -181,9 +181,7 @@ def download_latest_export_file(swift_conn_id, container):
 
     try:
         subprocess.run(
-            ["unzip", "-o", zip_path, "-d", TMP_DIR],
-            stderr=subprocess.PIPE,
-            check=True
+            ["unzip", "-o", zip_path, "-d", TMP_DIR], stderr=subprocess.PIPE, check=True
         )
     except subprocess.CalledProcessError as e:
         raise AirflowException(f"Failed to extract zip: {e.stderr}")
@@ -220,9 +218,9 @@ with DAG(
     download_and_extract_zip = PythonOperator(
         task_id="download_and_extract_zip",
         python_callable=download_latest_export_file,
-        params=dict(
+        op_kwargs=dict(
             swift_conn_id="objectstore_parkeervakken", container="tijdregimes",
-        )
+        ),
     )
 
     create_temp_tables = PostgresOperator(
