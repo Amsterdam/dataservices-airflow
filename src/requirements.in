@@ -17,3 +17,4 @@ Shapely == 1.7.0
 simplejson == 3.17.0
 geojson == 2.5.0
 pyshp == 2.1.0
+cx-Oracle == 7.3.0

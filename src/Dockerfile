@@ -1,14 +1,18 @@
-# Airflow depends on cattrs~=0.9, which makes it <= python3.7 
+# Airflow depends on cattrs~=0.9, which makes it <= python3.7
 FROM amsterdam/python:3.7-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
 # Seems that pg_comparator installs full postgresql, that's not what we want
 # RUN apt-get update && apt-get install -y postgresql-comparator
 RUN apt-get update \
- && apt-get install --no-install-recommends -y rsync
+ && apt-get install --no-install-recommends -y rsync libaio1
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
+WORKDIR /tmp
+RUN wget https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
+RUN unzip instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
+RUN cp -r  instantclient_19_6/* /usr/local/lib
 
 # Start runtime image,
 FROM amsterdam/python:3.7-slim-buster
@@ -16,7 +20,10 @@ FROM amsterdam/python:3.7-slim-buster
 
 # Copy python build artifacts from builder image
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
+COPY --from=builder /usr/local/lib/ /usr/local/lib/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libaio* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
+RUN ldconfig
 
 # Copy patch binary, needed to patch airflow bug
 COPY --from=builder /usr/bin/patch /usr/bin/patch
