@@ -13,11 +13,9 @@ from sqlalchemy.types import Date, Float, Integer, Text
 from common import default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from common.db import get_engine, get_ora_engine
-from swift_operator import SwiftOperator
 from postgres_check_operator import PostgresCheckOperator
 
 dag_id = "grex"
-dag_config = Variable.get(dag_id, deserialize_json=True)
 
 table_name = f"{dag_id}_projecten"
 table_name_new = f"{table_name}_new"
