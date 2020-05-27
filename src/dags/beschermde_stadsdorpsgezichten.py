@@ -21,11 +21,10 @@ DATASTORE_TYPE = (
 )
 
 
-RENAME_COLUMNS = """
-    ALTER TABLE pte.beschermde_stadsdorpsgezichten
-        RENAME COLUMN bk_beschermde_stadsdorpsgezichten  TO id;
-    ALTER TABLE pte.beschermde_stadsdorpsgezichten
-        RENAME COLUMN geometrie TO geometry;
+CORRECT_GEO = """
+    UPDATE pte.beschermde_stadsdorpsgezichten
+        SET geometry = ST_CollectionExtract(ST_MakeValid("geometry"), 3)
+    WHERE ST_IsValid(geometry) = False;
 """
 
 RENAME_TABLES_SQL = """
@@ -98,9 +97,16 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         )
     )
 
+    correct_geo = PostgresOperator(task_id="correct_geo", sql=CORRECT_GEO,)
     multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
-    # rename_columns = PostgresOperator(task_id=f"rename_columns", sql=RENAME_COLUMNS,)
     rename_table = PostgresOperator(task_id=f"rename_table", sql=RENAME_TABLES_SQL,)
 
-slack_at_start >> drop_and_create_schema >> swift_load_task >> multi_check, rename_table
+(
+    slack_at_start
+    >> drop_and_create_schema
+    >> swift_load_task
+    >> correct_geo
+    >> multi_check
+    >> rename_table
+)
