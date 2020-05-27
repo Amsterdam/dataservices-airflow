@@ -1,8 +1,11 @@
 import datetime
+import os
 import pathlib
+import subprocess
 import dateutil.parser
 import shapefile
 from airflow import DAG
+from airflow.exceptions import AirflowException
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
@@ -47,7 +50,8 @@ SQL_CREATE_TEMP_TABLES = """
 
 SQL_RENAME_TEMP_TABLES = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old;
-    ALTER TABLE IF EXISTS {{ params.base_table }}
+
+ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
     ALTER TABLE {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
@@ -153,7 +157,7 @@ def import_data(shp_file, ids):
     return duplicates
 
 
-def find_export_filename(swift_conn_id, container):
+def download_latest_export_file(swift_conn_id, container):
     """
     Find latest export filename
     """
@@ -172,6 +176,18 @@ def find_export_filename(swift_conn_id, container):
         ):
             latest = x
 
+    zip_path = os.path.join([TMP_DIR, latest["name"]])
+    hook.download(container=container, object_id=latest["name"], output_path=zip_path)
+
+    try:
+        subprocess.run(
+            ["unzip", "-o", zip_path, "-d", TMP_DIR],
+            stderr=subprocess.PIPE,
+            check=True
+        )
+    except subprocess.CalledProcessError as e:
+        raise AirflowException(f"Failed to extract zip: {e.stderr}")
+
     return latest["name"]
 
 
@@ -187,30 +203,26 @@ def run_imports():
             print("Duplicates found: {}".format(", ".join(duplicates)))
 
 
+args = default_args.copy()
+args["provide_context"] = True
+
 with DAG(
     dag_id,
-    default_args=default_args,
+    default_args=args,
     description="Parkeervakken",
     schedule_interval="0 16 * * 4",
 ) as dag:
-    zip_file = find_export_filename(
-        swift_conn_id="objectstore_parkeervakken", container="tijdregimes",
-    )
+
     source = pathlib.Path(TMP_DIR)
 
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_DIR}")
 
-    fetch_zip = SwiftOperator(
-        task_id="fetch_zip",
-        container="tijdregimes",
-        object_id=zip_file,
-        output_path=f"{TMP_DIR}/{zip_file}",
-        swift_conn_id="objectstore_parkeervakken",
-    )
-
-    extract_zip = BashOperator(
-        task_id="extract_zip",
-        bash_command=f'unzip -o "{TMP_DIR}/{zip_file}" -d {TMP_DIR}',
+    download_and_extract_zip = PythonOperator(
+        task_id="download_and_extract_zip",
+        python_callable=download_latest_export_file,
+        params=dict(
+            swift_conn_id="objectstore_parkeervakken", container="tijdregimes",
+        )
     )
 
     create_temp_tables = PostgresOperator(
@@ -231,8 +243,7 @@ with DAG(
 
 (
     mk_tmp_dir
-    >> fetch_zip
-    >> extract_zip
+    >> download_and_extract_zip
     >> create_temp_tables
     >> run_import_task
     >> rename_temp_tables
