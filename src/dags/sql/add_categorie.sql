@@ -1,6 +1,3 @@
-ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie VARCHAR(3);
-ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie_naam VARCHAR(64);
-
 WITH categorie(codewg, categorie) AS ( VALUES
 ('335','BU'),
 ('415','BU'),
