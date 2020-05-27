@@ -23,6 +23,13 @@ next to the docker-compose.yaml file in the following format:
 The `FERNET_KEY` variable is used to encrypt secrets that are store in the PostgreSQL db.
 The `SLACK_WEBHOOK` is used to adress the Slack API.
 
+Furthermore, connections are provided as environment variables with a specific name,
+as requested by Airflow. E.g `AIRFLOW_CONN_POSTGRES_DEFAULT` provides the DSN for
+the default postgresql database. There are also `AIRFLOW_CONN_OBJECTSTORE_[name-of-objectstore]`
+variable for connections with the objectstore. The `s3` dsn format is being used
+for objectstore connections. The `host` field in the Airflow connection is
+used for the clientId that is needed for the Objectstore.
+
 # Run airflow
 
     docker-compose up airflow
@@ -39,6 +46,7 @@ once inside of the PostgreSQL database using this command:
     docker-compose exec airflow python scripts/mkuser.py <username> <e-mail address user>
 
 This script prompts for a password and stores the credentials in the PostgreSQL database.
+To create a superuser, add the `--superuser` flag to the command.
 
 
 # Managing requirements.txt
@@ -118,4 +126,19 @@ In a running containers, the following commands can update the variables:
 Airflow maintains a list of connections (DB connections, http connections etc.). 
 These connections can be maintained through the web UI.
 During startup a set of connections is created/updated (see `scripts/run.sh`)
+The preferred way to add new connections is by using environment variables of the
+format `AIRFLOW_CONN_[conn-type]_[conn_id]` (see above). These environment variable
+can be define in the `docker-compose.yml` config locally and in the ansible provisioning
+configuration for the acceptance and production server.
+
+# Caveats
+
+Airflow is running DAG python code frequently (default twice every minute).
+So, the heavy lifting should occur only inside the operator code. Some of the
+operator parameters can be parametrized using jinja2. These templated variables
+are lazily evaluated when de DAG is run. This parametrization can also be used to
+postpone the heavy lifting. For the same reason it is better to not use variables
+outside of the operators, because access to variables means access to the postgres database.
+
+
 
