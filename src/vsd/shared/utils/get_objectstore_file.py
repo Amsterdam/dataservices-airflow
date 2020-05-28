@@ -2,7 +2,9 @@ import argparse
 import logging
 import objectstore
 import os
-from various_small_datasets.generic.source import OBJECTSTORE
+
+# from various_small_datasets.generic.source import OBJECTSTORE
+from common.objectstore import fetch_objectstore_credentials
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ def get_objectstore_file(location, dir1):
         return
     else:
         log.warning(f"Get file {output_path}")
-    connection = objectstore.get_connection(OBJECTSTORE)
+    connection = objectstore.get_connection(fetch_objectstore_credentials())
     container = location.split("/")[0]
     new_data = objectstore.get_object(connection, {"name": path}, container)
     output_dir = "/".join(output_path.split("/")[:-1])
