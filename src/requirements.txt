@@ -31,6 +31,7 @@ defusedxml==0.6.0         # via python3-openid
 dill==0.3.1.1             # via apache-airflow
 docker==4.2.0             # via -r requirements.in
 docutils==0.16            # via python-daemon
+dsnparse==0.1.15          # via -r requirements.in
 entrypoints==0.3          # via flake8
 environs==7.3.1           # via -r requirements.in
 flake8==3.7.9             # via -r requirements.in
@@ -59,7 +60,7 @@ jinja2==2.10.3            # via amsterdam-schema-tools, apache-airflow, flask, f
 json-merge-patch==0.2     # via apache-airflow
 jsonpointer==2.0          # via -r requirements.in
 jsonref==0.2              # via mappyfile
-jsonschema==3.2.0         # via amsterdam-schema-tools, apache-airflow, flask-appbuilder, mappyfile
+jsonschema==3.2.0         # via amsterdam-schema-tools, apache-airflow, flask-appbuilder, mappyfile, validator-collection
 keystoneauth1==3.18.0     # via python-keystoneclient
 lark-parser==0.7.8        # via mappyfile
 lazy-object-proxy==1.4.3  # via apache-airflow
@@ -128,6 +129,7 @@ thrift==0.13.0            # via apache-airflow
 tzlocal==1.5.1            # via apache-airflow, pendulum
 unicodecsv==0.14.1        # via apache-airflow
 urllib3==1.25.8           # via requests, sentry-sdk
+validator-collection==1.4.1  # via -r requirements.in
 websocket-client==0.57.0  # via docker
 werkzeug==0.16.1          # via apache-airflow, flask, flask-caching, flask-jwt-extended
 wrapt==1.12.1             # via debtcollector

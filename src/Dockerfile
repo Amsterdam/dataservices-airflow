@@ -50,6 +50,7 @@ COPY data/ ${AIRFLOW_USER_HOME}/data/
 COPY dags ${AIRFLOW_USER_HOME}/dags/
 COPY plugins ${AIRFLOW_USER_HOME}/plugins/
 COPY vars ${AIRFLOW_USER_HOME}/vars/
+COPY vsd ${AIRFLOW_USER_HOME}/vsd
 
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]
