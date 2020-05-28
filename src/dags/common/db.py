@@ -1,9 +1,12 @@
+import dsnparse
 from airflow import AirflowException
 from airflow.hooks.oracle_hook import OracleHook
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from airflow.hooks.postgres_hook import PostgresHook
+
+from . import env
 
 
 def get_engine(postgres_conn_id="postgres_default") -> Engine:
@@ -34,3 +37,16 @@ def get_ora_engine(oracle_conn_id="oracle_default") -> Engine:
         return create_engine(uri, auto_convert_lobs=True)
     except SQLAlchemyError as e:
         raise AirflowException(str(e)) from e
+
+
+def fetch_pg_env_vars(postgres_conn_id="postgres_default"):
+    # Need to get rid of trailing '&'
+    stripped_env = env("AIRFLOW_CONN_POSTGRES_DEFAULT")[:-1]
+    pg_conn_info = dsnparse.parse(stripped_env)
+    return {
+        "PGHOST": pg_conn_info.host,
+        "PGPORT": str(pg_conn_info.port),
+        "PGDATABASE": pg_conn_info.paths[0],
+        "PGUSER": pg_conn_info.username,
+        "PGPASSWORD": pg_conn_info.password,
+    }
