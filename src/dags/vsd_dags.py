@@ -40,5 +40,5 @@ def create_vsd_dag(vsd_id, default_args):
     return dag
 
 
-vsd_id = "biz"
-globals()[f"vsd_{vsd_id}"] = create_vsd_dag(vsd_id, common_default_args)
+for vsd_id in ("biz", "asbest", "trm"):
+    globals()[f"vsd_{vsd_id}"] = create_vsd_dag(vsd_id, common_default_args)
