@@ -51,8 +51,7 @@ SQL_CREATE_TEMP_TABLES = """
 
 SQL_RENAME_TEMP_TABLES = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old;
-
-ALTER TABLE IF EXISTS {{ params.base_table }}
+    ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
     ALTER TABLE {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
