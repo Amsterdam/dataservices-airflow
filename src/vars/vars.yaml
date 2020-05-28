@@ -84,7 +84,7 @@ trm:
     name: metro
     shp: Metro KGEs.shp
 winkelgebieden:
-  data_schema: https://raw.githubusercontent.com/Amsterdam/schemas/master/winkelgebieden/winkelgebieden.json
+  data_schema: https://schemas.data.amsterdam.nl/datasets/winkelgebieden/winkelgebieden
   source_filename: WINKGEB2018
   source_missing_columns: ('id', 'geometry', 'categorie', 'categorie naam')
   skip_columns: ('geometry')

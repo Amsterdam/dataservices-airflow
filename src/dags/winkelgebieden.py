@@ -140,7 +140,7 @@ dag.doc_md = """
     Fix issues and rerun dag on working days
     #### Point of Contact
     Inform the businessowner at [businessowner]@amsterdam.nl
-    #### Business Use Case / process
+    #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/winkelgebieden/winkelgebieden/
