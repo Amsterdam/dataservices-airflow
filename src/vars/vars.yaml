@@ -2,9 +2,9 @@ generic:
   test: []
 huishoudelijkafval:
   files:
-  - afval_weging
-  - afval_container
-  - afval_cluster
+    - afval_weging
+    - afval_container
+    - afval_cluster
 parkeerzones:
   shp_files:
     - act_RDW_3EXP_VERGUNNINGGEBIED.shp
@@ -43,17 +43,16 @@ bekendmakingen:
     VERSION: 1.2.0
     TYPENAME: geozet:bekendmakingen_punt
     FILTER: |
-        <Filter>
-          <PropertyIsEqualTo>
-            <PropertyName>geozet:overheid</PropertyName>
-            <Literal>Amsterdam</Literal>
-          </PropertyIsEqualTo>
-        </Filter>
+      <Filter>
+        <PropertyIsEqualTo>
+          <PropertyName>geozet:overheid</PropertyName>
+          <Literal>Amsterdam</Literal>
+        </PropertyIsEqualTo>
+      </Filter>
     outputFormat: application/json
   geotype: ST_Point
 asbest:
-  zip_file:
-    Amsterdam_Asbestverdachte_daken_Shape.zip
+  zip_file: Amsterdam_Asbestverdachte_daken_Shape.zip
   shp_files:
     - Asbestverdachte_daken_gegevens.shp
     - Asbestverdachte_Percelen.shp
@@ -64,14 +63,11 @@ asbest:
     - asbest_daken
     - asbest_percelen
 bed_and_breakfast:
-  sql_file_base:
-    bb_quotum
+  sql_file_base: bb_quotum
 biz:
-  base_filename:
-    BIZZONES
+  base_filename: BIZZONES
 hior:
-  xls_endpoint:
-    "hior/HIOR Amsterdam.xlsx"
+  xls_endpoint: "hior/HIOR Amsterdam.xlsx"
 iot:
   objects:
     - 3D sensor
@@ -81,11 +77,14 @@ openbare_verlichting:
   objects_endpoint: asd/services/rest_sia.php/SIAService/objecten
   types_endpoint: asd/services/rest_sia.php/SIAService/types
 trm:
-  -
-    zip: Tram KGEs.zip
+  - zip: Tram KGEs.zip
     name: tram
     shp: KGE_hartlijnen_Amsterdam_2.054.shp
-  -
-    zip: Metro KGEs.zip
+  - zip: Metro KGEs.zip
     name: metro
     shp: Metro KGEs.shp
+winkelgebieden:
+  data_schema: https://schemas.data.amsterdam.nl/datasets/winkelgebieden/winkelgebieden
+  source_filename: WINKGEB2018
+  source_missing_columns: ('id', 'geometry', 'categorie', 'categorie naam')
+  skip_columns: ('geometry')
