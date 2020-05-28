@@ -63,11 +63,11 @@ def get_column_names_for_ogr2ogr_sql_select(
                             if source_missing_cols is not None
                             else ""
                         ):
-                            columns.append("NULL as " + value.replace(" ", "_"))
+                            columns.append("NULL as " + key.replace(" ", "_"))
 
                         else:
                             columns.append(
-                                key.replace(" ", "_") + " as " + value.replace(" ", "_")
+                                value.replace(" ", "_") + " as " + key.replace(" ", "_")
                             )
 
         columns = ",".join(columns)
