@@ -11,7 +11,6 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from shapely.geometry import Polygon
-from swift_operator import SwiftOperator
 from swift_hook import SwiftHook
 from common import default_args
 
@@ -46,6 +45,8 @@ SQL_CREATE_TEMP_TABLES = """
     ALTER TABLE {{ params.base_table }}_regimes_temp
         ALTER COLUMN id SET DEFAULT
         NEXTVAL('{{ params.base_table }}_regimes_temp_id_seq');
+    ALTER TABLE {{ params.base_table }}_regimes_temp
+        ADD COLUMN IF NOT EXISTS e_type_description VARCHAR;
 """
 
 SQL_RENAME_TEMP_TABLES = """
@@ -64,6 +65,27 @@ ALTER TABLE IF EXISTS {{ params.base_table }}
 
 TMP_DIR = f"/tmp/{dag_id}"
 
+E_TYPES = dict(
+    E1="Parkeerverbod",
+    E2="Verbod stil te staan",
+    E3="Verbod fietsen en bromfietsen te plaatsen",
+    E4="Parkeergelegenheid",
+    E5="Taxistandplaats",
+    E6="Gehandicaptenparkeerplaats",
+    E6a="Gehandicaptenparkeerplaats algemeen",
+    E6b="Gehandicaptenparkeerplaats op kenteken",
+    E7="Gelegenheid bestemd voor het onmiddellijk laden en lossen van goederen",
+    E8="Parkeergelegenheid alleen bestemd voor de voertuigcategorie of groep voertuigen die op het bord is aangegeven",
+    E9="Parkeergelegenheid alleen bestemd voor vergunninghouders",
+    E10=(
+        "Parkeerschijf-zone met verplicht gebruik van parkeerschijf, tevens parkeerverbod indien er langer wordt "
+        "geparkeerd dan de parkeerduur die op het bord is aangegeven"
+    ),
+    E11="Einde parkeerschijf-zone met verplicht gebruik van parkeerschijf",
+    E12="Parkeergelegenheid ten behoeve van overstappers op het openbaar vervoer",
+    E13="Parkeergelegenheid ten behoeve van carpoolers",
+)
+
 
 def import_data(shp_file, ids):
     """
@@ -74,6 +96,7 @@ def import_data(shp_file, ids):
         "'{parent_id}',"
         "'{soort}',"
         "'{e_type}',"
+        "'{e_type_description}',"
         "'{bord}',"
         "'{begin_tijd}',"
         "'{eind_tijd}',"
@@ -109,6 +132,7 @@ def import_data(shp_file, ids):
                     parent_id=row.record.PARKEER_ID,
                     soort=mode["soort"],
                     e_type=mode["e_type"],
+                    e_type_description=E_TYPES.get(mode["e_type"], ""),
                     bord=mode["bord"],
                     begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
                     eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
@@ -133,7 +157,8 @@ def import_data(shp_file, ids):
     ).format(TABLES["BASE_TEMP"], ",".join(parkeervakken_sql))
     create_regimes_sql = (
         "INSERT INTO {} ("
-        "parent_id, soort, e_type, bord, begin_tijd, eind_tijd, opmerking, dagen, kenteken, begin_datum, eind_datum, aantal"
+        "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd, opmerking, dagen, "
+        "kenteken, begin_datum, eind_datum, aantal"
         ") VALUES {};"
     ).format(TABLES["REGIMES_TEMP"], ",".join(regimes_sql))
 
@@ -176,7 +201,9 @@ def download_latest_export_file(swift_conn_id, container, *args, **kwargs):
         ):
             latest = x
 
-    zip_path = os.path.join([TMP_DIR, latest["name"]])
+    if latest is None:
+        raise AirflowException("Failed to fetch objectstore listing.")
+    zip_path = os.path.join(TMP_DIR, latest["name"])
     hook.download(container=container, object_id=latest["name"], output_path=zip_path)
 
     try:
@@ -189,7 +216,7 @@ def download_latest_export_file(swift_conn_id, container, *args, **kwargs):
     return latest["name"]
 
 
-def run_imports():
+def run_imports(*args, **kwargs):
     """
     Run imports for all files in zip that match date.
     """
