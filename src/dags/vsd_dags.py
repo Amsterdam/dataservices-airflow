@@ -40,5 +40,9 @@ def create_vsd_dag(vsd_id, default_args):
     return dag
 
 
-for vsd_id in ("biz", "asbest", "trm"):
-    globals()[f"vsd_{vsd_id}"] = create_vsd_dag(vsd_id, common_default_args)
+for sub_path in vsd_dir.iterdir():
+    if sub_path.is_dir():
+        vsd_id = sub_path.name
+        if vsd_id == "shared":
+            continue
+        globals()[f"vsd_{vsd_id}"] = create_vsd_dag(vsd_id, common_default_args)

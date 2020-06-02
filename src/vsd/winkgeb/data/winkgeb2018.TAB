@@ -1,0 +1,21 @@
+!table
+!version 300
+!charset WindowsLatin1
+
+Definition Table
+  Type NATIVE Charset "WindowsLatin1"
+  Fields 9
+    gebcode Char (4) ;
+    gebnaam Char (50) ;
+    code Char (5) ;
+    oppha Decimal (8, 2) ;
+    codewg Char (4) ;
+    concgebied Char (7) Index 1 ;
+    concnaam Char (35) ;
+    bc2015 Char (3) ;
+    geb22 Char (4) ;
+begin_metadata
+"\IsReadOnly" = "FALSE"
+"\MapInfo" = ""
+"\MapInfo\TableID" = "1a69f568-2646-47ed-83a5-1872ad3b8384"
+end_metadata
