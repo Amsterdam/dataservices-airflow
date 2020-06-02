@@ -29,6 +29,10 @@ RUN ldconfig
 COPY --from=builder /usr/bin/patch /usr/bin/patch
 COPY --from=builder /usr/bin/rsync /usr/bin/rsync
 
+# Disable an expired root certificate (temporary solution)
+RUN sed -i '/^mozilla\/AddTrust_External_Root.crt/c\!mozilla\/AddTrust_External_Root.crt' /etc/ca-certificates.conf
+RUN update-ca-certificates
+
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
