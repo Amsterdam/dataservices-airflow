@@ -49,7 +49,6 @@ def load_grex_from_dwh(table_name):
             """
             SELECT PLANNR as ID
                  , PLANNAAM
-                 , PLANBEHEERCODE
                  , STARTDATUM
                  , PLANSTATUS
                  , OPPERVLAKTE
@@ -68,7 +67,6 @@ def load_grex_from_dwh(table_name):
         grex_rapportage_dtype = {
             "id": Integer(),
             "plannaam": Text(),
-            "planbeheercode": Text(),
             "startdatum": Date(),
             "planstatus": Text(),
             "oppervlakte": Float(),
