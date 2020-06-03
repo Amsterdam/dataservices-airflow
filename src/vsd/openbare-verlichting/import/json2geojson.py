@@ -27,9 +27,9 @@ def json2geojson(data,):
         try:
             type_mapping = ID_TYPES_MAP[objecttype_id]
         except KeyError:
-            raise RuntimeError(
-                f"objecttype={objecttype_id} not found, unable to import {element!r}: "
-            ) from None
+            log.error(
+                f"objecttype={objecttype_id} not found, unable to import {element!r}: skipping"
+            )
         assert type_mapping is not None
         type_name = type_mapping["internal_name"]
 
