@@ -1,4 +1,4 @@
-WITH categorie(codewg, categorie) AS ( VALUES
+WITH categorie(winkelgebiedcode, categorie) AS ( VALUES
 ('335','BU'),
 ('415','BU'),
 ('039','WK'),
@@ -143,4 +143,4 @@ SET categorie = categorie.categorie
   , categorie_naam = categorie_namen.categorie_naam
 FROM categorie
 JOIN categorie_namen ON categorie.categorie = categorie_namen.categorie
-WHERE categorie.codewg = winkelgebieden_winkelgebieden_new.codewg;
+WHERE categorie.winkelgebiedcode = winkelgebieden_winkelgebieden_new.winkelgebiedcode;
