@@ -7,6 +7,10 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from postgres_check_operator import PostgresCheckOperator
 
+from http_fetch_operator import HttpFetchOperator
+from provenance_operator import ProvenanceOperator
+
+
 from common import (
     default_args,
     pg_params,
@@ -21,25 +25,23 @@ from common.sql import (
     SQL_CHECK_GEO,
 )
 
-from common.dataschema import get_column_names_for_ogr2ogr_sql_select
+# from common.dataschema import get_column_names_for_ogr2ogr_sql_select
 
-
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
 def quote(instr):
     return f"'{instr}'"
 
 
 dag_id = "winkelgebieden"
-variables = Variable.get(dag_id, deserialize_json=True)
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
-
-dataschema = variables["data_schema"]
-source_filename = variables["source_filename"]
-source_missing_cols = variables["source_missing_columns"]
-skip_cols = variables["skip_columns"]
-
+variables = Variable.get(dag_id, deserialize_json=True)
+schema_end_point = variables["schema_end_point"]
 tmp_dir = f"/tmp/{dag_id}"
-tmp_column_file = f"{tmp_dir}/alias_columns.file"
+metadataschema = f"{tmp_dir}/winkelgebieden_dataschema.json"
+# source_missing_cols = variables["source_missing_columns"]
+# skip_cols = variables["skip_columns"]
+# tmp_column_file = f"{tmp_dir}/alias_columns.file"
 
 with DAG(
     dag_id,
@@ -58,17 +60,26 @@ with DAG(
 
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
-    get_schema_columns = PythonOperator(
-        task_id="get_schema_columns",
-        python_callable=get_column_names_for_ogr2ogr_sql_select,
-        op_args=[
-            f"{dataschema}",
-            f"{tmp_column_file}",
-            f"{source_filename}",
-            f"{source_missing_cols}",
-            f"{skip_cols}",
-        ],
+    # 3. download dataschema into temp directory
+    download_schema = HttpFetchOperator(
+        task_id=f"download_schema",
+        endpoint=f"{schema_end_point}",
+        http_conn_id="schema_winkelgebieden_conn_id",
+        tmp_file=f"{metadataschema}",
+        output_type="text",
     )
+
+    # get_schema_columns = PythonOperator(
+    #     task_id="get_schema_columns",
+    #     python_callable=get_column_names_for_ogr2ogr_sql_select,
+    #     op_args=[
+    #         f"{dataschema}",
+    #         f"{tmp_column_file}",
+    #         f"{source_filename}",
+    #         f"{source_missing_cols}",
+    #         f"{skip_cols}",
+    #     ],
+    # )
 
     extract_data = BashOperator(
         task_id="extract_data",
@@ -76,7 +87,15 @@ with DAG(
         f"-t_srs EPSG:28992 -nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB "
         # the option -lco is added to rename the automated creation of the primairy key column (ogc fid) - due to use of ogr2ogr
-        f"-sql @{tmp_column_file} -lco FID=ID -lco GEOMETRY_NAME=geometry",
+        # in the -sql a select statement is added to get column renames that is specified in the dataschema
+        # f"-sql @{tmp_column_file} -lco FID=ID -lco GEOMETRY_NAME=geometry",
+        f"-lco FID=ID -lco GEOMETRY_NAME=geometry",
+    )
+
+    provenance_translation = ProvenanceOperator(
+        task_id=f"provenance",
+        metadataschema=f"{metadataschema}",
+        source_file=f"{tmp_dir}/{dag_id}.sql",
     )
 
     convert_data = BashOperator(
@@ -122,8 +141,9 @@ with DAG(
 (
     slack_at_start
     >> mkdir
-    >> get_schema_columns
+    >> download_schema
     >> extract_data
+    >> provenance_translation
     >> convert_data
     >> create_table
     >> add_category

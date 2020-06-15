@@ -1,3 +1,5 @@
+ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie varchar(50);
+ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie_naam varchar(100);
 WITH categorie(winkelgebiedcode, categorie) AS ( VALUES
 ('335','BU'),
 ('415','BU'),
