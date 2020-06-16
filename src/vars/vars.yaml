@@ -84,7 +84,11 @@ trm:
     name: metro
     shp: Metro KGEs.shp
 winkelgebieden:
-  data_schema: https://schemas.data.amsterdam.nl/datasets/winkelgebieden/winkelgebieden
-  source_filename: WINKGEB2018
-  source_missing_columns: ('id', 'geometry', 'categorie', 'categorie naam')
-  skip_columns: ('geometry')
+  schema_end_point: datasets/winkelgebieden/winkelgebieden
+precariobelasting:
+  data_end_points:
+    bedrijfsvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/3
+    passagiersvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/4
+    woonschepen: dcatd/datasets/aUBH75WzCsTcYQ/purls/2
+    terrassen: dcatd/datasets/aUBH75WzCsTcYQ/purls/1
+  schema_end_point: datasets/precariobelasting/precariobelasting

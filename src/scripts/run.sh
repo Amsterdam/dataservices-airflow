@@ -28,6 +28,16 @@ airflow connections --add  --conn_id fietspaaltjes_conn_id \
     --conn_host https://cdn.endora.nl \
     --conn_type http
 
+airflow connections --delete --conn_id api_data_amsterdam_conn_id
+airflow connections --add  --conn_id api_data_amsterdam_conn_id \
+    --conn_host  https://acc.api.data.amsterdam.nl  \
+    --conn_type http
+    
+airflow connections --delete --conn_id schemas_data_amsterdam_conn_id
+airflow connections --add  --conn_id schemas_data_amsterdam_conn_id \
+    --conn_host  https://schemas.data.amsterdam.nl \
+    --conn_type http
+
 airflow connections --delete --conn_id verlichting_conn_id
 airflow connections --add  --conn_id verlichting_conn_id \
     --conn_host https://asd2.techtek.eu \

@@ -25,6 +25,7 @@ class HttpFetchOperator(BaseOperator):
         headers=None,
         http_conn_id="http_default",
         tmp_file=None,
+        output_type=None,
         *args,
         **kwargs
     ) -> None:
@@ -34,6 +35,7 @@ class HttpFetchOperator(BaseOperator):
         self.http_conn_id = http_conn_id
         self.data = data or {}
         self.tmp_file = tmp_file  # or make temp file + store path in xcom
+        self.output_type = output_type  # default is raw, else specify text i.e.
         super().__init__(*args, **kwargs)
 
     def execute(self, context):
@@ -47,5 +49,9 @@ class HttpFetchOperator(BaseOperator):
         )
         # When content is encoded (gzip etc.) we need this
         # response.raw.read = functools.partial(response.raw.read, decode_content=True)
-        with open(self.tmp_file, "wb") as wf:
-            shutil.copyfileobj(response.raw, wf)
+        if self.output_type == "text":
+            with open(self.tmp_file, "wt") as wf:
+                wf.write(response.text)
+        else:
+            with open(self.tmp_file, "wb") as wf:
+                shutil.copyfileobj(response.raw, wf)
