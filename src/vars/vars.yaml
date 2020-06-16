@@ -92,3 +92,8 @@ precariobelasting:
     woonschepen: dcatd/datasets/aUBH75WzCsTcYQ/purls/2
     terrassen: dcatd/datasets/aUBH75WzCsTcYQ/purls/1
   schema_end_point: datasets/precariobelasting/precariobelasting
+  temp_data:
+    bedrijfsvaartuigen: data/precariobelasting/bedrijfsvaartuigen.geojson
+    passagiersvaartuigen: data/precariobelasting/passagiersvaartuigen.geojson
+    woonschepen: data/precariobelasting/woonschepen.geojson
+    terrassen: data/precariobelasting/terrassen.geojson
