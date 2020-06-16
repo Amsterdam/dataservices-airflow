@@ -28,6 +28,7 @@ from postgres_check_operator import (
 dag_id = "precariobelasting"
 variables = Variable.get(dag_id, deserialize_json=True)
 data_end_points = variables["data_end_points"]
+data_end_points = variables["temp_data"]
 schema_end_point = variables["schema_end_point"]
 tmp_dir = f"/tmp/{dag_id}"
 metadataschema = f"{tmp_dir}/precariobelasting_dataschema.json"
@@ -80,9 +81,9 @@ with DAG(
         HttpFetchOperator(
             task_id=f"download_{file_name}",
             endpoint=f"{url}",
-            http_conn_id="api_data_amsterdam_conn_id",
+            http_conn_id="airflow_home_conn_id",
             tmp_file=f"{tmp_dir}/{file_name}.json",
-            output_type="text",
+            output_type="file",
         )
         for file_name, url in data_end_points.items()
     ]
