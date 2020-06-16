@@ -84,11 +84,11 @@ trm:
     name: metro
     shp: Metro KGEs.shp
 winkelgebieden:
-  schema_end_point: winkelgebieden
+  schema_end_point: datasets/winkelgebieden/winkelgebieden
 precariobelasting:
   data_end_points:
-    bedrijfsvaartuigen: /3
-    passagiersvaartuigen: /4
-    woonschepen: /2
-    terrassen: /1
-  schema_end_point: precariobelasting
+    bedrijfsvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/3
+    passagiersvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/4
+    woonschepen: dcatd/datasets/aUBH75WzCsTcYQ/purls/2
+    terrassen: dcatd/datasets/aUBH75WzCsTcYQ/purls/1
+  schema_end_point: datasets/precariobelasting/precariobelasting

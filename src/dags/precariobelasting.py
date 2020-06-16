@@ -1,3 +1,4 @@
+import operator
 import re
 
 from airflow import DAG
@@ -7,9 +8,9 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 
 from http_fetch_operator import HttpFetchOperator
-from provenance_operator import ProvenanceOperator
-
 from postgres_check_operator import PostgresCheckOperator
+from provenance_operator import ProvenanceOperator
+from postgres_rename_operator import PostgresTableRenameOperator
 
 from common import (
     default_args,
@@ -18,10 +19,10 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
 )
-from common.sql import (
-    SQL_TABLE_RENAME,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    GEO_CHECK,
 )
 
 dag_id = "precariobelasting"
@@ -30,6 +31,11 @@ data_end_points = variables["data_end_points"]
 schema_end_point = variables["schema_end_point"]
 tmp_dir = f"/tmp/{dag_id}"
 metadataschema = f"{tmp_dir}/precariobelasting_dataschema.json"
+total_checks = []
+count_checks = []
+geo_checks = []
+check_name = {}
+
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
 def quote(instr):
@@ -64,7 +70,7 @@ with DAG(
     download_schema = HttpFetchOperator(
         task_id=f"download_schema",
         endpoint=f"{schema_end_point}",
-        http_conn_id="schema_precariobelasting_conn_id",
+        http_conn_id="schemas_data_amsterdam_conn_id",
         tmp_file=f"{metadataschema}",
         output_type="text",
     )
@@ -74,7 +80,7 @@ with DAG(
         HttpFetchOperator(
             task_id=f"download_{file_name}",
             endpoint=f"{url}",
-            http_conn_id="data_precariobelasting_conn_id",
+            http_conn_id="api_data_amsterdam_conn_id",
             tmp_file=f"{tmp_dir}/{file_name}.json",
             output_type="text",
         )
@@ -125,37 +131,50 @@ with DAG(
         for file_name in data_end_points.keys()
     ]
 
-    # 9. Check the minimal requirement for number of records
-    check_counts = [
-        PostgresCheckOperator(
-            task_id=f"check_count_{file_name}",
-            sql=SQL_CHECK_COUNT,
-            params=dict(tablename=f"{dag_id}_{file_name}_new", mincount=1),
-        )
-        for file_name in data_end_points.keys()
-    ]
+    # 9. Prepare the checks and added them per source to a dictionary
+    for file_name in data_end_points.keys():
 
-    # 10. Check if geometry is valid based on the specified geotype(s)
-    check_geos = [
-        PostgresCheckOperator(
-            task_id=f"check_geo_{file_name}",
-            sql=SQL_CHECK_GEO,
-            params=dict(
-                tablename=f"{dag_id}_{file_name}_new",
-                geotype=["ST_Polygon", "ST_MultiPolygon"],
-                geo_column="geometry",
-                check_valid=False,
-            ),
+        total_checks.clear()
+        count_checks.clear()
+        geo_checks.clear()
+
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{file_name}",
+                pass_value=2,
+                params=dict(table_name=f"{dag_id}_{file_name}_new"),
+                result_checker=operator.ge,
+            )
+        )
+
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{file_name}",
+                params=dict(
+                    table_name=f"{dag_id}_{file_name}_new",
+                    geotype=["POLYGON", "MULTIPOLYGON"],
+                ),
+                pass_value=1,
+            )
+        )
+
+        total_checks = count_checks + geo_checks
+        check_name[f"{file_name}"] = total_checks
+
+    # 10. Execute bundled checks (step 9) on database
+    multi_checks = [
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{file_name}", checks=check_name[f"{file_name}"]
         )
         for file_name in data_end_points.keys()
     ]
 
     # 11. Rename the table from <tablename>_new to <tablename>
     rename_tables = [
-        PostgresOperator(
+        PostgresTableRenameOperator(
             task_id=f"rename_table_{file_name}",
-            sql=SQL_TABLE_RENAME,
-            params=dict(tablename=f"{dag_id}_{file_name}", geo_column="geometry",),
+            old_table_name=f"{dag_id}_{file_name}_new",
+            new_table_name=f"{dag_id}_{file_name}",
         )
         for file_name in data_end_points.keys()
     ]
@@ -167,8 +186,7 @@ with DAG(
         extract_geo,
         get_column,
         load_table,
-        check_count,
-        check_geo,
+        multi_check,
         rename_table,
     ) in zip(
         download_data,
@@ -176,11 +194,10 @@ with DAG(
         extract_geojsons,
         provenance_translations,
         load_tables,
-        check_counts,
-        check_geos,
+        multi_checks,
         rename_tables,
     ):
-        data >> clean_data >> extract_geo >> get_column >> load_table >> check_count >> check_geo >> rename_table
+        data >> clean_data >> extract_geo >> get_column >> load_table >> multi_check >> rename_table
 
     slack_at_start >> mk_tmp_dir >> download_schema >> download_data
 

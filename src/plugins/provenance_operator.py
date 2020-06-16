@@ -2,9 +2,11 @@ from requests.exceptions import HTTPError
 from schematools.provenance.create import ProvenaceIteration
 import json, jsonschema, logging, requests, re
 from string_utils import slugify
+from string_utils.manipulation import camel_case_to_snake
 
-from airflow.utils.decorators import apply_defaults
 from airflow.models.baseoperator import BaseOperator
+
+LOGGER = logging.getLogger("airflow.task")
 
 
 class ProvenanceOperator(BaseOperator):
@@ -14,7 +16,6 @@ class ProvenanceOperator(BaseOperator):
     After rename, the .sql can be applied on the database. 
     """
 
-    @apply_defaults
     def __init__(
         self, metadataschema, source_file, table_to_get_columns=None, *args, **kwargs,
     ):
@@ -29,7 +30,7 @@ class ProvenanceOperator(BaseOperator):
 
         def get_column_names(metadataschema, table_to_get_columns=None):
             """Return the column names (in a dictory) from the dataschema incl. provenance translated column names.
-                Because in the metadataschema the fieldnames are camelCase, the names has to be translated to snake_case
+                Because in the metadataschema the fieldnames are camelCase, the names have to be translated to snake_case
                 in order to use in the database.             
             """
 
@@ -38,19 +39,22 @@ class ProvenanceOperator(BaseOperator):
             with open(metadataschema, "r") as f:
                 metadataschema = json.load(f)
 
+            LOGGER.info("loaded metadataschema > " + str(metadataschema))
+
             # apply the provenace method to get the column names including, if defined, the provenance names defined on dataset, table and column (field) level
             try:
                 instance = ProvenaceIteration(metadataschema)
                 columns = instance.final_dic
+                LOGGER.info("extracted data (incl. provenance) > " + str(columns))
 
             except (jsonschema.ValidationError, jsonschema.SchemaError, KeyError) as e:
                 self.log.error(e)
 
             # list only the columns
             for table in columns["tables"]:
-                table_set = {}
-                table_set["table"] = table["table"]
-                table_set["properties"] = []
+                table_info = {}
+                table_info["table"] = table["table"]
+                table_info["properties"] = []
                 columns_set = {}
                 # check: get only the columns from a specific table if given as argument
                 if (
@@ -65,15 +69,14 @@ class ProvenanceOperator(BaseOperator):
 
                         # TO DO: move the 'camelCase to snake_case' translation to schema-tools?
                         # translate camelCase to snake_case for the column names in order to use it in database
-                        pattern = re.compile(r"(?<!z)(?=[A-Z])")
-                        key = pattern.sub("_", key).lower()
-                        value = pattern.sub("_", value).lower()
-
+                        key = camel_case_to_snake(key)
+                        value = camel_case_to_snake(value)
                         columns_set[key] = value
 
-                table_set["properties"].append(columns_set)
-                result.append(table_set)
+                table_info["properties"].append(columns_set)
+                result.append(table_info)
 
+            LOGGER.info("extracted column names (incl. provenance) > " + str(result))
             return result
 
         # 1. get field names out of metadataschema incl. provenance
@@ -92,6 +95,8 @@ class ProvenanceOperator(BaseOperator):
                         slugify(new_value, separator="_"),
                     )
         result = file
+
+        LOGGER.info(f"writing to {self.source_file} > " + str(result))
 
         # 4. save file (.sql)
         with open(self.source_file, "wt") as f:
