@@ -29,6 +29,7 @@ class HttpGobOperator(BaseOperator):
     def __init__(
         self,
         endpoint: str,
+        dataset: str,
         schema: str,
         id_fields: tuple,
         geojson_field: str,
@@ -37,13 +38,15 @@ class HttpGobOperator(BaseOperator):
         *args,
         **kwargs,
     ) -> None:
-        self.schema = (schema,)
+        self.dataset = dataset
+        self.schema = schema
         self.id_fields = id_fields
         self.geojson_field = geojson_field
         self.graphql_query = graphql_query
         self.http_conn_id = http_conn_id
         self.endpoint = endpoint
         self.http_conn_id = http_conn_id
+        self.db_table_name = "_".join([self.dataset, self.schema])
         super().__init__(*args, **kwargs)
 
     def _fetch_params(self):
@@ -52,7 +55,7 @@ class HttpGobOperator(BaseOperator):
             "lowercase": "true",
             "flatten": "true",
             "id": self.id_fields,
-            "schema": self.schema,
+            "schema": self.db_table_name,
             "geojson": self.geojson_field,
         }
 
@@ -79,14 +82,14 @@ class HttpGobOperator(BaseOperator):
             # And use the ndjson importer from schematools, give it a tmp tablename
             # we know the schema, can be an input param (schema_def_from_url function)
             pg_hook = PostgresHook()
-            schema = schema_def_from_url(SCHEMA_URL, "meetbouten")
+            schema_def = schema_def_from_url(SCHEMA_URL, "meetbouten")
             importer = NDJSONImporter(
-                schema, pg_hook.get_sqlalchemy_engine(), logger=self.log
+                schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log
             )
 
             importer.load_file(
                 tmp_file,
                 table_name=self.schema,
-                db_table_name=f"{self.schema}_tmp",
+                db_table_name=f"{self.db_table_name}_new",
                 truncate=True,  # when reexecuting the same task
             )
