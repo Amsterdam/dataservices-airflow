@@ -1,5 +1,5 @@
 ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie varchar(50);
-ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorie_naam varchar(100);
+ALTER TABLE winkelgebieden_winkelgebieden_new ADD COLUMN categorienaam varchar(100);
 WITH categorie(winkelgebiedcode, categorie) AS ( VALUES
 ('335','BU'),
 ('415','BU'),
@@ -132,7 +132,7 @@ WITH categorie(winkelgebiedcode, categorie) AS ( VALUES
 ('055','WK'),
 ('337','BU'),
 ('422','TR')),
-categorie_namen(categorie, categorie_naam) AS ( VALUES
+categorie_namen(categorie, categorienaam) AS ( VALUES
 ('K', 'Kernwinkelgebied'),
 ('BU','Buurtcentrum'),
 ('WK', 'Wijkcentrum klein'),
@@ -142,7 +142,7 @@ categorie_namen(categorie, categorie_naam) AS ( VALUES
 ('TR', 'Trafficlocaties'))
 UPDATE winkelgebieden_winkelgebieden_new
 SET categorie = categorie.categorie
-  , categorie_naam = categorie_namen.categorie_naam
+  , categorienaam = categorie_namen.categorienaam
 FROM categorie
 JOIN categorie_namen ON categorie.categorie = categorie_namen.categorie
 WHERE categorie.winkelgebiedcode = winkelgebieden_winkelgebieden_new.winkelgebiedcode;
