@@ -48,6 +48,7 @@ services:
       DAG_SYNC_PATH: /tmp/synced-dags
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types
+      SCHEMA_URL: ${SCHEMA_URL}
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
