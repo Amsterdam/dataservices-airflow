@@ -35,14 +35,20 @@ SQL_CHECK_GEO = """
   {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
   SELECT 1 WHERE NOT EXISTS (
       SELECT FROM {{ params.tablename }} WHERE
-        {{ geo_column }} IS null
-        {% if params.check_valid|default(true) %} OR ST_IsValid({{ geo_column }}) = false {% endif %}
-          OR ST_GeometryType({{ geo_column }})
+        {% if params.notnull|default(true) %}
+        {{ geo_column }} IS null OR
+        {% else %}
+        {{ geo_column }} IS NOT NULL AND
+        {% endif %}
+        (
+        {% if params.check_valid|default(true) %} ST_IsValid({{ geo_column }}) = false {% endif %}
+          {% if params.check_valid|default(true) %} OR {% endif %} ST_GeometryType({{ geo_column }})
         {% if params.geotype is string %}
           <> '{{ params.geotype }}'
         {% else %}
           NOT IN ({{ params.geotype | map('quote') | join(", ") }})
         {% endif %}
+        )
       )
 """
 
