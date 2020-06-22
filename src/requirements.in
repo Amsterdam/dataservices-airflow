@@ -1,4 +1,4 @@
-amsterdam-schema-tools == 0.8.2
+amsterdam-schema-tools == 0.8.8
 apache-airflow[crypto,postgres,sentry] == 1.10.10
 cattrs == 0.9
 datapunt-objectstore == 2019.4.8
