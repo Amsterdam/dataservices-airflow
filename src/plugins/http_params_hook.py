@@ -1,3 +1,4 @@
+from typing import Dict, Optional, Any
 import requests
 from airflow.hooks.http_hook import HttpHook
 
@@ -11,11 +12,11 @@ class HttpParamsHook(HttpHook):
 
     def run(
         self,
-        endpoint,
-        params=None,
-        data=None,
-        headers=None,
-        extra_options=None,
+        endpoint: str,
+        params: Optional[Dict[str, str]] = None,
+        data: str = None,
+        headers: Optional[Dict[str, str]] = None,
+        extra_options: Optional[Dict[str, Any]] = None,
         **request_kwargs
     ):
         r"""

@@ -4,7 +4,7 @@ Airflow setup for Dataservices, running in a Docker container.
 
 # Requirements
 
-    Python >= 3.7
+    Python 3.5 - 3.7
 
     python3 -m venv .venv
     source .venv/bin/activate
@@ -18,7 +18,7 @@ Airflow setup for Dataservices, running in a Docker container.
 The docker-compose.yml uses some variables that need to be available in a `.env` file
 next to the docker-compose.yaml file in the following format:
 
-    VARIABLE_NAME=value-of-the-variabl
+    VARIABLE_NAME=value-of-the-variable
 
 The `FERNET_KEY` variable is used to encrypt secrets that are store in the PostgreSQL db.
 The `SLACK_WEBHOOK` is used to adress the Slack API.
