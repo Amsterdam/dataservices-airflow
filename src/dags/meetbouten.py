@@ -64,7 +64,7 @@ gql = """{
     }
 }
 """
-graphql_query = {"query": f"{gql}"}
+graphql_query = {"query": gql}
 dag_id = "meetbouten"
 owner = "gob"
 
