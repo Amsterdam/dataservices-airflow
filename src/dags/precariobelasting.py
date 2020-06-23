@@ -1,12 +1,11 @@
-import operator
-import re
+import operator, re, pathlib
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
+from airflow.operators.dummy_operator import DummyOperator
 from http_fetch_operator import HttpFetchOperator
 from postgres_check_operator import PostgresCheckOperator
 from provenance_operator import ProvenanceOperator
@@ -24,6 +23,7 @@ from postgres_check_operator import (
     COUNT_CHECK,
     GEO_CHECK,
 )
+from sql.precariobelasting_add import ADD_GEBIED_COLUMN, ADD_TITLE
 
 dag_id = "precariobelasting"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -32,6 +32,7 @@ data_end_points = variables["temp_data"]
 schema_end_point = variables["schema_end_point"]
 tmp_dir = f"/tmp/{dag_id}"
 metadataschema = f"{tmp_dir}/precariobelasting_dataschema.json"
+sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -44,10 +45,10 @@ def quote(instr):
 
 
 # remove space hyphen characters
-def clean_data(file):
-    data = open(file, "r").read()
+def clean_data(file_name):
+    data = open(file_name, "r").read()
     result = re.sub(r"[\xc2\xad]", "", data)
-    with open(file, "w") as output:
+    with open(file_name, "w") as output:
         output.write(result)
 
 
@@ -180,6 +181,29 @@ with DAG(
         for file_name in data_end_points.keys()
     ]
 
+    # 12. Add derived columns (woonschepen en bedrijfsvaartuigen are missing gebied as column)
+    add_title_columns = [
+        PostgresOperator(
+            task_id=f"add_title_column_{file_name}",
+            sql=ADD_TITLE,
+            params=dict(tablenames=[f"precariobelasting_{file_name}"]),
+        )
+        for file_name in data_end_points.keys()
+    ]
+
+    # 13. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 14. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
+    add_gebied_columns = [
+        PostgresOperator(
+            task_id=f"add_gebied_column_{file_name}",
+            sql=ADD_GEBIED_COLUMN,
+            params=dict(tablenames=[f"precariobelasting_{file_name}"]),
+        )
+        for file_name in ["woonschepen", "bedrijfsvaartuigen"]
+    ]
+
     # FLOW. define flow with parallel executing of serial tasks for each file
     for (
         data,
@@ -189,6 +213,7 @@ with DAG(
         load_table,
         multi_check,
         rename_table,
+        add_title_column,
     ) in zip(
         download_data,
         clean_data,
@@ -197,8 +222,22 @@ with DAG(
         load_tables,
         multi_checks,
         rename_tables,
+        add_title_columns,
     ):
-        data >> clean_data >> extract_geo >> get_column >> load_table >> multi_check >> rename_table
+
+        [
+            data
+            >> clean_data
+            >> extract_geo
+            >> get_column
+            >> load_table
+            >> multi_check
+            >> rename_table
+            >> add_title_column
+        ] >> Interface >> add_gebied_columns
+
+    for add_gebied_column in zip(add_gebied_columns):
+        add_gebied_column
 
     slack_at_start >> mk_tmp_dir >> download_schema >> download_data
 
