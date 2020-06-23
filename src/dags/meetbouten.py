@@ -69,7 +69,7 @@ dag_id = "meetbouten"
 owner = "gob"
 
 
-with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
+with DAG(dag_id, default_args={"owner": owner, **default_args}) as dag:
 
     drop_old_tmp_tables = PostgresOperator(
         task_id="drop_old_tmp_tables",
