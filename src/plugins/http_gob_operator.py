@@ -46,7 +46,7 @@ class HttpGobOperator(BaseOperator):
         self.http_conn_id = http_conn_id
         self.endpoint = endpoint
         self.http_conn_id = http_conn_id
-        self.db_table_name = "_".join([self.dataset, self.schema])
+        self.db_table_name = f"{self.dataset}_{self.schema}"
         super().__init__(*args, **kwargs)
 
     def _fetch_params(self):
