@@ -1,5 +1,4 @@
-import operator
-import re
+import operator, re, pathlib
 
 from airflow import DAG
 from airflow.models import Variable
@@ -32,6 +31,7 @@ data_end_points = variables["temp_data"]
 schema_end_point = variables["schema_end_point"]
 tmp_dir = f"/tmp/{dag_id}"
 metadataschema = f"{tmp_dir}/precariobelasting_dataschema.json"
+sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -44,10 +44,10 @@ def quote(instr):
 
 
 # remove space hyphen characters
-def clean_data(file):
-    data = open(file, "r").read()
+def clean_data(file_name):
+    data = open(file_name, "r").read()
     result = re.sub(r"[\xc2\xad]", "", data)
-    with open(file, "w") as output:
+    with open(file_name, "w") as output:
         output.write(result)
 
 
@@ -179,6 +179,11 @@ with DAG(
         )
         for file_name in data_end_points.keys()
     ]
+    # 12. Add derived columns (woonschepen en bedrijfsvaartuigen are missing gebied as column)
+    add_derived_columns = BashOperator(
+        task_id="precariobelasting_add_derived_columns",
+        bash_command=f"psql {pg_params()} < {sql_path}/precariobelasting_add.sql",
+    )
 
     # FLOW. define flow with parallel executing of serial tasks for each file
     for (
@@ -198,7 +203,15 @@ with DAG(
         multi_checks,
         rename_tables,
     ):
-        data >> clean_data >> extract_geo >> get_column >> load_table >> multi_check >> rename_table
+        [
+            data
+            >> clean_data
+            >> extract_geo
+            >> get_column
+            >> load_table
+            >> multi_check
+            >> rename_table
+        ] >> add_derived_columns
 
     slack_at_start >> mk_tmp_dir >> download_schema >> download_data
 
