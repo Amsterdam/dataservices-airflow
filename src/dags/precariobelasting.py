@@ -23,7 +23,7 @@ from postgres_check_operator import (
     COUNT_CHECK,
     GEO_CHECK,
 )
-from sql.precariobelasting_add import ADD_GEBIED_COLUMN, ADD_TITLE
+from sql.precariobelasting_add import ADD_GEBIED_COLUMN, ADD_TITLE, RENAME_DATAVALUE_GEBIED
 
 dag_id = "precariobelasting"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -190,20 +190,30 @@ with DAG(
         )
         for file_name in data_end_points.keys()
     ]
-
+       
     # 13. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
     # 14. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
     add_gebied_columns = [
         PostgresOperator(
-            task_id=f"add_gebied_column_{file_name}",
+            task_id=f"add_gebied_{file_name}",
             sql=ADD_GEBIED_COLUMN,
             params=dict(tablenames=[f"precariobelasting_{file_name}"]),
         )
         for file_name in ["woonschepen", "bedrijfsvaartuigen"]
     ]
 
+    # 15. rename values in column gebied for terrassen en passagiersvaartuigen (woonschepen en bedrijfsvaartuigen are added in the previous step)
+    rename_value_gebied = [
+        PostgresOperator(
+            task_id=f"rename_value_{file_name}",
+            sql=RENAME_DATAVALUE_GEBIED,
+            params=dict(tablenames=[f"precariobelasting_{file_name}"]),
+        )
+        for file_name in ["terrassen", "passagiersvaartuigen"]
+    ]
+  
     # FLOW. define flow with parallel executing of serial tasks for each file
     for (
         data,
@@ -236,8 +246,8 @@ with DAG(
             >> add_title_column
         ] >> Interface >> add_gebied_columns
 
-    for add_gebied_column in zip(add_gebied_columns):
-        add_gebied_column
+    for add_gebied_column, rename_value_gebied in zip(add_gebied_columns, rename_value_gebied):
+        add_gebied_column >> rename_value_gebied
 
     slack_at_start >> mk_tmp_dir >> download_schema >> download_data
 
