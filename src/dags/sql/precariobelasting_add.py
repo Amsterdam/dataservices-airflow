@@ -1,7 +1,7 @@
 # add derived columns: The column gebied is missing in WOONSCHEPEN and BEDRIJFSVAARTUIGEN so needs to be added.
 ADD_GEBIED_COLUMN = """
 {% for tablename in params.tablenames %}
-    ALTER TABLE {{ tablename }} ADD COLUMN IF NOT EXISTS gebied VARCHAR(10);
+    ALTER TABLE {{ tablename }} ADD COLUMN IF NOT EXISTS gebied VARCHAR(25);
 
     WITH {{ tablename }}_gebied as (
     select 
@@ -10,8 +10,8 @@ ADD_GEBIED_COLUMN = """
         the regexp is used to focus on the rate numbers only, not clutered by additional karakters like euro sign or , or -
     */
     CASE 
-    WHEN dense_rank() over (order by regexp_replace(tarief_per_jaar_per_m2, '[^[:digit:]]', '', 'g')) = 1 THEN 'Gebied A'
-    ELSE 'Gebied B'
+    WHEN dense_rank() over (order by regexp_replace(tarief_per_jaar_per_m2, '[^[:digit:]]', '', 'g')) = 1 THEN 'Tariefgebied A'
+    ELSE 'Tariefgebied B'
     END
     as gebied_type
     from {{ tablename }}
@@ -20,6 +20,16 @@ ADD_GEBIED_COLUMN = """
     SET gebied = gebied_type
     FROM {{ tablename }}_gebied
     WHERE ID = identifier;
+    COMMIT;
+{% endfor %}
+"""
+
+# The source contains in the field gebied the value 'gebied A' or 'gebied 1', this needs te be translated to 'Tariefgebied [Letter or Number]' etc.
+RENAME_DATAVALUE_GEBIED = """
+{% for tablename in params.tablenames %}
+    UPDATE {{ tablename }}
+    SET gebied = regexp_replace(gebied, 'Gebied', 'Tariefgebied')
+    WHERE 1=1;
     COMMIT;
 {% endfor %}
 """
