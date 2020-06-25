@@ -48,6 +48,8 @@ once inside of the PostgreSQL database using this command:
 This script prompts for a password and stores the credentials in the PostgreSQL database.
 To create a superuser, add the `--superuser` flag to the command.
 
+Dags can only be seen in the UI by the owner, or by the superuser. The default owner is dataservices.
+In order to see the dataservices dags you have to create a superuser or the dataservices user.
 
 # Managing requirements.txt
 
