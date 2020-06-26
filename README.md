@@ -141,6 +141,3 @@ operator parameters can be parametrized using jinja2. These templated variables
 are lazily evaluated when de DAG is run. This parametrization can also be used to
 postpone the heavy lifting. For the same reason it is better to not use variables
 outside of the operators, because access to variables means access to the postgres database.
-
-
-
