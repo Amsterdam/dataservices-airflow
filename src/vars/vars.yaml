@@ -86,14 +86,23 @@ trm:
 winkelgebieden:
   schema_end_point: datasets/winkelgebieden/winkelgebieden
 precariobelasting:
-  data_end_points:
+  data_endpoints:
     bedrijfsvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/3
     passagiersvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/4
     woonschepen: dcatd/datasets/aUBH75WzCsTcYQ/purls/2
     terrassen: dcatd/datasets/aUBH75WzCsTcYQ/purls/1
-  schema_end_point: datasets/precariobelasting/precariobelasting
+  metadataschema_endpoint: datasets/precariobelasting/precariobelasting
   temp_data:
     bedrijfsvaartuigen: data/precariobelasting/bedrijfsvaartuigen.geojson
     passagiersvaartuigen: data/precariobelasting/passagiersvaartuigen.geojson
     woonschepen: data/precariobelasting/woonschepen.geojson
     terrassen: data/precariobelasting/terrassen.geojson
+touringcars:
+  data_endpoints:
+    aanbevolenroutes: dcatd/datasets/IuAYhr-__qZj9Q/purls/wFSs8bEzvW7S9w
+    verplichteroutes: dcatd/datasets/IuAYhr-__qZj9Q/purls/6PQYbDv09_dhpA
+    haltes: dcatd/datasets/IuAYhr-__qZj9Q/purls/uEOyRO9EKBNIeA
+    doorrijhoogtes: dcatd/datasets/IuAYhr-__qZj9Q/purls/nAHH3iH-FQqA7g
+    parkeerplaatsen: dcatd/datasets/IuAYhr-__qZj9Q/purls/uB95bElRaUcD0A
+    wegwerkzaamheden: dcatd/datasets/IuAYhr-__qZj9Q/purls/csfA78CYaXgnsw
+  metadataschema_endpoint: datasets/touringcars/touringcars
