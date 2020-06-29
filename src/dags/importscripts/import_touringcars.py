@@ -18,42 +18,42 @@ def json2geojson(data, in_file):
         "id":"doorrijhoogtes",
         "root":"max_doorrijhoogtes",
         "element":"max_doorrijhoogte",
-        "properties":["title", "Maximale_doorrijhoogte"],
+        "properties":["titel", "Maximale_doorrijhoogte"],
         },
         
         {
         "id":"haltes",
         "root":"in_uitstaphaltes",
         "element":"in_uitstaphalte",
-        "properties":["title", "Bijzonderheden", "Busplaatsen"],
+        "properties":["titel", "Bijzonderheden", "Busplaatsen"],
         },
 
         {
         "id":"parkeerplaatsen",
         "root":"parkeerplaatsen",
         "element":"parkeerplaats",
-        "properties":["title", "Bijzonderheden", "Busplaatsen", "linkurl", "linknaam"],
+        "properties":["titel", "Bijzonderheden", "Busplaatsen", "linkurl", "linknaam"],
         },
         
         {
         "id":"wegwerkzaamheden",
         "root":"wegwerkzaamheden",
         "element":"wegopbreking",
-        "properties":["title", "opmerkingen", "linkurl", "linknaam"],
+        "properties":["titel", "opmerkingen", "linkurl", "linknaam"],
         },
 
         {
         "id":"verplichteroutes",
         "root":"verplichte_routes",
         "element":"verplichte_route",
-        "properties":["title"],
+        "properties":["titel"],
         },
 
         {
         "id":"aanbevolenroutes",
         "root":"aanbevolen_routes",
         "element":"aanbevolen_route",
-        "properties":["title"],
+        "properties":["titel"],
         },
 
     ]
