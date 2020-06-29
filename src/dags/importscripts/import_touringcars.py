@@ -1,12 +1,17 @@
 import json, logging
-from geojson import loads, Polygon, MultiPolygon, GeometryCollection, Point, MultiLineString, LineString
+from geojson import loads, GeometryCollection
+
 
 LOGGER = logging.getLogger("airflow.task")
 
 
 def json2geojson(data, in_file):
-    """ Transform of json input to geojson """
+    """ 
+    Transform json input to geojson 
+    """
 
+
+    # Metadata setup
     TOURINGCARS = [
         
         {
@@ -53,6 +58,7 @@ def json2geojson(data, in_file):
 
     ]
     
+    
     geojson_features = []
     dataset = {}
     element = {}
@@ -69,38 +75,31 @@ def json2geojson(data, in_file):
             element = tables['element']
             properties = tables['properties']             
     
-
+    
+    # processing
     for rows in dataset:
 
-            row = rows[element]                    
-            
+            row = rows[element]     
             geometry = {}
             multipolygon = None
             point = None
             multilinestring = None
             geo = loads(row["Lokatie"])
-            print(type(geo))
-           
-
+            
+            if geo.is_valid:
+                LOGGER.info("Geometry checking...OK valid")
+            else:                                      
+                LOGGER.exception("Missing geometry: No Lokatie element present in source")
+                break
+            
             properties = {
                 key: row[key] for key in properties
             }
-            
-            if type(geo) is not GeometryCollection:
-
-                # Extract multipolygon or points
-                if type(geo) is MultiPolygon:
-                    multipolygon = geo
-                    geometry = geo
-
-                if type(geo) is Point:
-                    point = geo
-                    geometry = geo
+          
+            if type(geo) is not GeometryCollection:              
                 
-                if type(geo) is MultiLineString or type(geo) is LineString:
-                    multilinestring = geo
-                    geometry = geo
-                
+                geometry = geo 
+              
                 # add geo element to feature list
                 geojson_features.append(
                     {"type": "Feature", "geometry": geometry, "properties": properties,}
@@ -111,33 +110,21 @@ def json2geojson(data, in_file):
                 
                 for geo_element in geo["geometries"]:
                     
-                    if type(geo_element) is Polygon:
-                        multipolygon = MultiPolygon(geo_element)
-                        geometry = geo_element
-                        break
-                    if type(geo_element) is MultiPolygon:
-                        multipolygon = geo_element
-                        geometry = geo_element
-                        break
-                    if type(geo_element) is LineString:
-                        multilinestring = geo_element
-                        geometry = geo_element 
+                    geometry = geo_element 
                         
                     # add each geo element to the feature list
                     geojson_features.append(
                             {"type": "Feature", "geometry": geometry, "properties": properties,}
                             )        
-
-            if multipolygon is None and point is None and multilinestring is None:
-                LOGGER.error("Missing geometry: (multi)polygon / point / (multi)linestring")
-                raise Exception("Missing geometry: (multi)polygon / point / (multi)linestring")            
-            
+       
            
     geojson = {"type": "FeatureCollection", "features": [feature for feature in geojson_features]}
     return geojson
 
 def import_touringcars(in_file, out_file):
-    """ Loading json file and calling function to transform json to geojson"""
+    """ 
+    Loading json file and calling function to transform json to geojson
+    """
 
     data = json.load(open(in_file))
    
@@ -146,6 +133,6 @@ def import_touringcars(in_file, out_file):
 
     LOGGER.info(f"writing output file: {out_file}")
     json.dump(geojson, output)
-    LOGGER.info("done")
+    LOGGER.info(f"done, output is: {geojson}")
 
 
