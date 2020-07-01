@@ -17,7 +17,7 @@ class HttpParamsHook(HttpHook):
         data: str = None,
         headers: Optional[Dict[str, str]] = None,
         extra_options: Optional[Dict[str, Any]] = None,
-        **request_kwargs
+        **request_kwargs,
     ):
         r"""
         Performs the request
@@ -51,6 +51,11 @@ class HttpParamsHook(HttpHook):
         else:
             url = (self.base_url or "") + (endpoint or "")
 
+        # Weird bug in Airflow stripping https when connections is configured as env var
+        # re-fetch conn, we need to know the conn_type
+        # conn = self.get_connection(self.http_conn_id)
+        # if url.startswith("http:") and conn.conn_type == "https":
+        #     url = f"https:{url[5:]}"
         req = None
         if self.method == "GET":
             # GET uses params
@@ -68,7 +73,7 @@ class HttpParamsHook(HttpHook):
                 data=data,
                 params=params,
                 headers=headers,
-                **request_kwargs
+                **request_kwargs,
             )
 
         prepped_request = session.prepare_request(req)

@@ -1,0 +1,34 @@
+{
+  meetboutenMetingen($active: false, publiceerbaar: true) {
+    edges {
+      node {
+        identificatie 
+        hoortBijMeetbout {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        datum 
+        typeMeting 
+        wijzeVanInwinnen 
+        hoogteTovNap 
+        zakking 
+        refereertAanReferentiepunten {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        zakkingssnelheid 
+        zakkingCumulatief 
+        isGemetenDoor 
+        hoeveelsteMeting 
+        aantalDagen 
+        publiceerbaar 
+      }
+    }
+  }
+}
