@@ -36,6 +36,7 @@ services:
         091e3bedc85447ef936e82bcda88fcac"
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
+      AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
       FERNET_KEY: ${FERNET_KEY}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
       DATAPUNT_ENVIRONMENT: development

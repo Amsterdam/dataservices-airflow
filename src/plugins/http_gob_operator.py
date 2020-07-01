@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 from environs import Env
@@ -33,7 +34,7 @@ class HttpGobOperator(BaseOperator):
         schema: str,
         id_fields: tuple,
         geojson_field: str,
-        graphql_query: str,
+        graphql_query_path: str,
         http_conn_id="http_default",
         *args,
         **kwargs,
@@ -42,7 +43,7 @@ class HttpGobOperator(BaseOperator):
         self.schema = schema
         self.id_fields = id_fields
         self.geojson_field = geojson_field
-        self.graphql_query = graphql_query
+        self.graphql_query_path = graphql_query_path
         self.http_conn_id = http_conn_id
         self.endpoint = endpoint
         self.http_conn_id = http_conn_id
@@ -66,13 +67,14 @@ class HttpGobOperator(BaseOperator):
             http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
 
             self.log.info("Calling GOB graphql endpoint")
-            response = http.run(
-                self.endpoint,
-                self._fetch_params(),
-                self.graphql_query,
-                {"Content-Type": "application/x-ndjson"},
-                extra_options={"stream": True},
-            )
+            with self.graphql_query_path.open() as gql_file:
+                response = http.run(
+                    self.endpoint,
+                    self._fetch_params(),
+                    json.dumps(dict(query=gql_file.read())),
+                    {"Content-Type": "application/x-ndjson"},
+                    extra_options={"stream": True},
+                )
             # When content is encoded (gzip etc.) we need this
             # response.raw.read = functools.partial(response.raw.read, decode_content=True)
             # Use a tempfolder

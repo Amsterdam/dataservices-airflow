@@ -1,0 +1,50 @@
+{
+  meetboutenMeetbouten($active: false, publiceerbaar: true) {
+    edges {
+      node {
+        identificatie 
+        nabijNummeraanduiding {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        locatie 
+        status 
+        vervaldatum 
+        merk 
+        xCoordinaatMuurvlak 
+        yCoordinaatMuurvlak 
+        windrichting 
+        ligtInBouwblok {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        ligtInBuurt {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        ligtInStadsdeel {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        geometrie 
+        publiceerbaar 
+      }
+    }
+  }
+}
