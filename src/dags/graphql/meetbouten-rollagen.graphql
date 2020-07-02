@@ -1,0 +1,17 @@
+{
+  meetboutenRollagen($active: false) {
+    edges {
+      node {
+        identificatie 
+        isGemetenVanBouwblok {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+      }
+    }
+  }
+}
