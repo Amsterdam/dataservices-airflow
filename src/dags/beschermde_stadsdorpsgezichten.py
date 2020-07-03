@@ -49,9 +49,11 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         username="admin",
     )
 
-    drop_and_create_schema = PostgresOperator(
-        task_id="drop_and_create_schema",
-        sql="DROP SCHEMA IF EXISTS pte CASCADE; CREATE SCHEMA pte;",
+    # XXX Potentially dangerous, because more team-ruimte tables
+    # will be in schema pte, make more specific
+    drop_imported_table = PostgresOperator(
+        task_id="drop_imported_table",
+        sql="DROP TABLE IF EXISTS pte.beschermde_stadsdorpsgezichten CASCADE",
     )
 
     swift_load_task = SwiftLoadSqlOperator(
@@ -104,7 +106,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
 
 (
     slack_at_start
-    >> drop_and_create_schema
+    >> drop_imported_table
     >> swift_load_task
     >> correct_geo
     >> multi_check
