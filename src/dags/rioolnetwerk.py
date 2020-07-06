@@ -22,10 +22,10 @@ DATASTORE_TYPE = (
 )
 
 RENAME_TABLES_SQL = """
-    DROP TABLE IF EXISTS public.rioolleidingen_rioolknopen;
+    DROP TABLE IF EXISTS public.rioolnetwerk_rioolknopen;
     ALTER TABLE pte.rioolknopen SET SCHEMA public;
     ALTER TABLE rioolknopen
-        RENAME TO rioolleidingen_rioolknopen;
+        RENAME TO rioolnetwerk_rioolknopen;
 """
 
 dag_id = "riool"
@@ -93,7 +93,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
     rename_columns = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name="rioolleidingen", pg_schema="pte"
+        task_id="rename_columns", dataset_name="rioolnetwerk", pg_schema="pte"
     )
 
     rename_table = PostgresOperator(task_id="rename_table", sql=RENAME_TABLES_SQL,)
