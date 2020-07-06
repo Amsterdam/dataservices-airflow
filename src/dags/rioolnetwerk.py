@@ -28,7 +28,7 @@ RENAME_TABLES_SQL = """
         RENAME TO rioolnetwerk_rioolknopen;
 """
 
-dag_id = "riool"
+dag_id = "rioolnetwerk"
 owner = "team_ruimte"
 
 with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
