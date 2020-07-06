@@ -54,7 +54,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     swift_load_task = SwiftLoadSqlOperator(
         task_id="swift_load_task",
         container="Dataservices",
-        object_id=f"riool/{DATASTORE_TYPE}/" "riool.zip",
+        object_id=f"rioolnetwerk/{DATASTORE_TYPE}/" "rioolnetwerk.zip",
         swift_conn_id="objectstore_dataservices",
     )
 
