@@ -1,0 +1,25 @@
+{
+  gebiedenStadsdelen($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        naam 
+        code 
+        beginGeldigheid 
+        eindGeldigheid 
+        documentdatum 
+        documentnummer 
+        ligtInGemeente {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        geometrie 
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  gebiedenBuurten($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        naam 
+        code 
+        beginGeldigheid 
+        eindGeldigheid 
+        documentdatum 
+        documentnummer 
+        cbsCode 
+        ligtInWijk {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        geometrie 
+      }
+    }
+  }
+}

@@ -84,7 +84,7 @@ class HttpGobOperator(BaseOperator):
             # And use the ndjson importer from schematools, give it a tmp tablename
             # we know the schema, can be an input param (schema_def_from_url function)
             pg_hook = PostgresHook()
-            schema_def = schema_def_from_url(SCHEMA_URL, "meetbouten")
+            schema_def = schema_def_from_url(SCHEMA_URL, self.dataset)
             importer = NDJSONImporter(
                 schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log
             )
