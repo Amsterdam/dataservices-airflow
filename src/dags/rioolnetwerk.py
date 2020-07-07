@@ -26,6 +26,10 @@ RENAME_TABLES_SQL = """
     ALTER TABLE pte.rioolknopen SET SCHEMA public;
     ALTER TABLE rioolknopen
         RENAME TO rioolnetwerk_rioolknopen;
+    DROP TABLE IF EXISTS public.rioolnetwerk_rioolleidingen;
+    ALTER TABLE pte.rioolleidingen SET SCHEMA public;
+    ALTER TABLE rioolleidingen
+        RENAME TO rioolnetwerk_rioolleidingen;
 """
 
 dag_id = "rioolnetwerk"
@@ -43,11 +47,13 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         username="admin",
     )
 
-    drop_table = PostgresOperator(
-        task_id="drop_table",
+    drop_tables = PostgresOperator(
+        task_id="drop_tables",
         sql=[
             "DROP TABLE IF EXISTS pte.kel_rioolknopen CASCADE",
             "DROP TABLE IF EXISTS pte.rioolknopen CASCADE",
+            "DROP TABLE IF EXISTS pte.kel_rioolleidingen CASCADE",
+            "DROP TABLE IF EXISTS pte.rioolleidingen CASCADE",
         ],
     )
 
@@ -58,37 +64,51 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         swift_conn_id="objectstore_dataservices",
     )
 
-    # XXX When second dataset table is available, add extra checks
-    checks.append(
-        COUNT_CHECK.make_check(
-            check_id="count_check",
-            pass_value=180000,
-            params=dict(table_name="pte.kel_rioolknopen"),
-            result_checker=operator.ge,
-        )
-    )
+    for table_name, count, geo_type, field_names in (
+        (
+            "kel_rioolknopen",
+            180000,
+            "POINT",
+            {"objnr", "knoopnr", "objectsoor", "type_funde", "geometrie",},
+        ),
+        (
+            "kel_rioolleidingen",
+            194000,
+            "MULTILINESTRING",
+            {"objnr", "leidingnaa", "br_diamete", "vorm"},
+        ),
+    ):
 
-    # XXX Get colnames from schema (provenance info)
-    checks.append(
-        COLNAMES_CHECK.make_check(
-            check_id="colname_check",
-            parameters=["pte", "kel_rioolknopen"],
-            pass_value={"objnr", "knoopnr", "objectsoor", "type_funde", "geometrie",},
-            result_checker=operator.ge,
+        checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{table_name}",
+                pass_value=count,
+                params=dict(table_name=f"pte.{table_name}"),
+                result_checker=operator.ge,
+            )
         )
-    )
 
-    checks.append(
-        GEO_CHECK.make_check(
-            check_id="geo_check",
-            params=dict(
-                table_name="pte.kel_rioolknopen",
-                geo_column="geometrie",
-                geotype="POINT",
-            ),
-            pass_value=1,
+        # XXX Get colnames from schema (provenance info)
+        checks.append(
+            COLNAMES_CHECK.make_check(
+                check_id=f"colname_check_{table_name}",
+                parameters=["pte", table_name],
+                pass_value=field_names,
+                result_checker=operator.ge,
+            )
         )
-    )
+
+        checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{table_name}",
+                params=dict(
+                    table_name=f"pte.{table_name}",
+                    geo_column="geometrie",
+                    geotype=geo_type,
+                ),
+                pass_value=1,
+            )
+        )
 
     multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
@@ -96,7 +116,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         task_id="rename_columns", dataset_name="rioolnetwerk", pg_schema="pte"
     )
 
-    rename_table = PostgresOperator(task_id="rename_table", sql=RENAME_TABLES_SQL,)
+    rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL,)
 
 
-slack_at_start >> drop_table >> swift_load_task >> multi_check >> rename_columns >> rename_table
+slack_at_start >> drop_tables >> swift_load_task >> multi_check >> rename_columns >> rename_tables
