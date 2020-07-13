@@ -105,7 +105,7 @@ with DAG(
         task_id=f"create_SQL_based_on_geojson",
         bash_command=f"ogr2ogr -f 'PGDump' "
         f"-t_srs EPSG:28992 "
-        f"-nln {dag_id}_{dag_id}_new "
+        f"-nln {dag_id} "
         f"{tmp_dir}/{dag_id}.sql {data_file} "
         f"-lco GEOMETRY_NAME=geometry ",
     )
@@ -116,22 +116,30 @@ with DAG(
         bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
     )
 
-    # 6. RE-define PK(see step 4 why)
-    redefine_pk = PostgresOperator(
-        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+    # 6. Drop Exisiting TABLE
+    drop_tables = PostgresOperator(
+        task_id="drop_existing_table",
+        sql=[
+            f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",            
+        ],
     )
 
-    # 7. Rename TABLE
+    # 7. Rename COLUMNS based on Provenance
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+    )
+
+    # 8. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id=f"rename_table",
-        old_table_name=f"{dag_id}_{dag_id}_new",
+        old_table_name=f"{dag_id}",
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
-    # 8. Rename COLUMNS based on Provenance
-    provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name="bouwstroompunten", pg_schema="public"
-    )
+    # 9. RE-define PK(see step 4 why)
+    redefine_pk = PostgresOperator(
+        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_{dag_id}"),
+    )       
 
     # PREPARE CHECKS
     count_checks.append(
@@ -153,7 +161,7 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 9. RUN bundled CHECKS
+    # 10. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(
         task_id=f"multi_check", checks=total_checks
     )
@@ -165,9 +173,10 @@ with DAG(
     >> download_data
     >> create_SQL
     >> create_table
-    >> redefine_pk
-    >> rename_table
+    >> drop_tables
     >> provenance_translation
+    >> rename_table
+    >> redefine_pk   
     >> multi_checks
 )
 
