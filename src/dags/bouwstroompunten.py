@@ -118,14 +118,14 @@ with DAG(
 
     # 6. RE-define PK(see step 4 why)
     redefine_pk = PostgresOperator(
-        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_new"),
+        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
     # 7. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id=f"rename_table",
-        old_table_name=f"{dag_id}_new",
-        new_table_name=f"{dag_id}",
+        old_table_name=f"{dag_id}_{dag_id}_new",
+        new_table_name=f"{dag_id}_{dag_id}",
     )
 
     # 8. Rename COLUMNS based on Provenance
@@ -138,7 +138,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id=f"count_check",
             pass_value=25,
-            params=dict(table_name=f"{dag_id}"),
+            params=dict(table_name=f"{dag_id}_{dag_id}"),
             result_checker=operator.ge,
         )
     )
@@ -146,7 +146,7 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}", geotype=["POINT"],),
+            params=dict(table_name=f"{dag_id}_{dag_id}", geotype=["POINT"],),
             pass_value=1,
         )
     )
