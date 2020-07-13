@@ -54,7 +54,7 @@ def get_data():
 
     # get token
     token_url = f"{base_url}{auth_endpoint}"
-    token_payload = {"identifier": f"{user}", "password": f"{password}"}
+    token_payload = {"identifier": user, "password": password}
     token_headers = {"content-type": "application/json"}
     token_request = requests.post(
         token_url, data=json.dumps(token_payload), headers=token_headers
