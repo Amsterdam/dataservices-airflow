@@ -105,7 +105,7 @@ with DAG(
         task_id=f"create_SQL_based_on_geojson",
         bash_command=f"ogr2ogr -f 'PGDump' "
         f"-t_srs EPSG:28992 "
-        f"-nln {dag_id}_new "
+        f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {data_file} "
         f"-lco GEOMETRY_NAME=geometry ",
     )
