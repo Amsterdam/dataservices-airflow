@@ -43,7 +43,12 @@ The airflow webserver is running at http://localhost:8080/
 The webserver UI is protected with a password, the associated admin user needs to be created
 once inside of the PostgreSQL database using this command:
 
-    docker-compose exec airflow python scripts/mkuser.py <username> <e-mail address user>
+    1. log in the airflow container: docker exec -it airflow bash
+    2. create admin user: airflow create_user -r Admin -u admin -e admin@example.com -f admin -l admin -p test
+
+    # Since activating the timezone on the Airflow GUI, this doesn't work anymore and is therefore comment out
+    # docker-compose exec airflow python scripts/mkuser.py <username> <e-mail address user>
+
 
 This script prompts for a password and stores the credentials in the PostgreSQL database.
 To create a superuser, add the `--superuser` flag to the command.
