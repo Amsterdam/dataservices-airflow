@@ -1,0 +1,187 @@
+import operator
+import requests
+import json
+
+from airflow.hooks.base_hook import BaseHook
+
+from airflow import DAG
+from airflow.models import Variable
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.python_operator import PythonOperator
+from airflow.operators.postgres_operator import PostgresOperator
+
+from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+
+from common import (
+    default_args,
+    pg_params,
+    slack_webhook_token,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+)
+
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    GEO_CHECK,
+)
+
+from sql.bouwstroompunten_pk import ADD_PK
+
+dag_id = "bouwstroompunten"
+variables = Variable.get(dag_id, deserialize_json=True)
+auth_endpoint = variables["data_endpoints"]["auth"]
+data_endpoint = variables["data_endpoints"]["data"]
+tmp_dir = f"/tmp/{dag_id}"
+data_file = f"{tmp_dir}/bouwstroompunten_data.geojson"
+connection = BaseHook.get_connection("bouwstroompunten_conn_id")
+base_url = connection.host
+password = connection.password
+user = connection.login
+total_checks = []
+count_checks = []
+geo_checks = []
+
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
+def quote(instr):
+    return f"'{instr}'"
+
+
+# data connection
+def get_data():
+    """ getting the the access token and calling the data endpoint """
+
+    # get token
+    token_url = f"{base_url}{auth_endpoint}"
+    token_payload = {"identifier": user, "password": password}
+    token_headers = {"content-type": "application/json"}
+    token_request = requests.post(
+        token_url, data=json.dumps(token_payload), headers=token_headers
+    )
+    token_load = json.loads(token_request.text)
+    token_get = token_load["jwt"]
+
+    # get data
+    data_url = f"{base_url}{data_endpoint}"
+    data_headers = {
+        "content-type": "application/json",
+        "Authorization": f"Bearer {token_get}",
+    }
+    data_data = requests.get(data_url, headers=data_headers)
+
+    # store data
+    with open(f"{data_file}", "w") as file:
+        file.write(data_data.text)
+    file.close()
+
+
+with DAG(
+    dag_id,
+    default_args=default_args,
+    template_searchpath=["/"],
+    user_defined_filters=dict(quote=quote),
+) as dag:
+
+    # 1. Post info message on slack
+    slack_at_start = MessageOperator(
+        task_id="slack_at_start",
+        http_conn_id="slack",
+        webhook_token=slack_webhook_token,
+        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        username="admin",
+    )
+
+    # 2. Create temp directory to store files
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+
+    # 3. Download data
+    download_data = PythonOperator(task_id=f"download_data", python_callable=get_data)
+
+    # 4. Create SQL
+    # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
+    # So FID=ID cannot be used.
+    create_SQL = BashOperator(
+        task_id=f"create_SQL_based_on_geojson",
+        bash_command=f"ogr2ogr -f 'PGDump' "
+        f"-t_srs EPSG:28992 "
+        f"-nln {dag_id}_new "
+        f"{tmp_dir}/{dag_id}.sql {data_file} "
+        f"-lco GEOMETRY_NAME=geometry ",
+    )
+
+    # 5. Create TABLE
+    create_table = BashOperator(
+        task_id="create_table",
+        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
+    )
+
+    # 6. RE-define PK(see step 4 why)
+    redefine_pk = PostgresOperator(
+        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_new"),
+    )
+
+    # 7. Rename TABLE
+    rename_table = PostgresTableRenameOperator(
+        task_id=f"rename_table",
+        old_table_name=f"{dag_id}_new",
+        new_table_name=f"{dag_id}",
+    )
+
+    # 8. Rename COLUMNS based on Provenance
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns", dataset_name="bouwstroompunten", pg_schema="public"
+    )
+
+    # PREPARE CHECKS
+    count_checks.append(
+        COUNT_CHECK.make_check(
+            check_id=f"count_check",
+            pass_value=25,
+            params=dict(table_name=f"{dag_id}"),
+            result_checker=operator.ge,
+        )
+    )
+
+    geo_checks.append(
+        GEO_CHECK.make_check(
+            check_id=f"geo_check",
+            params=dict(table_name=f"{dag_id}", geotype=["POINT"],),
+            pass_value=1,
+        )
+    )
+
+    total_checks = count_checks + geo_checks
+
+    # 9. RUN bundled CHECKS
+    multi_checks = PostgresMultiCheckOperator(
+        task_id=f"multi_check", checks=total_checks
+    )
+
+
+(
+    slack_at_start
+    >> mkdir
+    >> download_data
+    >> create_SQL
+    >> create_table
+    >> redefine_pk
+    >> rename_table
+    >> provenance_translation
+    >> multi_checks
+)
+
+dag.doc_md = """
+    #### DAG summery
+    This DAG containts power stations data
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process / origin
+    Na
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/bouwstroompunten/bouwstroompunten/
+"""

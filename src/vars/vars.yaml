@@ -85,6 +85,10 @@ trm:
     shp: Metro KGEs.shp
 winkelgebieden:
   schema_end_point: datasets/winkelgebieden/winkelgebieden
+bouwstroompunten:
+  data_endpoints: 
+    auth: auth/local/
+    data: power-stations/
 precariobelasting:
   data_endpoints:
     bedrijfsvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/3
