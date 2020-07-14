@@ -10,6 +10,8 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
+from environs import Env
+
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 
@@ -35,10 +37,10 @@ auth_endpoint = variables["data_endpoints"]["auth"]
 data_endpoint = variables["data_endpoints"]["data"]
 tmp_dir = f"/tmp/{dag_id}"
 data_file = f"{tmp_dir}/bouwstroompunten_data.geojson"
-connection = BaseHook.get_connection("bouwstroompunten_conn_id")
-base_url = connection.host
-password = connection.password
-user = connection.login
+env = Env()
+password = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD")
+user = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER")
+base_url = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL")
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -53,7 +55,7 @@ def get_data():
     """ getting the the access token and calling the data endpoint """
 
     # get token
-    token_url = f"{base_url}{auth_endpoint}"
+    token_url = f"{base_url}/{auth_endpoint}"
     token_payload = {"identifier": user, "password": password}
     token_headers = {"content-type": "application/json"}
     token_request = requests.post(
@@ -63,7 +65,7 @@ def get_data():
     token_get = token_load["jwt"]
 
     # get data
-    data_url = f"{base_url}{data_endpoint}"
+    data_url = f"{base_url}/{data_endpoint}"
     data_headers = {
         "content-type": "application/json",
         "Authorization": f"Bearer {token_get}",
@@ -122,6 +124,7 @@ with DAG(
         sql=[
             f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",            
         ],
+
     )
 
     # 7. Rename COLUMNS based on Provenance

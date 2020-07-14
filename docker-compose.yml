@@ -37,7 +37,10 @@ services:
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
-      FERNET_KEY: ${FERNET_KEY}
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${BOUWSTROOMPUNTEN_PASSWD}
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${BOUWSTROOMPUNTEN_USER}
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "http://maps.nrgaccounting.nl"  
+      FERNET_KEY: ${FERNET_KEY}      
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
       DATAPUNT_ENVIRONMENT: development
       SLACK_WEBHOOK_HOST: https://hooks.slack.com/services
@@ -49,14 +52,14 @@ services:
       DAG_SYNC_PATH: /tmp/synced-dags
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types
-      SCHEMA_URL: ${SCHEMA_URL}
+      SCHEMA_URL: ${SCHEMA_URL}    
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
       - ./src/vars:/usr/local/airflow/vars
       - ./src/vsd:/usr/local/airflow/vsd
       - ./develop:/usr/local/airflow/develop
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock      
 
     ports:
       - "8080:8080"
