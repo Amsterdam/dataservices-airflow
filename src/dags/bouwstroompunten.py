@@ -10,6 +10,8 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
+from environs import Env
+
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 
@@ -35,10 +37,10 @@ auth_endpoint = variables["data_endpoints"]["auth"]
 data_endpoint = variables["data_endpoints"]["data"]
 tmp_dir = f"/tmp/{dag_id}"
 data_file = f"{tmp_dir}/bouwstroompunten_data.geojson"
-connection = BaseHook.get_connection("bouwstroompunten_conn_id")
-base_url = connection.host
-password = connection.password
-user = connection.login
+env = Env()
+password = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD")
+user = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER")
+base_url = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL")
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -53,7 +55,7 @@ def get_data():
     """ getting the the access token and calling the data endpoint """
 
     # get token
-    token_url = f"{base_url}{auth_endpoint}"
+    token_url = f"{base_url}/{auth_endpoint}"
     token_payload = {"identifier": user, "password": password}
     token_headers = {"content-type": "application/json"}
     token_request = requests.post(
@@ -63,7 +65,7 @@ def get_data():
     token_get = token_load["jwt"]
 
     # get data
-    data_url = f"{base_url}{data_endpoint}"
+    data_url = f"{base_url}/{data_endpoint}"
     data_headers = {
         "content-type": "application/json",
         "Authorization": f"Bearer {token_get}",
@@ -105,7 +107,7 @@ with DAG(
         task_id=f"create_SQL_based_on_geojson",
         bash_command=f"ogr2ogr -f 'PGDump' "
         f"-t_srs EPSG:28992 "
-        f"-nln {dag_id}_new "
+        f"-nln {dag_id} "
         f"{tmp_dir}/{dag_id}.sql {data_file} "
         f"-lco GEOMETRY_NAME=geometry ",
     )
@@ -116,29 +118,37 @@ with DAG(
         bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
     )
 
-    # 6. RE-define PK(see step 4 why)
-    redefine_pk = PostgresOperator(
-        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_new"),
+    # 6. Drop Exisiting TABLE
+    drop_tables = PostgresOperator(
+        task_id="drop_existing_table",
+        sql=[
+            f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",            
+        ],
     )
 
-    # 7. Rename TABLE
+    # 7. Rename COLUMNS based on Provenance
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+    )
+
+    # 8. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id=f"rename_table",
-        old_table_name=f"{dag_id}_new",
-        new_table_name=f"{dag_id}",
+        old_table_name=f"{dag_id}",
+        new_table_name=f"{dag_id}_{dag_id}",
     )
 
-    # 8. Rename COLUMNS based on Provenance
-    provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name="bouwstroompunten", pg_schema="public"
-    )
+    # 9. RE-define PK(see step 4 why)
+    redefine_pk = PostgresOperator(
+        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_{dag_id}"),
+    )       
 
     # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
             check_id=f"count_check",
             pass_value=25,
-            params=dict(table_name=f"{dag_id}"),
+            params=dict(table_name=f"{dag_id}_{dag_id}"),
             result_checker=operator.ge,
         )
     )
@@ -146,14 +156,14 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}", geotype=["POINT"],),
+            params=dict(table_name=f"{dag_id}_{dag_id}", geotype=["POINT"],),
             pass_value=1,
         )
     )
 
     total_checks = count_checks + geo_checks
 
-    # 9. RUN bundled CHECKS
+    # 10. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(
         task_id=f"multi_check", checks=total_checks
     )
@@ -165,9 +175,10 @@ with DAG(
     >> download_data
     >> create_SQL
     >> create_table
-    >> redefine_pk
-    >> rename_table
+    >> drop_tables
     >> provenance_translation
+    >> rename_table
+    >> redefine_pk   
     >> multi_checks
 )
 
