@@ -39,6 +39,15 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
 
     checks = []
 
+    table_names = []
+
+    for table_name in (
+        "rioolknopen",
+        "rioolleidingen",
+    ):
+        for prefix in ("", "kel_"):
+            table_names.append(f"{prefix}{table_name}")
+
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -50,10 +59,8 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     drop_tables = PostgresOperator(
         task_id="drop_tables",
         sql=[
-            "DROP TABLE IF EXISTS pte.kel_rioolknopen CASCADE",
-            "DROP TABLE IF EXISTS pte.rioolknopen CASCADE",
-            "DROP TABLE IF EXISTS pte.kel_rioolleidingen CASCADE",
-            "DROP TABLE IF EXISTS pte.rioolleidingen CASCADE",
+            f"DROP TABLE IF EXISTS pte.{table_name} CASCADE"
+            for table_name in table_names
         ],
     )
 
