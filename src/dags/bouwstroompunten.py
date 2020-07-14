@@ -124,6 +124,7 @@ with DAG(
         sql=[
             f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",            
         ],
+
     )
 
     # 7. Rename COLUMNS based on Provenance
