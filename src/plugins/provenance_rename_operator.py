@@ -85,6 +85,7 @@ class ProvenanceRenameOperator(BaseOperator):
         existing_columns = self._get_existing_columns(
             pg_hook, snaked_tablenames, pg_schema=self.pg_schema
         )
+
         # to do: andere use cases voor renames toevoegen, nu alleen voor huishoudelijkafval van toepassing
         if prefix:
             for table_name, index_names in self._get_existing_indexes(
