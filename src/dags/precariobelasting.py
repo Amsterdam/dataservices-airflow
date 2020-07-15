@@ -152,16 +152,10 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # 9. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
-
     # 10. RENAME columns based on PROVENANCE
-    provenance_translations = [
-        ProvenanceRenameOperator(
-            task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
-        )
-        for file_name in data_endpoints.keys()
-    ]
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+    )
 
     # 11. DROP Exisiting TABLE
     drop_tables = [
@@ -193,7 +187,7 @@ with DAG(
     ]
 
     # 14. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
-    Interface2 = DummyOperator(task_id="interface2")
+    Interface = DummyOperator(task_id="interface")
 
     # 15. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
     add_gebied_columns = [
@@ -238,11 +232,11 @@ with DAG(
 
         [
             data >> clean_data >> extract_geojson >> load_table >> multi_check
-        ] >> Interface >> provenance_translations >> drop_table
+        ] >> provenance_translation >> drop_table
 
         [
             drop_table >> rename_table >> add_title_column
-        ] >> Interface2 >> add_gebied_columns
+        ] >> Interface >> add_gebied_columns
 
     for add_gebied_column, rename_value_gebied in zip(
         add_gebied_columns, rename_value_gebied

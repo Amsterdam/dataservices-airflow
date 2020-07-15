@@ -166,18 +166,12 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # 9. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
+    # 9. RENAME columns based on PROVENANCE
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+    )
 
-    # 10. RENAME columns based on PROVENANCE
-    provenance_translations = [
-        ProvenanceRenameOperator(
-            task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
-        )
-        for file_name in data_endpoints.keys()
-    ]
-
-    # 11. DROP Exisiting TABLE
+    # 10. DROP Exisiting TABLE
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{file_name}",
@@ -186,7 +180,7 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # 12. RENAME TABLES
+    # 11. RENAME TABLES
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{file_name}",
@@ -224,7 +218,7 @@ with DAG(
             >> extract_geo
             >> load_table
             >> multi_check
-        ] >> Interface >> provenance_translations >> drop_table
+        ] >> provenance_translation >> drop_table
 
         [drop_table >> rename_table]
 
