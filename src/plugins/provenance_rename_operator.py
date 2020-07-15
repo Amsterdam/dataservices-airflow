@@ -1,3 +1,4 @@
+from os.path import commonprefix
 from collections import defaultdict
 from environs import Env
 from airflow.models.baseoperator import BaseOperator
@@ -38,9 +39,9 @@ class ProvenanceRenameOperator(BaseOperator):
         snaked_tablenames_str = self._snake_tablenames(table_lookup.keys())
         rows = pg_hook.get_records(
             f"""
-                    SELECT tablename FROM pg_tables
-                    WHERE schemaname = '{pg_schema}' AND tablename IN ({snaked_tablenames_str})
-                """
+                SELECT tablename FROM pg_tables
+                WHERE schemaname = '{pg_schema}' AND tablename IN ({snaked_tablenames_str})
+            """
         )
         return [(row["tablename"], table_lookup[row["tablename"]]) for row in rows]
 
@@ -48,14 +49,29 @@ class ProvenanceRenameOperator(BaseOperator):
         snaked_tablenames_str = self._snake_tablenames(snaked_tablenames)
         rows = pg_hook.get_records(
             f"""
-                    SELECT table_name, column_name FROM information_schema.columns
-                    WHERE table_schema = '{pg_schema}' AND table_name IN ({snaked_tablenames_str})
-                """,
+                SELECT table_name, column_name FROM information_schema.columns
+                WHERE table_schema = '{pg_schema}' AND table_name IN ({snaked_tablenames_str})
+            """
         )
         table_columns = defaultdict(set)
         for row in rows:
             table_columns[row["table_name"]].add(row["column_name"])
         return table_columns
+
+    def _get_existing_indexes(self, pg_hook, snaked_tablenames, pg_schema="public"):
+
+        tables_query_str = "|".join(f"{tn}%" for tn in snaked_tablenames)
+        rows = pg_hook.get_records(
+            f"""
+                SELECT tablename, indexname FROM pg_indexes
+                WHERE schemaname = '{pg_schema}' AND indexname SIMILAR TO '{tables_query_str}'
+                ORDER BY indexname
+            """
+        )
+        idx_per_table = defaultdict(list)
+        for row in rows:
+            idx_per_table[row["tablename"]].append(row["indexname"])
+        return idx_per_table
 
     def execute(self, context=None):
         dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
@@ -65,14 +81,33 @@ class ProvenanceRenameOperator(BaseOperator):
             pg_hook, dataset.tables, pg_schema=self.pg_schema
         )
         snaked_tablenames = [stn for stn, _ in existing_tables_info]
-        for snaked_tablename, table in existing_tables_info:
-            existing_columns = self._get_existing_columns(
+        prefix = commonprefix(snaked_tablenames)
+        existing_columns = self._get_existing_columns(
+            pg_hook, snaked_tablenames, pg_schema=self.pg_schema
+        )
+        # to do: andere use cases voor renames toevoegen, nu alleen voor huishoudelijkafval van toepassing
+        if prefix:
+            for table_name, index_names in self._get_existing_indexes(
                 pg_hook, snaked_tablenames, pg_schema=self.pg_schema
-            )
+            ).items():
+                for index_name in index_names:
+                    #
+                    new_index_name = index_name.replace(
+                        prefix, f"{to_snake_case(dataset.id)}_"
+                    )
+                    if index_name != new_index_name:
+                        sqls.append(
+                            f"""ALTER INDEX {self.pg_schema}.{index_name}
+                                RENAME TO {new_index_name}"""
+                        )
+
+        for snaked_tablename, table in existing_tables_info:
             for field in table.fields:
                 provenance = field.get("provenance")
                 if provenance is not None:
                     snaked_field_name = to_snake_case(field.name)
+                    if "relation" in field:
+                        snaked_field_name += "_id"
                     if provenance in existing_columns[snaked_tablename]:
                         sqls.append(
                             f"""ALTER TABLE {self.pg_schema}.{snaked_tablename}
@@ -83,7 +118,7 @@ class ProvenanceRenameOperator(BaseOperator):
             if provenance is not None:
                 sqls.append(
                     f"""ALTER TABLE IF EXISTS {self.pg_schema}.{snaked_tablename}
-                            RENAME TO {table.id}"""
+                            RENAME TO {to_snake_case(table.id)}"""
                 )
 
         pg_hook.run(sqls)
