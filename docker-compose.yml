@@ -53,7 +53,7 @@ services:
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types
       SCHEMA_URL: ${SCHEMA_URL}
-      AIRFLOW_USER_ADMIN_PASSWD:  ${dataservices_airflow_user_admin_passwd}
+      AIRFLOW_USER_ADMIN_PASSWD: ${dataservices_airflow_user_admin_passwd}
       AIRFLOW_USER_DATASERVICES_PASSWD: ${dataservices_airflow_user_dataservices_passwd}
       AIRFLOW_USER_TEAM_RUIMTE_PASSWD: ${dataservices_airflow_user_team_ruimte_passwd}  
     volumes:
