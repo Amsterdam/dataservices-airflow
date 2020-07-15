@@ -37,8 +37,8 @@ services:
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
-      AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${BOUWSTROOMPUNTEN_PASSWD}
-      AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${BOUWSTROOMPUNTEN_USER}
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "http://maps.nrgaccounting.nl"  
       FERNET_KEY: ${FERNET_KEY}      
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
@@ -53,9 +53,9 @@ services:
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types
       SCHEMA_URL: ${SCHEMA_URL}
-      AIRFLOW_ADMIN_USER_PASSWD: "test"
-      AIRFLOW_DATASERVICES_USER_PASSWD: "test"
-      AIRFLOW_TEAM_RUIMTE_USER_PASSWD: "test"
+      AIRFLOW_USER_ADMIN_PASSWD: ${dataservices_airflow_user_admin_passwd}
+      AIRFLOW_USER_DATASERVICES_PASSWD: ${dataservices_airflow_user_dataservices_passwd}
+      AIRFLOW_USER_TEAM_RUIMTE_PASSWD: ${dataservices_airflow_user_team_ruimte_passwd}
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
