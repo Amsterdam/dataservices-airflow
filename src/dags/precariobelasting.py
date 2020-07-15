@@ -1,4 +1,4 @@
-import operator, re, pathlib
+import operator, re
 
 from airflow import DAG
 from airflow.models import Variable
@@ -6,9 +6,9 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
+
 from http_fetch_operator import HttpFetchOperator
-from postgres_check_operator import PostgresCheckOperator
-from provenance_operator import ProvenanceOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 
 from common import (
@@ -23,7 +23,11 @@ from postgres_check_operator import (
     COUNT_CHECK,
     GEO_CHECK,
 )
-from sql.precariobelasting_add import ADD_GEBIED_COLUMN, ADD_TITLE, RENAME_DATAVALUE_GEBIED
+from sql.precariobelasting_add import (
+    ADD_GEBIED_COLUMN,
+    ADD_TITLE,
+    RENAME_DATAVALUE_GEBIED,
+)
 
 dag_id = "precariobelasting"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -67,16 +71,7 @@ with DAG(
     # 2. create download temp directory to store the data
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
 
-    # 3. download metadataschema into temp directory
-    download_metadataschema = HttpFetchOperator(
-        task_id=f"download_metadataschema",
-        endpoint=f"{metadataschema_endpoint}",
-        http_conn_id="schemas_data_amsterdam_conn_id",
-        tmp_file=f"{metadataschema_file}",
-        output_type="text",
-    )
-
-    # 4. download the data into temp directory
+    # 3. download the data into temp directory
     download_data = [
         HttpFetchOperator(
             task_id=f"download_{file_name}",
@@ -88,7 +83,7 @@ with DAG(
         for file_name, url in data_endpoints.items()
     ]
 
-    # 5. Cleanse the downloaded data (remove the space hyphen characters)
+    # 4. Cleanse the downloaded data (remove the space hyphen characters)
     clean_data = [
         PythonOperator(
             task_id=f"clean_data_{file_name}",
@@ -98,32 +93,20 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # 6.create the SQL for creating the table using ORG2OGR PGDump
+    # 5.create the SQL for creating the table using ORG2OGR PGDump
     extract_geojsons = [
         BashOperator(
             task_id=f"extract_geojson_{file_name}",
             bash_command=f"ogr2ogr -f 'PGDump' "
             f"-t_srs EPSG:28992 "
-            f"-nln {dag_id}_{file_name}_new "
+            f"-nln {file_name} "
             f"{tmp_dir}/{file_name}.sql {tmp_dir}/{file_name}.json "
             f"-lco FID=ID -lco GEOMETRY_NAME=geometry ",
         )
         for file_name in data_endpoints.keys()
     ]
 
-    # 7. because the -sql option cannot be yet applied to a json source in step 4 (this requires a better look how to set the metadataschema as start for the DB structure),
-    #   replace the columns names from generated .sql with possible translated names in the metadataschema
-    provenance_translations = [
-        ProvenanceOperator(
-            task_id=f"provenance_{file_name}",
-            metadataschema=f"{metadataschema_file}",
-            source_file=f"{tmp_dir}/{file_name}.sql",
-            table_to_get_columns=f"{file_name}",
-        )
-        for file_name in data_endpoints.keys()
-    ]
-
-    # 8. Load data into the table
+    # 6. Load data into the table
     load_tables = [
         BashOperator(
             task_id=f"load_table_{file_name}",
@@ -132,7 +115,7 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # 9. Prepare the checks and added them per source to a dictionary
+    # 7. Prepare the checks and added them per source to a dictionary
     for file_name in data_endpoints.keys():
 
         total_checks.clear()
@@ -143,7 +126,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{file_name}",
                 pass_value=2,
-                params=dict(table_name=f"{dag_id}_{file_name}_new"),
+                params=dict(table_name=f"{file_name}"),
                 result_checker=operator.ge,
             )
         )
@@ -152,8 +135,7 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{file_name}",
                 params=dict(
-                    table_name=f"{dag_id}_{file_name}_new",
-                    geotype=["POLYGON", "MULTIPOLYGON"],
+                    table_name=f"{file_name}", geotype=["POLYGON", "MULTIPOLYGON"],
                 ),
                 pass_value=1,
             )
@@ -162,7 +144,7 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[f"{file_name}"] = total_checks
 
-    # 10. Execute bundled checks (step 9) on database
+    # 8. Execute bundled checks (step 7) on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{file_name}", checks=check_name[f"{file_name}"]
@@ -170,85 +152,104 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # 11. Rename the table from <tablename>_new to <tablename>
+    # 9. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 10. RENAME columns based on PROVENANCE
+    provenance_translations = [
+        ProvenanceRenameOperator(
+            task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+        )
+        for file_name in data_endpoints.keys()
+    ]
+
+    # 11. DROP Exisiting TABLE
+    drop_tables = [
+        PostgresOperator(
+            task_id=f"drop_existing_table_{file_name}",
+            sql=[f"DROP TABLE IF EXISTS {dag_id}_{file_name} CASCADE",],
+        )
+        for file_name in data_endpoints.keys()
+    ]
+
+    # 12. Rename the table from <tablename>_new to <tablename>
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{file_name}",
-            old_table_name=f"{dag_id}_{file_name}_new",
+            old_table_name=f"{file_name}",
             new_table_name=f"{dag_id}_{file_name}",
         )
         for file_name in data_endpoints.keys()
     ]
 
-    # 12. Add column TITLE as its was set in the display property in the metadataschema
+    # 13. Add column TITLE as its was set in the display property in the metadataschema
     add_title_columns = [
         PostgresOperator(
             task_id=f"add_title_column_{file_name}",
             sql=ADD_TITLE,
-            params=dict(tablenames=[f"precariobelasting_{file_name}"]),
+            params=dict(tablenames=[f"{dag_id}_{file_name}"]),
         )
         for file_name in data_endpoints.keys()
     ]
-       
-    # 13. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
 
-    # 14. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
+    # 14. Dummy operator is used act as an interface between one set of parallel tasks to another parallel taks set (without this intermediar Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
+    # 15. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
     add_gebied_columns = [
         PostgresOperator(
             task_id=f"add_gebied_{file_name}",
             sql=ADD_GEBIED_COLUMN,
-            params=dict(tablenames=[f"precariobelasting_{file_name}"]),
+            params=dict(tablenames=[f"{dag_id}_{file_name}"]),
         )
         for file_name in ["woonschepen", "bedrijfsvaartuigen"]
     ]
 
-    # 15. rename values in column gebied for terrassen en passagiersvaartuigen (woonschepen en bedrijfsvaartuigen are added in the previous step)
+    # 16. rename values in column gebied for terrassen en passagiersvaartuigen (woonschepen en bedrijfsvaartuigen are added in the previous step)
     rename_value_gebied = [
         PostgresOperator(
             task_id=f"rename_value_{file_name}",
             sql=RENAME_DATAVALUE_GEBIED,
-            params=dict(tablenames=[f"precariobelasting_{file_name}"]),
+            params=dict(tablenames=[f"{dag_id}_{file_name}"]),
         )
         for file_name in ["terrassen", "passagiersvaartuigen"]
     ]
-  
+
     # FLOW. define flow with parallel executing of serial tasks for each file
     for (
         data,
         clean_data,
-        extract_geo,
-        get_column,
+        extract_geojson,
         load_table,
         multi_check,
-        rename_table,
         add_title_column,
+        drop_table,
+        rename_table,
     ) in zip(
         download_data,
         clean_data,
         extract_geojsons,
-        provenance_translations,
         load_tables,
         multi_checks,
-        rename_tables,
         add_title_columns,
+        drop_tables,
+        rename_tables,
     ):
 
         [
-            data
-            >> clean_data
-            >> extract_geo
-            >> get_column
-            >> load_table
-            >> multi_check
-            >> rename_table
-            >> add_title_column
-        ] >> Interface >> add_gebied_columns
+            data >> clean_data >> extract_geojson >> load_table >> multi_check
+        ] >> Interface >> provenance_translations >> drop_table
 
-    for add_gebied_column, rename_value_gebied in zip(add_gebied_columns, rename_value_gebied):
+        [
+            drop_table >> rename_table >> add_title_column
+        ] >> Interface2 >> add_gebied_columns
+
+    for add_gebied_column, rename_value_gebied in zip(
+        add_gebied_columns, rename_value_gebied
+    ):
         add_gebied_column >> rename_value_gebied
 
-    slack_at_start >> mk_tmp_dir >> download_metadataschema >> download_data
+    slack_at_start >> mk_tmp_dir >> download_data
 
     dag.doc_md = """
     #### DAG summery

@@ -5,11 +5,8 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
-from postgres_check_operator import PostgresCheckOperator
 
-from http_fetch_operator import HttpFetchOperator
-from provenance_operator import ProvenanceOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 
 
@@ -21,16 +18,7 @@ from common import (
     MessageOperator,
 )
 
-from common.sql import (
-    SQL_TABLE_RENAME,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
-)
-
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
+from sql.winkelgebieden_add import ADD_CATEGORIE_CATEGORIENAAM
 
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
@@ -49,6 +37,11 @@ total_checks = []
 count_checks = []
 geo_checks = []
 
+# needed to put quotes on elements in geotypes for the checks
+def quote(instr):
+    return f"'{instr}'"
+
+
 with DAG(
     dag_id,
     default_args=default_args,
@@ -56,7 +49,7 @@ with DAG(
     user_defined_filters=dict(quote=quote),
 ) as dag:
 
-    # 1.
+    # 1. MESSAGE
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -65,22 +58,14 @@ with DAG(
         username="admin",
     )
 
-    # 2.
+    # 2. TEMP DIR
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
-    # 3. download dataschema into temp directory
-    download_schema = HttpFetchOperator(
-        task_id=f"download_schema",
-        endpoint=f"{schema_end_point}",
-        http_conn_id="schemas_data_amsterdam_conn_id",
-        tmp_file=f"{metadataschema}",
-        output_type="text",
-    )
-    # 4.
+    # 3. EXTRACT data based on TAB definition
     extract_data = BashOperator(
         task_id="extract_data",
         bash_command=f"ogr2ogr -f 'PGDump' "
-        f"-t_srs EPSG:28992 -nln {dag_id}_{dag_id}_new "
+        f"-t_srs EPSG:28992 -nln {dag_id} "
         f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB "
         # the option -lco is added to rename the automated creation of the primairy key column (ogc fid) - due to use of ogr2ogr
         # in the -sql a select statement is added to get column renames that is specified in the dataschema
@@ -88,38 +73,50 @@ with DAG(
         f"-lco FID=ID -lco GEOMETRY_NAME=geometry",
     )
 
-    # 5.
-    provenance_translation = ProvenanceOperator(
-        task_id=f"provenance",
-        metadataschema=f"{metadataschema}",
-        source_file=f"{tmp_dir}/{dag_id}.sql",
-    )
-
-    # 6.
+    # 4. CONVERT data to UTF8
     convert_data = BashOperator(
         task_id="convert_data",
         bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{dag_id}.sql > "
         f"{tmp_dir}/{dag_id}.utf8.sql",
     )
 
-    # 7.
+    # 5. CREATE TABLE
     create_table = BashOperator(
         task_id="create_table",
         bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.utf8.sql",
     )
 
-    # 8.
-    add_category = BashOperator(
-        task_id="add_category",
-        bash_command=f"psql {pg_params()} < {sql_path}/add_categorie.sql",
+    # 6. DROP Exisiting TABLE
+    drop_table = PostgresOperator(
+        task_id="drop_existing_table",
+        sql=[f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",],
+    )
+
+    # 7. RENAME COLUMNS based on PROVENANCE
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+    )
+
+    # 8. RENAME TABLE
+    rename_table = PostgresTableRenameOperator(
+        task_id="rename_table",
+        old_table_name=f"{dag_id}",
+        new_table_name=f"{dag_id}_{dag_id}",
+    )
+
+    # 8. ADD missing COLUMNS in source
+    add_category = PostgresOperator(
+        task_id="add_columns",
+        sql=ADD_CATEGORIE_CATEGORIENAAM,
+        params=dict(tablename=f"{dag_id}_{dag_id}"),
     )
 
     # 9. PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=75,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
+            params=dict(table_name=f"{dag_id}_{dag_id}"),
             result_checker=operator.ge,
         )
     )
@@ -129,7 +126,7 @@ with DAG(
     #     GEO_CHECK.make_check(
     #         check_id=f"geo_check",
     #         params=dict(
-    #             table_name=f"{dag_id}_{dag_id}_new",
+    #             table_name=f"{dag_id}_{dag_id}",
     #             geotype=["POLYGON", "MULTIPOLYGON"],
     #         ),
     #         pass_value=1,
@@ -138,30 +135,22 @@ with DAG(
     # total_checks = count_checks + geo_checks
     total_checks = count_checks
 
-    # 10. Run bundled checks (step 9)
+    # 10. RUN bundled CHECKS (step 9)
     multi_checks = PostgresMultiCheckOperator(
-        task_id=f"multi_check", checks=total_checks
+        task_id="multi_check", checks=total_checks
     )
-
-    # 11.
-    rename_table = PostgresTableRenameOperator(
-        task_id=f"rename_table",
-        old_table_name=f"{dag_id}_{dag_id}_new",
-        new_table_name=f"{dag_id}_{dag_id}",
-    )
-
 
 (
     slack_at_start
     >> mkdir
-    >> download_schema
     >> extract_data
-    >> provenance_translation
     >> convert_data
     >> create_table
+    >> drop_table
+    >> provenance_translation
+    >> rename_table
     >> add_category
     >> multi_checks
-    >> rename_table
 )
 
 dag.doc_md = """
