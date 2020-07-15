@@ -85,19 +85,22 @@ class ProvenanceRenameOperator(BaseOperator):
         existing_columns = self._get_existing_columns(
             pg_hook, snaked_tablenames, pg_schema=self.pg_schema
         )
-        for table_name, index_names in self._get_existing_indexes(
-            pg_hook, snaked_tablenames, pg_schema=self.pg_schema
-        ).items():
-            for index_name in index_names:
-                #
-                new_index_name = index_name.replace(
-                    prefix, f"{to_snake_case(dataset.id)}_"
-                )
-                if index_name != new_index_name:
-                    sqls.append(
-                        f"""ALTER INDEX {self.pg_schema}.{index_name}
-                            RENAME TO {new_index_name}"""
+
+        # to do: andere use cases voor renames toevoegen, nu alleen voor huishoudelijkafval van toepassing
+        if prefix:
+            for table_name, index_names in self._get_existing_indexes(
+                pg_hook, snaked_tablenames, pg_schema=self.pg_schema
+            ).items():
+                for index_name in index_names:
+                    #
+                    new_index_name = index_name.replace(
+                        prefix, f"{to_snake_case(dataset.id)}_"
                     )
+                    if index_name != new_index_name:
+                        sqls.append(
+                            f"""ALTER INDEX {self.pg_schema}.{index_name}
+                                RENAME TO {new_index_name}"""
+                        )
 
         for snaked_tablename, table in existing_tables_info:
             for field in table.fields:
