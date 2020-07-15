@@ -5,9 +5,9 @@ airflow initdb  # initdb is not destructive, so can be re-run at startup
 python scripts/mkvars.py
 
 # creating an admin and regular users (nessacary when using RABC=True in the airflow.cnf)
-airflow create_user -r Admin -u admin -e admin@example.com -f admin -l admin -p ${AIRFLOW_ADMIN_USER_PASSWD}
-airflow create_user -r User -u dataservices -e dataservices@example.com -f dataservices -l dataservices -p ${AIRFLOW_DATASERVICES_USER_PASSWD}
-airflow create_user -r User -u team_ruimte -e team_ruimte@example.com -f team_ruimte -l team_ruimte -p ${AIRFLOW_TEAM_RUIMTE_USER_PASSWD}
+airflow create_user -r Admin -u admin -e admin@example.com -f admin -l admin -p ${AIRFLOW_USER_ADMIN_PASSWD}
+airflow create_user -r User -u dataservices -e dataservices@example.com -f dataservices -l dataservices -p ${AIRFLOW_USER_DATASERVICES_PASSWD}
+airflow create_user -r User -u team_ruimte -e team_ruimte@example.com -f team_ruimte -l team_ruimte -p ${AIRFLOW_USER_TEAM_RUIMTE_PASSWD}
 
 # Airflow does not support slack connection config through environment var
 # So we (re-)create the slack connection on startup.
