@@ -1,4 +1,3 @@
-from os.path import commonprefix
 from collections import defaultdict
 from environs import Env
 from airflow.models.baseoperator import BaseOperator
@@ -43,7 +42,7 @@ class ProvenanceRenameOperator(BaseOperator):
                 WHERE schemaname = '{pg_schema}' AND tablename IN ({snaked_tablenames_str})
             """
         )
-        return [(row["tablename"], table_lookup[row["tablename"]]) for row in rows]
+        return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(self, pg_hook, snaked_tablenames, pg_schema="public"):
         snaked_tablenames_str = self._snake_tablenames(snaked_tablenames)
@@ -77,32 +76,29 @@ class ProvenanceRenameOperator(BaseOperator):
         dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
         pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
         sqls = []
-        existing_tables_info = self._get_existing_tables(
+        existing_tables_lookup = self._get_existing_tables(
             pg_hook, dataset.tables, pg_schema=self.pg_schema
         )
-        snaked_tablenames = [stn for stn, _ in existing_tables_info]
-        prefix = commonprefix(snaked_tablenames)
+        snaked_tablenames = existing_tables_lookup.keys()
         existing_columns = self._get_existing_columns(
             pg_hook, snaked_tablenames, pg_schema=self.pg_schema
         )
 
-        # to do: andere use cases voor renames toevoegen, nu alleen voor huishoudelijkafval van toepassing
-        if prefix:
-            for table_name, index_names in self._get_existing_indexes(
-                pg_hook, snaked_tablenames, pg_schema=self.pg_schema
-            ).items():
-                for index_name in index_names:
-                    #
-                    new_index_name = index_name.replace(
-                        prefix, f"{to_snake_case(dataset.id)}_"
+        for table_name, index_names in self._get_existing_indexes(
+            pg_hook, snaked_tablenames, pg_schema=self.pg_schema
+        ).items():
+            for index_name in index_names:
+                new_table_name = existing_tables_lookup[table_name].id
+                new_index_name = index_name.replace(
+                    table_name, to_snake_case(f"{dataset.id}_{new_table_name}")
+                )
+                if index_name != new_index_name:
+                    sqls.append(
+                        f"""ALTER INDEX {self.pg_schema}.{index_name}
+                            RENAME TO {new_index_name}"""
                     )
-                    if index_name != new_index_name:
-                        sqls.append(
-                            f"""ALTER INDEX {self.pg_schema}.{index_name}
-                                RENAME TO {new_index_name}"""
-                        )
 
-        for snaked_tablename, table in existing_tables_info:
+        for snaked_tablename, table in existing_tables_lookup.items():
             for field in table.fields:
                 provenance = field.get("provenance")
                 if provenance is not None:
