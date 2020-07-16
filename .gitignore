@@ -133,3 +133,4 @@ dmypy.json
 
 # Local pip -e checkouts, only for development
 /develop
+/src/vars/vars.json
