@@ -87,6 +87,8 @@ class ProvenanceRenameOperator(BaseOperator):
         for table_name, index_names in self._get_existing_indexes(
             pg_hook, snaked_tablenames, pg_schema=self.pg_schema
         ).items():
+            if table_name not in existing_tables_lookup:
+                continue
             for index_name in index_names:
                 new_table_name = existing_tables_lookup[table_name].id
                 new_index_name = index_name.replace(
