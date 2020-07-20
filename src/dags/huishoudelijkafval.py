@@ -34,7 +34,10 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     )
 
     provenance_renames = ProvenanceRenameOperator(
-        task_id="provenance_renames", dataset_name="huishoudelijkafval", pg_schema="pte"
+        task_id="provenance_renames",
+        dataset_name="huishoudelijkafval",
+        pg_schema="pte",
+        rename_indexes=True,
     )
 
     swap_schema = SwapSchemaOperator(

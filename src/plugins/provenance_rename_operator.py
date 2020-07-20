@@ -16,6 +16,7 @@ class ProvenanceRenameOperator(BaseOperator):
         dataset_name,
         pg_schema="public",
         postgres_conn_id="postgres_default",
+        rename_indexes=False,
         *args,
         **kwargs,
     ):
@@ -23,6 +24,7 @@ class ProvenanceRenameOperator(BaseOperator):
         self.postgres_conn_id = postgres_conn_id
         self.dataset_name = dataset_name
         self.pg_schema = pg_schema
+        self.rename_indexes = rename_indexes
 
     def _snake_tablenames(self, tablenames):
         return ", ".join((f"'{to_snake_case(tn)}'" for tn in tablenames))
@@ -84,21 +86,22 @@ class ProvenanceRenameOperator(BaseOperator):
             pg_hook, snaked_tablenames, pg_schema=self.pg_schema
         )
 
-        for table_name, index_names in self._get_existing_indexes(
-            pg_hook, snaked_tablenames, pg_schema=self.pg_schema
-        ).items():
-            if table_name not in existing_tables_lookup:
-                continue
-            for index_name in index_names:
-                new_table_name = existing_tables_lookup[table_name].id
-                new_index_name = index_name.replace(
-                    table_name, to_snake_case(f"{dataset.id}_{new_table_name}")
-                )
-                if index_name != new_index_name:
-                    sqls.append(
-                        f"""ALTER INDEX {self.pg_schema}.{index_name}
-                            RENAME TO {new_index_name}"""
+        if self.rename_indexes:
+            for table_name, index_names in self._get_existing_indexes(
+                pg_hook, snaked_tablenames, pg_schema=self.pg_schema
+            ).items():
+                if table_name not in existing_tables_lookup:
+                    continue
+                for index_name in index_names:
+                    new_table_name = existing_tables_lookup[table_name].id
+                    new_index_name = index_name.replace(
+                        table_name, to_snake_case(f"{dataset.id}_{new_table_name}")
                     )
+                    if index_name != new_index_name:
+                        sqls.append(
+                            f"""ALTER INDEX {self.pg_schema}.{index_name}
+                                RENAME TO {new_index_name}"""
+                        )
 
         for snaked_tablename, table in existing_tables_lookup.items():
             for field in table.fields:
