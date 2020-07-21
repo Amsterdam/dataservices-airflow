@@ -1,0 +1,44 @@
+{
+  bagWoonplaatsen($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        amsterdamseSleutel 
+        woonplaatsPtt 
+        naam 
+        geometrie 
+        geconstateerd 
+        beginGeldigheid 
+        eindGeldigheid 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        documentdatum 
+        documentnummer 
+        status 
+        ligtInGemeente {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+      }
+    }
+  }
+}

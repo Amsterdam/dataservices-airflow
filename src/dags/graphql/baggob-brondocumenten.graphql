@@ -1,0 +1,14 @@
+{
+  bagBrondocumenten($active: false) {
+    edges {
+      node {
+        identificatie 
+        documentnummer 
+        bronleverancier 
+        typeDossier 
+        typeBrondocument 
+        registratiedatum 
+      }
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  bagNummeraanduidingen($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        amsterdamseSleutel 
+        huisnummer 
+        geconstateerd 
+        huisletter 
+        huisnummertoevoeging 
+        postcode 
+        ligtInWoonplaats {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        beginGeldigheid 
+        eindGeldigheid 
+        aanduidingInOnderzoek 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        ligtAanOpenbareruimte {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        typeAdresseerbaarObject 
+        documentdatum 
+        documentnummer 
+        status 
+        typeAdres 
+        adresseertVerblijfsobject {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        adresseertLigplaats {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        adresseertStandplaats {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+      }
+    }
+  }
+}

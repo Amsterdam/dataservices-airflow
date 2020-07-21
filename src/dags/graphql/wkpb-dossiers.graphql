@@ -1,0 +1,16 @@
+{
+  wkpbDossiers(active: false) {
+    edges {
+      node {
+        dossier 
+        heeftBrondocumenten {
+          edges {
+            node {
+              documentnummer 
+            }
+          }
+        }
+      }
+    }
+  }
+}

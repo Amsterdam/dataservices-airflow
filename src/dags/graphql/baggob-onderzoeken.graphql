@@ -1,0 +1,21 @@
+{
+  bagOnderzoeken($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        objectIdentificatie 
+        objecttype 
+        kenmerk 
+        inOnderzoek 
+        beginGeldigheid 
+        eindGeldigheid 
+        documentdatum 
+        documentnummer 
+        tijdstipRegistratie 
+        eindRegistratie 
+      }
+    }
+  }
+}

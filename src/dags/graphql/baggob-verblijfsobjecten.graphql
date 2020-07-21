@@ -1,0 +1,86 @@
+{
+  bagVerblijfsobjecten($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        amsterdamseSleutel 
+        cbsNummer 
+        indicatieWoningvoorraad 
+        financieringscode 
+        geconstateerd 
+        heeftHoofdadres {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftNevenadres {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        geometrie 
+        gebruiksdoel 
+        oppervlakte 
+        status 
+        ligtInPanden {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        beginGeldigheid 
+        eindGeldigheid 
+        aanduidingInOnderzoek 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        documentdatum 
+        documentnummer 
+        gebruiksdoelWoonfunctie 
+        gebruiksdoelGezondheidszorgfunctie 
+        aantalEenhedenComplex 
+        verdiepingToegang 
+        aantalBouwlagen 
+        hoogsteBouwlaag 
+        laagsteBouwlaag 
+        aantalKamers 
+        eigendomsverhouding 
+        feitelijkGebruik 
+        toegang 
+        redenopvoer 
+        redenafvoer 
+        ligtInBuurt {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+      }
+    }
+  }
+}

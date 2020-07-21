@@ -1,0 +1,50 @@
+{
+  bagOpenbareruimtes($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        amsterdamseSleutel 
+        straatcode 
+        straatnaamPtt 
+        status 
+        beginGeldigheid 
+        eindGeldigheid 
+        geconstateerd 
+        aanduidingInOnderzoek 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        type 
+        documentdatum 
+        documentnummer 
+        naam 
+        naamNen 
+        ligtInWoonplaats {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        beschrijvingNaam 
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+        geometrie 
+      }
+    }
+  }
+}

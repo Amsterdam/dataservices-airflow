@@ -1,0 +1,10 @@
+{
+  wkpbBrondocumenten($active: false) {
+    edges {
+      node {
+        documentnummer 
+        registratiedatum 
+      }
+    }
+  }
+}

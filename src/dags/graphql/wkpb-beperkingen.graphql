@@ -1,0 +1,43 @@
+{
+  wkpbBeperkingen(active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        beperking 
+        beginGeldigheid 
+        eindGeldigheid 
+        belastKadastraleObjecten {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        documentnummer 
+        heeftDossier {
+          edges {
+            node {
+              dossier
+            }
+          }
+        }
+        datumBekendmaking 
+        aard 
+        orgaan 
+        persoonsgegevensAfschermen 
+        heeftVoorgaandeBeperking {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        registratiedatum 
+        status 
+        geometrie 
+      }
+    }
+  }
+}

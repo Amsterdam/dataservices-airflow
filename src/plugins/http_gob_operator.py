@@ -55,7 +55,7 @@ class HttpGobOperator(BaseOperator):
             "condens": "node,edges,id",
             "lowercase": "true",
             "flatten": "true",
-            "id": self.id_fields,
+            # "id": self.id_fields,
             "schema": self.db_table_name,
             "geojson": self.geojson_field,
         }
