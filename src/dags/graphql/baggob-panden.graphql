@@ -1,0 +1,50 @@
+{
+  bagPanden($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        amsterdamseSleutel 
+        geconstateerd 
+        geometrie 
+        oorspronkelijkBouwjaar 
+        status 
+        beginGeldigheid 
+        eindGeldigheid 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        documentdatum 
+        documentnummer 
+        naam 
+        ligging 
+        typeWoonobject 
+        ligtInBouwblok {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        aantalBouwlagen 
+        hoogsteBouwlaag 
+        laagsteBouwlaag 
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+      }
+    }
+  }
+}

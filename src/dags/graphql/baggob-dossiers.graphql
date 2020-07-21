@@ -1,0 +1,17 @@
+{
+  bagDossiers($active: false) {
+    edges {
+      node {
+        identificatie 
+        dossier 
+        heeftBrondocumenten {
+          edges {
+            node {
+              documentnummer 
+            }
+          }
+        }
+      }
+    }
+  }
+}

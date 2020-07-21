@@ -1,0 +1,60 @@
+{
+  bagStandplaatsen($active: false) {
+    edges {
+      node {
+        identificatie 
+        volgnummer 
+        registratiedatum 
+        amsterdamseSleutel 
+        geconstateerd 
+        status 
+        heeftHoofdadres {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftNevenadres {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        geometrie 
+        beginGeldigheid 
+        eindGeldigheid 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        documentdatum 
+        documentnummer 
+        feitelijkGebruik 
+        ligtInBuurt {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+      }
+    }
+  }
+}
