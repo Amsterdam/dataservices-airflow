@@ -32,7 +32,6 @@ class HttpGobOperator(BaseOperator):
         endpoint: str,
         dataset: str,
         schema: str,
-        id_fields: tuple,
         geojson_field: str,
         graphql_query_path: str,
         http_conn_id="http_default",
@@ -41,7 +40,6 @@ class HttpGobOperator(BaseOperator):
     ) -> None:
         self.dataset = dataset
         self.schema = schema
-        self.id_fields = id_fields
         self.geojson_field = geojson_field
         self.graphql_query_path = graphql_query_path
         self.http_conn_id = http_conn_id
@@ -55,7 +53,6 @@ class HttpGobOperator(BaseOperator):
             "condens": "node,edges,id",
             "lowercase": "true",
             "flatten": "true",
-            # "id": self.id_fields,
             "schema": self.db_table_name,
             "geojson": self.geojson_field,
         }
