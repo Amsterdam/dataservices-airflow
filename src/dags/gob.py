@@ -30,7 +30,6 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
             endpoint="gob/graphql/streaming/",
             dataset=gob_dataset_name,
             schema=gob_table_name,
-            id_fields="identificatie,volgnummer",
             geojson_field="geometrie",  # XXX not always relevant
             graphql_query_path=graphql_path
             / f"{gob_dataset_name}-{gob_table_name}.graphql",
