@@ -58,11 +58,12 @@ def get_data():
     token_url = f"{base_url}/{auth_endpoint}"
     token_payload = {"identifier": user, "password": password}
     token_headers = {"content-type": "application/json"}
+    # verify=Fals because source API is apparently configured incorrectly.
     token_request = requests.post(
-        token_url, data=json.dumps(token_payload), headers=token_headers
+        token_url, data=json.dumps(token_payload), headers=token_headers, verify=False
     )
     token_load = json.loads(token_request.text)
-    print(token_load)
+    
     token_get = token_load["jwt"]
 
     # get data
@@ -71,7 +72,7 @@ def get_data():
         "content-type": "application/json",
         "Authorization": f"Bearer {token_get}",
     }
-    data_data = requests.get(data_url, headers=data_headers)
+    data_data = requests.get(data_url, headers=data_headers, verify=False)
 
     # store data
     with open(f"{data_file}", "w") as file:
