@@ -39,7 +39,7 @@ services:
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
-      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "http://maps.nrgaccounting.nl"  
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"  
       FERNET_KEY: ${FERNET_KEY}      
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
       DATAPUNT_ENVIRONMENT: development
