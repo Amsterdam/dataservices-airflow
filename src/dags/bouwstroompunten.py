@@ -61,7 +61,7 @@ def get_data():
     token_request = requests.post(
         token_url, data=json.dumps(token_payload), headers=token_headers
     )
-    token_load) = json.loads(token_request.text)
+    token_load = json.loads(token_request.text)
     print(token_load)
     token_get = token_load["jwt"]
 
