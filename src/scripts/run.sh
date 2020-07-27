@@ -5,10 +5,6 @@ airflow initdb  # initdb is not destructive, so can be re-run at startup
 python scripts/mkvars.py
 
 # creating an admin and regular users (nessacary when using RABC=True in the airflow.cnf)
-# if user are added for the first time, or credentails are changed, then run delete_user in order to create user 
-#airflow delete_user -u admin
-#airflow delete_user -u dataservices
-#airflow delete_user -u team_ruimte
 airflow create_user -r Admin -u admin -e admin@example.com -f admin -l admin -p ${AIRFLOW_USER_ADMIN_PASSWD}
 airflow create_user -r User -u dataservices -e dataservices@example.com -f dataservices -l dataservices -p ${AIRFLOW_USER_DATASERVICES_PASSWD}
 airflow create_user -r User -u team_ruimte -e team_ruimte@example.com -f team_ruimte -l team_ruimte -p ${AIRFLOW_USER_TEAM_RUIMTE_PASSWD}
