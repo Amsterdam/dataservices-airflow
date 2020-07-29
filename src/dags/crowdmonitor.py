@@ -46,7 +46,9 @@ def row2dict(row):
 
 def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
     try:
-        waarnemingen_engine = create_engine(env("AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN"))
+        waarnemingen_engine = create_engine(
+            env("AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN").split("?")[0]
+        )
     except SQLAlchemyError as e:
         raise Exception(str(e)) from e
 
