@@ -11,7 +11,7 @@ from common import env, default_args
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
 view_name = "cmsa_1h_count_view_v1"
-import_step = 300
+import_step = 1000
 
 
 SQL_CREATE_TEMP_TABLE = """
