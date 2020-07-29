@@ -4,7 +4,9 @@ from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from common import default_args
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
+from common import env, default_args
 
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
@@ -34,48 +36,63 @@ SQL_RENAME_TEMP_TABLE = """
 """
 
 
+def row2dict(row):
+    d = {}
+    for column in row.__table__.columns:
+        d[column.name] = str(getattr(row, column.name))
+
+    return d
+
+
 def copy_data_from_dbwaarnemingen_to_masterdb():
-    waarnemingen_hook = PostgresHook(postgres_conn_id="dbwaarnemingen")
-    with waarnemingen_hook.get_cursor() as cursor:
-        cursor.execute(f"SELECT COUNT(*) FROM {view_name} AS total")
-        result = cursor.fetchone()
+    try:
+        waarnemingen_engine = create_engine(env("AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN"))
+    except SQLAlchemyError as e:
+        raise Exception(str(e)) from e
+
+    with waarnemingen_engine.connect() as waarnemingen_connection:
+        cursor = waarnemingen_connection.execute(
+            f"SELECT COUNT(*) FROM {view_name} AS total"
+        )
+        result = cursor.fetchone()[0]
         offset = 0
-        while offset < result["total"]:
-            copy_data_in_batches(offset=offset, limit=import_step)
+        while offset < result:
+            copy_data_in_batches(
+                conn=waarnemingen_connection, offset=offset, limit=import_step
+            )
             offset += import_step
 
 
-def copy_data_in_batches(offset, limit):
-    waarnemingen_hook = PostgresHook(postgres_conn_id="dbwaarnemingen")
-    masterdb_hook = PostgresHook()
-    with waarnemingen_hook.get_cursor() as cursor:
-        cursor.execute(
-            "SELECT sensor, location_name, datum_uur, aantal_passanten "
-            f"FROM {view_name} OFFSET {offset} LIMIT {limit}"
+def copy_data_in_batches(conn, offset, limit):
+    cursor = conn.execute(
+        "SELECT sensor, location_name, datum_uur, aantal_passanten "
+        f"FROM {view_name} OFFSET {offset} LIMIT {limit}"
+    )
+
+    items = []
+    for row in cursor.fetchall():
+        items.append(
+            "({sensor}, "
+            "{location_name}, "
+            "{datum_uur}, "
+            "{aantal_passanten})".format(**row2dict(row))
         )
 
-        items = []
-        for row in cursor.fetchall():
-            items.append(
-                "({sensor}, "
-                "{location_name}, "
-                "{datum_uur}, "
-                "{aantal_passanten})".format(**row)
-            )
-        if len(items):
-            items_sql = ",".join(items)
-            insert_sql = (
-                f"INSERT INTO {table_id}_temp "
-                "(sensor, location_name, datum_uur, aantal_passanten) "
-                f"VALUES {items_sql};"
-            )
+    if len(items):
+        items_sql = ",".join(items)
+        insert_sql = (
+            f"INSERT INTO {table_id}_temp "
+            "(sensor, location_name, datum_uur, aantal_passanten) "
+            f"VALUES {items_sql};"
+        )
 
-            try:
-                masterdb_hook.run(insert_sql)
-            except Exception as e:
-                raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
-            else:
-                print("Created {} records.".format(len(items)))
+        masterdb_hook = PostgresHook()
+        try:
+            masterdb_hook.run(insert_sql)
+        except Exception as e:
+            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
+        else:
+            print("Created {} records.".format(len(items)))
 
 
 args = default_args.copy()
