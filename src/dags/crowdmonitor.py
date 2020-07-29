@@ -10,7 +10,7 @@ from common import env, default_args
 
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
-view_name = "cmsa_15min_view_v2"
+view_name = "cmsa_1h_count_view_v1"
 import_step = 300
 
 
@@ -59,25 +59,31 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         result = cursor.fetchone()[0]
         print("Found {} records".format(repr(result)))
         offset = 0
-        while offset < result:
-            copy_data_in_batches(
-                conn=waarnemingen_connection, offset=offset, limit=import_step
-            )
-            offset += import_step
+        copy_data_in_batches(conn=waarnemingen_connection, offset=0, limit=1)
+
+        # while offset < result:
+        #     copy_data_in_batches(
+        #         conn=waarnemingen_connection, offset=offset, limit=import_step
+        #     )
+        #     offset += import_step
 
 
 def copy_data_in_batches(conn, offset, limit):
-    cursor = conn.execute("SELECT * " f"FROM {view_name} OFFSET {offset} LIMIT {limit}")
+    cursor = conn.execute(f"SELECT * FROM {view_name} OFFSET {offset} LIMIT {limit}")
 
+    result = cursor.fetchall()
+
+    print(repr(result))
+    for row in result:
+        print(repr(row._asdict()))
     items = []
-    for row in cursor.fetchall():
-        items.append(
-            "({sensor}, "
-            "{location_name}, "
-            "{datum_uur}, "
-            "{aantal_passanten})".format(**row2dict(row))
-        )
-    print(row2dict(row))
+    # for row in cursor.fetchall():
+    #     items.append(
+    #         "({sensor}, "
+    #         "{location_name}, "
+    #         "{datum_uur}, "
+    #         "{aantal_passanten})".format(**row2dict(row))
+    #     )
     items = []
 
     if len(items):
