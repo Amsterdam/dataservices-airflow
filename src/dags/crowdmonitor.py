@@ -70,7 +70,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
 
 def copy_data_in_batches(conn, offset, limit):
     cursor = conn.execute(
-        f"SELECT sensor, location_name, datum_uur, aantal_passanten FROM {view_name} OFFSET {offset} LIMIT {limit}"
+        f"SELECT sensor, naam_locatie, datum_uur, aantal_passanten FROM {view_name} OFFSET {offset} LIMIT {limit}"
     )
 
     items = []
