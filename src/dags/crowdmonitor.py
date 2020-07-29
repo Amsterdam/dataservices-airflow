@@ -79,11 +79,11 @@ def copy_data_in_batches(conn, offset, limit):
             "('{sensor}', "
             "'{location_name}',"
             "TIMESTAMP '{datum_uur}', "
-            "'{aantal_passanten}')".format(
+            "{aantal_passanten})".format(
                 sensor=row[0],
                 location_name=row[1],
                 datum_uur=row[2].strftime("%Y-%m-%d %H:%M:%S"),
-                aantal_passanten=float(row[3]),
+                aantal_passanten=int(row[3]),
             )
         )
 
