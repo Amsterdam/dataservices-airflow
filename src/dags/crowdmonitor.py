@@ -78,7 +78,7 @@ def copy_data_in_batches(conn, offset, limit):
         items.append(
             '("{sensor}", '
             '"{location_name}", '
-            'TIMESTAMP "{datum_uur}", '
+            "TIMESTAMP '{datum_uur}', "
             "{aantal_passanten})".format(
                 sensor=row[0],
                 location_name=row[1],
