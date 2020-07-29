@@ -16,8 +16,8 @@ import_step = 300
 
 SQL_CREATE_TEMP_TABLE = """
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;
-    CREATE TABLE {{ params.base_table }}_temp
-        LIKE {{ params.base_table }} INCLUDING ALL;
+    CREATE TABLE {{ params.base_table }}_temp (
+        LIKE {{ params.base_table }} INCLUDING ALL);
     DROP SEQUENCE IF EXISTS {{ params.base_table }}_temp_id_seq CASCADE;
     CREATE SEQUENCE {{ params.base_table }}_temp_id_seq
         OWNED BY {{ params.base_table }}_temp.id;
