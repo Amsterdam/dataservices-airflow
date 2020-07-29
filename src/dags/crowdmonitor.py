@@ -69,22 +69,23 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
 
 
 def copy_data_in_batches(conn, offset, limit):
-    cursor = conn.execute(f"SELECT * FROM {view_name} OFFSET {offset} LIMIT {limit}")
+    cursor = conn.execute(
+        f"SELECT sensor, location_name, datum_uur, aantal_passanten FROM {view_name} OFFSET {offset} LIMIT {limit}"
+    )
 
-    result = cursor.fetchall()
-
-    print(repr(result))
-    for row in result:
-        print(repr(row._asdict()))
     items = []
-    # for row in cursor.fetchall():
-    #     items.append(
-    #         "({sensor}, "
-    #         "{location_name}, "
-    #         "{datum_uur}, "
-    #         "{aantal_passanten})".format(**row2dict(row))
-    #     )
-    items = []
+    for row in cursor.fetchall():
+        items.append(
+            "({sensor}, "
+            "{location_name}, "
+            "TIMESTAMP {datum_uur}, "
+            "{aantal_passanten})".format(
+                sensor=row[0],
+                location_name=row[1],
+                datum_uur=row[2].strftime("%Y-%m-%d %H:%M:%S"),
+                aantal_passanten=float(row[3]),
+            )
+        )
 
     if len(items):
         items_sql = ",".join(items)
