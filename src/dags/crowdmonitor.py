@@ -59,13 +59,12 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         result = cursor.fetchone()[0]
         print("Found {} records".format(repr(result)))
         offset = 0
-        copy_data_in_batches(conn=waarnemingen_connection, offset=0, limit=1)
 
-        # while offset < result:
-        #     copy_data_in_batches(
-        #         conn=waarnemingen_connection, offset=offset, limit=import_step
-        #     )
-        #     offset += import_step
+        while offset < result:
+            copy_data_in_batches(
+                conn=waarnemingen_connection, offset=offset, limit=import_step
+            )
+            offset += import_step
 
 
 def copy_data_in_batches(conn, offset, limit):
