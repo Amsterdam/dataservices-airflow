@@ -57,6 +57,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
             f"SELECT COUNT(*) FROM {view_name} AS total"
         )
         result = cursor.fetchone()[0]
+        print("Found {} records".format(repr(result)))
         offset = 0
         while offset < result:
             copy_data_in_batches(
@@ -66,10 +67,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
 
 
 def copy_data_in_batches(conn, offset, limit):
-    cursor = conn.execute(
-        "SELECT sensor, location_name, datum_uur, aantal_passanten "
-        f"FROM {view_name} OFFSET {offset} LIMIT {limit}"
-    )
+    cursor = conn.execute("SELECT * " f"FROM {view_name} OFFSET {offset} LIMIT {limit}")
 
     items = []
     for row in cursor.fetchall():
@@ -79,6 +77,8 @@ def copy_data_in_batches(conn, offset, limit):
             "{datum_uur}, "
             "{aantal_passanten})".format(**row2dict(row))
         )
+    print(row2dict(row))
+    items = []
 
     if len(items):
         items_sql = ",".join(items)
