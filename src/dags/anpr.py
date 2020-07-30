@@ -7,11 +7,21 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from http_fetch_operator import HttpFetchOperator
 
-from common import default_args
+from common import (
+    default_args,
+    slack_webhook_token,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+)
+
+DATASTORE_TYPE = (
+    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
+)
+
 
 dag_id = "anpr"
 table_id = "anpr_taxi"
-http_conn_id = "taxi_test_conn_id"
+http_conn_id = "taxi_waarnemingen_conn_id" if DATASTORE_TYPE != 'acceptance' else "taxi_waarnemingen_acc_conn_id"
 endpoint = "/v0/milieuzone/passage/export-taxi/"
 TMP_PATH = "/tmp/{dag_id}/"
 
@@ -19,6 +29,11 @@ args = default_args.copy()
 args["provide_context"] = True
 
 SQL_CREATE_TEMP_TABLE = """
+    CREATE TABLE IF NOT EXISTS {{ params.base_table }} (
+	    ID serial NOT NULL,
+	    DATUM date NULL,
+	    AANTAL_TAXI_PASSAGES int4 NULL,
+	    CONSTRAINT ANPR_TAXI_PK PRIMARY KEY (id));    
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;
     CREATE TABLE {{ params.base_table }}_temp (
         LIKE {{ params.base_table }} INCLUDING ALL);
@@ -46,14 +61,16 @@ def import_csv_data(*args, **kwargs):
         reader = csv.DictReader(csvfile)
         items = []
         for row in reader:
+            
             items.append(
-                "('{date}', {aantal_taxi_passages})".format(
-                    date=row["datum"], aantal_taxi_passages=row["aantal_taxi_passages"]
+                "{sql_header} ('{date}', '{aantal_taxi_passages}' )".format(
+                    sql_header=sql_header, date=row["datum"], aantal_taxi_passages=row["aantal_taxi_passages"]
                 )
             )
-        if len(items):
+
+        if len(items):            
             hook = PostgresHook()
-            sql = "{header} {items};".format(header=sql_header, items=",".join(items))
+            sql = " {items};".format(items=";".join(items))            
             try:
                 hook.run(sql)
             except Exception as e:
@@ -61,8 +78,20 @@ def import_csv_data(*args, **kwargs):
             print("Created {} recods".format(len(items)))
 
 
-with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
+with DAG(dag_id, default_args=args, description="aantal taxikentekenplaten per datum",) as dag:
+
+    # 1. starting message on Slack
+    slack_at_start = MessageOperator(
+        task_id="slack_at_start",
+        http_conn_id="slack",
+        webhook_token=slack_webhook_token,
+        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        username="admin",
+    )
+    
+    # 2. make temp dir
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_PATH}")
+    
     # 3. download the data into temp directory
     download_data = HttpFetchOperator(
         task_id="download",
@@ -88,4 +117,4 @@ with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
         params=dict(base_table=table_id),
     )
 
-(mk_tmp_dir >> download_data >> create_temp_table >> import_data >> rename_temp_table)
+(slack_at_start >> mk_tmp_dir >> download_data >> create_temp_table >> import_data >> rename_temp_table)
