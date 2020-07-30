@@ -77,7 +77,7 @@ def import_csv_data(*args, **kwargs):
             print("Created {} recods".format(len(items)))
 
 
-with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
+with DAG(dag_id, default_args=args, description="aantal geidentificeerde taxikentekenplaten per dag",) as dag:
     
      # 1. starting message on Slack
     slack_at_start = MessageOperator(
