@@ -34,6 +34,8 @@ services:
         356c76835e424b968ed6d654c51204f0"
       AIRFLOW_CONN_OBJECTSTORE_PARKEERVAKKEN: "s3://parkeervakken:${PARKEERVAKKEN_PASSWD}@\
         091e3bedc85447ef936e82bcda88fcac"
+      AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN: "postgresql://mensen:{{ mensen_password }}\
+        @dbwaarnemingen-postgres-read.service.consul:5432/mensen"
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
