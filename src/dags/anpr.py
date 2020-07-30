@@ -29,12 +29,7 @@ TMP_PATH = "/tmp/{dag_id}/"
 args = default_args.copy()
 args["provide_context"] = True
 
-SQL_CREATE_TEMP_TABLE = """
-    CREATE TABLE IF NOT EXISTS {{ params.base_table }} (
-	    ID serial NOT NULL,
-	    DATUM date NULL,
-	    AANTAL_TAXI_PASSAGES int4 NULL,
-	    CONSTRAINT ANPR_TAXI_PK PRIMARY KEY (id)); 
+SQL_CREATE_TEMP_TABLE = """    
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;
     CREATE TABLE {{ params.base_table }}_temp (
         LIKE {{ params.base_table }} INCLUDING ALL);
