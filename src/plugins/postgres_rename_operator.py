@@ -46,9 +46,9 @@ class PostgresTableRenameOperator(PostgresOperator):
             cursor.execute(
                 """
                     SELECT tablename AS name FROM pg_tables
-                    WHERE schemaname = 'public' AND tablename like %s
+                    WHERE schemaname = 'public' AND tablename like %s ESCAPE '\'
                 """,
-                (f"{self.old_table_name}_%",),
+                (f"{self.old_table_name}\_%",),
             )
 
             cross_tables = cursor.fetchall()

@@ -110,7 +110,7 @@ class ProvenanceRenameOperator(BaseOperator):
                     snaked_field_name = to_snake_case(field.name)
                     if "relation" in field:
                         snaked_field_name += "_id"
-                    if provenance in existing_columns[snaked_tablename]:
+                    if provenance.lower() in existing_columns[snaked_tablename]:
                         sqls.append(
                             f"""ALTER TABLE {self.pg_schema}.{snaked_tablename}
                                 RENAME COLUMN {provenance} TO {snaked_field_name}"""
