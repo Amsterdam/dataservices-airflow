@@ -36,6 +36,8 @@ services:
         091e3bedc85447ef936e82bcda88fcac"
       AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN: "postgresql://mensen:{{ mensen_password }}\
         @dbwaarnemingen-postgres-read.service.consul:5432/mensen"
+      AIRFLOW_CONN_OBJECTSTORE_MILIEUTHEMAS: "s3://milieuthemas:${MILIEUTHEMAS_PASSWD}@\
+        e063b706cffc4002883c28d531f0234f"
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"

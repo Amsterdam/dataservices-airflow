@@ -110,3 +110,9 @@ touringcars:
     parkeerplaatsen: dcatd/datasets/IuAYhr-__qZj9Q/purls/uB95bElRaUcD0A
     wegwerkzaamheden: dcatd/datasets/IuAYhr-__qZj9Q/purls/csfA78CYaXgnsw
   metadataschema_endpoint: datasets/touringcars/touringcars
+bodem:
+  files_to_download:
+    grond: dmb_grondmonster.csv   
+    grondwater: dmb_watermonster.csv 
+    asbest: dmb_asbest.csv 
+  
