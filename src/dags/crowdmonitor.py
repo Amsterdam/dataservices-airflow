@@ -11,7 +11,7 @@ from common import env, default_args
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
 view_name = "cmsa_1h_count_view_v1"
-import_step = 1000
+import_step = 10000
 
 
 SQL_CREATE_TEMP_TABLE = """
@@ -65,6 +65,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
                 conn=waarnemingen_connection, offset=offset, limit=import_step
             )
             offset += import_step
+            print("Imported: {}".format(offset))
 
 
 def copy_data_in_batches(conn, offset, limit):
