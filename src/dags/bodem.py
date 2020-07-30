@@ -120,7 +120,7 @@ with DAG(
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=f"{dag_id}",
-        rename_indexes=True,
+        rename_indexes=False,
         pg_schema="public",
     )
 
