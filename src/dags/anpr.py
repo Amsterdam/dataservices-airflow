@@ -47,13 +47,13 @@ def import_csv_data(*args, **kwargs):
         items = []
         for row in reader:
             items.append(
-                "('{date}', '{aantal_taxi_passages}')".format(
-                    date=row["date"], aantal_taxi_passages=row["aantal_taxi_passages"]
+                "('{date}', {aantal_taxi_passages})".format(
+                    date=row["datum"], aantal_taxi_passages=row["aantal_taxi_passages"]
                 )
             )
         if len(items):
             hook = PostgresHook()
-            sql = "{header} ({items});".format(header=sql_header, items=",".join(items))
+            sql = "{header} {items};".format(header=sql_header, items=",".join(items))
             try:
                 hook.run(sql)
             except Exception as e:
