@@ -54,6 +54,11 @@ airflow connections --add  --conn_id verlichting_conn_id \
     --conn_host https://asd2.techtek.eu \
     --conn_type http
 
+airflow connections --delete --conn_id taxi_test_conn_id
+airflow connections --add  --conn_id taxi_test_conn_id \
+    --conn_host https://acc.waarnemingen.amsterdam.nl \
+    --conn_type http
+
 # airflow connections --delete --conn_id gob_graphql
 # airflow connections --add  --conn_id gob_graphql \
 #     --conn_host https://acc.api.data.amsterdam.nl \
