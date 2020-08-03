@@ -42,7 +42,8 @@ class PostgresTableRenameOperator(PostgresOperator):
         # a name that start with f"{old_table_name}_"
 
         with hook.get_cursor() as cursor:
-
+            # the underscore must be escaped because of it's special meaning in a like
+            # the exclamation mark was used as an escape chacater because a backslash was not interpreted as an escape
             cursor.execute(
                 """
                     SELECT tablename AS name FROM pg_tables
@@ -51,10 +52,7 @@ class PostgresTableRenameOperator(PostgresOperator):
                 (f"{self.old_table_name}!_%",),
             )
 
-            cross_tables = cursor.fetchall()
-            print("**********************")
-            print(self.old_table_name)
-            print("**********************")
+            cross_tables = cursor.fetchall()            
             cursor.execute(
                 """
                     SELECT indexname AS name FROM pg_indexes
@@ -64,9 +62,6 @@ class PostgresTableRenameOperator(PostgresOperator):
                 (f"%{self.old_table_name}!_%",),
             )
             indexes = cursor.fetchall()
-        print("**********************")
-        print(indexes)
-        print("**********************")
         renames = []
         for row in cross_tables:
             old_table_name = row["name"]
@@ -81,9 +76,6 @@ class PostgresTableRenameOperator(PostgresOperator):
             )
             for row in indexes
         ]
-        print("**********************")
-        print(idx_renames)
-        print("**********************")
         # Define the SQL to execute by the super class.
         # This supports executing multiple statements in a single transaction:
         self.sql = []
