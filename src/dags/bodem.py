@@ -92,6 +92,7 @@ with DAG(
             f"-nln {key} "
             f"{tmp_dir}/{dag_id}_{key}.sql {tmp_dir}/utf-8_{file} "
             f"-lco SEPARATOR=SEMICOLON "
+            f"-oo AUTODETECT_TYPE=YES "
             f"-lco FID=ID",
         )
         for key, file in files_to_download.items()
