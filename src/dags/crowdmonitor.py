@@ -28,11 +28,27 @@ SQL_CREATE_TEMP_TABLE = """
 
 
 SQL_RENAME_TEMP_TABLE = """
-    DROP TABLE IF EXISTS {{ params.base_table }}_old;
-    ALTER TABLE IF EXISTS {{ params.base_table }}
-        RENAME TO {{ params.base_table }}_old;
+    DROP TABLE IF EXISTS {{ params.base_table }} CASCADE;
     ALTER TABLE {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
+    ALTER SEQUENCE {{ params.base_table }}_temp_id_seq RENAME TO {{ params.base_table }}_id_seq;
+    CREATE MATERIALIZED VIEW {{ params.base_table }}_dag AS
+      SELECT sensor || '#' || date(datum_uur) as id
+           , sensor
+           , naam_locatie
+           , date(datum_uur) AS datum
+           , SUM( aantal_passanten) AS aantal_passanten
+      FROM {{ params.base_table }}
+      GROUP BY sensor, naam_locatie, datum;
+    CREATE MATERIALIZED VIEW {{ params.base_table }}_week AS
+      SELECT sensor || '#' ||  EXTRACT(YEAR FROM datum_uur) || '#' || EXTRACT(WEEK FROM datum_uur) as id
+          , sensor
+          , naam_locatie
+          , EXTRACT(YEAR FROM datum_uur) AS jaar
+          , EXTRACT(WEEK FROM datum_uur) AS week
+          , SUM( aantal_passanten) AS aantal_passanten
+      FROM {{ params.base_table }}
+      GROUP BY sensor, naam_locatie, jaar, week;
 """
 
 
