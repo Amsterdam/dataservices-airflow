@@ -1,6 +1,7 @@
 import datetime
 import os
 import pathlib
+import re
 import subprocess
 import dateutil.parser
 import shapefile
@@ -181,15 +182,21 @@ def import_data(shp_file, ids):
     return duplicates
 
 
-def download_latest_export_file(swift_conn_id, container, *args, **kwargs):
+def download_latest_export_file(swift_conn_id, container, name_regex, *args, **kwargs):
     """
     Find latest export filename
     """
     hook = SwiftHook(swift_conn_id=swift_conn_id)
     latest = None
+
+    name_reg = re.compile(name_regex)
     for x in hook.list_container(container=container):
         if x["content_type"] != "application/zip":
             # Skip non-zip files.
+            continue
+
+        if name_reg.match(x["name"]) is None:
+            # Search for latest file matching regex
             continue
 
         if latest is None:
@@ -245,7 +252,19 @@ with DAG(
         task_id="download_and_extract_zip",
         python_callable=download_latest_export_file,
         op_kwargs=dict(
-            swift_conn_id="objectstore_parkeervakken", container="tijdregimes",
+            swift_conn_id="objectstore_parkeervakken",
+            container="tijdregimes",
+            name_regex=r"^nivo_\d+\.zip",
+        ),
+    )
+
+    download_and_extract_nietfiscaal_zip = PythonOperator(
+        task_id="download_and_extract_nietfiscaal_zip",
+        python_callable=download_latest_export_file,
+        op_kwargs=dict(
+            swift_conn_id="objectstore_parkeervakken",
+            container="Parkeervakken",
+            name_regex=r"^\d+\_nietfiscaal\.zip",
         ),
     )
 
@@ -268,6 +287,7 @@ with DAG(
 (
     mk_tmp_dir
     >> download_and_extract_zip
+    >> download_and_extract_nietfiscaal_zip
     >> create_temp_tables
     >> run_import_task
     >> rename_temp_tables
