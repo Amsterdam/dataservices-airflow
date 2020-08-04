@@ -1,6 +1,10 @@
-from datetime import timedelta
+import pendulum
+import re
+
+from datetime import timedelta, datetime
 from environs import Env
 from airflow.utils.dates import days_ago
+
 
 from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
 from log_message_operator import LogMessageOperator
@@ -34,10 +38,26 @@ def slack_failed_task(context):
     return failed_alert.execute(context=context)
 
 
+# set the local time zone, so the start_date DAG param can use it in its context
+local_tz = pendulum.timezone("Europe/Amsterdam")
+
+# set start_date 'yesterday', so it can be used to seperate integer values for YYYY MM DD
+start_date_dag = str(days_ago(1))
+YYYY = 0
+MM = 0
+DD = 0
+
+# extract the YYYY MM and DD values as integers
+get_YYYY_MM_DD_values = re.search("([0-9]{4})-([0-9]{2})-([0-9]{2})", start_date_dag)
+if get_YYYY_MM_DD_values:
+    YYYY = int(get_YYYY_MM_DD_values.group(1))
+    MM = int(get_YYYY_MM_DD_values.group(2))
+    DD = int(get_YYYY_MM_DD_values.group(3))
+
 default_args = {
     "owner": "dataservices",
     "depends_on_past": False,
-    "start_date": days_ago(1),
+    "start_date": datetime(YYYY, MM, DD, 2, tzinfo=local_tz),
     "email": ["airflow@example.com"],
     "email_on_failure": False,
     "email_on_retry": False,
