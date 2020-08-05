@@ -35,7 +35,7 @@ SQL_RENAME_TEMP_TABLE = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old CASCADE;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
-    ALTER SEQUENCE {{ params.base_table }}_id_seq IF EXISTS
+    ALTER SEQUENCE IF EXISTS {{ params.base_table }}_id_seq
         RENAME TO {{ params.base_table }}_old_id_seq;
     ALTER TABLE {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
