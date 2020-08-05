@@ -13,12 +13,16 @@ table_id = f"{dag_id}_passanten"
 view_name = "cmsa_1h_count_view_v1"
 import_step = 10000
 
-
 SQL_CREATE_TEMP_TABLE = """
-    DROP TABLE IF EXISTS {{ params.base_table }}_temp;
+    DROP TABLE IF EXISTS {{ params.base_table }}_temp CASCADE;
     CREATE TABLE {{ params.base_table }}_temp (
-        LIKE {{ params.base_table }} INCLUDING ALL);
-    DROP SEQUENCE IF EXISTS {{ params.base_table }}_temp_id_seq CASCADE;
+      id integer PRIMARY KEY,
+      sensor character varying,
+      naam_locatie character varying,
+      periode character varying,
+      datum_uur timestamp with time zone,
+      aantal_passanten integer
+    );
     CREATE SEQUENCE {{ params.base_table }}_temp_id_seq
         OWNED BY {{ params.base_table }}_temp.id;
     ALTER TABLE {{ params.base_table }}_temp
@@ -28,11 +32,31 @@ SQL_CREATE_TEMP_TABLE = """
 
 
 SQL_RENAME_TEMP_TABLE = """
-    DROP TABLE IF EXISTS {{ params.base_table }}_old;
+    DROP TABLE IF EXISTS {{ params.base_table }}_old CASCADE;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
+    ALTER SEQUENCE {{ params.base_table }}_id_seq
+        RENAME TO {{ params.base_table }}_old_id_seq;
     ALTER TABLE {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
+    ALTER SEQUENCE {{ params.base_table }}_temp_id_seq
+        RENAME TO {{ params.base_table }}_id_seq;
+   ALTER INDEX IF EXISTS {{ params.base_table }}_periode_idx RENAME TO {{ params.base_table }}_old_periode_idx;
+   CREATE INDEX {{ params.base_table }}_periode_idx ON {{ params.base_table }}(periode);
+"""
+
+SQL_ADD_AGGREGATES = """
+SET TIME ZONE 'Europe/Amsterdam';
+DELETE FROM {{ params.table }} WHERE periode = '{{ params.periode }}';
+INSERT into {{ params.table }}(sensor, naam_locatie, periode, datum_uur, aantal_passanten) 
+SELECT sensor
+     , naam_locatie
+	 , '{{ params.periode }}'
+     , date_trunc('{{ params.periode_en }}', datum_uur) AS datum_uur
+     , SUM(aantal_passanten) AS aantal_passanten
+FROM {{ params.table }}
+WHERE periode = 'uur'
+GROUP BY sensor, naam_locatie, date_trunc('{{ params.periode_en }}', datum_uur);
 """
 
 
@@ -53,45 +77,44 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         raise Exception(str(e)) from e
 
     with waarnemingen_engine.connect() as waarnemingen_connection:
+        count = 0
         cursor = waarnemingen_connection.execute(
-            f"SELECT COUNT(*) FROM {view_name} AS total"
+            f"""
+SELECT sensor, location_name, datum_uur, aantal_passanten 
+FROM {view_name}
+WHERE location_name IS NOT NULL"""
         )
-        result = cursor.fetchone()[0]
-        print("Found {} records".format(repr(result)))
-        offset = 0
-
-        while offset < result:
-            copy_data_in_batches(
-                conn=waarnemingen_connection, offset=offset, limit=import_step
-            )
-            offset += import_step
-            print("Imported: {}".format(offset))
+        while True:
+            fetch_iterator = cursor.fetchmany(size=import_step)
+            batch_count = copy_data_in_batch(fetch_iterator)
+            count += batch_count
+            if batch_count < import_step:
+                break
+        print(f"Imported: {count}")
 
 
-def copy_data_in_batches(conn, offset, limit):
-    cursor = conn.execute(
-        f"SELECT sensor, location_name, datum_uur, aantal_passanten FROM {view_name} OFFSET {offset} LIMIT {limit}"
-    )
-
+def copy_data_in_batch(fetch_iterator, periode="uur"):
     items = []
-    for row in cursor.fetchall():
+    for row in fetch_iterator:
         items.append(
             "('{sensor}', "
             "'{location_name}',"
+            "'{periode}',"
             "TIMESTAMP '{datum_uur}', "
             "{aantal_passanten})".format(
                 sensor=row[0],
                 location_name=row[1],
+                periode=periode,
                 datum_uur=row[2].strftime("%Y-%m-%d %H:%M:%S"),
                 aantal_passanten=int(row[3]),
             )
         )
-
-    if len(items):
+    result = len(items)
+    if result:
         items_sql = ",".join(items)
         insert_sql = (
             f"INSERT INTO {table_id}_temp "
-            "(sensor, naam_locatie, datum_uur, aantal_passanten) "
+            "(sensor, naam_locatie, periode, datum_uur, aantal_passanten) "
             f"VALUES {items_sql};"
         )
 
@@ -101,14 +124,15 @@ def copy_data_in_batches(conn, offset, limit):
         except Exception as e:
             raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
         else:
-            print("Created {} records.".format(len(items)))
+            print("Created {} records.".format(result))
+    return result
 
 
 args = default_args.copy()
 args["provide_context"] = True
 
 with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
-    create_temp_table = PostgresOperator(
+    create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLE,
         params=dict(base_table=table_id),
@@ -120,10 +144,22 @@ with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
         dag=dag,
     )
 
-    rename_temp_table = PostgresOperator(
+    add_aggregates_day = PostgresOperator(
+        task_id="add_aggregates_day",
+        sql=SQL_ADD_AGGREGATES,
+        params=dict(table=f"{table_id}_temp", periode="dag", periode_en="day"),
+    )
+
+    add_aggregates_week = PostgresOperator(
+        task_id="add_aggregates_week",
+        sql=SQL_ADD_AGGREGATES,
+        params=dict(table=f"{table_id}_temp", periode="week", periode_en="week"),
+    )
+
+    rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLE,
         params=dict(base_table=table_id),
     )
 
-    create_temp_table >> copy_data >> rename_temp_table
+    create_temp_tables >> copy_data >> add_aggregates_day >> add_aggregates_week >> rename_temp_tables
