@@ -13,14 +13,6 @@ table_id = f"{dag_id}_passanten"
 view_name = "cmsa_1h_count_view_v1"
 import_step = 10000
 
-DST_AMSTERDAM_DATES = {
-    "2019": {"start": "2019-03-31 02:00:00+1", "end": "2019-10-27 03:00:00+2"},
-    "2020": {"start": "2019-03-29 02:00:00+1", "end": "2019-10-25 03:00:00+2"},
-    "2021": {"start": "2019-03-28 02:00:00+1", "end": "2019-10-31 03:00:00+2"},
-    "2022": {"start": "2019-03-27 02:00:00+1", "end": "2019-10-30 03:00:00+2"},
-    "2023": {"start": "2019-03-26 02:00:00+1", "end": "2019-10-29 03:00:00+2"},
-}
-
 SQL_CREATE_TEMP_TABLE = """
     DROP TABLE IF EXISTS {{ params.base_table }}_temp CASCADE;
     CREATE TABLE {{ params.base_table }}_temp (
@@ -43,12 +35,28 @@ SQL_RENAME_TEMP_TABLE = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old CASCADE;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
+    ALTER SEQUENCE {{ params.base_table }}_id_seq
+        RENAME TO {{ params.base_table }}_old_id_seq;
     ALTER TABLE {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
     ALTER SEQUENCE {{ params.base_table }}_temp_id_seq
         RENAME TO {{ params.base_table }}_id_seq;
    ALTER INDEX IF EXISTS {{ params.base_table }}_periode_idx RENAME TO {{ params.base_table }}_old_periode_idx;
    CREATE INDEX {{ params.base_table }}_periode_idx ON {{ params.base_table }}(periode);
+"""
+
+SQL_ADD_AGGREGATES = """
+SET TIME ZONE 'Europe/Amsterdam';
+DELETE FROM {{ params.table }} WHERE periode = '{{ params.periode }}';
+INSERT into {{ params.table }}(sensor, naam_locatie, periode, datum_uur, aantal_passanten) 
+SELECT sensor
+     , naam_locatie
+	 , '{{ params.periode }}'
+     , date_trunc('{{ params.periode_en }}', datum_uur) AS datum_uur
+     , SUM(aantal_passanten) AS aantal_passanten
+FROM {{ params.table }}
+WHERE periode = 'uur'
+GROUP BY sensor, naam_locatie, date_trunc('{{ params.periode_en }}', datum_uur);
 """
 
 
@@ -83,32 +91,6 @@ WHERE location_name IS NOT NULL"""
             if batch_count < import_step:
                 break
         print(f"Imported: {count}")
-        day_count = add_aggregates("dag")
-        print(f"Imported day aggregates: {day_count}")
-        week_count = add_aggregates("week")
-        print(f"Imported week aggregates: {week_count}")
-
-
-def add_aggregates(periode):
-    masterdb_hook = PostgresHook()
-    conn = masterdb_hook.get_conn()
-    trunc_map = {"dag": "day", "week": "week"}
-
-    timezone_sql = "SET TIMEZONE='Europe/Amsterdam'"
-    # We still have to correct for daylight saving time
-    masterdb_hook.run(timezone_sql)
-    query = f"""
-    SELECT sensor
-         , naam_locatie
-         , date_trunc(%s, datum_uur) AS datum_uur
-         , SUM(aantal_passanten) AS aantal_passanten
-         FROM {table_id}_temp
-         GROUP BY sensor, naam_locatie, date_trunc(%s, datum_uur);
-        """
-    cursor = conn.cursor()
-    cursor.execute(query, (trunc_map[periode], trunc_map[periode]))
-    fetch_iterator = cursor.fetchall()
-    return copy_data_in_batch(fetch_iterator, periode=periode)
 
 
 def copy_data_in_batch(fetch_iterator, periode="uur"):
@@ -162,10 +144,22 @@ with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
         dag=dag,
     )
 
+    add_aggregates_day = PostgresOperator(
+        task_id="add_aggregates_day",
+        sql=SQL_ADD_AGGREGATES,
+        params=dict(table=f"{table_id}_temp", periode="dag", periode_en="day"),
+    )
+
+    add_aggregates_week = PostgresOperator(
+        task_id="add_aggregates_week",
+        sql=SQL_ADD_AGGREGATES,
+        params=dict(table=f"{table_id}_temp", periode="week", periode_en="week"),
+    )
+
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLE,
         params=dict(base_table=table_id),
     )
 
-    create_temp_tables >> copy_data >> rename_temp_tables
+    create_temp_tables >> copy_data >> add_aggregates_day >> add_aggregates_week >> rename_temp_tables
