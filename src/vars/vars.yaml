@@ -115,4 +115,9 @@ bodem:
     grond: dmb_grondmonster.csv   
     grondwater: dmb_watermonster.csv 
     asbest: dmb_asbest.csv 
-  
+explosieven:
+  files_to_download:
+    bominslag: [Inslagen_ea.shp, Inslagen_ea.shx, Inslagen_ea.dbf]
+    verdachtgebied: [Verdachte_gebieden.shp,Verdachte_gebieden.shx,Verdachte_gebieden.dbf]
+    gevrijwaardgebied: [Gevrijwaard_gebied.shp,Gevrijwaard_gebied.shx, Gevrijwaard_gebied.dbf]
+    uitgevoerdonderzoek: [Reeds_uitgevoerde_CE_onderzoeken.shp,Reeds_uitgevoerde_CE_onderzoeken.shx, Reeds_uitgevoerde_CE_onderzoeken.dbf]
