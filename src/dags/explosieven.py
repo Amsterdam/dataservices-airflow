@@ -2,7 +2,6 @@ import operator
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
@@ -26,7 +25,7 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-from sql.explosieven_remove_cols import REMOVE_COLS
+from sql.explosieven import REMOVE_COLS, ADD_HYPERLINK_PDF
 
 dag_id = "explosieven"
 variables_bodem = Variable.get("explosieven", deserialize_json=True)
@@ -124,6 +123,13 @@ with DAG(
         pg_schema="public",
     )
 
+    # 8. Add PDF hyperlink only for table bominslag
+    add_hyperlink_pdf = PostgresOperator(
+        task_id=f"add_hyperlink_pdf_bominslag",
+        sql=ADD_HYPERLINK_PDF,
+        params=dict(tablename=f"bominslag"),
+    )
+
     # 9. Drop Exisiting TABLE
     drop_tables = [
         PostgresOperator(
@@ -194,7 +200,9 @@ for (
     SHP_to_SQL, create_tables, remove_cols, multi_checks, drop_tables, rename_tables,
 ):
 
-    [create_SQL >> create_table >> remove_col] >> provenance_translation >> multi_check
+    [
+        create_SQL >> create_table >> remove_col
+    ] >> provenance_translation >> add_hyperlink_pdf >> multi_check
 
     [multi_check >> drop_table >> rename_table]
 
