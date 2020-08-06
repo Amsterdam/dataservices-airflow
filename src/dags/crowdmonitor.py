@@ -82,7 +82,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
             f"""
 SELECT sensor, location_name, datum_uur, aantal_passanten 
 FROM {view_name}
-WHERE location_name IS NOT NULL"""
+"""
         )
         while True:
             fetch_iterator = cursor.fetchmany(size=import_step)
