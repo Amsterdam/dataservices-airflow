@@ -12,8 +12,6 @@ REMOVE_COLS = """
 """
 
 ADD_HYPERLINK_PDF = """
-    {% if 'bominslag' in params.tablename %}
-    UPDATE {{ params.tablename }} set PDF = CASE WHEN PDF is not null THEN 'https://files.data.amsterdam.nl/bommenkaart/'||PDF end WHERE 1=1;
-    COMMIT;
-    {% endif %}
+    UPDATE {{ params.tablename }} set PDF = CASE WHEN PDF is not null THEN 'https://files.data.amsterdam.nl/bommenkaart/'||PDF end WHERE UPPER(PDF) like '%.PDF';
+    COMMIT;    
 """

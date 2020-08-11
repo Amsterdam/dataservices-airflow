@@ -123,14 +123,21 @@ with DAG(
         pg_schema="public",
     )
 
-    # 8. Add PDF hyperlink only for table bominslag
-    add_hyperlink_pdf = PostgresOperator(
-        task_id=f"add_hyperlink_pdf_bominslag",
-        sql=ADD_HYPERLINK_PDF,
-        params=dict(tablename=f"bominslag"),
-    )
+    # 9. Add PDF hyperlink only for table bominslag and verdachtgebied
+    add_hyperlink_pdf = [
+        PostgresOperator(
+            task_id=f"add_hyperlink_pdf_{table}",
+            sql=ADD_HYPERLINK_PDF,
+            params=dict(tablename=f"{table}"),
+        )
+        for table in ("bominslag", "verdachtgebied")
+    ]
 
-    # 9. Drop Exisiting TABLE
+    # 10. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
+    # 11. Drop Exisiting TABLE
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{key}",
@@ -139,7 +146,7 @@ with DAG(
         for key in files_to_download.keys()
     ]
 
-    # 10. Rename TABLE
+    # 12. Rename TABLE
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
@@ -176,7 +183,7 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[f"{key}"] = total_checks
 
-    # 11. Execute bundled checks on database
+    # 13. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
@@ -202,7 +209,11 @@ for (
 
     [
         create_SQL >> create_table >> remove_col
-    ] >> provenance_translation >> add_hyperlink_pdf >> multi_check
+    ] >> provenance_translation >> add_hyperlink_pdf
+
+    for hyperlink in zip(add_hyperlink_pdf):
+
+        hyperlink >> Interface2 >> multi_check
 
     [multi_check >> drop_table >> rename_table]
 
@@ -221,7 +232,7 @@ dag.doc_md = """
     #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing
-    https://api.data.amsterdam.nl/v1/explosieven/inslagen/
+    https://api.data.amsterdam.nl/v1/explosieven/bominslag/
     https://api.data.amsterdam.nl/v1/explosieven/gevrijwaardgebied/
     https://api.data.amsterdam.nl/v1/explosieven/verdachtgebied/ 
     https://api.data.amsterdam.nl/v1/explosieven/uitgevoerdonderzoek/
