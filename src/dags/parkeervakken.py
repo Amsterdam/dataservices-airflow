@@ -61,6 +61,14 @@ SQL_RENAME_TEMP_TABLES = """
         RENAME TO {{ params.base_table }}_regimes_old;
     ALTER TABLE {{ params.base_table }}_regimes_temp
         RENAME TO {{ params.base_table }}_regimes;
+    ALTER INDEX IF EXISTS {{ params.base_table }}_regimes_parent_id_idx
+        RENAME TO {{ params.base_table }}_regimes_old_parent_id_idx;
+    CREATE INDEX {{ params.base_table }}_regimes_parent_id_idx
+        ON {{ params.base_table }}_regimes(parent_id);
+    ALTER INDEX IF EXISTS {{ params.base_table }}_geometry_idx
+        RENAME TO {{ params.base_table }}_old_geometry_idx;
+    CREATE INDEX {{ params.base_table }}_geometry_idx
+        ON {{ params.base_table }} USING gist(geometry);
 """
 
 TMP_DIR = f"/tmp/{dag_id}"
