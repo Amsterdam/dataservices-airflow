@@ -121,3 +121,13 @@ explosieven:
     verdachtgebied: [Verdachte_gebieden.shp,Verdachte_gebieden.shx,Verdachte_gebieden.dbf]
     gevrijwaardgebied: [Gevrijwaard_gebied.shp,Gevrijwaard_gebied.shx, Gevrijwaard_gebied.dbf]
     uitgevoerdonderzoek: [Reeds_uitgevoerde_CE_onderzoeken.shp,Reeds_uitgevoerde_CE_onderzoeken.shx, Reeds_uitgevoerde_CE_onderzoeken.dbf]
+spoorlijnen:
+  files_to_download:
+    metro:
+    tram:
+geluidszones:
+  files_to_download:
+    themas: dro_thema.csv
+    metro-spoorwegen-industrie: dro_geluid.csv
+    schiphol: dro_geluid_schiphol.csv
+    
