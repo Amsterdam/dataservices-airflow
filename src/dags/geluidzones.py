@@ -263,8 +263,8 @@ dag.doc_md = """
     #### Business Use Case / process / origin
     NA
     #### Prerequisites/Dependencies/Resourcing
-    https://api.data.amsterdam.nl/v1/docs/datasets/geluidszone.html
-    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/geluidszone.html
+    https://api.data.amsterdam.nl/v1/docs/datasets/geluidszones.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/geluidszones.html
     Example geosearch: 
-    https://api.data.amsterdam.nl/geosearch?datasets=geluidszone/schiphol&x=106434&y=488995&radius=10
+    https://acc.api.data.amsterdam.nl/geosearch?datasets=geluidszones/schiphol&x=111153&y=483288&radius=10
 """
