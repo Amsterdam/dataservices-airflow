@@ -1,0 +1,270 @@
+import operator
+from airflow import DAG
+from airflow.models import Variable
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.postgres_operator import PostgresOperator
+
+from environs import Env
+
+from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from swift_operator import SwiftOperator
+
+from common import (
+    default_args,
+    pg_params,
+    slack_webhook_token,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+)
+
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    GEO_CHECK,
+)
+
+from sql.geluidzones import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM
+
+dag_id = "geluidszones"
+variables_bodem = Variable.get("geluidszones", deserialize_json=True)
+files_to_download = variables_bodem["files_to_download"]
+tmp_dir = f"/tmp/{dag_id}"
+total_checks = []
+count_checks = []
+geo_checks = []
+check_name = {}
+
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
+def quote(instr):
+    return f"'{instr}'"
+
+
+with DAG(
+    dag_id,
+    description="geluidszones metro, spoorwegen, industrie en schiphol",
+    default_args=default_args,
+    user_defined_filters=dict(quote=quote),
+    template_searchpath=["/"],
+) as dag:
+
+    # 1. Post info message on slack
+    slack_at_start = MessageOperator(
+        task_id="slack_at_start",
+        http_conn_id="slack",
+        webhook_token=slack_webhook_token,
+        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        username="admin",
+    )
+
+    # 2. Create temp directory to store files
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+
+    # 3. Download data
+    download_data = [
+        SwiftOperator(
+            task_id=f"download_{key}",
+            swift_conn_id="OBJECTSTORE_MILIEUTHEMAS",
+            container="Milieuthemas",
+            object_id=f"{file}",
+            output_path=f"{tmp_dir}/{key}_{file}",
+        )
+        for key, file in files_to_download.items()
+    ]
+
+    # 4. Transform seperator from pipeline to semicolon and set code schema to UTF-8
+    change_seperators = [
+        BashOperator(
+            task_id=f"change_seperator_{key}",
+            bash_command=f"cat {tmp_dir}/{key}_{file} | sed 's/|/;/g' > {tmp_dir}/seperator_{key} ;"
+            f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/seperator_{key} > "
+            f"{tmp_dir}/utf_8_{key.replace('-','_')}.csv",
+        )
+        for key, file in files_to_download.items()
+    ]
+
+    # 5. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 6. Create SQL
+    # the -sql parameter is added to store the different data subjects, from one source file, in separate tables
+    # the OR processes themas en schiphol which already are in separate files, and don't work with type LIKE
+    csv_to_SQL = [
+        BashOperator(
+            task_id=f"generate_SQL_{splitted_tablename}",
+            bash_command=f"ogr2ogr -f 'PGDump' "
+            f"-t_srs EPSG:28992 "
+            f"-nln {splitted_tablename} "
+            f"{tmp_dir}/{splitted_tablename}.sql {tmp_dir}/utf_8_{key.replace('-','_')}.csv "
+            f"-lco SEPARATOR=SEMICOLON "
+            f"-oo AUTODETECT_TYPE=YES "
+            f"-lco FID=ID "
+            f"-sql \"SELECT * FROM utf_8_{key.replace('-','_')} WHERE TYPE LIKE '%{splitted_tablename}%' OR '{splitted_tablename}' IN ('themas', 'schiphol')\"",
+        )
+        for key in files_to_download.keys()
+        for splitted_tablename in key.split("-")
+    ]
+
+    # 7. Create TABLES
+    create_tables = [
+        BashOperator(
+            task_id=f"create_table_{splitted_tablename}",
+            bash_command=f"psql {pg_params()} < {tmp_dir}/{splitted_tablename}.sql",
+        )
+        for key in files_to_download.keys()
+        for splitted_tablename in key.split("-")
+    ]
+
+    # 8. RE-define GEOM type (because ogr2ogr cannot set geom with .csv import)
+    # except themas itself, which is a dimension table (parent) of sound zones tables
+    redefine_geoms = [
+        PostgresOperator(
+            task_id=f"re-define_geom_{splitted_tablename}",
+            sql=SET_GEOM,
+            params=dict(tablename=f"{splitted_tablename}"),
+        )
+        for key in files_to_download.keys()
+        for splitted_tablename in key.split("-")
+        if "themas" not in key
+    ]
+
+    # 9. Add thema-context to child tables from parent table (themas)
+    # except themas itself, which is a dimension table (parent) of sound zones tables
+    add_thema_contexts = [
+        PostgresOperator(
+            task_id=f"add_context_{splitted_tablename}",
+            sql=ADD_THEMA_CONTEXT,
+            params=dict(tablename=f"{splitted_tablename}", parent_table="themas"),
+        )
+        for key in files_to_download.keys()
+        for splitted_tablename in key.split("-")
+        if "themas" not in key
+    ]
+
+    # 10. Rename COLUMNS based on Provenance
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="provenance_rename",
+        dataset_name=f"{dag_id}",
+        rename_indexes=False,
+        pg_schema="public",
+    )
+
+    # Prepare the checks and added them per source to a dictionary
+    # except themas itself, which is a dimension table (parent) of sound zones tables
+    for key in files_to_download.keys():
+        for splitted_tablename in key.split("-"):
+            if "themas" not in key:
+
+                total_checks.clear()
+                count_checks.clear()
+                geo_checks.clear()
+
+                count_checks.append(
+                    COUNT_CHECK.make_check(
+                        check_id=f"count_check_{splitted_tablename}",
+                        pass_value=2,
+                        params=dict(table_name=f"{splitted_tablename}"),
+                        result_checker=operator.ge,
+                    )
+                )
+
+                geo_checks.append(
+                    GEO_CHECK.make_check(
+                        check_id=f"geo_check_{splitted_tablename}",
+                        params=dict(
+                            table_name=f"{splitted_tablename}",
+                            geotype=["MULTIPOLYGON"],
+                        ),
+                        pass_value=1,
+                    )
+                )
+
+            total_checks = count_checks + geo_checks
+            check_name[f"{splitted_tablename}"] = total_checks
+
+    # 11. Execute bundled checks on database (see checks definition here above)
+    multi_checks = [
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{splitted_tablename}",
+            checks=check_name[f"{splitted_tablename}"],
+        )
+        for key in files_to_download.keys()
+        for splitted_tablename in key.split("-")
+        if "themas" not in key
+    ]
+
+    # 12. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
+    # 13. Rename TABLES
+    rename_tables = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_table_{splitted_tablename}",
+            old_table_name=f"{splitted_tablename}",
+            new_table_name=f"{dag_id}_{splitted_tablename}",
+        )
+        for key in files_to_download.keys()
+        for splitted_tablename in key.split("-")
+        if "themas" not in key
+    ]
+
+    # 14. Drop unnecessary cols from tables Metro en Spoorwegen
+    drop_cols = [
+        PostgresOperator(
+            task_id=f"drop_cols_{key}",
+            sql=DROP_COLS,
+            params=dict(tablename=f"{dag_id}_{key}"),
+        )
+        for key in ("metro", "spoorwegen")
+    ]
+
+    # 15. Drop parent table THEMAS, not needed anymore
+    drop_parent_table = PostgresOperator(
+        task_id=f"drop_parent_table", sql=[f"DROP TABLE IF EXISTS themas CASCADE",],
+    )
+
+for (data, change_seperator) in zip(download_data, change_seperators):
+
+    [data >> change_seperator] >> Interface >> csv_to_SQL
+
+for create_SQL, create_table in zip(csv_to_SQL, create_tables):
+
+    [create_SQL >> create_table] >> provenance_translation >> redefine_geoms
+
+for (redefine_geom, add_thema_context, multi_check, rename_table,) in zip(
+    redefine_geoms, add_thema_contexts, multi_checks, rename_tables
+):
+
+    [
+        redefine_geom >> add_thema_context >> multi_check >> rename_table
+    ] >> Interface2 >> drop_cols
+
+for drop_col in zip(drop_cols):
+    drop_col >> drop_parent_table
+
+
+slack_at_start >> mkdir >> download_data
+
+dag.doc_md = """
+    #### DAG summery
+    This DAG containts sound zones related to metro, spoorwegen, industrie and schiphol.
+    Source files are located @objectstore.eu, container: Milieuthemas
+    Metro, spoorwegen and industrie are in source in one file
+    Schipol is separated in its own file
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process / origin
+    NA
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/docs/datasets/geluidszone.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/geluidszone.html
+    Example geosearch: 
+    https://api.data.amsterdam.nl/geosearch?datasets=geluidszone/schiphol&x=106434&y=488995&radius=10
+"""

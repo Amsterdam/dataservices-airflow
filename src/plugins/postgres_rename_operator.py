@@ -52,7 +52,7 @@ class PostgresTableRenameOperator(PostgresOperator):
                 (f"{self.old_table_name}!_%",),
             )
 
-            cross_tables = cursor.fetchall()            
+            cross_tables = cursor.fetchall()
             cursor.execute(
                 """
                     SELECT indexname AS name FROM pg_indexes
@@ -97,7 +97,7 @@ class PostgresTableRenameOperator(PostgresOperator):
                 self.sql.append(sql.format(**lookup))
 
         for old_name, new_name in idx_renames:
-            self.sql.append(f"ALTER INDEX {old_name} RENAME TO {new_name}")
+            self.sql.append(f"ALTER INDEX IF EXISTS {old_name} RENAME TO {new_name}")
 
         return super().execute(context)
 
