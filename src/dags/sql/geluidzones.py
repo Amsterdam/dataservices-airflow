@@ -20,7 +20,7 @@ ADD_THEMA_CONTEXT = """
     {{ params.parent_table }}.datum_laatste_wijziging, 
     {{ params.tablename }}.ID as table_id
     FROM {{ params.parent_table }}
-    INNER JOIN {{ params.tablename }} ON {{ params.parent_table }}.ID = {{ params.tablename }}.TMA_ID
+    INNER JOIN {{ params.tablename }} ON {{ params.parent_table }}.THEMA_ID = {{ params.tablename }}.TMA_ID
     )
     UPDATE {{ params.tablename }}
     SET thema = {{ params.tablename }}_context.type,
