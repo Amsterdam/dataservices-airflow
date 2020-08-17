@@ -130,4 +130,6 @@ geluidszones:
     themas: dro_thema.csv
     metro-spoorwegen-industrie: dro_geluid.csv
     schiphol: dro_geluid_schiphol.csv
-    
+covid19:
+    files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf] 
+        
