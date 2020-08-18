@@ -121,10 +121,6 @@ explosieven:
     verdachtgebied: [Verdachte_gebieden.shp,Verdachte_gebieden.shx,Verdachte_gebieden.dbf]
     gevrijwaardgebied: [Gevrijwaard_gebied.shp,Gevrijwaard_gebied.shx, Gevrijwaard_gebied.dbf]
     uitgevoerdonderzoek: [Reeds_uitgevoerde_CE_onderzoeken.shp,Reeds_uitgevoerde_CE_onderzoeken.shx, Reeds_uitgevoerde_CE_onderzoeken.dbf]
-spoorlijnen:
-  files_to_download:
-    metro:
-    tram:
 geluidszones:
   files_to_download:
     themas: dro_thema.csv
@@ -132,4 +128,7 @@ geluidszones:
     schiphol: dro_geluid_schiphol.csv
 covid19:
     files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf] 
-        
+spoorlijnen:
+  files_to_download:
+    metro: [metro.shp, metro.shx, metro.dbf]
+    tram: [tram.shp, tram.shx, tram.dbf]
