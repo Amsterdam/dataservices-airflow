@@ -33,8 +33,6 @@ geo_checks = []
 check_name = {}
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-
-
 def quote(instr):
     return f"'{instr}'"
 
@@ -63,9 +61,10 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            swift_conn_id="SWIFT_DEFAULT",
+            # if conn is ommitted, it defaults to Objecstore Various Small Datasets
+            # swift_conn_id="SWIFT_DEFAULT",
             container="spoorlijnen",
-            object_id=f"{file}",
+            object_id=str(file),
             output_path=f"{tmp_dir}/{file}",
         )
         for files in files_to_download.values()
