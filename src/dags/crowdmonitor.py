@@ -10,7 +10,6 @@ from common import env, default_args
 
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
-view_name = "cmsa_1h_count_view_v1"
 import_step = 10000
 
 SQL_CREATE_TEMP_TABLE = """
@@ -80,8 +79,17 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         count = 0
         cursor = waarnemingen_connection.execute(
             f"""
-SELECT sensor, location_name, datum_uur, aantal_passanten 
-FROM {view_name}
+WITH cmsa_1h_v3 AS
+ (SELECT v.sensor,
+    s.location_name,
+    date_trunc('hour'::text, v.timestamp_rounded) AS datum_uur,
+    SUM(v.total_count) AS aantal_passanten
+   FROM cmsa_15min_view_v3_materialized v
+     JOIN peoplemeasurement_sensors s ON s.objectnummer::text = v.sensor::text
+  WHERE v.timestamp_rounded > to_date('2019-01-01'::text, 'YYYY-MM-DD'::text)
+  GROUP BY v.sensor, s.location_name, (date_trunc('hour'::text, v.timestamp_rounded)))
+SELECT sensor, location_name, datum_uur, aantal_passanten
+FROM cmsa_1h_v3
 """
         )
         while True:
