@@ -79,6 +79,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         count = 0
         cursor = waarnemingen_connection.execute(
             f"""
+SET TIME ZONE 'Europe/Amsterdam';
 WITH cmsa_1h_v3 AS
  (SELECT v.sensor,
     s.location_name,
@@ -89,7 +90,7 @@ WITH cmsa_1h_v3 AS
   WHERE v.timestamp_rounded > to_date('2019-01-01'::text, 'YYYY-MM-DD'::text)
   GROUP BY v.sensor, s.location_name, (date_trunc('hour'::text, v.timestamp_rounded)))
 SELECT sensor, location_name, datum_uur, aantal_passanten
-FROM cmsa_1h_v3
+FROM cmsa_1h_v3;
 """
         )
         while True:
