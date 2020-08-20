@@ -127,8 +127,26 @@ geluidszones:
     metro-spoorwegen-industrie: dro_geluid.csv
     schiphol: dro_geluid_schiphol.csv
 covid19:
-    files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf] 
+    files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
+    tables_to_create:
+      alcoholverkoopverbod: AVV
+      straatartiestverbod: SAV
+      aanlegverbod: ALV
+      verbodparken: GVP
+      mondmaskerverplichting: MMP
 spoorlijnen:
   files_to_download:
     metro: [metro.shp, metro.shx, metro.dbf]
     tram: [tram.shp, tram.shx, tram.dbf]
+overlastgebieden:
+  files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
+  tables_to_create:
+    cameratoezicht: CTG
+    dealeroverlast: DOG
+    uitgaansoverlast: UOG
+    alcoholverbod: AVG
+    taxistandplaats: taxi
+    vuurwerkvrij: VVZ
+    barbecueverbod: BBQ
+    rondleidingverbod: RLV
+    algemeneoverlast: AOL

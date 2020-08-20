@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.dummy_operator import DummyOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
@@ -29,6 +30,7 @@ dag_id = "covid_19"
 
 variables_covid19 = Variable.get("covid19", deserialize_json=True)
 files_to_download = variables_covid19["files_to_download"]
+tables_to_create = variables_covid19["tables_to_create"]
 tmp_dir = f"/tmp/{dag_id}"
 total_checks = []
 count_checks = []
@@ -65,34 +67,44 @@ with DAG(
         SwiftOperator(
             task_id=f"download_{file}",
             # Default swift = Various Small Datasets objectstore
-            #swift_conn_id="SWIFT_DEFAULT",
+            swift_conn_id="SWIFT_DEFAULT",
             container="covid19",
             object_id=f"{file}",
             output_path=f"{tmp_dir}/{file}",
         )
-        for file in files_to_download       
+        for file in files_to_download
     ]
 
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
     # 5. Create SQL
-    SHP_to_SQL = BashOperator(
-            task_id=f"create_SQL",
+    SHP_to_SQL = [
+        BashOperator(
+            task_id=f"create_SQL_{key}",
             bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-s_srs EPSG:28992 -t_srs EPSG:28992 "            
-            f"-nln {dag_id} "
-            f"{tmp_dir}/{dag_id}.sql {tmp_dir}/OOV_COVID19_totaal.shp "
+            f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
+            f"-nln {key} "
+            f"{tmp_dir}/{key}.sql {tmp_dir}/OOV_COVID19_totaal.shp "
             f"-lco GEOMETRY_NAME=geometry "
             f"-nlt PROMOTE_TO_MULTI "
             f"-lco precision=NO "
-            f"-lco FID=id",            
+            f"-lco FID=id "
+            f"-sql \"SELECT * FROM OOV_COVID19_totaal WHERE 1=1 AND TYPE = '{code}'\"",
         )
-      
+        for key, code in tables_to_create.items()
+    ]
 
     # 6. Create TABLE
-    create_table = BashOperator(
-            task_id=f"create_table",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
-        )    
-    
+    create_tables = [
+        BashOperator(
+            task_id=f"create_table_{key}",
+            bash_command=f"psql {pg_params()} < {tmp_dir}/{key}.sql",
+        )
+        for key in tables_to_create.keys()
+    ]
+
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
@@ -102,51 +114,66 @@ with DAG(
     )
 
     # Prepare the checks and added them per source to a dictionary
-    total_checks.clear()
-    count_checks.clear()
-    geo_checks.clear()
+    for key, _ in tables_to_create.items():
 
-    count_checks.append(
+        total_checks.clear()
+        count_checks.clear()
+        geo_checks.clear()
+
+        count_checks.append(
             COUNT_CHECK.make_check(
-                check_id=f"count_check",
+                check_id=f"count_check_{key}",
                 pass_value=2,
-                params=dict(table_name=f"{dag_id}"),
+                params=dict(table_name=f"{key}"),
                 result_checker=operator.ge,
             )
         )
 
-    geo_checks.append(
+        geo_checks.append(
             GEO_CHECK.make_check(
-                check_id=f"geo_check",
-                params=dict(table_name=f"{dag_id}", geotype=["MULTIPOLYGON"],),
+                check_id=f"geo_check_{key}",
+                params=dict(table_name=f"{key}", geotype=["MULTIPOLYGON"],),
                 pass_value=1,
             )
         )
 
-    total_checks = count_checks + geo_checks
-    check_name[f"{dag_id}"] = total_checks
+        total_checks = count_checks + geo_checks
+        check_name[f"{key}"] = total_checks
 
-    # 8. Execute bundled checks on database
-    multi_check = PostgresMultiCheckOperator(
-            task_id=f"multi_check", checks=check_name[f"{dag_id}"]
-        )       
-    
-    # 9. drop exsisting table
-    drop_table = PostgresOperator(
-        task_id=f"drop_table", sql=[f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",],
-    )
+    # 13. Execute bundled checks on database
+    multi_checks = [
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
+        )
+        for key in tables_to_create.keys()
+    ]
+
+    # # 9. drop exsisting table
+    # drop_table = PostgresOperator(
+    #     task_id=f"drop_table", sql=[f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",],
+    # )
 
     # 10. Rename TABLE
-    rename_table = PostgresTableRenameOperator(
-            task_id=f"rename_table",
-            old_table_name=f"{dag_id}",
-            new_table_name=f"{dag_id}_{dag_id}",
+    rename_tables = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_table_{key}",
+            old_table_name=f"{key}",
+            new_table_name=f"{dag_id}_{key}",
         )
-       
+        for key in tables_to_create.keys()
+    ]
 
 for data in zip(download_data):
 
-    data >> SHP_to_SQL >> create_table >> provenance_translation >> multi_check >> drop_table >> rename_table 
+    data >> Interface >> SHP_to_SQL
+
+for (create_SQL, create_table, multi_check, rename_table,) in zip(
+    SHP_to_SQL, create_tables, multi_checks, rename_tables,
+):
+
+    [create_SQL >> create_table] >> provenance_translation >> multi_check
+
+    [multi_check >> rename_table]
 
 slack_at_start >> mkdir >> download_data
 
