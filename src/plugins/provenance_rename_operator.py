@@ -1,4 +1,5 @@
 from collections import defaultdict
+from os.path import realpath
 from environs import Env
 from airflow.models.baseoperator import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
@@ -17,6 +18,8 @@ class ProvenanceRenameOperator(BaseOperator):
         pg_schema="public",
         postgres_conn_id="postgres_default",
         rename_indexes=False,
+        prefix_table_name=None,
+        postfix_table_name=None,
         *args,
         **kwargs,
     ):
@@ -25,6 +28,11 @@ class ProvenanceRenameOperator(BaseOperator):
         self.dataset_name = dataset_name
         self.pg_schema = pg_schema
         self.rename_indexes = rename_indexes
+        # The table to enforce the provenance translations is defined by the table ID in the schema definition.
+        # If the provenance translations must be applied on a temp table name i.e. 'spoorlijnen_metro_new'
+        # then specify the prefix (i.e. spoorlijnen_) and postfix (i.e. _new) when calling this operator.
+        self.prefix_table_name = prefix_table_name if prefix_table_name else ""
+        self.postfix_table_name = postfix_table_name if postfix_table_name else ""
 
     def _snake_tablenames(self, tablenames):
         return ", ".join((f"'{to_snake_case(tn)}'" for tn in tablenames))
@@ -34,7 +42,10 @@ class ProvenanceRenameOperator(BaseOperator):
             return []
         table_lookup = {}
         for table in tables:
-            real_tablename = table.get("provenance", table.id)
+            real_tablename = table.get(
+                "provenance",
+                self.prefix_table_name + table.id + self.postfix_table_name,
+            )
             table_lookup[real_tablename] = table
 
         snaked_tablenames_str = self._snake_tablenames(table_lookup.keys())
@@ -44,6 +55,7 @@ class ProvenanceRenameOperator(BaseOperator):
                 WHERE schemaname = '{pg_schema}' AND tablename IN ({snaked_tablenames_str})
             """
         )
+
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(self, pg_hook, snaked_tablenames, pg_schema="public"):
