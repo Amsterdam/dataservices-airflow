@@ -81,7 +81,7 @@ with DAG(
             task_id=f"create_SQL_{key}",
             bash_command=f"ogr2ogr -f 'PGDump' "
             f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
-            f"-nln {key} "
+            f"-nln {dag_id}_{key}_new "
             f"{tmp_dir}/{key}.sql {tmp_dir}/{file} "
             f"-lco GEOMETRY_NAME=geometry "
             f"-nlt PROMOTE_TO_MULTI "
@@ -110,7 +110,7 @@ with DAG(
     remove_null_geometry_records = [
         PostgresOperator(
             task_id=f"remove_null_geom_records_{key}",
-            sql=[f"DELETE FROM {key} WHERE 1=1 AND (geometry IS NULL OR ST_IsValid(geometry) is false); COMMIT;", ],
+            sql=[f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND (geometry IS NULL OR ST_IsValid(geometry) is false); COMMIT;", ],
         )
         for key in files_to_download.keys()
     ]
@@ -119,6 +119,8 @@ with DAG(
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=f"{dag_id}",
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
     )
@@ -134,7 +136,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=500,
-                params=dict(table_name=f"{key}"),
+                params=dict(table_name=f"{dag_id}_{key}_new"),
                 result_checker=operator.ge,
             )
         )
@@ -142,7 +144,7 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(table_name=f"{key}", geotype=["MULTILINESTRING"],),
+                params=dict(table_name=f"{dag_id}_{key}_new", geotype=["MULTILINESTRING"],),
                 pass_value=1,
             )
         )
@@ -162,7 +164,7 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
-            old_table_name=f"{key}",
+            old_table_name=f"{dag_id}_{key}_new",
             new_table_name=f"{dag_id}_{key}",
         )
         for key in files_to_download.keys()
