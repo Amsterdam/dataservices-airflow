@@ -96,7 +96,7 @@ with DAG(
             task_id=f"generate_SQL_{splitted_tablename}",
             bash_command=f"ogr2ogr -f 'PGDump' "
             f"-t_srs EPSG:28992 "
-            f"-nln {splitted_tablename} "
+            f"-nln {dag_id}_{splitted_tablename}_new "
             f"{tmp_dir}/{splitted_tablename}.sql {tmp_dir}/utf_8_{key.replace('-','_')}.csv "
             f"-lco SEPARATOR=SEMICOLON "
             f"-oo AUTODETECT_TYPE=YES "
@@ -123,7 +123,7 @@ with DAG(
         PostgresOperator(
             task_id=f"re-define_geom_{splitted_tablename}",
             sql=SET_GEOM,
-            params=dict(tablename=f"{splitted_tablename}"),
+            params=dict(tablename=f"{dag_id}_{splitted_tablename}_new"),
         )
         for key in files_to_download.keys()
         for splitted_tablename in key.split("-")
@@ -136,7 +136,7 @@ with DAG(
         PostgresOperator(
             task_id=f"add_context_{splitted_tablename}",
             sql=ADD_THEMA_CONTEXT,
-            params=dict(tablename=f"{splitted_tablename}", parent_table="themas"),
+            params=dict(tablename=f"{dag_id}_{splitted_tablename}_new", parent_table=f"{dag_id}_themas_new"),
         )
         for key in files_to_download.keys()
         for splitted_tablename in key.split("-")
@@ -147,6 +147,8 @@ with DAG(
     provenance_translation = ProvenanceRenameOperator(
         task_id="provenance_rename",
         dataset_name=f"{dag_id}",
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
     )
@@ -165,7 +167,7 @@ with DAG(
                     COUNT_CHECK.make_check(
                         check_id=f"count_check_{splitted_tablename}",
                         pass_value=2,
-                        params=dict(table_name=f"{splitted_tablename}"),
+                        params=dict(table_name=f"{dag_id}_{splitted_tablename}_new"),
                         result_checker=operator.ge,
                     )
                 )
@@ -174,7 +176,7 @@ with DAG(
                     GEO_CHECK.make_check(
                         check_id=f"geo_check_{splitted_tablename}",
                         params=dict(
-                            table_name=f"{splitted_tablename}",
+                            table_name=f"{dag_id}_{splitted_tablename}_new",
                             geotype=["MULTIPOLYGON"],
                         ),
                         pass_value=1,
@@ -203,7 +205,7 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{splitted_tablename}",
-            old_table_name=f"{splitted_tablename}",
+            old_table_name=f"{dag_id}_{splitted_tablename}_new",
             new_table_name=f"{dag_id}_{splitted_tablename}",
         )
         for key in files_to_download.keys()
@@ -223,7 +225,7 @@ with DAG(
 
     # 15. Drop parent table THEMAS, not needed anymore
     drop_parent_table = PostgresOperator(
-        task_id=f"drop_parent_table", sql=[f"DROP TABLE IF EXISTS themas CASCADE",],
+        task_id=f"drop_parent_table", sql=[f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",],
     )
 
 for (data, change_seperator) in zip(download_data, change_seperators):
@@ -266,5 +268,5 @@ dag.doc_md = """
     https://api.data.amsterdam.nl/v1/docs/datasets/geluidszones.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/geluidszones.html
     Example geosearch: 
-    https://acc.api.data.amsterdam.nl/geosearch?datasets=geluidszones/schiphol&x=111153&y=483288&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=geluidszones/schiphol&x=111153&y=483288&radius=10
 """
