@@ -102,15 +102,17 @@ with DAG(
         for key in files_to_download.keys()
     ]
 
-    # 7. Remove invalid geometry records
+    # 7. Revalidate or Remove invalid geometry records
     # the source has some invalid records where the geometry is not present (NULL)
-    # or the geometry in itself is not valid
+    # or the geometry in itself is not valid (revalidate)
     # the removal of these records (less then 5) prevents errorness behaviour 
     # to do: inform the source maintainer 
-    remove_null_geometry_records = [
+    revalidate_remove_null_geometry_records = [
         PostgresOperator(
-            task_id=f"remove_null_geom_records_{key}",
-            sql=[f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND (geometry IS NULL OR ST_IsValid(geometry) is false); COMMIT;", ],
+            task_id=f"revalidate_remove_geom_{key}",
+            sql=[f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract(st_makevalid(geometry),2) WHERE 1=1 AND ST_IsValid(geometry) is false; COMMIT;",
+                 f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND geometry IS NULL; COMMIT;" 
+                ],
         )
         for key in files_to_download.keys()
     ]
@@ -178,15 +180,15 @@ for data in zip(download_data):
 for (
     create_SQL,
     create_table,
-    remove_null_geometry_record,
+    revalidate_remove_geom_record,
     multi_check,
     rename_table,
 ) in zip(
-    SHP_to_SQL, create_tables, remove_null_geometry_records, multi_checks, rename_tables,
+    SHP_to_SQL, create_tables, revalidate_remove_null_geometry_records, multi_checks, rename_tables,
 ):
 
     [
-        create_SQL >> create_table >> remove_null_geometry_record
+        create_SQL >> create_table >> revalidate_remove_geom_record
     ] >> provenance_translation >> multi_check
 
     [multi_check >> rename_table]
