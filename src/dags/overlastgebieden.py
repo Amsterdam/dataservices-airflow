@@ -112,16 +112,14 @@ with DAG(
         pg_schema="public",
     )
 
-    # 8. Remove invalid geometry records
-    # the source has some invalid records where the geometry is not present (NULL)
-    # or the geometry in itself is not valid
-    # the removal of these records (less then 5) prevents errorness behaviour
+    # 8. Revalidate invalid geometry records
+    # the source has some invalid records
     # to do: inform the source maintainer
     remove_null_geometry_records = [
         PostgresOperator(
             task_id=f"remove_null_geom_records_{key}",
             sql=[
-                f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND (geometry IS NULL OR ST_IsValid(geometry) is false); COMMIT;",
+                f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract((st_makevalid(geometry)),3) WHERE 1=1 AND ST_IsValid(geometry) is false; COMMIT;",
             ],
         )
         for key in tables_to_create.keys()
