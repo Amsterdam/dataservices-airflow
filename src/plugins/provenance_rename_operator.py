@@ -18,8 +18,8 @@ class ProvenanceRenameOperator(BaseOperator):
         pg_schema="public",
         postgres_conn_id="postgres_default",
         rename_indexes=False,
-        prefix_table_name=None,
-        postfix_table_name=None,
+        prefix_table_name="",
+        postfix_table_name="",
         *args,
         **kwargs,
     ):
@@ -31,8 +31,8 @@ class ProvenanceRenameOperator(BaseOperator):
         # The table to enforce the provenance translations is defined by the table ID in the schema definition.
         # If the provenance translations must be applied on a temp table name i.e. 'spoorlijnen_metro_new'
         # then specify the prefix (i.e. spoorlijnen_) and postfix (i.e. _new) when calling this operator.
-        self.prefix_table_name = prefix_table_name if prefix_table_name else ""
-        self.postfix_table_name = postfix_table_name if postfix_table_name else ""
+        self.prefix_table_name = prefix_table_name
+        self.postfix_table_name = postfix_table_name
 
     def _snake_tablenames(self, tablenames):
         return ", ".join((f"'{to_snake_case(tn)}'" for tn in tablenames))
