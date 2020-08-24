@@ -139,7 +139,7 @@ spoorlijnen:
     metro: [metro.shp, metro.shx, metro.dbf]
     tram: [tram.shp, tram.shx, tram.dbf]
 overlastgebieden:
-  files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
+  files_to_download: [OOV_gebieden_totaal.shp, OOV_gebieden_totaal.shx, OOV_gebieden_totaal.dbf]
   tables_to_create:
     cameratoezicht: CTG
     dealeroverlast: DOG
@@ -149,4 +149,4 @@ overlastgebieden:
     vuurwerkvrij: VVZ
     barbecueverbod: BBQ
     rondleidingverbod: RLV
-    algemeneoverlast: AOL
+    algemeneoverlast: AOG
