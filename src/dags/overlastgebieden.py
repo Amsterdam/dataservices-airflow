@@ -1,61 +1,53 @@
-import pathlib
+import operator
 from airflow import DAG
+from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from airflow.operators.dummy_operator import DummyOperator
+
+from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_rename_operator import PostgresTableRenameOperator
 from swift_operator import SwiftOperator
-from postgres_files_operator import PostgresFilesOperator
 
 from common import (
-    vsd_default_args,
+    default_args,
+    pg_params,
     slack_webhook_token,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    MessageOperator,
 )
 
-from common.sql import (
-    SQL_TABLE_RENAME,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
-    SQL_CHECK_COLNAMES,
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    GEO_CHECK,
 )
-
-PROCESS_TABLE = """
-    DELETE FROM overlastgebieden_new WHERE wkb_geometry is null;
-    -- insert polygons valid, as duplicate, unpacking them where needed
-    INSERT INTO overlastgebieden_new (wkb_geometry, oov_naam, type, url)
-    SELECT b.geom wkb_geometry, oov_naam, type, url FROM
-    (
-        SELECT oov_naam, type, url, (ST_Dump(ST_CollectionExtract(ST_MakeValid(ST_Multi(wkb_geometry)), 3))).geom as geom FROM
-        (
-            SELECT * FROM overlastgebieden_new WHERE ST_IsValid(wkb_geometry) = false
-        ) a
-    ) b;
-    -- remove invalid polygons (duplicates were inserted in previous statement)
-    DELETE FROM overlastgebieden_new WHERE ST_IsValid(wkb_geometry) = false;
-"""
 
 dag_id = "overlastgebieden"
-data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
+
+variables_overlastgebieden = Variable.get("overlastgebieden", deserialize_json=True)
+files_to_download = variables_overlastgebieden["files_to_download"]
+tables_to_create = variables_overlastgebieden["tables_to_create"]
+tmp_dir = f"/tmp/{dag_id}"
+total_checks = []
+count_checks = []
+geo_checks = []
+check_name = {}
+
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
+def quote(instr):
+    return f"'{instr}'"
 
 
-def checker(records, pass_value):
-    found_colnames = set(r[0] for r in records)
-    return found_colnames >= set(pass_value)
+with DAG(
+    dag_id,
+    description="alcohol-, straatartiest-, aanleg- en parkenverbodsgebieden, mondmaskerverplichtinggebieden, e.d.",
+    default_args=default_args,
+    user_defined_filters=dict(quote=quote),
+    template_searchpath=["/"],
+) as dag:
 
-
-with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as dag:
-
-    tmp_dir = f"/tmp/{dag_id}"
-    colnames = [
-        "ogc_fid",
-        "wkb_geometry",
-        "oov_naam",
-        "type",
-        "url",
-    ]
-    fetch_shp_files = []
-
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -64,66 +56,164 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         username="admin",
     )
 
-    for ext in ("dbf", "prj", "shp", "shx"):
-        file_name = f"OOV_gebieden_totaal.{ext}"
-        fetch_shp_files.append(
-            SwiftOperator(
-                task_id=f"fetch_shp_{ext}",
-                container=dag_id,
-                object_id=file_name,
-                output_path=f"/tmp/{dag_id}/{file_name}",
+    # 2. Create temp directory to store files
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+
+    # 3. Download data
+    download_data = [
+        SwiftOperator(
+            task_id=f"download_{file}",
+            # Default swift = Various Small Datasets objectstore
+            swift_conn_id="SWIFT_DEFAULT",
+            container="overlastgebieden",
+            object_id=f"{file}",
+            output_path=f"{tmp_dir}/{file}",
+        )
+        for file in files_to_download
+    ]
+
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 5. Create SQL
+    SHP_to_SQL = [
+        BashOperator(
+            task_id=f"create_SQL_{key}",
+            bash_command=f"ogr2ogr -f 'PGDump' "
+            f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
+            f"-nln {dag_id}_{key}_new "
+            f"{tmp_dir}/{dag_id}_{key}_new.sql {tmp_dir}/OOV_gebieden_totaal.shp "
+            f"-lco GEOMETRY_NAME=geometry "
+            f"-nlt PROMOTE_TO_MULTI "
+            f"-lco precision=NO "
+            f"-lco FID=id "
+            f"-sql \"SELECT * FROM OOV_gebieden_totaal WHERE 1=1 AND TYPE = '{code}'\" ",
+        )
+        for key, code in tables_to_create.items()
+    ]
+
+    # 6. Create TABLE
+    create_tables = [
+        BashOperator(
+            task_id=f"create_table_{key}",
+            bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}_{key}_new.sql",
+        )
+        for key in tables_to_create.keys()
+    ]
+
+    # 7. Rename COLUMNS based on Provenance
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns",
+        dataset_name=f"{dag_id}",
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema="public",
+    )
+
+    # 8. Remove invalid geometry records
+    # the source has some invalid records where the geometry is not present (NULL)
+    # or the geometry in itself is not valid
+    # the removal of these records (less then 5) prevents errorness behaviour
+    # to do: inform the source maintainer
+    remove_null_geometry_records = [
+        PostgresOperator(
+            task_id=f"remove_null_geom_records_{key}",
+            sql=[
+                f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND (geometry IS NULL OR ST_IsValid(geometry) is false); COMMIT;",
+            ],
+        )
+        for key in tables_to_create.keys()
+    ]
+
+    # Prepare the checks and added them per source to a dictionary
+    for key in tables_to_create.keys():
+
+        total_checks.clear()
+        count_checks.clear()
+        geo_checks.clear()
+
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{key}",
+                pass_value=2,
+                params=dict(table_name=f"{dag_id}_{key}_new"),
+                result_checker=operator.ge,
             )
         )
 
-    extract_shp = BashOperator(
-        task_id="extract_shp",
-        bash_command=f"ogr2ogr -f 'PGDump' -t_srs EPSG:28992 -skipfailures -nln {dag_id}_new "
-        f"{tmp_dir}/{dag_id}.sql {tmp_dir}/OOV_gebieden_totaal.shp",
-    )
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{key}",
+                params=dict(
+                    table_name=f"{dag_id}_{key}_new", geotype=["MULTIPOLYGON"],
+                ),
+                pass_value=1,
+            )
+        )
 
-    convert_shp = BashOperator(
-        task_id="convert_shp",
-        bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{dag_id}.sql > "
-        f"{tmp_dir}/{dag_id}.utf8.sql",
-    )
+        total_checks = count_checks + geo_checks
+        check_name[f"{key}"] = total_checks
 
-    create_tables = PostgresFilesOperator(
-        task_id="create_tables", sql_files=[f"{tmp_dir}/{dag_id}.utf8.sql"],
-    )
+    # 9. Execute bundled checks on database
+    multi_checks = [
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
+        )
+        for key in tables_to_create.keys()
+    ]
 
-    process_table = PostgresOperator(task_id="process_table", sql=PROCESS_TABLE,)
+    # 10. Rename TABLE
+    rename_tables = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_table_{key}",
+            old_table_name=f"{dag_id}_{key}_new",
+            new_table_name=f"{dag_id}_{key}",
+        )
+        for key in tables_to_create.keys()
+    ]
 
-    check_count = PostgresCheckOperator(
-        task_id="check_count",
-        sql=SQL_CHECK_COUNT,
-        params=dict(tablename=f"{dag_id}_new", mincount=110),
-    )
+for data in zip(download_data):
 
-    check_colnames = PostgresValueCheckOperator(
-        task_id="check_colnames",
-        sql=SQL_CHECK_COLNAMES,
-        pass_value=colnames,
-        result_checker=checker,
-        params=dict(tablename=f"{dag_id}_new"),
-    )
+    data >> Interface >> SHP_to_SQL
 
-    check_geo = PostgresCheckOperator(
-        task_id="check_geo",
-        sql=SQL_CHECK_GEO,
-        params=dict(tablename=f"{dag_id}_new", geotype="ST_Polygon",),
-    )
+for (
+    create_SQL,
+    create_table,
+    remove_null_geometry_record,
+    multi_check,
+    rename_table,
+) in zip(
+    SHP_to_SQL,
+    create_tables,
+    remove_null_geometry_records,
+    multi_checks,
+    rename_tables,
+):
 
-    rename_table = PostgresOperator(
-        task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
-    )
+    [
+        create_SQL >> create_table >> remove_null_geometry_record
+    ] >> provenance_translation >> multi_check
 
-(
-    slack_at_start
-    >> fetch_shp_files
-    >> extract_shp
-    >> convert_shp
-    >> create_tables
-    >> process_table
-    >> [check_count, check_colnames, check_geo]
-    >> rename_table
-)
+    [multi_check >> rename_table]
+
+slack_at_start >> mkdir >> download_data
+
+dag.doc_md = """
+    #### DAG summery
+    This DAG containts data about nuisance areas (overlastgebieden) i.e. vuurwerkvrijezones, dealeroverlastgebieden, barbecueverbodgebiedeb, etc.
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process / origin
+    Na
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/docs/datasets/overlastgebieden.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/overlastgebieden.html
+    Example geosearch: 
+    https://api.data.amsterdam.nl/geosearch?datasets=overlastgebieden/vuurwerkvrij&x=106434&y=488995&radius=10
+"""
