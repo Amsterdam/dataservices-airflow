@@ -7,6 +7,7 @@ echo "Process import data"
 FILENAME=corona_handhaving.csv
 OBJECTSTORE_PATH=handhavingen/$FILENAME
 
+export AIRFLOW_CONN_SWIFT_DEFAULT=s3://${OS_USERNAME}:${OS_PASSWORD}@${OS_TENANT_NAME}
 echo "Download file from objectstore"
 python $SHARED_DIR/utils/get_objectstore_file.py "$OBJECTSTORE_PATH"
 
