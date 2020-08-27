@@ -1,5 +1,5 @@
 {
-  bagLigplaatsen($active: false) {
+  bagLigplaatsen(active: false) {
     edges {
       node {
         identificatie 
