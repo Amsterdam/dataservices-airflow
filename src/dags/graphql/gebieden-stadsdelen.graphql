@@ -1,5 +1,5 @@
 {
-  gebiedenStadsdelen($active: false) {
+  gebiedenStadsdelen(active: false) {
     edges {
       node {
         identificatie 

@@ -1,5 +1,5 @@
 {
-  gebiedenBouwblokken($active: false) {
+  gebiedenBouwblokken(active: false) {
     edges {
       node {
         identificatie 

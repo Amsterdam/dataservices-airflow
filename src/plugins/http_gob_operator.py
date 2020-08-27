@@ -54,7 +54,7 @@ class HttpGobOperator(BaseOperator):
             #            "lowercase": "true",
             #            "flatten": "true",
             "schema": self.db_table_name,
-            "geojson": self.geojson_field,
+            # "geojson": self.geojson_field,
         }
 
     def execute(self, context):

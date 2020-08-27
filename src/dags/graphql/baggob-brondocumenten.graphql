@@ -1,8 +1,7 @@
 {
-  bagBrondocumenten($active: false) {
+  bagBrondocumenten(active: false) {
     edges {
       node {
-        identificatie 
         documentnummer 
         bronleverancier 
         typeDossier 

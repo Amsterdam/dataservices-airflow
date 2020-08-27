@@ -1,5 +1,5 @@
 {
-  bagOnderzoeken($active: false) {
+  bagOnderzoeken(active: false) {
     edges {
       node {
         identificatie 

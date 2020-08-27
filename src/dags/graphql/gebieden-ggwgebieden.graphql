@@ -1,5 +1,5 @@
 {
-  gebiedenGgwgebieden($active: false) {
+  gebiedenGgwgebieden(active: false) {
     edges {
       node {
         identificatie 

@@ -1,5 +1,5 @@
 {
-  wkpbBrondocumenten($active: false) {
+  wkpbBrondocumenten(active: false) {
     edges {
       node {
         documentnummer 

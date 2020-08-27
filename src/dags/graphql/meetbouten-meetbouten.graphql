@@ -1,5 +1,5 @@
 {
-  meetboutenMeetbouten($active: false, publiceerbaar: true) {
+  meetboutenMeetbouten(active: false, publiceerbaar: true) {
     edges {
       node {
         identificatie 

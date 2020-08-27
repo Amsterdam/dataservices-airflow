@@ -1,5 +1,5 @@
 {
-  meetboutenReferentiepunten($active: false, publiceerbaar: true) {
+  meetboutenReferentiepunten(active: false, publiceerbaar: true) {
     edges {
       node {
         identificatie 

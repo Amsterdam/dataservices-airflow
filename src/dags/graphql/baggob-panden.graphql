@@ -1,5 +1,5 @@
 {
-  bagPanden($active: false) {
+  bagPanden(active: false) {
     edges {
       node {
         identificatie 
