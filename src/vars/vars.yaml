@@ -150,3 +150,11 @@ overlastgebieden:
     barbecueverbod: BBQ
     rondleidingverbod: RLV
     algemeenoverlast: AOG
+milieuzones:
+  files_to_download: [milieuzones.json]
+  tables_to_create:
+    touringcar: touringcar
+    taxi: taxi
+    bromensnorfiets: brom- en snorfiets
+    vrachtauto: vracht
+    bestelbus: bestel    
