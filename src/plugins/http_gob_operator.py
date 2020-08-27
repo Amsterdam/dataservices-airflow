@@ -51,8 +51,8 @@ class HttpGobOperator(BaseOperator):
     def _fetch_params(self):
         return {
             "condens": "node,edges,id",
-            "lowercase": "true",
-            "flatten": "true",
+            #            "lowercase": "true",
+            #            "flatten": "true",
             "schema": self.db_table_name,
             "geojson": self.geojson_field,
         }
