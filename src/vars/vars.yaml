@@ -157,4 +157,6 @@ milieuzones:
     taxi: taxi
     bromensnorfiets: brom- en snorfiets
     vrachtauto: vracht
-    bestelbus: bestel    
+    bestelbus: bestel
+evenementen:
+    data_endpoint: https://evenementen.amsterdam.nl/?geojson=true&pager_rows=5000   
