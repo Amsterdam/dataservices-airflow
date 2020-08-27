@@ -1,5 +1,5 @@
 {
-  bagVerblijfsobjecten($active: false) {
+  bagVerblijfsobjecten(active: false) {
     edges {
       node {
         identificatie 

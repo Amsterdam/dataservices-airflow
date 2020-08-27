@@ -1,5 +1,5 @@
 {
-  bagOpenbareruimtes($active: false) {
+  bagOpenbareruimtes(active: false) {
     edges {
       node {
         identificatie 

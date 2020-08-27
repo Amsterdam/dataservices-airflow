@@ -1,5 +1,5 @@
 {
-  bagNummeraanduidingen($active: false) {
+  bagNummeraanduidingen(active: false) {
     edges {
       node {
         identificatie 

@@ -1,8 +1,7 @@
 {
-  bagDossiers($active: false) {
+  bagDossiers(active: false) {
     edges {
       node {
-        identificatie 
         dossier 
         heeftBrondocumenten {
           edges {

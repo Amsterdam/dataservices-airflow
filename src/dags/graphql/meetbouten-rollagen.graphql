@@ -1,5 +1,5 @@
 {
-  meetboutenRollagen($active: false) {
+  meetboutenRollagen(active: false) {
     edges {
       node {
         identificatie 
