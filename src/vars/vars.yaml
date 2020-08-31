@@ -130,9 +130,8 @@ covid19:
     files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
     tables_to_create:
       alcoholverkoopverbod: AVV
-      straatartiestverbod: SAV
-      aanlegverbod: ALV
-      verbodparken: GVP
+      straatartiestverbod: SAV      
+      gebiedsverbod: GVP
       mondmaskerverplichting: MMP
 spoorlijnen:
   files_to_download:
