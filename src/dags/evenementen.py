@@ -76,8 +76,7 @@ with DAG(
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
     # 3. Download data
-    download_data = PythonOperator(
-        task_id=f"download_data", python_callable=get_data)
+    download_data = PythonOperator(task_id=f"download_data", python_callable=get_data)
 
     # 4. Create SQL
     # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
@@ -121,8 +120,7 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}_new", geotype=["POINT"],),
+            params=dict(table_name=f"{dag_id}_{dag_id}_new", geotype=["POINT"],),
             pass_value=1,
         )
     )
@@ -151,7 +149,6 @@ with DAG(
     >> provenance_translation
     >> multi_checks
     >> rename_table
-
 )
 
 dag.doc_md = """
