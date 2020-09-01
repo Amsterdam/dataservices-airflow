@@ -158,4 +158,8 @@ milieuzones:
     vrachtauto: vracht
     bestelbus: bestel
 evenementen:
-    data_endpoint: https://evenementen.amsterdam.nl/?geojson=true&pager_rows=5000   
+    data_endpoint: https://evenementen.amsterdam.nl/?geojson=true&pager_rows=5000
+aardgasvrijezones:
+    files_to_download: 
+      buurt: [buurten_na_inspraak.dbf, buurten_na_inspraak.shp, buurten_na_inspraak.shx]
+      buurtinitiatief: [buurtinitiatieven.dbf, buurtinitiatieven.shp, buurtinitiatieven.shx]
