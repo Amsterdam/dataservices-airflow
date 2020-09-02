@@ -5,7 +5,7 @@ MAINTAINER datapunt@amsterdam.nl
 # Seems that pg_comparator installs full postgresql, that's not what we want
 # RUN apt-get update && apt-get install -y postgresql-comparator
 RUN apt-get update \
- && apt-get install --no-install-recommends -y rsync libaio1 supervisor
+ && apt-get install --no-install-recommends -y rsync libaio1 supervisor curl libcurl4
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
@@ -23,6 +23,8 @@ COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libaio* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
+COPY --from=builder /usr/bin/ /usr/bin/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl* /usr/lib/x86_64-linux-gnu/
 RUN ldconfig
 
 # Copy patch binary, needed to patch airflow bug
