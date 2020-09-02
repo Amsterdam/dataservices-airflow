@@ -3,6 +3,7 @@ import shutil
 from pathlib import Path
 from environs import Env
 from tempfile import TemporaryDirectory
+from typing import Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
@@ -32,30 +33,46 @@ class HttpGobOperator(BaseOperator):
         endpoint: str,
         dataset: str,
         schema: str,
-        geojson_field: str,
-        graphql_query_path: str,
-        http_conn_id="http_default",
         *args,
+        geojson_field: str = None,
+        lowercase: bool = False,
+        flatten: bool = False,
+        graphql_query_path: str,
+        batch_size: int = 2000,
+        max_cursor_pos: Optional[int] = None,
+        http_conn_id="http_default",
         **kwargs,
     ) -> None:
         self.dataset = dataset
         self.schema = schema
-        self.geojson_field = geojson_field
+        self.geojson = geojson_field
         self.graphql_query_path = graphql_query_path
         self.http_conn_id = http_conn_id
         self.endpoint = endpoint
         self.http_conn_id = http_conn_id
+        self.batch_size = batch_size
+        self.max_cursor_pos = max_cursor_pos
         self.db_table_name = f"{self.dataset}_{self.schema}"
         super().__init__(*args, **kwargs)
 
     def _fetch_params(self):
-        return {
+        params = {
             "condens": "node,edges,id",
-            #            "lowercase": "true",
-            #            "flatten": "true",
             "schema": self.db_table_name,
-            # "geojson": self.geojson_field,
         }
+        for additional_param_name in ("geojson", "lowercase", "flatten"):
+            if hasattr(self, additional_param_name):
+                params[additional_param_name] = getattr(self, additional_param_name)
+        return params
+
+    def add_batch_params_to_query(self, query, cursor_pos):
+        # Simple approach, just string replacement
+        # alternative would be to parse query with graphql-core lib, alter AST
+        # and render query, seems overkill for now
+        return query.replace(
+            "active: false",
+            f"active: false, first: {self.batch_size}, after: {cursor_pos}",
+        )
 
     def execute(self, context):
         with TemporaryDirectory() as temp_dir:
@@ -64,31 +81,48 @@ class HttpGobOperator(BaseOperator):
             http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
 
             self.log.info("Calling GOB graphql endpoint")
-            with self.graphql_query_path.open() as gql_file:
-                response = http.run(
-                    self.endpoint,
-                    self._fetch_params(),
-                    json.dumps(dict(query=gql_file.read())),
-                    {"Content-Type": "application/x-ndjson"},
-                    extra_options={"stream": True},
-                )
-            # When content is encoded (gzip etc.) we need this
-            # response.raw.read = functools.partial(response.raw.read, decode_content=True)
-            # Use a tempfolder
-            with tmp_file.open("wb") as wf:
-                shutil.copyfileobj(response.raw, wf)
 
-            # And use the ndjson importer from schematools, give it a tmp tablename
             # we know the schema, can be an input param (schema_def_from_url function)
+            # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresHook()
             schema_def = schema_def_from_url(SCHEMA_URL, self.dataset)
             importer = NDJSONImporter(
                 schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log
             )
-
-            importer.load_file(
-                tmp_file,
-                table_name=self.schema,
-                db_table_name=f"{self.db_table_name}_new",
-                truncate=True,  # when reexecuting the same task
+            importer.generate_tables(
+                table_name=self.schema, db_table_name=f"{self.db_table_name}_new",
             )
+            # For GOB content, cursor value is exactly the same as
+            # the record index. If this were not true, the cursor needed
+            # to be obtained from the last content record
+            cursor_pos = 0
+            while True:
+                with self.graphql_query_path.open() as gql_file:
+                    response = http.run(
+                        self.endpoint,
+                        self._fetch_params(),
+                        json.dumps(
+                            dict(
+                                query=self.add_batch_params_to_query(
+                                    gql_file.read(), cursor_pos
+                                )
+                            )
+                        ),
+                        {"Content-Type": "application/x-ndjson"},
+                        extra_options={"stream": True},
+                    )
+                # No records returns one newline and a Content-Length header
+                # If records are available, there is no Content-Length header
+                if (
+                    int(response.headers.get("Content-Length", "2")) < 2
+                    or cursor_pos >= self.max_cursor_pos
+                ):
+                    break
+                cursor_pos += self.batch_size
+                # When content is encoded (gzip etc.) we need this
+                # response.raw.read = functools.partial(response.raw.read, decode_content=True)
+                # Use a tempfolder
+                with tmp_file.open("wb") as wf:
+                    shutil.copyfileobj(response.raw, wf)
+
+                importer.load_file(tmp_file)
