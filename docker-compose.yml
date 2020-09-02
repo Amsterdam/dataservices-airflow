@@ -53,6 +53,10 @@ services:
       OS_PASSWORD: ${VSD_PASSWD}
       OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
+      OOV_BRIEVENBUS_USER: ${oov_brievenbus_user}
+      OOV_BRIEVENBUS_PASSWORD: ${oov_brievenbus_password}
+      OOV_BRIEVENBUS_HOST: ${oov_brievenbus_host}  
+      OOV_BRIEVENBUS_PORT: ${oov_brievenbus_port}
       DAG_SYNC_PATH: /tmp/synced-dags
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types

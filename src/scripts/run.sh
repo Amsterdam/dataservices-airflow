@@ -1,4 +1,6 @@
 #!/bin/bash
+apt-get update \
+ && apt-get install --no-install-recommends -y curl # to use in the airflow container to download source files
 export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN:-`echo $AIRFLOW_CONN_POSTGRES_DEFAULT | cut -d'?' -f 1`}
 export AIRFLOW_CONN_POSTGRES_VSD={$AIRFLOW_CONN_POSTGRES_VSD:-$AIRFLOW__CORE__SQL_ALCHEMY_CONN}
 airflow initdb  # initdb is not destructive, so can be re-run at startup
