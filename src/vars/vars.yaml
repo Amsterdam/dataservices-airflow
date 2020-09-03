@@ -163,3 +163,5 @@ aardgasvrijezones:
     files_to_download: 
       buurt: [buurten_na_inspraak.dbf, buurten_na_inspraak.shp, buurten_na_inspraak.shx]
       buurtinitiatief: [buurtinitiatieven.dbf, buurtinitiatieven.shp, buurtinitiatieven.shx]
+vastgoed:
+    files_to_download: [export_vastgoed.csv]
