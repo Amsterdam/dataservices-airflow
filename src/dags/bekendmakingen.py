@@ -1,57 +1,52 @@
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
+import operator
 
 from airflow import DAG
 from airflow.models import Variable
-from http_fetch_operator import HttpFetchOperator
-from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.postgres_operator import PostgresOperator
 
-# from .common import pg_params, default_args, slack_webhook_token
+from http_fetch_operator import HttpFetchOperator
+
+from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+
 from common import (
-    pg_params,
     default_args,
+    pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
 )
-from common.sql import (
-    SQL_TABLE_RENAME,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
-    SQL_DROP_TABLE,
-    SQL_CHECK_COLNAMES,
+
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    GEO_CHECK,
 )
 
-SQL_DROP_BBOX = """
-    BEGIN;
-    ALTER TABLE bekendmakingen_new DROP column bbox;
-    COMMIT;
-"""
+from sql.bekendmakingen import CONVERT_TO_GEOM
 
 dag_id = "bekendmakingen"
-dag_config = Variable.get(dag_id, deserialize_json=True)
+variables = Variable.get(dag_id, deserialize_json=True)
+tmp_dir = f"/tmp/{dag_id}"
+total_checks = []
+count_checks = []
+geo_checks = []
 
-with DAG(dag_id, default_args=default_args,) as dag:
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
+def quote(instr):
+    return f"'{instr}'"
 
-    tmp_dir = f"/tmp/{dag_id}"
-    tmp_file_prefix = f"{tmp_dir}/{dag_id}"
-    colnames = [
-        ["beschrijving"],
-        ["categorie"],
-        ["datum"],
-        ["id"],
-        ["ogc_fid"],
-        ["oid_"],
-        ["onderwerp"],
-        ["overheid"],
-        ["plaats"],
-        ["postcodehuisnummer"],
-        ["straat"],
-        ["titel"],
-        ["url"],
-        ["wkb_geometry"],
-    ]
 
+with DAG(
+    dag_id,
+    description="bekendmakingen en kennisgevingen",
+    default_args=default_args,
+    template_searchpath=["/"],
+    user_defined_filters=dict(quote=quote),
+) as dag:
+
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -60,60 +55,111 @@ with DAG(dag_id, default_args=default_args,) as dag:
         username="admin",
     )
 
-    wfs_fetch = HttpFetchOperator(
+    # 2. Create temp directory to store files
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+
+    # 3. Download data
+    download_data = HttpFetchOperator(
         task_id="wfs_fetch",
-        endpoint=dag_config["wfs_endpoint"],
+        endpoint=variables["wfs_endpoint"],
         http_conn_id="geozet_conn_id",
-        data=dag_config["wfs_params"],
-        tmp_file=f"{tmp_file_prefix}.json",
+        data=variables["wfs_params"],
+        output_type="text",
+        tmp_file=f"{tmp_dir}/{dag_id}.json",
     )
 
-    extract_wfs = BashOperator(
-        task_id="extract_wfs",
-        bash_command=f"ogr2ogr -f 'PGDump' -a_srs EPSG:28992 "
-        f"-nln {dag_id}_new "
-        f"{tmp_file_prefix}.sql {tmp_file_prefix}.json",
+    # 4. Create SQL
+    JSON_to_SQL = BashOperator(
+        task_id="JSON_to_SQL",
+        bash_command=f"ogr2ogr -f 'PGDump' "
+        f"-t_srs EPSG:28992 "
+        f"-nln {dag_id}_{dag_id}_new "
+        f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.json "
+        f"-lco GEOMETRY_NAME=geometry "
+        f"-lco FID=id",
     )
 
-    drop_table = PostgresOperator(
-        task_id="drop_table",
-        sql=SQL_DROP_TABLE,
-        params=dict(tablename=f"{dag_id}_new"),
+    # 5. Create TABLE
+    create_table = BashOperator(
+        task_id="create_table",
+        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
     )
 
-    load_table = BashOperator(
-        task_id="load_table", bash_command=f"psql {pg_params()} < {tmp_file_prefix}.sql",
+    # 6. Convert BBOX (array of floats) to GEOM datatype
+    convert_to_geom = PostgresOperator(
+        task_id="convert_bbox_to_geom",
+        sql=CONVERT_TO_GEOM,
+        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    drop_bbox = PostgresOperator(task_id="drop_bbox", sql=SQL_DROP_BBOX)
-
-    check_count = PostgresCheckOperator(
-        task_id="check_count",
-        sql=SQL_CHECK_COUNT,
-        params=dict(tablename=f"{dag_id}_new", mincount=1000),
+    # 7. Rename COLUMNS based on Provenance
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns",
+        dataset_name=f"{dag_id}",
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema="public",
     )
 
-    check_geo = PostgresCheckOperator(
-        task_id="check_geo",
-        sql=SQL_CHECK_GEO,
-        params=dict(tablename=f"{dag_id}_new", geotype="ST_Point"),
+    # PREPARE CHECKS
+    count_checks.append(
+        COUNT_CHECK.make_check(
+            check_id=f"count_check",
+            pass_value=50,
+            params=dict(table_name=f"{dag_id}_{dag_id}_new "),
+            result_checker=operator.ge,
+        )
     )
 
-    check_colnames = PostgresValueCheckOperator(
-        task_id="check_colnames",
-        sql=SQL_CHECK_COLNAMES,
-        pass_value=colnames,
-        params=dict(tablename=f"{dag_id}_new"),
+    geo_checks.append(
+        GEO_CHECK.make_check(
+            check_id=f"geo_check",
+            params=dict(table_name=f"{dag_id}_{dag_id}_new", geotype=["POINT"],),
+            pass_value=1,
+        )
     )
 
-    rename_table = PostgresOperator(
-        task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
+    total_checks = count_checks + geo_checks
+
+    # 8. RUN bundled CHECKS
+    multi_checks = PostgresMultiCheckOperator(
+        task_id=f"multi_check", checks=total_checks
     )
 
-    slack_at_start >> wfs_fetch >> extract_wfs >> drop_table >> load_table >> drop_bbox >> [
-        check_count,
-        check_geo,
-        check_colnames,
-    ] >> rename_table
+    # 9. Rename TABLE
+    rename_table = PostgresTableRenameOperator(
+        task_id=f"rename_table_{dag_id}",
+        old_table_name=f"{dag_id}_{dag_id}_new",
+        new_table_name=f"{dag_id}_{dag_id}",
+    )
 
-#  ${SCRIPT_DIR}/check_imported_data.py
+(
+    slack_at_start
+    >> mkdir
+    >> download_data
+    >> JSON_to_SQL
+    >> create_table
+    >> convert_to_geom
+    >> provenance_translation
+    >> multi_checks
+    >> rename_table
+)
+
+dag.doc_md = """
+    #### DAG summery
+    This DAG containts official announcements about licence applications (vergunningaanvragen e.d.)
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process / origin
+    Na
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/docs/datasets/bekendmakingen.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/bekendmakingen.html
+    Example geosearch: 
+    https://api.data.amsterdam.nl/geosearch?datasets=bekendmakingen/bekendmakingen&x=111153&y=483288&radius=10
+"""
