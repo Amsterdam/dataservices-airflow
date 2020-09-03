@@ -123,9 +123,10 @@ class ProvenanceRenameOperator(BaseOperator):
                     if "relation" in field:
                         snaked_field_name += "_id"
                     if provenance.lower() in existing_columns[snaked_tablename]:
+                        # quotes are applied on the provenance name in case the source uses a space in the name
                         sqls.append(
                             f"""ALTER TABLE {self.pg_schema}.{snaked_tablename}
-                                RENAME COLUMN {provenance} TO {snaked_field_name}"""
+                                RENAME COLUMN "{provenance}" TO {snaked_field_name}"""
                         )
 
             provenance = table.get("provenance")
