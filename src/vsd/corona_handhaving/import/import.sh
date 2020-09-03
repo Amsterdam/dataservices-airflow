@@ -19,6 +19,7 @@ curl -k ${OOV_HOST}:${OOV_PORT}\/${FILENAME} --user ${OOV_USER}:${OOV_PASSWORD} 
 echo "Upload source file (csv) from oov.brievenbus.amsterdam.nl to Object Store"
 curl -X PUT -T /tmp/corona_handhaving/${FILENAME} --user ${OS_USERNAME}:${OS_PASSWORD} https://${OS_TENANT_NAME}.objectstore.eu/handhavingen/${FILENAME}
 
+
 echo "Download file from objectstore as the startingpoint (the staging area) for processing"
 python $SHARED_DIR/utils/get_objectstore_file.py "$OBJECTSTORE_PATH"
 
