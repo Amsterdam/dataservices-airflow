@@ -14,7 +14,7 @@ OOV_HOST=${OOV_BRIEVENBUS_HOST}
 OOV_PORT=${OOV_BRIEVENBUS_PORT}
 OOV_USER=${OOV_BRIEVENBUS_USER}
 OOV_PASSWORD=${OOV_BRIEVENBUS_PASSWORD}
-curl -k ${OOV_HOST}:${OOV_PORT}\/${FILENAME} --user ${OOV_USER}:${OOV_PASSWORD} -o "/tmp/corona_handhaving\/${FILENAME}" --create-dirs
+curl -k ${OOV_HOST}:${OOV_PORT}\/${FILENAME} --user ${OOV_USER}:${OOV_PASSWORD} -o "/tmp/corona_handhaving/${FILENAME}" --create-dirs
 
 echo "Upload source file (csv) from oov.brievenbus.amsterdam.nl to Object Store"
 # URLdecode is needed for the password to pass
