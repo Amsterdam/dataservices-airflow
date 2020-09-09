@@ -3,6 +3,7 @@
     edges {
       node {
         identificatie 
+        cursor
         nabijNummeraanduiding {
           edges {
             node {

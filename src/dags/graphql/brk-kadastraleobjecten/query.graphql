@@ -1,0 +1,89 @@
+{
+  brkKadastraleobjecten(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        volgnummer 
+        registratiedatum 
+        id 
+        kadastraleAanduiding 
+        aangeduidDoorGemeente {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        aangeduidDoorKadastralegemeente {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        aangeduidDoorKadastralegemeentecode {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        aangeduidDoorKadastralesectie {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        perceelnummer 
+        indexletter 
+        indexnummer 
+        gemeente 
+        soortGrootte 
+        grootte 
+        soortCultuurBebouwd 
+        soortCultuurOnbebouwd 
+        status 
+        geometrie 
+        plaatscoordinaten 
+        perceelnummerRotatie 
+        perceelnummerVerschuiving 
+        bijpijlingGeometrie 
+        indicatieVoorlopigeGeometrie 
+        koopsom 
+        koopsomValutacode 
+        koopjaar 
+        indicatieMeerObjecten 
+        toestandsdatum 
+        beginGeldigheid 
+        eindGeldigheid 
+        inOnderzoek 
+        isOntstaanUitGPerceel {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftEenRelatieMetVerblijfsobject {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        isOntstaanUitKadastraalobject {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+      }
+    }
+  }
+}

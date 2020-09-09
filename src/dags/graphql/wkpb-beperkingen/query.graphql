@@ -3,23 +3,17 @@
     edges {
       node {
         identificatie 
+        cursor 
         volgnummer 
         beperking 
         beginGeldigheid 
         eindGeldigheid 
-        belastKadastraleObjecten {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
+        belastKadastraleObjecten 
         documentnummer 
         heeftDossier {
           edges {
             node {
-              dossier
+              dossier 
             }
           }
         }
