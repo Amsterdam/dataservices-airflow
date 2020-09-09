@@ -6,7 +6,8 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from http_gob_operator import HttpGobOperator
 from common import default_args, DATAPUNT_ENVIRONMENT
 
-MAX_CURSOR_POS = 10000 if DATAPUNT_ENVIRONMENT == "development" else None
+# MAX_CURSOR_POS = 10000 if DATAPUNT_ENVIRONMENT == "development" else None
+MAX_CURSOR_POS = None
 
 dag_id = "gob"
 owner = "gob"

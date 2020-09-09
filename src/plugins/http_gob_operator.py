@@ -9,6 +9,7 @@ from typing import Optional
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.hooks.http_hook import HttpHook
 from airflow.exceptions import AirflowException
 from schematools.importer.ndjson import NDJSONImporter
 from schematools.utils import schema_def_from_url
@@ -17,6 +18,10 @@ from http_params_hook import HttpParamsHook
 
 env = Env()
 SCHEMA_URL = env("SCHEMA_URL")
+
+OIDC_TOKEN_ENDPOINT = env("OIDC_TOKEN_ENDPOINT")
+OIDC_CLIENT_ID = env("OIDC_CLIENT_ID")
+OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET")
 
 
 class HttpGobOperator(BaseOperator):
@@ -42,6 +47,7 @@ class HttpGobOperator(BaseOperator):
         graphql_query_path: str,
         batch_size: int = 2000,
         max_cursor_pos: Optional[int] = None,
+        protected: bool = False,
         http_conn_id="http_default",
         **kwargs,
     ) -> None:
@@ -54,7 +60,10 @@ class HttpGobOperator(BaseOperator):
         self.http_conn_id = http_conn_id
         self.batch_size = batch_size
         self.max_cursor_pos = max_cursor_pos
+        self.protected = protected
         self.db_table_name = f"{self.dataset}_{self.schema}"
+        self.token_expires_time = None
+        self.access_token = None
         super().__init__(*args, **kwargs)
 
     def _fetch_params(self):
@@ -66,6 +75,25 @@ class HttpGobOperator(BaseOperator):
             if hasattr(self, additional_param_name):
                 params[additional_param_name] = getattr(self, additional_param_name)
         return params
+
+    def _fetch_headers(self):
+        headers = {"Content-Type": "application/x-ndjson"}
+        if not self.protected:
+            return headers
+        if self.token_expires_time is None or time.time() - 5 > self.token_expires_time:
+            form_params = dict(
+                grant_type="client_credentials",
+                client_id=OIDC_CLIENT_ID,
+                client_secret=OIDC_CLIENT_SECRET,
+            )
+            http = HttpHook(http_conn_id="oidc_server", method="POST")
+            response = http.run(OIDC_TOKEN_ENDPOINT, data=form_params)
+            token_info = response.json()
+            self.access_token = token_info["access_token"]
+            self.token_expires_time = time.time() + token_info["expires_in"]
+
+        headers["Authorization"] = f"Bearer {self.access_token}"
+        return headers
 
     def add_batch_params_to_query(self, query, cursor_pos):
         # Simple approach, just string replacement
@@ -115,7 +143,7 @@ class HttpGobOperator(BaseOperator):
                                         )
                                     )
                                 ),
-                                {"Content-Type": "application/x-ndjson"},
+                                headers=self._fetch_headers(),
                                 extra_options={"stream": True},
                             )
                         except AirflowException:

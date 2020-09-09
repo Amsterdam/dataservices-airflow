@@ -41,6 +41,7 @@ services:
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
+      AIRFLOW_CONN_OIDC_SERVER: "https://iam.amsterdam.nl/https"
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"  
@@ -64,6 +65,9 @@ services:
       AIRFLOW_USER_ADMIN_PASSWD: ${dataservices_airflow_user_admin_passwd}
       AIRFLOW_USER_DATASERVICES_PASSWD: ${dataservices_airflow_user_dataservices_passwd}
       AIRFLOW_USER_TEAM_RUIMTE_PASSWD: ${dataservices_airflow_user_team_ruimte_passwd}  
+      OIDC_TOKEN_ENDPOINT: ${OIDC_TOKEN_ENDPOINT}
+      OIDC_CLIENT_ID: ${DATASERVICES_GOB_EXPORT_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${DATASERVICES_GOB_EXPORT_CLIENT_SECRET}
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
