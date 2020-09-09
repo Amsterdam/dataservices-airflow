@@ -46,7 +46,7 @@ class ProvenanceRenameOperator(BaseOperator):
                 "provenance",
                 self.prefix_table_name + table.id + self.postfix_table_name,
             )
-            table_lookup[real_tablename] = table
+            table_lookup[to_snake_case(real_tablename)] = table
 
         snaked_tablenames_str = self._snake_tablenames(table_lookup.keys())
         rows = pg_hook.get_records(

@@ -7,7 +7,7 @@
 -- If data is changed colors can be tweaked manually , or assign_colors.py  does run only for parkeerzones
 -- that are new and do not yet have a color assigned.
 --
-
+DROP TABLE IF EXISTS parkeerzones_map_color;
 CREATE TABLE public.parkeerzones_map_color (
     ogc_fid integer,
     gebied_code character varying(10),
