@@ -1,75 +1,75 @@
-import pathlib
+import operator, pathlib
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
-# from airflow.operators.postgres_operator import PostgresOperator
+
 from swift_operator import SwiftOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+
 from common import (
-    pg_params,
     default_args,
+    pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
 )
-
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+    GEO_CHECK,
+)
 
 dag_id = "parkeerzones"
-dag_config = Variable.get(dag_id, deserialize_json=True)
+variables = Variable.get(dag_id, deserialize_json=True)
+files_to_download = variables["files_to_download"]
+files_to_proces = variables["files_to_proces"]
+tmp_dir = f"/tmp/{dag_id}"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
+total_checks = []
+count_checks = []
+geo_checks = []
+check_name = {}
 
-SQL_RENAME = """
-{% for from_col, to_col in params.col_rename.items() %}
-  ALTER TABLE {{ params.tablename }} RENAME COLUMN {{ from_col }} TO {{ to_col }};
-{% endfor %}
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
+def quote(instr):
+    return f"'{instr}'"
+
+
+SQL_MAKE_VALID_GEOM = """
+    UPDATE {{ params.tablename }} SET geometry = st_makevalid(geometry) WHERE 1=1 AND ST_IsValid(geometry) is false; 
+    COMMIT;
 """
 
 SQL_ADD_COLOR = """
-    ALTER TABLE parkeerzones_new ADD COLUMN color VARCHAR(7);
-    DROP TABLE IF EXISTS parkeerzones_map_color;
+    ALTER TABLE parkeerzones_parkeerzones_new ADD COLUMN color VARCHAR(7);    
 """
 
 SQL_UPDATE_COLORS = """
-    UPDATE parkeerzones_new p SET color = pmc.color
-    FROM parkeerzones_map_color pmc WHERE p.ogc_fid = pmc.ogc_fid
-      AND p.gebied_code = pmc.gebied_code;
+    UPDATE parkeerzones_parkeerzones_new p SET gebiedskleurcode = pmc.color
+    FROM parkeerzones_map_color pmc WHERE p.id = pmc.ogc_fid
+      AND p.gebiedscode = pmc.gebied_code;
+    COMMIT;
     DROP TABLE parkeerzones_map_color;
 """
 
 SQL_DELETE_UNUSED = """
-    DELETE FROM parkeerzones_uitz_new WHERE show = 'FALSE';
-    DELETE FROM parkeerzones_new WHERE show = 'FALSE';
-"""
-
-SQL_TABLE_RENAMES = """
-    BEGIN;
-    {% for tablename in params.tablenames %}
-      ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
-      ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
-      DROP TABLE IF EXISTS {{ tablename }}_old;
-      ALTER INDEX {{ tablename }}_new_pk RENAME TO {{ tablename }}_pk;
-      ALTER INDEX {{ tablename }}_new_wkb_geometry_geom_idx
-        RENAME TO {{ tablename }}_wkb_geometry_geom_idx;
-    {% endfor %}
+    DELETE FROM {{ params.tablename }} WHERE indicatie_zichtbaar = 'FALSE';
     COMMIT;
 """
 
+with DAG(
+    dag_id,
+    description="parkeerzones met en zonder uitzonderingen",
+    default_args=default_args,
+    user_defined_filters=dict(quote=quote),
+) as dag:
 
-with DAG(dag_id, default_args=default_args,) as dag:
-
-    extract_shps = []
-    convert_shps = []
-    load_dumps = []
-    rename_cols = []
-    zip_folder = dag_config["zip_folder"]
-    zip_file = dag_config["zip_file"]
-    shp_files = dag_config["shp_files"]
-    col_renames = dag_config["col_renames"]
-    tables = dag_config["tables"]
-    rename_tablenames = dag_config["rename_tablenames"]
-    tmp_dir = f"/tmp/{dag_id}"
-
+    # 1. Post message on slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -78,75 +78,213 @@ with DAG(dag_id, default_args=default_args,) as dag:
         username="admin",
     )
 
-    fetch_zip = SwiftOperator(
-        task_id="fetch_zip",
-        container=dag_id,
-        object_id=zip_file,
-        output_path=f"/tmp/{dag_id}/{zip_file}",
+    # 2. create download temp directory to store the data
+    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
+
+    # 3. Download data
+    download_data = [
+        SwiftOperator(
+            task_id="download_file",
+            # Default swift = Various Small Datasets objectstore
+            # swift_conn_id="SWIFT_DEFAULT",
+            container=f"{dag_id}",
+            object_id=f"{files_to_download}",
+            output_path=f"{tmp_dir}/{file}",
+        )
+        for file in files_to_download
+    ]
+
+    # 3. Unzip
+    extract_zip = [
+        BashOperator(
+            task_id="extract_zip_file",
+            bash_command=f'unzip -o "{tmp_dir}/{file}" -d {tmp_dir}',
+        )
+        for file in files_to_download
+    ]
+
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 4.create the SQL for creating the table using ORG2OGR PGDump
+    SHP_to_SQL = [
+        BashOperator(
+            task_id=f"create_SQL_{subject}",
+            bash_command=f"ogr2ogr -f 'PGDump' "
+            f"-t_srs EPSG:28992 -s_srs EPSG:4326 "
+            f"-nln {dag_id}_{subject}_new "
+            f"{tmp_dir}/{dag_id}_{subject}.sql {tmp_dir}/20190606_Vergunninggebieden/{shp_file} "
+            f"-nlt PROMOTE_TO_MULTI "
+            f"-lco GEOMETRY_NAME=geometry "
+            f"-lco FID=id ",
+        )
+        for subject, shp_file in files_to_proces.items()
+    ]
+
+    # 5. Convert charakterset to UTF8
+    convert_to_UTF8 = [
+        BashOperator(
+            task_id=f"convert_UTF8_{subject}",
+            bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{dag_id}_{subject}.sql > "
+            f"{tmp_dir}/UTF8_{dag_id}_{subject}.sql",
+        )
+        for subject in files_to_proces.keys()
+    ]
+
+    # 6. Load data into the table
+    load_tables = [
+        BashOperator(
+            task_id=f"load_table_{subject}",
+            bash_command=f"psql {pg_params()} < {tmp_dir}/UTF8_{dag_id}_{subject}.sql",
+        )
+        for subject in files_to_proces.keys()
+    ]
+
+    # 7. Revalidate invalid geometry records
+    # the source has some invalid records
+    # to do: inform the source maintainer
+    revalidate_geometry_records = [
+        PostgresOperator(
+            task_id=f"revalidate_geom_{subject}",
+            sql=SQL_MAKE_VALID_GEOM,
+            params=dict(tablename=f"{dag_id}_{subject}_new"),
+        )
+        for subject in files_to_proces.keys()
+    ]
+
+    # 8. Prepare the checks and added them per source to a dictionary
+    for subject in files_to_proces.keys():
+
+        total_checks.clear()
+        count_checks.clear()
+        geo_checks.clear()
+
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{subject}",
+                pass_value=2,
+                params=dict(table_name=f"{dag_id}_{subject}_new"),
+                result_checker=operator.ge,
+            )
+        )
+
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{subject}",
+                params=dict(
+                    table_name=f"{dag_id}_{subject}_new",
+                    geotype=["POLYGON", "MULTIPOLYGON"],
+                ),
+                pass_value=1,
+            )
+        )
+
+        total_checks = count_checks + geo_checks
+        check_name[f"{subject}"] = total_checks
+
+    # 9. Execute bundled checks (step 7) on database
+    multi_checks = [
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{subject}", checks=check_name[f"{subject}"]
+        )
+        for subject in files_to_proces.keys()
+    ]
+
+    # 10. RENAME columns based on PROVENANCE
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns",
+        dataset_name=f"{dag_id}",
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema="public",
     )
 
-    extract_zip = BashOperator(
-        task_id="extract_zip",
-        bash_command=f'unzip -o "{tmp_dir}/{zip_file}" -d {tmp_dir}',
-    )
-
-    for shp_filename, tablename in zip(shp_files, tables):
-        extract_shps.append(
-            BashOperator(
-                task_id=f"extract_{shp_filename}",
-                bash_command=f"ogr2ogr -f 'PGDump' -t_srs EPSG:28992 "
-                f" -s_srs EPSG:4326 -nln {tablename} "
-                f"{tmp_dir}/{tablename}.sql {tmp_dir}/{zip_folder}/{shp_filename}",
-            )
-        )
-
-    for tablename, col_rename in zip(tables, col_renames):
-        convert_shps.append(
-            BashOperator(
-                task_id=f"convert_{tablename}",
-                bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{tablename}.sql > "
-                f"{tmp_dir}/{tablename}.utf8.sql",
-            )
-        )
-
-        load_dumps.append(
-            BashOperator(
-                task_id=f"load_{tablename}",
-                bash_command=f"psql {pg_params()} < {tmp_dir}/{tablename}.utf8.sql",
-            )
-        )
-
-        rename_cols.append(
-            PostgresOperator(
-                task_id=f"rename_cols_{tablename}",
-                sql=SQL_RENAME,
-                params=dict(tablename=tablename, col_rename=col_rename),
-            )
-        )
-
-    # XXX switch to generic sql
-    rename_tables = PostgresOperator(
-        task_id="rename_tables",
-        sql=SQL_TABLE_RENAMES,
-        params=dict(tablenames=rename_tablenames),
-    )
-
-    add_color = PostgresOperator(task_id="add_color", sql=SQL_ADD_COLOR)
-    update_colors = PostgresOperator(task_id="update_colors", sql=SQL_UPDATE_COLORS)
-
-    delete_unused = PostgresOperator(task_id="delete_unused", sql=SQL_DELETE_UNUSED)
-
+    # 11. Insert color codes to table parkeerzones only
+    ## first create temp table with updated color codes
+    ## second add the color codes to parkeerzones
+    ## update color codes based on temp table
     load_map_colors = BashOperator(
         task_id="load_map_colors",
         bash_command=f"psql {pg_params()} < {sql_path}/parkeerzones_map_color.sql",
     )
+    add_color = PostgresOperator(task_id="add_color", sql=SQL_ADD_COLOR)
+    update_colors = PostgresOperator(task_id="update_colors", sql=SQL_UPDATE_COLORS)
 
-rename_cols[1] >> delete_unused >> rename_tables
-rename_cols[0] >> add_color >> load_map_colors >> update_colors >> rename_tables
+    # 12. Remove records which are marked as SHOW = False
+    delete_unused = [
+        PostgresOperator(
+            task_id=f"delete_show_false_{subject}",
+            sql=SQL_DELETE_UNUSED,
+            params=dict(tablename=f"{dag_id}_{subject}_new"),
+        )
+        for subject in files_to_proces.keys()
+    ]
 
-for extract_shp, convert_shp, load_dump, rename_col in zip(
-    extract_shps, convert_shps, load_dumps, rename_cols
-):
-    extract_shp >> convert_shp >> load_dump >> rename_col
+    # 13. Rename the table from <tablename>_new to <tablename>
+    rename_tables = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_table_{subject}",
+            old_table_name=f"{dag_id}_{subject}_new",
+            new_table_name=f"{dag_id}_{subject}",
+        )
+        for subject in files_to_proces.keys()
+    ]
 
-slack_at_start >> fetch_zip >> extract_zip >> extract_shps
+    # FLOW. define flow with parallel executing of serial tasks for each file
+    for (
+        data,
+        extract_zip,
+        SHP_to_SQL,
+        convert_to_UTF8,
+        load_table,
+        revalidate_geometry_record,
+        multi_check,
+        delete_unused,
+        rename_table,
+    ) in zip(
+        download_data,
+        extract_zip,
+        SHP_to_SQL,
+        convert_to_UTF8,
+        load_tables,
+        revalidate_geometry_records,
+        multi_checks,
+        delete_unused,
+        rename_tables,
+    ):
+
+        [data >> extract_zip] >> Interface >> SHP_to_SQL
+
+        [
+            SHP_to_SQL
+            >> convert_to_UTF8
+            >> load_table
+            >> revalidate_geometry_record
+            >> multi_check
+        ] >> provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unused
+
+        [delete_unused >> rename_table]
+
+    slack_at_start >> mk_tmp_dir >> download_data
+
+
+dag.doc_md = """
+    #### DAG summery
+    This DAG containts auto park zones (parkeerzones) with and without restrictions (parkeerzones met uitzonderingen)
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process / origin
+    Na
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/docs/datasets/parkeerzones.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/parkeerzones.html
+    Example geosearch: 
+    https://api.data.amsterdam.nl/geosearch?datasets=parkeerzones/parkeerzones&x=111153&y=483288&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=parkeerzones/parkeerzones_uitzondering&x=111153&y=483288&radius=10
+"""
