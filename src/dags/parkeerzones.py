@@ -46,7 +46,7 @@ SQL_MAKE_VALID_GEOM = """
 """
 
 SQL_ADD_COLOR = """
-    ALTER TABLE parkeerzones_parkeerzones_new ADD COLUMN color VARCHAR(7);    
+    ALTER TABLE parkeerzones_parkeerzones_new ADD COLUMN gebiedskleurcode VARCHAR(7);    
 """
 
 SQL_UPDATE_COLORS = """
