@@ -6,32 +6,10 @@ huishoudelijkafval:
     - afval_container
     - afval_cluster
 parkeerzones:
-  shp_files:
-    - act_RDW_3EXP_VERGUNNINGGEBIED.shp
-    - act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
-  tables:
-    - parkeerzones_new
-    - parkeerzones_uitz_new
-  zip_folder: 20190606_Vergunninggebieden
-  zip_file: "${parkeerzones.zip_folder} v3.zip"
-  col_renames:
-    - b_dat_gebi: begin_datum_gebied
-      gebied_cod: gebied_code
-      gebied_oms: gebied_omschrijving
-      e_dat_gebi: eind_datum_gebied
-      domein_cod: domein_code
-      gebruiks_d: gebruiks_doel
-      gebied_naa: gebied_naam
-    - b_dat_gebi: begin_datum_gebied
-      gebied_cod: gebied_code
-      omschrijvi: gebied_omschrijving
-      e_dat_gebi: eind_datum_gebied
-      domein_cod: domein_code
-      gebruiks_d: gebruiks_doel
-      gebied_naa: gebied_naam
-  rename_tablenames:
-    - parkeerzones
-    - parkeerzones_uitz
+  files_to_download: parkeerzones.zip
+  files_to_proces:
+    parkeerzones: act_RDW_3EXP_VERGUNNINGGEBIED.shp
+    parkeerzones_uitzondering: act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp   
 reclamebelasting:
   shp_file: Reclame_tariefgebieden.shp
   zip_file: reclame-tarief-gebieden.zip
