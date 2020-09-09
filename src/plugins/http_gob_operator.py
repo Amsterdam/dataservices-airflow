@@ -1,6 +1,7 @@
 import json
 import shutil
 from pathlib import Path
+import time
 from environs import Env
 from tempfile import TemporaryDirectory
 from typing import Optional
@@ -8,6 +9,7 @@ from typing import Optional
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.exceptions import AirflowException
 from schematools.importer.ndjson import NDJSONImporter
 from schematools.utils import schema_def_from_url
 
@@ -89,6 +91,7 @@ class HttpGobOperator(BaseOperator):
             importer = NDJSONImporter(
                 schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log
             )
+
             importer.generate_tables(
                 table_name=self.schema, db_table_name=f"{self.db_table_name}_new",
             )
@@ -98,31 +101,45 @@ class HttpGobOperator(BaseOperator):
             cursor_pos = 0
             while True:
                 with self.graphql_query_path.open() as gql_file:
-                    response = http.run(
-                        self.endpoint,
-                        self._fetch_params(),
-                        json.dumps(
-                            dict(
-                                query=self.add_batch_params_to_query(
-                                    gql_file.read(), cursor_pos
-                                )
+                    # Sometime GOB-API fail with 500 error, caught by Airflow
+                    # We retry several times
+                    for i in range(3):
+                        try:
+                            response = http.run(
+                                self.endpoint,
+                                self._fetch_params(),
+                                json.dumps(
+                                    dict(
+                                        query=self.add_batch_params_to_query(
+                                            gql_file.read(), cursor_pos
+                                        )
+                                    )
+                                ),
+                                {"Content-Type": "application/x-ndjson"},
+                                extra_options={"stream": True},
                             )
-                        ),
-                        {"Content-Type": "application/x-ndjson"},
-                        extra_options={"stream": True},
-                    )
+                        except AirflowException:
+                            self.log.exception("Cannot reach %s", self.endpoint)
+                            time.sleep(1)
+                        else:
+                            break
+                    else:
+                        raise AirflowException("All retries on GOB-API have failed.")
+
                 # No records returns one newline and a Content-Length header
                 # If records are available, there is no Content-Length header
-                if (
-                    int(response.headers.get("Content-Length", "2")) < 2
-                    or cursor_pos >= self.max_cursor_pos
+                if int(response.headers.get("Content-Length", "2")) < 2 or (
+                    self.max_cursor_pos is not None
+                    and cursor_pos >= self.max_cursor_pos
                 ):
                     break
-                cursor_pos += self.batch_size
                 # When content is encoded (gzip etc.) we need this
                 # response.raw.read = functools.partial(response.raw.read, decode_content=True)
                 # Use a tempfolder
                 with tmp_file.open("wb") as wf:
                     shutil.copyfileobj(response.raw, wf)
 
-                importer.load_file(tmp_file)
+                last_record = importer.load_file(tmp_file)
+                if last_record is None:
+                    break
+                cursor_pos = last_record["cursor"]
