@@ -107,7 +107,6 @@ class HttpGobOperator(BaseOperator):
     def execute(self, context):
         with TemporaryDirectory() as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
-            # self.tmp_file.parents[0].mkdir(parents=True, exist_ok=True)
             http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
 
             self.log.info("Calling GOB graphql endpoint")
@@ -161,9 +160,8 @@ class HttpGobOperator(BaseOperator):
                     and cursor_pos >= self.max_cursor_pos
                 ):
                     break
-                # When content is encoded (gzip etc.) we need this
+                # When content is encoded (gzip etc.) we need this:
                 # response.raw.read = functools.partial(response.raw.read, decode_content=True)
-                # Use a tempfolder
                 with tmp_file.open("wb") as wf:
                     shutil.copyfileobj(response.raw, wf)
 
