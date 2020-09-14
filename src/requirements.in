@@ -1,4 +1,4 @@
-amsterdam-schema-tools == 0.9.7
+amsterdam-schema-tools == 0.10.0
 apache-airflow[crypto,postgres,sentry] == 1.10.10
 cattrs == 0.9
 datapunt-objectstore == 2019.4.8
@@ -21,4 +21,4 @@ geojson == 2.5.0
 pyshp == 2.1.0
 cx-Oracle == 7.3.0
 validator-collection == 1.4.1
-pendulum == 2.1.2
+pendulum == 1.4.4
