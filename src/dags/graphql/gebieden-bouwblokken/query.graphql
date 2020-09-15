@@ -3,6 +3,7 @@
     edges {
       node {
         identificatie 
+        cursor
         volgnummer 
         registratiedatum 
         code 

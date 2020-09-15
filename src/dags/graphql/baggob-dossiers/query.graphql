@@ -3,6 +3,7 @@
     edges {
       node {
         dossier 
+        cursor
         heeftBrondocumenten {
           edges {
             node {
