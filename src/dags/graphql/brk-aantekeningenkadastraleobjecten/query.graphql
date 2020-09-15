@@ -1,0 +1,41 @@
+{
+  brkAantekeningenkadastraleobjecten(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        volgnummer 
+        registratiedatum 
+        id 
+        beginGeldigheid 
+        eindGeldigheid 
+        aard 
+        omschrijving 
+        heeftBetrokkenPersoon {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        heeftBetrekkingOpKadastraalObject {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        isGebaseerdOpStukdeel {
+          edges {
+            node {
+              id 
+            }
+          }
+        }
+        einddatum 
+        toestandsdatum 
+      }
+    }
+  }
+}

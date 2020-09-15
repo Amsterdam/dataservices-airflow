@@ -1,0 +1,52 @@
+{
+  brkStukdelen(active: false) {
+    edges {
+      node {
+        id 
+        cursor 
+        identificatie 
+        aard 
+        bedragTransactie 
+        isBronVoorTenaamstelling {
+          edges {
+            node {
+              id 
+            }
+          }
+        }
+        isBronVoorAantekeningKadastraalObject {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        isBronVoorAantekeningRecht {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        isBronVoorZakelijkRecht {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        stukidentificatie 
+        portefeuillenummerAkr 
+        tijdstipAanbiedingStuk 
+        reeks 
+        volgnummerStuk 
+        registercodeStuk 
+        soortRegisterStuk 
+        deelSoortStuk 
+        toestandsdatum 
+      }
+    }
+  }
+}

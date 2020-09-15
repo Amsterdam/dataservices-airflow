@@ -1,0 +1,42 @@
+{
+  brkTenaamstellingen(active: false) {
+    edges {
+      node {
+        id 
+        cursor 
+        identificatie 
+        volgnummer 
+        vanKadastraalsubject {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        beginGeldigheid 
+        eindGeldigheid 
+        aandeel 
+        geldtVoor 
+        burgerlijkeStaatTenTijdeVanVerkrijging 
+        verkregenNamensSamenwerkingsverband 
+        inOnderzoek 
+        vanZakelijkrecht {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        isGebaseerdOpStukdeel {
+          edges {
+            node {
+              id 
+            }
+          }
+        }
+        toestandsdatum 
+      }
+    }
+  }
+}

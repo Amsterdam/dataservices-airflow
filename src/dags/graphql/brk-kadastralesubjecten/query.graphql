@@ -1,0 +1,38 @@
+{
+  brkKadastralesubjecten(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        id 
+        typeSubject 
+        beschikkingsbevoegdheid 
+        heeftBsnVoor 
+        voornamen 
+        voorvoegsels 
+        geslachtsnaam 
+        geslacht 
+        naamGebruik 
+        geboortedatum 
+        geboorteplaats 
+        geboorteland 
+        datumOverlijden 
+        indicatieOverleden 
+        voornamenPartner 
+        voorvoegselsPartner 
+        geslachtsnaamPartner 
+        heeftRsinVoor 
+        heeftKvknummerVoor 
+        rechtsvorm 
+        statutaireNaam 
+        statutaireZetel 
+        woonadres 
+        landWaarnaarVertrokken 
+        woonadresBuitenland 
+        postadres 
+        postadresBuitenland 
+        postadresPostbus 
+      }
+    }
+  }
+}

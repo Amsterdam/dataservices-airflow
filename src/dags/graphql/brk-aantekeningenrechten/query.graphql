@@ -1,0 +1,36 @@
+{
+  brkAantekeningenrechten(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        id 
+        aard 
+        omschrijving 
+        betrokkenTenaamstelling {
+          edges {
+            node {
+              id 
+            }
+          }
+        }
+        heeftBetrokkenPersoon {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        isGebaseerdOpStukdeel {
+          edges {
+            node {
+              id 
+            }
+          }
+        }
+        einddatum 
+        toestandsdatum 
+      }
+    }
+  }
+}

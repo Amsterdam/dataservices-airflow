@@ -1,0 +1,14 @@
+{
+  brkGemeentes(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        naam 
+        beginGeldigheid 
+        eindGeldigheid 
+        geometrie 
+      }
+    }
+  }
+}

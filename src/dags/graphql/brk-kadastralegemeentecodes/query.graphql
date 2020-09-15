@@ -1,0 +1,18 @@
+{
+  brkKadastralegemeentecodes(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        isOnderdeelVanKadastralegemeente {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        geometrie 
+      }
+    }
+  }
+}

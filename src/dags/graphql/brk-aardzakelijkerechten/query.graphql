@@ -1,0 +1,15 @@
+{
+  brkAardzakelijkerechten(active: false) {
+    edges {
+      node {
+        code 
+        cursor 
+        waarde 
+        datumVanaf 
+        datumTot 
+        toelichting 
+        akrCode 
+      }
+    }
+  }
+}

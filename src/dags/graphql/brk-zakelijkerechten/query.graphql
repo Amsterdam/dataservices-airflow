@@ -1,0 +1,77 @@
+{
+  brkZakelijkerechten(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        volgnummer 
+        registratiedatum 
+        id 
+        beginGeldigheid 
+        eindGeldigheid 
+        belastZakelijkerechten {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        belastMetZakelijkerechten {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        ontstaanUitZakelijkerechten {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        ontstaanUitAppartementsrechtsplitsingVve {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        betrokkenBijZakelijkerechten {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        betrokkenBijAppartementsrechtsplitsingVve {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        isBeperktTot 
+        rustOpKadastraalobject {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        appartementsrechtsplitsingidentificatie 
+        appartementsrechtsplitsingtype 
+        einddatumAppartementsrechtsplitsing 
+        indicatieActueelAppartementsrechtsplitsing 
+        aardZakelijkRecht 
+        akrAardZakelijkRecht 
+        toestandsdatum 
+      }
+    }
+  }
+}

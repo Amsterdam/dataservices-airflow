@@ -1,0 +1,18 @@
+{
+  brkKadastralegemeentes(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor 
+        ligtInGemeente {
+          edges {
+            node {
+              identificatie 
+            }
+          }
+        }
+        geometrie 
+      }
+    }
+  }
+}

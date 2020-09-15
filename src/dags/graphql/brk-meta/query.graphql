@@ -1,0 +1,11 @@
+{
+  brkMeta(active: false) {
+    edges {
+      node {
+        id 
+        cursor 
+        kennisgevingsdatum 
+      }
+    }
+  }
+}
