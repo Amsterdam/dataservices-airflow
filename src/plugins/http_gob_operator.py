@@ -46,7 +46,7 @@ class HttpGobOperator(BaseOperator):
         flatten: bool = False,
         graphql_query_path: str,
         batch_size: int = 2000,
-        max_cursor_pos: Optional[int] = None,
+        max_records: Optional[int] = None,
         protected: bool = False,
         http_conn_id="http_default",
         **kwargs,
@@ -59,7 +59,7 @@ class HttpGobOperator(BaseOperator):
         self.endpoint = endpoint
         self.http_conn_id = http_conn_id
         self.batch_size = batch_size
-        self.max_cursor_pos = max_cursor_pos
+        self.max_records = max_records
         self.protected = protected
         self.db_table_name = f"{self.dataset}_{self.schema}"
         self.token_expires_time = None
@@ -126,12 +126,14 @@ class HttpGobOperator(BaseOperator):
             # the record index. If this were not true, the cursor needed
             # to be obtained from the last content record
             cursor_pos = 0
+            records_loaded = 0
             while True:
                 with self.graphql_query_path.open() as gql_file:
                     # Sometime GOB-API fail with 500 error, caught by Airflow
                     # We retry several times
                     for i in range(3):
                         try:
+                            request_start_time = time.time()
                             response = http.run(
                                 self.endpoint,
                                 self._fetch_params(),
@@ -153,11 +155,18 @@ class HttpGobOperator(BaseOperator):
                     else:
                         raise AirflowException("All retries on GOB-API have failed.")
 
+                request_end_time = time.time()
+                self.log.info(
+                    "GOB-API request took %s seconds, cursor: %s",
+                    request_end_time - request_start_time,
+                    cursor_pos,
+                )
+
+                records_loaded += self.batch_size
                 # No records returns one newline and a Content-Length header
                 # If records are available, there is no Content-Length header
                 if int(response.headers.get("Content-Length", "2")) < 2 or (
-                    self.max_cursor_pos is not None
-                    and cursor_pos >= self.max_cursor_pos
+                    self.max_records is not None and records_loaded >= self.max_records
                 ):
                     break
                 # When content is encoded (gzip etc.) we need this:
@@ -166,6 +175,9 @@ class HttpGobOperator(BaseOperator):
                     shutil.copyfileobj(response.raw, wf)
 
                 last_record = importer.load_file(tmp_file)
+                self.log.info(
+                    "Loading db took %s seconds", time.time() - request_end_time,
+                )
                 if last_record is None:
                     break
                 cursor_pos = last_record["cursor"]

@@ -6,7 +6,7 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from http_gob_operator import HttpGobOperator
 from common import default_args, DATAPUNT_ENVIRONMENT
 
-MAX_CURSOR_POS = 10000 if DATAPUNT_ENVIRONMENT == "development" else None
+MAX_RECORDS = 10000 if DATAPUNT_ENVIRONMENT == "development" else None
 
 dag_id = "gob"
 owner = "gob"
@@ -33,7 +33,7 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
         dataset=gob_dataset_name,
         schema=gob_table_name,
         graphql_query_path=graphql_dir_path / "query.graphql",
-        max_cursor_pos=MAX_CURSOR_POS,
+        max_records=MAX_RECORDS,
         http_conn_id="gob_graphql",
     )
 
