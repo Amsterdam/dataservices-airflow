@@ -9,7 +9,7 @@ parkeerzones:
   files_to_download: parkeerzones.zip
   files_to_proces:
     parkeerzones: act_RDW_3EXP_VERGUNNINGGEBIED.shp
-    parkeerzones_uitzondering: act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp   
+    parkeerzones_uitzondering: act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
 reclamebelasting:
   shp_file: Reclame_tariefgebieden.shp
   zip_file: reclame-tarief-gebieden.zip
@@ -64,7 +64,7 @@ trm:
 winkelgebieden:
   schema_end_point: datasets/winkelgebieden/winkelgebieden
 bouwstroompunten:
-  data_endpoints: 
+  data_endpoints:
     auth: auth/local/
     data: power-stations/
 precariobelasting:
@@ -90,9 +90,9 @@ touringcars:
   metadataschema_endpoint: datasets/touringcars/touringcars
 bodem:
   files_to_download:
-    grond: dmb_grondmonster.csv   
-    grondwater: dmb_watermonster.csv 
-    asbest: dmb_asbest.csv 
+    grond: dmb_grondmonster.csv
+    grondwater: dmb_watermonster.csv
+    asbest: dmb_asbest.csv
 explosieven:
   files_to_download:
     bominslag: [Inslagen_ea.shp, Inslagen_ea.shx, Inslagen_ea.dbf]
@@ -108,9 +108,8 @@ covid19:
     files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
     tables_to_create:
       alcoholverkoopverbod: AVV
-      straatartiestverbod: SAV      
+      straatartiestverbod: SAV
       gebiedsverbod: GVP
-      mondmaskerverplichting: MMP
 spoorlijnen:
   files_to_download:
     metro: [metro.shp, metro.shx, metro.dbf]
@@ -138,7 +137,7 @@ milieuzones:
 evenementen:
     data_endpoint: https://evenementen.amsterdam.nl/?geojson=true&pager_rows=5000
 aardgasvrijezones:
-    files_to_download: 
+    files_to_download:
       buurt: [buurten_na_inspraak.dbf, buurten_na_inspraak.shp, buurten_na_inspraak.shx]
       buurtinitiatief: [buurtinitiatieven.dbf, buurtinitiatieven.shp, buurtinitiatieven.shx]
 vastgoed:
