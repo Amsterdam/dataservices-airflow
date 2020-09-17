@@ -94,16 +94,26 @@ class HttpGobOperator(BaseOperator):
         headers["Authorization"] = f"Bearer {self.access_token}"
         return headers
 
-    def add_batch_params_to_query(self, query, cursor_pos):
+    def add_batch_params_to_query(self, query, cursor_pos, batch_size):
         # Simple approach, just string replacement
         # alternative would be to parse query with graphql-core lib, alter AST
         # and render query, seems overkill for now
         return query.replace(
-            "active: false",
-            f"active: false, first: {self.batch_size}, after: {cursor_pos}",
+            "active: false", f"active: false, first: {batch_size}, after: {cursor_pos}",
         )
 
     def execute(self, context):
+        # When doing 'airflow test' there is a context['params']
+        # For full dag runs, there is dag_run["conf"]
+        dag_run = context["dag_run"]
+        if dag_run is None:
+            params = context["params"]
+        else:
+            params = dag_run.conf or {}
+        self.log.info("PARAMS: %s", params)
+        max_records = params.get("max_records", self.max_records)
+        cursor_pos = params.get("cursor_pos", 0)
+        batch_size = params.get("batch_size", self.batch_size)
         with TemporaryDirectory() as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
             http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
@@ -124,7 +134,6 @@ class HttpGobOperator(BaseOperator):
             # For GOB content, cursor value is exactly the same as
             # the record index. If this were not true, the cursor needed
             # to be obtained from the last content record
-            cursor_pos = 0
             records_loaded = 0
             while True:
                 with self.graphql_query_path.open() as gql_file:
@@ -141,7 +150,7 @@ class HttpGobOperator(BaseOperator):
                             json.dumps(
                                 dict(
                                     query=self.add_batch_params_to_query(
-                                        query, cursor_pos
+                                        query, cursor_pos, batch_size
                                     )
                                 )
                             ),
@@ -163,11 +172,11 @@ class HttpGobOperator(BaseOperator):
                     cursor_pos,
                 )
 
-                records_loaded += self.batch_size
+                records_loaded += batch_size
                 # No records returns one newline and a Content-Length header
                 # If records are available, there is no Content-Length header
                 if int(response.headers.get("Content-Length", "2")) < 2 or (
-                    self.max_records is not None and records_loaded >= self.max_records
+                    max_records is not None and records_loaded >= max_records
                 ):
                     break
                 # When content is encoded (gzip etc.) we need this:
