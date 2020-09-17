@@ -45,7 +45,7 @@ class HttpGobOperator(BaseOperator):
         lowercase: bool = False,
         flatten: bool = False,
         graphql_query_path: str,
-        batch_size: int = 2000,
+        batch_size: int = 50,
         max_records: Optional[int] = None,
         protected: bool = False,
         http_conn_id="http_default",
@@ -71,16 +71,15 @@ class HttpGobOperator(BaseOperator):
             "condens": "node,edges,id",
             "schema": self.db_table_name,
         }
-        for additional_param_name in ("geojson", "lowercase", "flatten"):
-            if hasattr(self, additional_param_name):
-                params[additional_param_name] = getattr(self, additional_param_name)
+        if self.geojson is not None:
+            params["geojson"] = self.geojson
         return params
 
     def _fetch_headers(self):
         headers = {"Content-Type": "application/x-ndjson"}
         if not self.protected:
             return headers
-        if self.token_expires_time is None or time.time() - 5 > self.token_expires_time:
+        if self.access_token is None or time.time() - 5 > self.token_expires_time:
             form_params = dict(
                 grant_type="client_credentials",
                 client_id=OIDC_CLIENT_ID,
@@ -131,29 +130,31 @@ class HttpGobOperator(BaseOperator):
                 with self.graphql_query_path.open() as gql_file:
                     # Sometime GOB-API fail with 500 error, caught by Airflow
                     # We retry several times
-                    for i in range(3):
-                        try:
-                            request_start_time = time.time()
-                            response = http.run(
-                                self.endpoint,
-                                self._fetch_params(),
-                                json.dumps(
-                                    dict(
-                                        query=self.add_batch_params_to_query(
-                                            gql_file.read(), cursor_pos
-                                        )
+                    query = gql_file.read()
+
+                for i in range(3):
+                    try:
+                        request_start_time = time.time()
+                        response = http.run(
+                            self.endpoint,
+                            self._fetch_params(),
+                            json.dumps(
+                                dict(
+                                    query=self.add_batch_params_to_query(
+                                        query, cursor_pos
                                     )
-                                ),
-                                headers=self._fetch_headers(),
-                                extra_options={"stream": True},
-                            )
-                        except AirflowException:
-                            self.log.exception("Cannot reach %s", self.endpoint)
-                            time.sleep(1)
-                        else:
-                            break
+                                )
+                            ),
+                            headers=self._fetch_headers(),
+                            extra_options={"stream": True},
+                        )
+                    except AirflowException:
+                        self.log.exception("Cannot reach %s", self.endpoint)
+                        time.sleep(1)
                     else:
-                        raise AirflowException("All retries on GOB-API have failed.")
+                        break
+                else:
+                    raise AirflowException("All retries on GOB-API have failed.")
 
                 request_end_time = time.time()
                 self.log.info(
