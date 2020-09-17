@@ -48,6 +48,7 @@ class HttpGobOperator(BaseOperator):
         batch_size: int = 50,
         max_records: Optional[int] = None,
         protected: bool = False,
+        copy_bufsize: int = 16 * 1024 * 1024,
         http_conn_id="http_default",
         **kwargs,
     ) -> None:
@@ -61,6 +62,7 @@ class HttpGobOperator(BaseOperator):
         self.batch_size = batch_size
         self.max_records = max_records
         self.protected = protected
+        self.copy_bufsize = copy_bufsize
         self.db_table_name = f"{self.dataset}_{self.schema}"
         self.token_expires_time = None
         self.access_token = None
@@ -165,13 +167,6 @@ class HttpGobOperator(BaseOperator):
                 else:
                     raise AirflowException("All retries on GOB-API have failed.")
 
-                request_end_time = time.time()
-                self.log.info(
-                    "GOB-API request took %s seconds, cursor: %s",
-                    request_end_time - request_start_time,
-                    cursor_pos,
-                )
-
                 records_loaded += batch_size
                 # No records returns one newline and a Content-Length header
                 # If records are available, there is no Content-Length header
@@ -182,7 +177,14 @@ class HttpGobOperator(BaseOperator):
                 # When content is encoded (gzip etc.) we need this:
                 # response.raw.read = functools.partial(response.raw.read, decode_content=True)
                 with tmp_file.open("wb") as wf:
-                    shutil.copyfileobj(response.raw, wf)
+                    shutil.copyfileobj(response.raw, wf, self.copy_bufsize)
+
+                request_end_time = time.time()
+                self.log.info(
+                    "GOB-API request took %s seconds, cursor: %s",
+                    request_end_time - request_start_time,
+                    cursor_pos,
+                )
 
                 last_record = importer.load_file(tmp_file)
                 self.log.info(
