@@ -45,7 +45,7 @@ class HttpGobOperator(BaseOperator):
         lowercase: bool = False,
         flatten: bool = False,
         graphql_query_path: str,
-        batch_size: int = 50,
+        batch_size: int = 10000,
         max_records: Optional[int] = None,
         protected: bool = False,
         copy_bufsize: int = 16 * 1024 * 1024,
