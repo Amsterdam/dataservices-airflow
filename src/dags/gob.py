@@ -1,7 +1,7 @@
 import json
 import pathlib
 from airflow import DAG
-from postgres_drop_operator import PostgresTableDropOperator
+from postgres_table_init_operator import PostgresTableInitOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from http_gob_operator import HttpGobOperator
 from common import default_args, DATAPUNT_ENVIRONMENT
@@ -38,9 +38,8 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
     )
 
     with dag:
-        drop_old_tmp_tables = PostgresTableDropOperator(
-            task_id=f"drop_tmp_{gob_db_table_name}",
-            table_name=f"{gob_db_table_name}_new",
+        init_table = PostgresTableInitOperator(
+            task_id=f"init_{gob_db_table_name}", table_name=f"{gob_db_table_name}_new",
         )
 
         load_data = HttpGobOperator(**{**kwargs, **extra_kwargs})
@@ -51,7 +50,7 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
             new_table_name=gob_db_table_name,
         )
 
-        drop_old_tmp_tables >> load_data >> rename_table
+        init_table >> load_data >> rename_table
 
     return dag
 
