@@ -5,7 +5,7 @@ from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name
 
 
-class PostgresTableDropOperator(PostgresOperator):
+class PostgresTableInitOperator(PostgresOperator):
     """Drop a table and associated n-m cross tables"""
 
     @apply_defaults
@@ -13,7 +13,8 @@ class PostgresTableDropOperator(PostgresOperator):
         self,
         table_name: str,
         postgres_conn_id="postgres_default",
-        task_id="rename_table",
+        task_id="table_init",
+        drop_table=False,
         **kwargs,
     ):
         check_safe_name(table_name)
@@ -21,6 +22,7 @@ class PostgresTableDropOperator(PostgresOperator):
             task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs
         )
         self.table_name = table_name
+        self.drop_table = drop_table
 
     def execute(self, context):
         # First get all index names, so it's known which indices to rename
@@ -48,8 +50,9 @@ class PostgresTableDropOperator(PostgresOperator):
 
         # Define the SQL to execute by the super class.
         # This supports executing multiple statements in a single transaction:
+        init_operation = "DROP TABLE IF EXISTS" if self.drop_table else "TRUNCATE TABLE"
         self.sql = [
-            f"DROP TABLE IF EXISTS {table_name} CASCADE"
+            f"{init_operation} {table_name} CASCADE"
             for table_name in table_drops + cross_tables
         ]
 

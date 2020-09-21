@@ -6,6 +6,7 @@ from environs import Env
 from tempfile import TemporaryDirectory
 from typing import Optional
 
+from airflow.models import Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.hooks.postgres_hook import PostgresHook
@@ -112,9 +113,11 @@ class HttpGobOperator(BaseOperator):
             params = context["params"]
         else:
             params = dag_run.conf or {}
-        self.log.info("PARAMS: %s", params)
+        self.log.debug("PARAMS: %s", params)
         max_records = params.get("max_records", self.max_records)
-        cursor_pos = params.get("cursor_pos", 0)
+        cursor_pos = params.get(
+            "cursor_pos", Variable.get(f"{self.db_table_name}.cursor_pos", 0)
+        )
         batch_size = params.get("batch_size", self.batch_size)
         with TemporaryDirectory() as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
@@ -144,6 +147,7 @@ class HttpGobOperator(BaseOperator):
                     query = gql_file.read()
 
                 for i in range(3):
+
                     try:
                         request_start_time = time.time()
                         response = http.run(
@@ -165,6 +169,8 @@ class HttpGobOperator(BaseOperator):
                     else:
                         break
                 else:
+                    # Save cursor_pos in a variable
+                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
                     raise AirflowException("All retries on GOB-API have failed.")
 
                 records_loaded += batch_size
@@ -193,3 +199,6 @@ class HttpGobOperator(BaseOperator):
                 if last_record is None:
                     break
                 cursor_pos = last_record["cursor"]
+
+        # On successfull completion, remove cursor_pos variable
+        Variable.delete(f"{self.db_table_name}.cursor_pos")
