@@ -2,7 +2,7 @@ import json
 import pathlib
 from airflow import DAG
 from postgres_table_init_operator import PostgresTableInitOperator
-from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from http_gob_operator import HttpGobOperator
 from common import default_args, DATAPUNT_ENVIRONMENT
 
@@ -39,18 +39,20 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
 
     with dag:
         init_table = PostgresTableInitOperator(
-            task_id=f"init_{gob_db_table_name}", table_name=f"{gob_db_table_name}_new",
+            task_id=f"init_{gob_db_table_name}",
+            table_name=f"{gob_db_table_name}_new",
+            drop_table=True,
         )
 
         load_data = HttpGobOperator(**{**kwargs, **extra_kwargs})
 
-        rename_table = PostgresTableRenameOperator(
-            task_id=f"rename_{gob_db_table_name}",
-            old_table_name=f"{gob_db_table_name}_new",
-            new_table_name=gob_db_table_name,
+        copy_table = PostgresTableCopyOperator(
+            task_id=f"copy_{gob_db_table_name}",
+            source_table_name=f"{gob_db_table_name}_new",
+            target_table_name=gob_db_table_name,
         )
 
-        init_table >> load_data >> rename_table
+        init_table >> load_data >> copy_table
 
     return dag
 
