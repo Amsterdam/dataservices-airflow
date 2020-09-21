@@ -28,6 +28,7 @@ def main():
         sep=";",
         names=["organisatie", "type_interventie", "aantal", "week_nummer"],
         converters={"organisatie": strip, "type_interventie": strip,},
+        header=0,
     )
     df.index.name = "id"
     engine = get_engine()
