@@ -76,8 +76,8 @@ services:
       - ./src/vsd:/usr/local/airflow/vsd
       - ./develop:/usr/local/airflow/develop
       - /var/run/docker.sock:/var/run/docker.sock      
-    extra_hosts:
-      - "dockerhost:$DOCKERHOST"
+    # extra_hosts:
+    #- "dockerhost:$DOCKERHOST"
 
     ports:
       - "8080:8080"
