@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import shutil
 from pathlib import Path
@@ -5,6 +6,8 @@ import time
 from environs import Env
 from tempfile import TemporaryDirectory
 from typing import Optional
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from airflow.models import Variable
 from airflow.models.baseoperator import BaseOperator
@@ -192,7 +195,16 @@ class HttpGobOperator(BaseOperator):
                     cursor_pos,
                 )
 
-                last_record = importer.load_file(tmp_file)
+                try:
+                    last_record = importer.load_file(tmp_file)
+                except SQLAlchemyError:
+                    shutil.copy(
+                        tmp_file,
+                        f"/tmp/{self.db_table_name}-{datetime.now().isoformat().ndjson}",
+                    )
+                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
+                    raise AirflowException("A database error has occurred.")
+
                 self.log.info(
                     "Loading db took %s seconds", time.time() - request_end_time,
                 )
