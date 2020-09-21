@@ -59,14 +59,6 @@
         beginGeldigheid 
         eindGeldigheid 
         inOnderzoek 
-        isOntstaanUitGPerceel {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
         heeftEenRelatieMetVerblijfsobject {
           edges {
             node {
