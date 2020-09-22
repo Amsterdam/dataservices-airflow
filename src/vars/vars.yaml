@@ -52,8 +52,9 @@ iot:
     - WiFi sensor
     - Telcamera
 openbare_verlichting:
-  objects_endpoint: asd/services/rest_sia.php/SIAService/objecten
-  types_endpoint: asd/services/rest_sia.php/SIAService/types
+  data_endpoints:
+    objects: asd/services/rest_sia.php/SIAService/objecten
+    objecttypes: asd/services/rest_sia.php/SIAService/types
 trm:
   - zip: Tram KGEs.zip
     name: tram
