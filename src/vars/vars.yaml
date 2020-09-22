@@ -51,7 +51,7 @@ iot:
     - 3D sensor
     - WiFi sensor
     - Telcamera
-openbare_verlichting:
+openbareverlichting:
   data_endpoints:
     objects: asd/services/rest_sia.php/SIAService/objecten
     objecttypes: asd/services/rest_sia.php/SIAService/types

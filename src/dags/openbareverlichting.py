@@ -27,8 +27,8 @@ from postgres_check_operator import (
 
 from importscripts.import_openbare_verlichting import import_openbare_verlichting
 
-dag_id = "openbare_verlichting"
-variables = Variable.get("openbare_verlichting", deserialize_json=True)
+dag_id = "openbareverlichting"
+variables = Variable.get("openbareverlichting", deserialize_json=True)
 data_endpoints = variables["data_endpoints"]
 dataset_objects = list(data_endpoints.keys())[0]
 dataset_objecttypes = list(data_endpoints.keys())[1]
