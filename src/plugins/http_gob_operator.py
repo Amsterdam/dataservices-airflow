@@ -200,7 +200,7 @@ class HttpGobOperator(BaseOperator):
                 except SQLAlchemyError:
                     shutil.copy(
                         tmp_file,
-                        f"/tmp/{self.db_table_name}-{datetime.now().isoformat().ndjson}",
+                        f"/tmp/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
                     )
                     Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
                     raise AirflowException("A database error has occurred.")
