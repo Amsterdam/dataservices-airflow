@@ -7,13 +7,6 @@
         identificatie
         aard
         bedragTransactie
-        isBronVoorTenaamstelling {
-          edges {
-            node {
-              id
-            }
-          }
-        }
         isBronVoorAantekeningKadastraalObject {
           edges {
             node {

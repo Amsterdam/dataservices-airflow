@@ -1,4 +1,5 @@
 {
   "endpoint": "gob/secure/graphql/streaming/",
+  "batch_size": 100,
   "protected": true
 }
