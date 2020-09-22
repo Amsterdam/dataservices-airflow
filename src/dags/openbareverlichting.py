@@ -90,6 +90,7 @@ with DAG(
     geojson_to_SQL = BashOperator(
         task_id="geojson_to_SQL",
         bash_command=f"ogr2ogr --config PG_USE_COPY YES -f 'PGDump' "
+        f"-t_srs EPSG:28992 "
         f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/objects.sql {tmp_dir}/objects.geo.json "
         f"-lco GEOMETRY_NAME=geometry "
