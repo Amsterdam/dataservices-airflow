@@ -5,6 +5,7 @@ from postgres_table_init_operator import PostgresTableInitOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from http_gob_operator import HttpGobOperator
 from common import default_args, DATAPUNT_ENVIRONMENT
+from schematools import TMP_TABLE_POSTFIX
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
 
@@ -40,7 +41,7 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
     with dag:
         init_table = PostgresTableInitOperator(
             task_id=f"init_{gob_db_table_name}",
-            table_name=f"{gob_db_table_name}_new",
+            table_name=f"{gob_db_table_name}{TMP_TABLE_POSTFIX}",
             drop_table=True,
         )
 
@@ -48,7 +49,7 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
 
         copy_table = PostgresTableCopyOperator(
             task_id=f"copy_{gob_db_table_name}",
-            source_table_name=f"{gob_db_table_name}_new",
+            source_table_name=f"{gob_db_table_name}{TMP_TABLE_POSTFIX}",
             target_table_name=gob_db_table_name,
         )
 
