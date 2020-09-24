@@ -26,6 +26,9 @@ COPY --from=builder /usr/lib/x86_64-linux-gnu/libaio* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
 COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl* /usr/lib/x86_64-linux-gnu/
+COPY --from=builder /usr/lib/x86_64-linux-gnu/perl5/* /usr/lib/x86_64-linux-gnu/perl5/
+COPY --from=builder /usr/lib/postgresql/* /usr/lib/postgresql/
+COPY --from=builder /usr/share/postgresql/* /usr/share/postgresql/
 RUN ldconfig
 
 # Copy patch binary, needed to patch airflow bug
