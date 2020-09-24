@@ -6,6 +6,7 @@ import time
 from environs import Env
 from tempfile import TemporaryDirectory
 from typing import Optional
+from urllib3.exceptions import ProtocolError
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -185,19 +186,19 @@ class HttpGobOperator(BaseOperator):
                     break
                 # When content is encoded (gzip etc.) we need this:
                 # response.raw.read = functools.partial(response.raw.read, decode_content=True)
-                with tmp_file.open("wb") as wf:
-                    shutil.copyfileobj(response.raw, wf, self.copy_bufsize)
-
-                request_end_time = time.time()
-                self.log.info(
-                    "GOB-API request took %s seconds, cursor: %s",
-                    request_end_time - request_start_time,
-                    cursor_pos,
-                )
-
                 try:
+                    with tmp_file.open("wb") as wf:
+                        shutil.copyfileobj(response.raw, wf, self.copy_bufsize)
+
+                    request_end_time = time.time()
+                    self.log.info(
+                        "GOB-API request took %s seconds, cursor: %s",
+                        request_end_time - request_start_time,
+                        cursor_pos,
+                    )
                     last_record = importer.load_file(tmp_file)
-                except SQLAlchemyError:
+                except (SQLAlchemyError, ProtocolError):
+                    # Save last imported file for further inspection
                     shutil.copy(
                         tmp_file,
                         f"/tmp/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
