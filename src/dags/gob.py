@@ -19,7 +19,9 @@ def create_gob_dag(gob_dataset_name, gob_table_name):
 
     gob_db_table_name = f"{gob_dataset_name}_{gob_table_name}"
     dag = DAG(
-        f"{dag_id}_{gob_db_table_name}", default_args={"owner": owner, **default_args}
+        f"{dag_id}_{gob_db_table_name}",
+        default_args={"owner": owner, **default_args},
+        schedule_interval="0 6 * * * ",
     )
     graphql_dir_path = graphql_path / f"{gob_dataset_name}-{gob_table_name}"
     graphql_params_path = graphql_dir_path / "args.json"
