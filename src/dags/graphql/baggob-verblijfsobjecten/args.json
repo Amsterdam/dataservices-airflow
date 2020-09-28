@@ -1,4 +1,2 @@
-{
-  "geojson_field": "geometrie"
-}
+{"extra_kwargs": {"geojson_field": "geometrie"}, "schedule_start_hour_offset": 3}
 

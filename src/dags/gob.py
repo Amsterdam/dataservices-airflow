@@ -18,23 +18,28 @@ graphql_path = pathlib.Path(__file__).resolve().parents[0] / "graphql"
 def create_gob_dag(gob_dataset_name, gob_table_name):
 
     gob_db_table_name = f"{gob_dataset_name}_{gob_table_name}"
-    dag = DAG(
-        f"{dag_id}_{gob_db_table_name}",
-        default_args={"owner": owner, **default_args},
-        schedule_interval="0 6 * * * ",
-    )
     graphql_dir_path = graphql_path / f"{gob_dataset_name}-{gob_table_name}"
     graphql_params_path = graphql_dir_path / "args.json"
     extra_kwargs = {}
+    schedule_start_hour = 6
     if graphql_params_path.exists():
         with graphql_params_path.open() as json_file:
-            extra_kwargs = json.load(json_file)
+            args_from_file = json.load(json_file)
+            extra_kwargs = args_from_file.get("extra_kwargs", {})
+            schedule_start_hour += args_from_file.get("schedule_start_hour_offset", 0)
+
+    dag = DAG(
+        f"{dag_id}_{gob_db_table_name}",
+        default_args={"owner": owner, **default_args},
+        schedule_interval=f"0 {schedule_start_hour} * * *",
+    )
 
     kwargs = dict(
         task_id=f"load_{gob_db_table_name}",
         endpoint="gob/graphql/streaming/",
         dataset=gob_dataset_name,
         schema=gob_table_name,
+        retries=3,
         graphql_query_path=graphql_dir_path / "query.graphql",
         max_records=MAX_RECORDS,
         http_conn_id="gob_graphql",

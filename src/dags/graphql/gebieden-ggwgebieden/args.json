@@ -1,3 +1,1 @@
-{
-  "geojson_field": "geometrie"
-}
+{"extra_kwargs": {"geojson_field": "geometrie"}}
