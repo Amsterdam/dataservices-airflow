@@ -1,4 +1,8 @@
 {
-  "geojson_field": "geometrie,plaatscoordinaten,bijpijlingGeometrie",
-  "protected": true
+  "extra_kwargs": {
+    "geojson_field": "geometrie,plaatscoordinaten,bijpijlingGeometrie",
+    "protected": true
+  },
+  "schedule_start_hour_offset": 6
 }
+
