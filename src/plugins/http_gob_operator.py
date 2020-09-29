@@ -7,6 +7,7 @@ from environs import Env
 from tempfile import TemporaryDirectory
 from typing import Optional
 from urllib3.exceptions import ProtocolError
+from requests.exceptions import HTTPError
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -93,7 +94,16 @@ class HttpGobOperator(BaseOperator):
                 client_secret=OIDC_CLIENT_SECRET,
             )
             http = HttpHook(http_conn_id="oidc_server", method="POST")
-            response = http.run(OIDC_TOKEN_ENDPOINT, data=form_params)
+            for i in range(3):
+                try:
+                    response = http.run(OIDC_TOKEN_ENDPOINT, data=form_params)
+                except HTTPError:
+                    self.log.exception("Keycloak unreachable")
+                    time.sleep(1)
+                else:
+                    break
+            else:
+                raise
             token_info = response.json()
             self.access_token = token_info["access_token"]
             self.token_expires_time = time.time() + token_info["expires_in"]
@@ -154,6 +164,7 @@ class HttpGobOperator(BaseOperator):
 
                     try:
                         request_start_time = time.time()
+                        headers = self._fetch_headers()
                         response = http.run(
                             self.endpoint,
                             self._fetch_params(),
@@ -164,7 +175,7 @@ class HttpGobOperator(BaseOperator):
                                     )
                                 )
                             ),
-                            headers=self._fetch_headers(),
+                            headers=headers,
                             extra_options={"stream": True},
                         )
                     except AirflowException:
