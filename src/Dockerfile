@@ -16,7 +16,7 @@ RUN unzip instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN cp -r  instantclient_19_6/* /usr/local/lib
 
 # Add pg_comparator from sources, installable package has way too much dependencies
-COPY build/pg_comparator-2.3.1.tgz /tmp
+COPY vendor/pg_comparator-2.3.1.tgz /tmp
 WORKDIR /tmp
 RUN tar xzf pg_comparator-2.3.1.tgz
 WORKDIR /tmp/pg_comparator-2.3.1

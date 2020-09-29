@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y build-essential postgresql-server-dev-1
 
 # Is dit onderstaande nodig>
 # libdbi-perl libdbd-pg-perl
-COPY pg_comparator-2.3.1.tgz /tmp
+COPY vendor/pg_comparator-2.3.1.tgz /tmp
 COPY pgcmp.sql /docker-entrypoint-initdb.d/
 WORKDIR /tmp
 RUN tar xzf pg_comparator-2.3.1.tgz
