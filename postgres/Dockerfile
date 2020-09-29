@@ -15,4 +15,4 @@ RUN make pgsql_install
 # Need to explicitly add module_pathname for the extension to install correctly
 RUN echo "module_pathname = '/usr/lib/postgresql/11/lib/pgcmp.so'" >> \
         /usr/share/postgresql/11/extension/pgcmp.control
-# pg_comparator pgsql://dataservices:insecure@localhost/dataservices/brk_kadastraleobjecten pgsql://dataservices:insecure@localhost/dataservices/brk_kadastraleobjecten_new
+# pg_comparator pgsql://dataservices:insecure@localhost/dataservices/brk_kadastraleobjecten_new pgsql://dataservices:insecure@localhost/dataservices/brk_kadastraleobjecten
