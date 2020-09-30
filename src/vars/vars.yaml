@@ -42,7 +42,7 @@ asbest:
     - asbest_percelen
 bed_and_breakfast:
   sql_file_base: bb_quotum
-bedrijfsinvesteringszones:
+bedrijveninvesteringszones:
   files_to_download:
     shp_files: [BIZZONES.dbf, BIZZONES.shx, BIZZONES.shp]
     xlsx_files: [BIZZONES_dataset_202001014.xlsx]  

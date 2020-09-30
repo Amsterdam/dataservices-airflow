@@ -21,9 +21,9 @@ from common import (
     MessageOperator,
 )
 
-from importscripts.convert_bedrijfsinvesteringszone_data import convert_biz_data
+from importscripts.convert_bedrijveninvesteringszones_data import convert_biz_data
 
-from sql.bedrijfsinvesteringszone import CREATE_TABLE, UPDATE_TABLE
+from sql.bedrijveninvesteringszones import CREATE_TABLE, UPDATE_TABLE
 
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
@@ -31,7 +31,7 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-dag_id = "bedrijfsinvesteringszones"
+dag_id = "bedrijveninvesteringszones"
 variables = Variable.get(dag_id, deserialize_json=True)
 tmp_dir = f"/tmp/{dag_id}"
 files_to_download = variables["files_to_download"]
@@ -47,7 +47,7 @@ def quote(instr):
 
 with DAG(
     dag_id,
-    description="tariefen, locaties en overige contextuele gegevens over bedrijfsinvesteringszones",
+    description="tariefen, locaties en overige contextuele gegevens over bedrijveninvesteringszones.",
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
     template_searchpath=["/"],
@@ -71,7 +71,7 @@ with DAG(
             task_id=f"download_{file}",
             # if conn is ommitted, it defaults to Objecstore Various Small Datasets
             swift_conn_id="SWIFT_DEFAULT",
-            container="bedrijfsinvesteringszones",
+            container="bedrijveninvesteringszones",
             object_id=str(file),
             output_path=f"{tmp_dir}/{file}",
         )
@@ -184,7 +184,7 @@ with DAG(
 
 for data in zip(download_data):
 
-    data >> Interface >> SHP_to_SQL >> SQL_convert_UTF8 >> SQL_update_data >> create_table >> import_data >> update_table >> multi_checks >> rename_table
+    data >> Interface >> SHP_to_SQL >> SQL_convert_UTF8 >> SQL_update_data >> create_table >> import_data >> update_table >> provenance_translation >> multi_checks >> rename_table
 
 
 slack_at_start >> mkdir >> download_data
@@ -202,8 +202,8 @@ dag.doc_md = """
     #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing  
-    https://api.data.amsterdam.nl/v1/docs/datasets/bedrijfsinvesteringszones.html
-    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/bedrijfsinvesteringszones.html
+    https://api.data.amsterdam.nl/v1/docs/datasets/bedrijveninvesteringszones.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/bedrijveninvesteringszones.html
     Example geosearch: 
-    https://api.data.amsterdam.nl/geosearch?datasets=bedrijfsinvesteringszones/bedrijfsinvesteringszones&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=bedrijveninvesteringszones/bedrijveninvesteringszones&x=106434&y=488995&radius=10
 """
