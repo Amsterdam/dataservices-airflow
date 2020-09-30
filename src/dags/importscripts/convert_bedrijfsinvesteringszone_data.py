@@ -3,7 +3,7 @@ import pandas
 import re
 
 
-def convert_biz_data(sql_shape_file, xlsx_file, output_file):
+def convert_biz_data(table_name, sql_shape_file, xlsx_file, output_file):
 
     try:
         # Read Excel sheet in dataframe df
@@ -30,12 +30,7 @@ def convert_biz_data(sql_shape_file, xlsx_file, output_file):
                 if aktief == "Ja":
                     shape_map[naam] = (geometry, id1, ddingang, naam)
 
-        # l = list(shape_map.keys())
-        # l.sort()
-        # print("\n".join(l) )
-
         # Add name mapping. This maps the name in the spreadsheet to the name in the shape file
-
         name_mapping = {
             "A.J. Ernststraat": "AJ Ernststraat",
             "Albert Cuyp": "AlbertCuypstraat",
@@ -105,16 +100,21 @@ def convert_biz_data(sql_shape_file, xlsx_file, output_file):
             return "ST_SetSRID('" + s + "'::geometry, 28992)"
 
         def make_insert(t):
-            insert = """insert into biz_data_new(
-          biz_id
+            insert = (
+                """insert into """
+                + table_name
+                + """(
+          id
         , naam
-        , biz_type
+        , type
         , heffingsgrondslag
         , website
-        , heffing
+        , heffingstarief
+        , heffing_valuta_code
+        , heffing_display
         , bijdrageplichtigen
         , verordening
-        , wkb_geometry)
+        , geometry)
         values (
           {}
         , '{}'
@@ -122,22 +122,25 @@ def convert_biz_data(sql_shape_file, xlsx_file, output_file):
         , '{}'
         , {}
         , {}
+        , 'EUR'
+        , NULL
         , {}
         , {}
         , {}
         );
         """.format(
-                t[0],
-                t[1].replace("'", "''"),
-                t[2],
-                t[3],
-                "NULL"
-                if isinstance(t[4], float) and math.isnan(t[4])
-                else makequotedlink(t[4]),
-                "NULL" if math.isnan(t[5]) else int(t[5]),
-                "NULL" if math.isnan(t[6]) else int(t[6]),
-                makequotedlink(t[7]),
-                "NULL" if t[8] is None else makesrid28992(t[8]),
+                    t[0],
+                    t[1].replace("'", "''"),
+                    t[2],
+                    t[3],
+                    "NULL"
+                    if isinstance(t[4], float) and math.isnan(t[4])
+                    else makequotedlink(t[4]),
+                    "NULL" if math.isnan(t[5]) else int(t[5]),
+                    "NULL" if math.isnan(t[6]) else int(t[6]),
+                    makequotedlink(t[7]),
+                    "NULL" if t[8] is None else makesrid28992(t[8]),
+                )
             )
             return insert
 
