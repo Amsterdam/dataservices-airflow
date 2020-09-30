@@ -70,7 +70,7 @@ with DAG(
         SwiftOperator(
             task_id=f"download_{file}",
             # if conn is ommitted, it defaults to Objecstore Various Small Datasets
-            swift_conn_id="SWIFT_DEFAULT",
+            # swift_conn_id="SWIFT_DEFAULT",
             container="bedrijveninvesteringszones",
             object_id=str(file),
             output_path=f"{tmp_dir}/{file}",
