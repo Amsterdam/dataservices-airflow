@@ -45,7 +45,7 @@ bed_and_breakfast:
 bedrijveninvesteringszones:
   files_to_download:
     shp_files: [BIZZONES.dbf, BIZZONES.shx, BIZZONES.shp]
-    xlsx_files: [BIZZONES_dataset_202001014.xlsx]  
+    xlsx_files: [BIZZONES_dataset.xlsx]  
 hior:
   xls_endpoint: "hior/HIOR Amsterdam.xlsx"
 iot:
