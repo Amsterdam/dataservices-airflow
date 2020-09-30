@@ -14,7 +14,7 @@ CREATE_TABLE = """
         heffing_valuta_code varchar(10) DEFAULT 'EUR',
         heffing_display varchar(100),  
         website varchar(500),
-        bijdrageplichtigen integer,
+        bijdrageplichtingen integer,
         verordening  varchar(500)    
     );    
     ALTER TABLE {{ params.tablename }} ADD CONSTRAINT {{ params.tablename }}_naam_unique UNIQUE (naam);
