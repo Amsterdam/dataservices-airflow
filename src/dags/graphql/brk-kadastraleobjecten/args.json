@@ -1,5 +1,6 @@
 {
   "extra_kwargs": {
+    "endpoint": "gob/secure/graphql/streaming/",
     "geojson_field": "geometrie,plaatscoordinaten,bijpijlingGeometrie",
     "protected": true
   },
