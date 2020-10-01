@@ -248,8 +248,7 @@ args["provide_context"] = True
 with DAG(
     dag_id,
     default_args=args,
-    description="Parkeervakken",
-    schedule_interval="0 16 * * 4",
+    description="Parkeervakken"    
 ) as dag:
 
     source = pathlib.Path(TMP_DIR)
