@@ -7,7 +7,6 @@ from environs import Env
 from tempfile import TemporaryDirectory
 from typing import Optional
 from urllib3.exceptions import ProtocolError
-from requests.exceptions import HTTPError
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -83,11 +82,15 @@ class HttpGobOperator(BaseOperator):
             params["geojson"] = self.geojson
         return params
 
-    def _fetch_headers(self):
+    def _fetch_headers(self, force_refresh=False):
         headers = {"Content-Type": "application/x-ndjson"}
         if not self.protected:
             return headers
-        if self.access_token is None or time.time() - 5 > self.token_expires_time:
+        if (
+            self.access_token is None
+            or time.time() - 5 > self.token_expires_time
+            or force_refresh
+        ):
             form_params = dict(
                 grant_type="client_credentials",
                 client_id=OIDC_CLIENT_ID,
@@ -97,7 +100,7 @@ class HttpGobOperator(BaseOperator):
             for i in range(3):
                 try:
                     response = http.run(OIDC_TOKEN_ENDPOINT, data=form_params)
-                except HTTPError:
+                except AirflowException:
                     self.log.exception("Keycloak unreachable")
                     time.sleep(1)
                 else:
@@ -160,11 +163,11 @@ class HttpGobOperator(BaseOperator):
                     # We retry several times
                     query = gql_file.read()
 
+                force_refresh_token = False
                 for i in range(3):
-
                     try:
                         request_start_time = time.time()
-                        headers = self._fetch_headers()
+                        headers = self._fetch_headers(force_refresh=force_refresh_token)
                         response = http.run(
                             self.endpoint,
                             self._fetch_params(),
@@ -180,6 +183,7 @@ class HttpGobOperator(BaseOperator):
                         )
                     except AirflowException:
                         self.log.exception("Cannot reach %s", self.endpoint)
+                        force_refresh_token = True
                         time.sleep(1)
                     else:
                         break
