@@ -158,6 +158,6 @@ sport:
       sportpark: dcatd/datasets/mdp9l38vc9omBQ/purls/5
   data_endpoints:
     geojson_api:
-      openbaresportplek: https://maps.amsterdam.nl/open_geodata/geojson.php?KAARTLAAG=SPORT_OPENBAAR&THEMA=sport
+      openbaresportplek: open_geodata/geojson.php?KAARTLAAG=SPORT_OPENBAAR&THEMA=sport
 
     

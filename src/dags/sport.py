@@ -44,19 +44,13 @@ check_name = {}
 def quote(instr):
     return f"'{instr}'"
 
-# data connection to maps.amsterdam.nl
-def get_data(url, file_name):
-    """ calling the data endpoint on maps.amsterdam.nl """
-
-    # get data
-    data_url = url
-    data_data = requests.get(data_url)
-
-    # store data
-    with open(file_name, "w") as file:
-        file.write(data_data.text)
-    file.close()
-
+# remove carriage returns / newlines and double spaces in data
+def clean_data(file_name):
+    data = open(file_name, "r").read()
+    remove_returns = re.sub(r"[\n\r]", "", data)
+    remove_double_spaces = re.sub(r"[ ]{2,}", " ", remove_returns)
+    with open(file_name, "w") as output:
+        output.write(remove_double_spaces)
 
 with DAG(
     dag_id,
@@ -90,12 +84,14 @@ with DAG(
         for file_name, url in data.items()
     ]
 
-    # 4. Download source 2: .geojson from Maps.amsterdam.n
+    # 4. Download source 2: .geojson from Maps.amsterdam.nl
     download_data_maps = [ 
-        PythonOperator(
-            task_id=f"download_maps_{file_name}", 
-            python_callable=get_data,
-            op_args=[url,f"{tmp_dir}/{file_name}.{re.sub('_.*', '', source_type)}",]
+    HttpFetchOperator(
+            task_id=f"download_maps_{file_name}_{source_type}",
+            endpoint=f"{url}",
+            http_conn_id="ams_maps_conn_id",
+            tmp_file=f"{tmp_dir}/{file_name}.{re.sub('_.*', '', source_type)}",
+            output_type="text",
         )
         for source_type, data in data_endpoints.items()
         for file_name, url in data.items()
@@ -117,6 +113,7 @@ with DAG(
             f"-oo AUTODETECT_TYPE=YES "
             f"-lco FID=ID "
             f"-lco GEOMETRY_NAME=geometry "
+            f"--config OGR_TRUNCATE YES "
         )
         for source_type, data in files_to_SQL.items()
         for file_name in data.keys()
@@ -134,7 +131,18 @@ with DAG(
 
     ]
 
-    # 8. Load data into the table
+    # 8. Clean data from returns and spaces
+    cleanse_data = [ 
+        PythonOperator(
+            task_id=f"cleanse_{file_name}", 
+            python_callable=clean_data,
+            op_args=[f"{tmp_dir}/{file_name}.sql.utf8.sql",]
+        )
+        for _, data in files_to_SQL.items()
+        for file_name in data.keys()
+    ]
+
+    # 9. Load data into the table
     load_tables = [
         BashOperator(
             task_id=f"load_table_{file_name}",
@@ -144,11 +152,11 @@ with DAG(
         for file_name in data.keys()
     ]
 
-    # 9. Dummy operator acts as an Interface between parallel tasks to another parallel tasks (i.e. lists or tuples) 
+    # 10. Dummy operator acts as an Interface between parallel tasks to another parallel tasks (i.e. lists or tuples) 
     #   with different number of lanes (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
-    # 10. Add geometry column for tables 
+    # 11. Add geometry column for tables 
     #    where source file (like the .csv files) has no geometry field, only x and y fields  
     add_geom_col = [ 
         PostgresOperator(
@@ -160,13 +168,13 @@ with DAG(
 
     ] 
 
-    # 11. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
+    # 12. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
     delete_duplicate_rows = PostgresOperator(
             task_id=f"del_duplicate_rows", 
             sql=DEL_ROWS,
         )
     
-    # 12. RENAME columns based on PROVENANCE    
+    # 13. RENAME columns based on PROVENANCE    
     provenance_translation = ProvenanceRenameOperator(
         task_id="provenance_rename",
         dataset_name=f"{dag_id}",
@@ -215,7 +223,7 @@ with DAG(
 
     
     
-    # 13. Execute bundled checks on database
+    # 14. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{file_name}", checks=check_name[f"{file_name}"]
@@ -224,7 +232,7 @@ with DAG(
         for file_name in data.keys()
     ]
   
-    # 14. RENAME TABLES
+    # 15. RENAME TABLES
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{file_name}",
@@ -244,9 +252,9 @@ with DAG(
 
         data_maps >> Interface >> to_sql
     
-    for (to_sql, convert, load_tables) in zip(to_sql, convert_to_UTF8, load_tables):
+    for (to_sql, convert, cleanse_data, load_tables) in zip(to_sql, convert_to_UTF8, cleanse_data, load_tables):
 
-        to_sql >> convert >> load_tables >> Interface2 >> add_geom_col
+        to_sql >> convert >> cleanse_data >> load_tables >> Interface2 >> add_geom_col
             
     for add_geometry in add_geom_col:
 
@@ -275,8 +283,8 @@ dag.doc_md = """
     https://api.data.amsterdam.nl/v1/docs/datasets/sport.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/sport.html
     Example geosearch: 
-    https://api.data.amsterdam.nl/geosearch?datasets=sport/zwembaden&x=106434&y=488995&radius=10
-    https://api.data.amsterdam.nl/geosearch?datasets=sport/hardlooproutes&x=106434&y=488995&radius=10
-    https://api.data.amsterdam.nl/geosearch?datasets=sport/sportaanbieders&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=sport/zwembad&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=sport/hardlooproute&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=sport/sportaanbieder&x=106434&y=488995&radius=10
 """
 
