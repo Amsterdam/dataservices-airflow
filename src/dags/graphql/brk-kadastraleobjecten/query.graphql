@@ -8,34 +8,6 @@
         registratiedatum 
         id 
         kadastraleAanduiding 
-        aangeduidDoorGemeente {
-          edges {
-            node {
-              identificatie 
-            }
-          }
-        }
-        aangeduidDoorKadastralegemeente {
-          edges {
-            node {
-              identificatie 
-            }
-          }
-        }
-        aangeduidDoorKadastralegemeentecode {
-          edges {
-            node {
-              identificatie 
-            }
-          }
-        }
-        aangeduidDoorKadastralesectie {
-          edges {
-            node {
-              identificatie 
-            }
-          }
-        }
         perceelnummer 
         indexletter 
         indexnummer 
@@ -60,14 +32,6 @@
         eindGeldigheid 
         inOnderzoek 
         heeftEenRelatieMetVerblijfsobject {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        isOntstaanUitKadastraalobject {
           edges {
             node {
               identificatie 
