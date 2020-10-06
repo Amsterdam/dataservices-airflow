@@ -22,9 +22,9 @@ CREATE SCHEMA IF NOT EXISTS pte;
 SQL
 
 psql -X --set ON_ERROR_STOP=on << SQL
-CREATE SEQUENCE IF NOT EXISTS public.meldingen_statistiek_seq;
-CREATE TABLE IF NOT EXISTS public.meldingen_statistiek (
-  id integer NOT NULL DEFAULT nextval('meldingen_statistiek_seq'),
+CREATE SEQUENCE IF NOT EXISTS public.meldingen_statistieken_seq;
+CREATE TABLE IF NOT EXISTS public.meldingen_statistieken (
+  id integer NOT NULL DEFAULT nextval('meldingen_statistieken_seq'),
   datum_melding date,
   buurtcode character varying,
   buurtnaam character varying,
@@ -40,9 +40,9 @@ CREATE TABLE IF NOT EXISTS public.meldingen_statistiek (
   aantal integer
 );
 BEGIN;
-TRUNCATE public.meldingen_statistiek;
-ALTER SEQUENCE meldingen_statistiek_seq RESTART WITH 1;
-INSERT INTO public.meldingen_statistiek(
+TRUNCATE public.meldingen_statistieken;
+ALTER SEQUENCE meldingen_statistieken_seq RESTART WITH 1;
+INSERT INTO public.meldingen_statistieken(
   datum_melding,
   buurtcode,
   buurtnaam,
