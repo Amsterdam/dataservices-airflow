@@ -157,11 +157,13 @@ class HttpGobOperator(BaseOperator):
             # the record index. If this were not true, the cursor needed
             # to be obtained from the last content record
             records_loaded = 0
+
+            with self.graphql_query_path.open() as gql_file:
+                query = gql_file.read()
+
+            # Sometime GOB-API fail with 500 error, caught by Airflow
+            # We retry several times
             while True:
-                with self.graphql_query_path.open() as gql_file:
-                    # Sometime GOB-API fail with 500 error, caught by Airflow
-                    # We retry several times
-                    query = gql_file.read()
 
                 force_refresh_token = False
                 for i in range(3):
