@@ -32,10 +32,17 @@ RENAME_TABLES_SQL = """
         RENAME TO rioolnetwerk_rioolleidingen;
 """
 
+# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
+def quote(instr):
+    return f"'{instr}'"
+
 dag_id = "rioolnetwerk"
 owner = "team_ruimte"
 
-with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
+with DAG(dag_id, 
+        default_args={**default_args, **{"owner": owner}},
+        user_defined_filters=dict(quote=quote),
+        ) as dag:
 
     checks = []
 
@@ -81,7 +88,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         (
             "kel_rioolleidingen",
             194000,
-            "MULTILINESTRING",
+            ["MULTILINESTRING", "LINESTRING"],
             {"objnr", "leidingnaa", "br_diamete", "vorm"},
         ),
     ):
