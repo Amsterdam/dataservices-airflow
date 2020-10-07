@@ -1,6 +1,7 @@
-import pendulum, re
+import pendulum
+import re
 
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta, datetime
 from environs import Env
 from airflow.utils.dates import days_ago
 
@@ -69,3 +70,22 @@ default_args = {
 
 vsd_default_args = default_args.copy()
 vsd_default_args["postgres_conn_id"] = "postgres_default"
+
+
+def addloopvariables(iterable):
+    """ Pass through all values from the given iterable.
+        Return items of the iterable and booleans
+        signalling the first and the last item
+    """
+    # Get an iterator and pull the first value.
+    it = iter(iterable)
+    current = next(it)
+    yield current, True, False
+    current = next(it)
+    # Run the iterator to exhaustion (starting from the third value).
+    for val in it:
+        # Report the *previous* value (more to come).
+        yield current, False, False
+        current = val
+    # Report the last value.
+    yield current, False, True
