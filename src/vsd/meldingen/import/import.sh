@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS public.meldingen_statistieken (
   stadsdeelcode character varying,
   stadsdeelnaam character varying,
   stadsdeel_id character varying,
-  gemeente_code character varying,
-  gemeente_naam character varying,
+  gemeentecode character varying,
+  gemeentenaam character varying,
   categorie character varying,
   subrubriek character varying,
   aantal integer
@@ -57,8 +57,8 @@ INSERT INTO public.meldingen_statistieken(
   stadsdeelcode,
   stadsdeelnaam,
   stadsdeel_id,
-  gemeente_code,
-  gemeente_naam,
+  gemeentecode,
+  gemeentenaam,
   categorie,
   subrubriek,
   aantal)
