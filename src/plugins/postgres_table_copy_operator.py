@@ -73,6 +73,5 @@ class PostgresTableCopyOperator(PostgresOperator):
             ):
 
                 self.sql.append(sql.format(**lookup))
-                # alter table brk_kadastraleobjecten_soort_cultuur_bebouwd alter column id drop default;
 
         return super().execute(context)
