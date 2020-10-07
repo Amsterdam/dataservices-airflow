@@ -16,7 +16,7 @@ python $SHARED_DIR/utils/get_objectstore_file.py "$OBJECTSTORE_PATH" -s objectst
 unzip $TMPDIR/meldingen/${ENVIRONMENT}/$ZIPFILE -d ${TMPDIR}
 
 psql -X --set ON_ERROR_STOP=on << SQL
-DROP TABLE IF EXISTS pte.mora_melding_dag_buurt_categorie CASCADE;
+DROP TABLE IF EXISTS pte.mora_melding_dag_gebied_categorie CASCADE;
 CREATE SCHEMA IF NOT EXISTS pte;
 \i ${TMPDIR}/mora.backup
 SQL
@@ -25,6 +25,7 @@ psql -X --set ON_ERROR_STOP=on << SQL
 CREATE SEQUENCE IF NOT EXISTS public.meldingen_statistieken_seq;
 CREATE TABLE IF NOT EXISTS public.meldingen_statistieken (
   id integer NOT NULL DEFAULT nextval('meldingen_statistieken_seq'),
+  gebiedstype character varying,
   datum_melding date,
   buurtcode character varying,
   buurtnaam character varying,
@@ -35,6 +36,8 @@ CREATE TABLE IF NOT EXISTS public.meldingen_statistieken (
   stadsdeelcode character varying,
   stadsdeelnaam character varying,
   stadsdeel_id character varying,
+  gemeente_code character varying,
+  gemeente_naam character varying,
   categorie character varying,
   subrubriek character varying,
   aantal integer
@@ -43,6 +46,7 @@ BEGIN;
 TRUNCATE public.meldingen_statistieken;
 ALTER SEQUENCE meldingen_statistieken_seq RESTART WITH 1;
 INSERT INTO public.meldingen_statistieken(
+  gebiedstype,
   datum_melding,
   buurtcode,
   buurtnaam,
@@ -53,10 +57,13 @@ INSERT INTO public.meldingen_statistieken(
   stadsdeelcode,
   stadsdeelnaam,
   stadsdeel_id,
+  gemeente_code,
+  gemeente_naam,
   categorie,
   subrubriek,
   aantal)
-SELECT melding_datum_melding,
+SELECT melding_gebiedstype,
+       melding_datum_melding,
        melding_buurt_code,
        melding_buurt_naam,
        melding_buurt_id,
@@ -66,11 +73,13 @@ SELECT melding_datum_melding,
        melding_stadsdeel_code,
        melding_stadsdeel_naam,
        melding_stadsdeel_id,
+       melding_gemeente_code,
+       melding_gemeente_naam,
        melding_categorie,
        melding_subrubriek,
        melding_aantal
-FROM pte.mora_melding_dag_buurt_categorie;
-DROP TABLE pte.mora_melding_dag_buurt_categorie CASCADE;
+FROM pte.mora_melding_dag_gebied_categorie;
+DROP TABLE pte.mora_melding_dag_gebied_categorie CASCADE;
 COMMIT;
 SQL
 
