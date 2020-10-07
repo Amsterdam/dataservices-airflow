@@ -73,38 +73,38 @@ CONFIG = {
 }
 
 # Table names to write new IoT data to
-THINGS_TABLE = "iot_things_new"
-LOCATIONS_TABLE = "iot_locations_new"
+THINGS_TABLE = "cmsa_sensor_new"
+LOCATIONS_TABLE = "cmsa_locatie_new"
 # OWNERS_TABLE = "iot_owners_new"
 
 
-def thing(id, ref, name, description, device_type, purpose):
+def thing(id, referentie_code, naam, omschrijving, type, doel):
     return {
         "id": id,
-        "ref": ref,
-        "name": name,
-        "description": description,
-        "device_type": device_type,
-        "purpose": purpose,
+        "referentiecode": referentie_code,
+        "naam": naam,
+        "omschrijving": omschrijving,
+        "type": type,
+        "doel": doel,
     }
 
 
-def geometry(x, y, code):
+def get_geometry(x, y, code):
     if x is None or y is None:
         return None
     else:
-        return f"ST_GeomFromText('POINT({x} {y})', {code})"
+        # transform all geometry to RD, in the DB the geometry type is 28992
+        return f"ST_Transform(ST_GeomFromText('POINT({x} {y})', {code}), 28992)"
 
 
-def location(thing_id, ref, name, rd_x, rd_y, wgs84_lat, wgs84_lon):
-    rd_geometry = geometry(rd_x, rd_y, 28992)
-    wgs84_geometry = geometry(wgs84_lat, wgs84_lon, 4326)
+def location(sensor, referentie_code, naam, rd_x, rd_y, wgs84_lat, wgs84_lon):
+    # if there is no RD geometry based data then use WGS84 data
+    geometry = get_geometry(wgs84_lon, wgs84_lat, 4326) if rd_x is None or rd_y is None else get_geometry(rd_x, rd_y, 28992)
     return {
-        "thing_id": thing_id,
-        "ref": ref,
-        "name": name,
-        "rd_geometry": rd_geometry,
-        "wgs84_geometry": wgs84_geometry,
+        "sensor": sensor,
+        "referentiecode": referentie_code,
+        "naam": naam,
+        "geometry": geometry
     }
 
 
@@ -127,18 +127,18 @@ def import_sensors(filename):
                 things.append(
                     thing(
                         id=id,
-                        ref=row["VOLGNR"],
-                        name=row["LABEL"],
-                        description=row["SELECTIE"],
-                        device_type=row["SELECTIE"],
-                        purpose=row["SELECTIE"],
+                        referentie_code=row["VOLGNR"],
+                        naam=row["LABEL"],
+                        omschrijving=row["SELECTIE"],
+                        type=row["SELECTIE"],
+                        doel=row["SELECTIE"],
                     )
                 )
                 locations.append(
                     location(
-                        thing_id=id,
-                        ref=row["LABEL"],
-                        name=row["LABEL"],
+                        sensor=id,
+                        referentie_code=row["LABEL"],
+                        naam=row["LABEL"],
                         rd_x=None,
                         rd_y=None,
                         wgs84_lat=row["LATMAX"],
@@ -168,18 +168,18 @@ def import_beacons(filename):
                 things.append(
                     thing(
                         id=id,
-                        ref=beacon_value(row, "thing", "ref"),
-                        name=beacon_value(row, "thing", "name"),
-                        description=beacon_value(row, "thing", "description"),
-                        device_type="Beacon",
-                        purpose=beacon_value(row, "thing", "purpose"),
+                        referentie_code=beacon_value(row, "thing", "ref"),
+                        naam=beacon_value(row, "thing", "name"),
+                        omschrijving=beacon_value(row, "thing", "description"),
+                        type="Beacon",
+                        doel=beacon_value(row, "thing", "purpose"),
                     )
                 )
                 locations.append(
                     location(
-                        thing_id=id,
-                        ref=beacon_value(row, "location", "ref"),
-                        name=beacon_value(row, "location", "name"),
+                        sensor=id,
+                        referentie_code=beacon_value(row, "location", "ref"),
+                        naam=beacon_value(row, "location", "name"),
                         rd_x=beacon_value(row, "location", "rd_x"),
                         rd_y=beacon_value(row, "location", "rd_y"),
                         wgs84_lat=beacon_value(row, "location", "wgs84_lat"),
@@ -193,8 +193,10 @@ def import_beacons(filename):
 def camera_value(sheet, series, entity, key):
     try:
         value = CONFIG["cameras"][sheet][entity][key]
+        print("try value", value)
     except KeyError:
         value = CONFIG["cameras"]["default"][entity][key]
+        print("except value", value)
     value = series[value]
     try:
         if math.isnan(value):
@@ -211,8 +213,11 @@ def import_cameras(filename):
     things = []
     locations = []
     for sheet in sheet_names:
+        print ('sheet:', sheet)
         for row in df[sheet].iterrows():
+            print ('row:', row)
             id, series = row
+            print ('id:', id, 'series:', series)
             try:
                 id = f"cameras.{sheet}.{int(id)}"
             except ValueError:
@@ -222,18 +227,18 @@ def import_cameras(filename):
             things.append(
                 thing(
                     id=id,
-                    ref=camera_value(sheet, series, "thing", "ref"),
-                    name=camera_value(sheet, series, "thing", "name"),
-                    description=camera_value(sheet, series, "thing", "description"),
-                    device_type="Camera",
-                    purpose=camera_value(sheet, series, "thing", "purpose"),
+                    referentie_code=camera_value(sheet, series, "thing", "ref"),
+                    naam=camera_value(sheet, series, "thing", "name"),
+                    omschrijving=camera_value(sheet, series, "thing", "description"),
+                    type="Camera",
+                    doel=camera_value(sheet, series, "thing", "purpose"),
                 )
             )
             locations.append(
                 location(
-                    thing_id=id,
-                    ref=camera_value(sheet, series, "location", "ref"),
-                    name=camera_value(sheet, series, "location", "name"),
+                    sensor=id,
+                    referentie_code=camera_value(sheet, series, "location", "ref"),
+                    naam=camera_value(sheet, series, "location", "name"),
                     rd_x=camera_value(sheet, series, "location", "rd_x"),
                     rd_y=camera_value(sheet, series, "location", "rd_y"),
                     wgs84_lat=camera_value(sheet, series, "location", "wgs84_lat"),
@@ -250,7 +255,7 @@ def get_value(item, field):
     if value is None:
         return "NULL"
     elif isinstance(value, str):
-        if not re.match(r"ST_GeomFromText", value):
+        if not re.match(r"ST_Transform", value):
             value = value.replace("'", '"')
             value = f"'{value}'"
     return str(value)
@@ -284,7 +289,7 @@ VALUES"""
             f.write(";")
 
 
-def import_iot(cameras, beacons, sensors, out_dir):
+def import_cmsa(cameras, beacons, sensors, out_dir):
 
     for f in Path(out_dir).glob("*.sql"):
         # f.unlink(missing_ok=True)  # only for python 3.8, airflow now needs 3.7
