@@ -67,11 +67,12 @@ class PostgresTableCopyOperator(PostgresOperator):
             )
             for sql in (
                 "CREATE TABLE IF NOT EXISTS {target_table_name} (LIKE {source_table_name} "
-                "INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES)",
+                "INCLUDING CONSTRAINTS INCLUDING INDEXES)",
                 "TRUNCATE TABLE {target_table_name}",
                 "INSERT INTO {target_table_name} SELECT * FROM {source_table_name}",
             ):
 
                 self.sql.append(sql.format(**lookup))
+                # alter table brk_kadastraleobjecten_soort_cultuur_bebouwd alter column id drop default;
 
         return super().execute(context)
