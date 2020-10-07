@@ -48,11 +48,12 @@ bedrijveninvesteringszones:
     xlsx_files: [BIZZONES_dataset.xlsx]  
 hior:
   xls_endpoint: "hior/HIOR Amsterdam.xlsx"
-iot:
+cmsa:
   objects:
     - 3D sensor
     - WiFi sensor
     - Telcamera
+  files_to_download: [beacons.csv, cameras.xlsx]
 openbareverlichting:
   data_endpoints:
     objects: asd/services/rest_sia.php/SIAService/objecten
