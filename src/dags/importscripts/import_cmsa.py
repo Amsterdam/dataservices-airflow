@@ -101,7 +101,7 @@ def location(sensor, referentie_code, naam, rd_x, rd_y, wgs84_lat, wgs84_lon):
     # if there is no RD geometry based data then use WGS84 data
     geometry = get_geometry(wgs84_lon, wgs84_lat, 4326) if rd_x is None or rd_y is None else get_geometry(rd_x, rd_y, 28992)
     return {
-        "sensor": sensor,
+        "sensor_id": sensor,
         "referentiecode": referentie_code,
         "naam": naam,
         "geometry": geometry
