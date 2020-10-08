@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS cmsa_sensor_new (
 
 CREATE TABLE  IF NOT EXISTS cmsa_locatie_new (
     id SERIAL PRIMARY KEY,
-    sensor varchar(64) REFERENCES cmsa_sensor_new(id),
+    sensor_id varchar(64) REFERENCES cmsa_sensor_new(id),
     referentiecode varchar(128),
     naam varchar(128),
     "geometry" geometry(Geometry,28992)
@@ -18,8 +18,8 @@ CREATE TABLE  IF NOT EXISTS cmsa_locatie_new (
 
 CREATE TABLE IF NOT EXISTS cmsa_markering_new (
     id integer GENERATED ALWAYS AS IDENTITY,
-    sensor varchar(64),
-    locatie integer,
+    sensor_id varchar(64) REFERENCES cmsa_sensor_new(id),
+    locatie_id integer REFERENCES cmsa_locatie_new(id),
     sensornaam varchar(128),
     sensortype varchar(32),
     "geometry" geometry(Geometry,28992)
