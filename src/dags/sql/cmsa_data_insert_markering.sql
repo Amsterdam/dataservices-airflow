@@ -11,6 +11,6 @@ INSERT INTO cmsa_markering_new (sensor_id, locatie_id, sensornaam, sensortype, g
     locatie.geometry
 FROM cmsa_sensor_new as sensor
 INNER JOIN cmsa_locatie_new as locatie
-ON locatie.sensor = sensor.id
+ON locatie.sensor_id = sensor.id
 );
 COMMIT;
