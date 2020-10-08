@@ -2,7 +2,7 @@
 TRUNCATE TABLE cmsa_markering_new;
 
 /* Fill table with records */
-INSERT INTO cmsa_markering_new (sensor, locatie, sensornaam, sensortype, geometry)
+INSERT INTO cmsa_markering_new (sensor_id, locatie_id, sensornaam, sensortype, geometry)
 (   SELECT
     sensor.id, 
     locatie.id, 
