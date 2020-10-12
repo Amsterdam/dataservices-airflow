@@ -5,7 +5,7 @@ from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from postgres_table_init_operator import PostgresTableInitOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from http_gob_operator import HttpGobOperator
-from common import default_args, DATAPUNT_ENVIRONMENT, addloopvariables
+from common import default_args, DATAPUNT_ENVIRONMENT
 from schematools import TMP_TABLE_POSTFIX
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
@@ -71,8 +71,8 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
     return dag
 
 
-for gob_gql_dir, is_first, is_last in addloopvariables(graphql_path.glob("*")):
+for i, gob_gql_dir in enumerate(graphql_path.glob("*")):
     gob_dataset_name, gob_table_name = gob_gql_dir.parts[-1].split("-")
     globals()[f"gob_{gob_dataset_name}_{gob_table_name}"] = create_gob_dag(
-        is_first, gob_dataset_name, gob_table_name
+        i == 0, gob_dataset_name, gob_table_name
     )
