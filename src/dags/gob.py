@@ -71,7 +71,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
     return dag
 
 
-for i, gob_gql_dir in enumerate(graphql_path.glob("*")):
+for i, gob_gql_dir in enumerate(sorted(graphql_path.glob("*"))):
     gob_dataset_name, gob_table_name = gob_gql_dir.parts[-1].split("-")
     globals()[f"gob_{gob_dataset_name}_{gob_table_name}"] = create_gob_dag(
         i == 0, gob_dataset_name, gob_table_name
