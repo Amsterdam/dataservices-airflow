@@ -1,5 +1,7 @@
+from inspect import cleandoc
 import pendulum
 import re
+import traceback
 
 from datetime import timedelta, datetime
 from environs import Env
@@ -28,11 +30,24 @@ def pg_params(conn_id="postgres_default"):
 
 
 def slack_failed_task(context):
+    dag_id = context["dag"].dag_id
+    task_id = context["task"].task_id
+    exception = context.get("exception")
+    if exception is not None:
+        formatted_exception = "".join(
+            traceback.format_exception(
+                etype=type(exception), value=exception, tb=exception.__traceback__
+            )
+        ).strip()
+    message = f"""Failure info:
+        dag_id: {dag_id}
+        task_id: {task_id}
+    """
     failed_alert = MessageOperator(
         task_id="failed_alert",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message="Failed task",
+        message=f"{cleandoc(message)}\n\n{formatted_exception}",
         username="admin",
     )
     return failed_alert.execute(context=context)
@@ -64,7 +79,7 @@ default_args = {
     "email_on_retry": False,
     "on_failure_callback": slack_failed_task,
     "retries": 1,
-    "retry_delay": timedelta(minutes=15),
+    "retry_delay": timedelta(minutes=1),
     "catchup": False,  # do not backfill
 }
 

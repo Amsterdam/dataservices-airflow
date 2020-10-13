@@ -46,6 +46,7 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
 
         try:
             self.trigger_dag_id = active_dag_ids[current_dag_idx + 1]
+            self.log.info("Next dag to trigger %s", self.trigger_dag_id)
         except IndexError:
             self.log.info("Current dag %s is the last dag.", current_dag_id)
             return
