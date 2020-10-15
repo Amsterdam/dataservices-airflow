@@ -50,11 +50,6 @@ def quote(instr):
     return f"'{instr}'"
 
 
-def testme(container, swift_conn_id):
-    hook = SwiftHook(swift_conn_id=swift_conn_id)
-    hook.upload(container=container, folder_name=f"{tmp_dir}")
-
-
 with DAG(
     dag_id,
     default_args=default_args,
@@ -72,16 +67,8 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
-    
-    upload = PythonOperator(
-        task_id="upload",
-        python_callable=testme,
-        op_kwargs=dict(
-            swift_conn_id="objectstore_dataservices",
-            container="airflow_temp"
-        ),
-    )
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")    
+
 
     # 3. Download data
     fetch_json = HttpFetchOperator(
@@ -154,7 +141,6 @@ with DAG(
     slack_at_start
     >> mkdir
     >> fetch_json
-    >> upload
     >> geojson_to_sql
     >> create_table
     >> provenance_translation
