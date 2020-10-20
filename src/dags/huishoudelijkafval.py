@@ -23,7 +23,10 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         task_id="drop_tables",
         dataset_name="huishoudelijkafval",
         pg_schema="pte",
-        additional_table_names=["afval_api_adres_loopafstand"],
+        additional_table_names=[
+            "afval_api_adres_loopafstand",
+            "afval_api_loopafstand_categorie",
+        ],
     )
 
     swift_load_task = SwiftLoadSqlOperator(
