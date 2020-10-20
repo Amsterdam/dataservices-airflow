@@ -13,7 +13,6 @@
         beginGeldigheid 
         eindGeldigheid 
         geconstateerd 
-        aanduidingInOnderzoek 
         heeftOnderzoeken {
           edges {
             node {

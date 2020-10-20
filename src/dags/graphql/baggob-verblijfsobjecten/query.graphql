@@ -41,7 +41,6 @@
         }
         beginGeldigheid 
         eindGeldigheid 
-        aanduidingInOnderzoek 
         heeftOnderzoeken {
           edges {
             node {
