@@ -146,3 +146,36 @@ operator parameters can be parametrized using jinja2. These templated variables
 are lazily evaluated when de DAG is run. This parametrization can also be used to
 postpone the heavy lifting. For the same reason it is better to not use variables
 outside of the operators, because access to variables means access to the postgres database.
+
+# PG comparator
+The pg_comparator can be used on table level synchronization. It can detect modifications (inserts, update and deletes) on a table and synchronize these change to a target table. Beware, the synchronization removes all tuples of the target table that does not exists in the source table. The source table is leading. In the examples below the source table is indicated as "table_one". The target table as "table_two".
+
+The dso_database container is created by a build instead of a direct image. 
+The build installs the amsterdam/postgres11 image and additional libraries i.e. libdbd-pg-perl that pg_comparator needs.
+Note that in order to use the pg_comparator on Postgres databases, all Postgres databases involved must have 
+the libraries installed and the pgcmp extension created. 
+Also the envoking container that runs the pg_comparator cmd, in this case Airlow container itself, must have the pg_comparator
+installed as well including the needed libraries i.e. libdbd-pg-perl.
+
+The example below compares the table 'table_one' with 'table_two' on the same database.
+Note that the tables must exists on the database, create them if necessary. The source table (table_one) must have a PK contraint in order to use pg_comparator. The output of the command consists of lines describing the differences found between the two tables. They are expressed in term of insertions, updates or deletes and of tuple keys. Wether it detects inserts, updates and/or deletes can be modified. See the man pages for pg_comparator for more information.
+
+When comparing two tables, pg_comparator initiates the creations of a temporary tables (create temporary table), which is
+deleted after the session is finished. To retain this temp tables, for debugging purposes i.e., add the following flag to the cmd:
+
+`--no-temporary`
+
+The temporary tables contains key (KCS) and tuple (TCS) checksums between the source en target table. These are used to detect changes.
+
+Beware! You have to drop the temp tables by hand after the execution, if you run the pg_comparator a second time. So there will be no error indicating the object already exists.
+
+To actually run the DML statements, 2 flags will be needed: `--do-it` and `--synchronize`
+Without them the comparison will indicate the differences but will not execute the synchronisation.
+
+`pg_comparator --verbose --do-it --synchronize --no-temporary pgsql://dataservices:insecure@dso_database/dataservices/table_one pgsql://dataservices:insecure@dso_database/dataservices/table_two`
+
+The second example below compares the table 'table_one' with 'table_two' on the different/seperate database.
+Beware! Both databases must have the libraries installed and the pgcmp extension created. 
+`pg_comparator --verbose --do-it --synchronize pgsql://dataservices:insecure@dso_database/dataservices/table_one pgsql://ds_airflow:insecure@database/ds_airflow/table_two`
+
+
