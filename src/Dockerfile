@@ -45,6 +45,13 @@ COPY --from=builder /usr/bin/patch /usr/bin/patch
 COPY --from=builder /usr/bin/rsync /usr/bin/rsync
 COPY --from=builder /usr/lib/postgresql/11/bin/pg_comparator /usr/bin/pg_comparator
 
+# Installing postgresql-server-dev-all introduces the lsb-release package
+# However, this is crashing (because of unconfigured python2 environment)
+# pip checks for the lsb_release script and uses it if available.
+# So, we need to remove the lsb_release script to have a working pip inside our container.
+# A working pip is needed to switch to a development version of the schematools package.
+RUN rm /usr/bin/lsb_release
+
 
 # Disable an expired root certificate (temporary solution)
 RUN sed -i '/^mozilla\/AddTrust_External_Root.crt/c\!mozilla\/AddTrust_External_Root.crt' /etc/ca-certificates.conf
