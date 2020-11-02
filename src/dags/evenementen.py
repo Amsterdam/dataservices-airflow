@@ -25,6 +25,9 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
+from sql.evenementen import SET_DATE_DATATYPE
+
+
 dag_id = "evenementen"
 
 variables_evenementen = Variable.get("evenementen", deserialize_json=True)
@@ -88,6 +91,7 @@ with DAG(
         f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {data_file} "
         f"-lco GEOMETRY_NAME=geometry "
+        f"-oo DATE_AS_STRING=NO "
         f"-lco FID=id",
     )
 
@@ -97,7 +101,14 @@ with DAG(
         bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
     )
 
-    # 6. Rename COLUMNS based on Provenance
+    # 6. Set datatype date for date columns that where not detected by ogr2ogr
+    set_datatype_date = PostgresOperator(
+            task_id=f"set_datatype_date", 
+            sql=SET_DATE_DATATYPE,
+            params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+    )
+
+    # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=f"{dag_id}",
@@ -127,12 +138,12 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 7. RUN bundled CHECKS
+    # 8. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(
         task_id=f"multi_check", checks=total_checks
     )
 
-    # 8. Rename TABLE
+    # 9. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id=f"rename_table",
         old_table_name=f"{dag_id}_{dag_id}_new",
@@ -146,6 +157,7 @@ with DAG(
     >> download_data
     >> create_SQL
     >> create_table
+    >> set_datatype_date
     >> provenance_translation
     >> multi_checks
     >> rename_table
