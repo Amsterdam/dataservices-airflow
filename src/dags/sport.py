@@ -45,12 +45,18 @@ def quote(instr):
     return f"'{instr}'"
 
 # remove carriage returns / newlines and double spaces in data
-def clean_data(file_name):
+def clean_data(file_name):    
     data = open(file_name, "r").read()
     remove_returns = re.sub(r"[\n\r]", "", data)
     remove_double_spaces = re.sub(r"[ ]{2,}", " ", remove_returns)
+    # The "ï¿½" is inserted when there are two or more consecutive spaces found. 
+    # It appears to be in de source file already. 
+    # Why the UTF-8 conversion is not translating this correcly, is unkown.
+    # Therefore the karakter is manually removed.   
+    remove_consecutive_spaces =  re.sub(r'ï¿½', "", remove_double_spaces );
     with open(file_name, "w") as output:
-        output.write(remove_double_spaces)
+        output.write(remove_consecutive_spaces)
+
 
 with DAG(
     dag_id,
