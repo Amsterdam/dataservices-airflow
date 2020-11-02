@@ -24,6 +24,7 @@ class HttpFetchOperator(BaseOperator):
         data=None,
         headers=None,
         http_conn_id="http_default",
+        encoding_schema=None,
         tmp_file=None,
         output_type=None,
         *args,
@@ -33,6 +34,7 @@ class HttpFetchOperator(BaseOperator):
         self.endpoint = endpoint
         self.headers = headers or {}
         self.http_conn_id = http_conn_id
+        self.encoding_schema = encoding_schema
         self.data = data or {}
         self.tmp_file = tmp_file  # or make temp file + store path in xcom
         self.output_type = output_type  # default is raw, else specify text i.e.
@@ -42,17 +44,22 @@ class HttpFetchOperator(BaseOperator):
 
         # ---------- TEMPORARY IF REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----------
         if self.output_type != "file":
-            print(">>>https")
-            # ---------- TEMPORARY IF REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----------
+        # ---------- TEMPORARY IF REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----------
 
             Path(self.tmp_file).parents[0].mkdir(parents=True, exist_ok=True)
             http = HttpHook(http_conn_id=self.http_conn_id, method="GET")
+            
 
             self.log.info("Calling HTTP Fetch method")
             self.log.info(self.endpoint)
             response = http.run(
                 self.endpoint, self.data, self.headers, extra_options={"stream": True}
             )
+            # set encoding schema explictly if given
+            if self.encoding_schema: 
+                response.encoding = self.encoding_schema
+            self.log.info(f"Encoding schema is {response.encoding}")
+
             # When content is encoded (gzip etc.) we need this
             # response.raw.read = functools.partial(response.raw.read, decode_content=True)
             if self.output_type == "text":
