@@ -25,7 +25,7 @@ colorama==0.4.3           # via flask-appbuilder
 colorlog==4.0.2           # via apache-airflow
 configparser==3.5.3       # via apache-airflow
 croniter==0.3.31          # via apache-airflow
-cryptography==2.8         # via apache-airflow
+cryptography==3.2         # via apache-airflow
 cx-oracle==7.3.0          # via -r requirements.in
 datapunt-config-loader==1.1.2  # via datapunt-objectstore
 datapunt-objectstore==2019.4.8  # via -r requirements.in
