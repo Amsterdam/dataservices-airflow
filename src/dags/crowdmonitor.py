@@ -20,7 +20,9 @@ SQL_CREATE_TEMP_TABLE = """
       naam_locatie character varying,
       periode character varying,
       datum_uur timestamp with time zone,
-      aantal_passanten integer
+      aantal_passanten integer,
+      gebied character varying,
+      geometrie geometry(Point,4326)
     );
     CREATE SEQUENCE {{ params.base_table }}_temp_id_seq
         OWNED BY {{ params.base_table }}_temp.id;
@@ -42,6 +44,8 @@ SQL_RENAME_TEMP_TABLE = """
         RENAME TO {{ params.base_table }}_id_seq;
    ALTER INDEX IF EXISTS {{ params.base_table }}_periode_idx RENAME TO {{ params.base_table }}_old_periode_idx;
    CREATE INDEX {{ params.base_table }}_periode_idx ON {{ params.base_table }}(periode);
+   ALTER INDEX IF EXISTS {{ params.base_table }}_geometrie_idx RENAME TO {{ params.base_table }}_old_geometrie_idx;
+   CREATE INDEX {{ params.base_table }}_geometrie_idx ON {{ params.base_table }} USING gist (geometrie);
 """
 
 SQL_ADD_AGGREGATES = """
@@ -80,17 +84,16 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         cursor = waarnemingen_connection.execute(
             f"""
 SET TIME ZONE 'Europe/Amsterdam';
-WITH cmsa_1h_v3 AS
- (SELECT v.sensor,
-    s.location_name,
-    date_trunc('hour'::text, v.timestamp_rounded) AS datum_uur,
-    SUM(v.total_count) AS aantal_passanten
-   FROM cmsa_15min_view_v3_materialized v
-     JOIN peoplemeasurement_sensors s ON s.objectnummer::text = v.sensor::text
-  WHERE v.timestamp_rounded > to_date('2019-01-01'::text, 'YYYY-MM-DD'::text)
-  GROUP BY v.sensor, s.location_name, (date_trunc('hour'::text, v.timestamp_rounded)))
-SELECT sensor, location_name, datum_uur, aantal_passanten
-FROM cmsa_1h_v3;
+WITH cmsa_1h_v6 AS (
+  SELECT sensor
+       , date_trunc('hour'::text, timestamp_rounded) AS datum_uur
+       , SUM(total_count) AS aantal_passanten
+  FROM cmsa_15min_view_v6_materialized
+  WHERE timestamp_rounded > to_date('2019-01-01'::text, 'YYYY-MM-DD'::text)
+  GROUP BY sensor, (date_trunc('hour'::text,timestamp_rounded)))
+SELECT v.sensor, s.location_name, v.datum_uur, v.aantal_passanten, s.gebied, s.geom as geometrie
+FROM cmsa_1h_v6 v
+JOIN peoplemeasurement_sensors s ON s.objectnummer::text = v.sensor::text;
 """
         )
         while True:
@@ -110,12 +113,16 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
             "'{location_name}',"
             "'{periode}',"
             "TIMESTAMP '{datum_uur}', "
-            "{aantal_passanten})".format(
+            "{aantal_passanten},"
+            "'{gebied}',"
+            "'{geometrie}')".format(
                 sensor=row[0],
                 location_name=row[1],
                 periode=periode,
                 datum_uur=row[2].strftime("%Y-%m-%d %H:%M:%S"),
                 aantal_passanten=int(row[3]),
+                gebied=row[4],
+                geometrie=row[5],
             )
         )
     result = len(items)
@@ -123,7 +130,7 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
         items_sql = ",".join(items)
         insert_sql = (
             f"INSERT INTO {table_id}_temp "
-            "(sensor, naam_locatie, periode, datum_uur, aantal_passanten) "
+            "(sensor, naam_locatie, periode, datum_uur, aantal_passanten, gebied, geometrie) "
             f"VALUES {items_sql};"
         )
 
