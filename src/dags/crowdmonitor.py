@@ -114,15 +114,15 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
             "'{periode}',"
             "TIMESTAMP '{datum_uur}', "
             "{aantal_passanten},"
-            "'{gebied}',"
-            "'{geometrie}')".format(
+            "{gebied},"
+            "{geometrie})".format(
                 sensor=row[0],
                 location_name=row[1],
                 periode=periode,
                 datum_uur=row[2].strftime("%Y-%m-%d %H:%M:%S"),
                 aantal_passanten=int(row[3]),
-                gebied=row[4],
-                geometrie=row[5],
+                gebied=f"'{row[4]}'" if row[4] else "NULL",
+                geometrie=f"'{row[5]}'" if row[5] else "NULL",
             )
         )
     result = len(items)
