@@ -18,28 +18,21 @@ class PsqlCmdHook(BaseHook):
         connection_uri = BaseHook.get_connection(self.conn_id).get_uri().split("?")[0]
 
         if self.db_target_schema:
-            self.refresh_schema(self.db_target_schema, connection_uri)
+            self.recreate_schema(self.db_target_schema, connection_uri)
                 
         self.log.info("Running sql files: %s", sql_files)
         subprocess.run(
             f'cat {paths} | psql "{connection_uri}" {pg_params}', shell=True, check=True
         )
-
     
-    def refresh_schema(self, db_target_schema, connection_uri):
+    def recreate_schema(self, db_target_schema, connection_uri):
         """
-        If a schema is defined at the creation of the instance, it will drop and create the schema (if not exists)
-        """
+        If a schema is defined at the creation of the instance, it will create the schema (if not exists)
+        """        
         
-        self.log.info(f"Drop the DB target schema '{db_target_schema}' if present")
-        subprocess.run(
-                f'echo "DROP SCHEMA IF EXISTS {db_target_schema} CASCADE" | psql "{connection_uri}" {pg_params}'
-                ,shell=True
-                ,check=True
-            )
         self.log.info(f"Creating the DB target schema '{db_target_schema}' if not present")
         subprocess.run(
                 f'echo "CREATE SCHEMA IF NOT EXISTS {db_target_schema}" | psql "{connection_uri}" {pg_params}'
                 ,shell=True
                 ,check=True
-            )
+            )   

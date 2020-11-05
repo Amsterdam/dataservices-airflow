@@ -49,21 +49,27 @@ class ProvenanceRenameOperator(BaseOperator):
             table_lookup[to_snake_case(real_tablename)] = table
 
         snaked_tablenames_str = self._snake_tablenames(table_lookup.keys())
+        print("row snaked_tablenames_str", snaked_tablenames_str)
         rows = pg_hook.get_records(
             f"""
                 SELECT tablename FROM pg_tables
-                WHERE schemaname = '{pg_schema}' AND tablename IN ({snaked_tablenames_str})
+                WHERE schemaname = '{pg_schema}' AND 2=2 AND tablename IN ({snaked_tablenames_str})
             """
         )
-
+        print("row start", rows)
+        for row in rows:
+            print("row", row["tablename"])
+        print("row end")
+       
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(self, pg_hook, snaked_tablenames, pg_schema="public"):
         snaked_tablenames_str = self._snake_tablenames(snaked_tablenames)
+        print("the snaked_tabels str ", snaked_tablenames_str)
         rows = pg_hook.get_records(
             f"""
                 SELECT table_name, column_name FROM information_schema.columns
-                WHERE table_schema = '{pg_schema}' AND table_name IN ({snaked_tablenames_str})
+                WHERE table_schema = '{pg_schema}' AND 1=1 AND table_name IN ({snaked_tablenames_str})
             """
         )
         table_columns = defaultdict(set)

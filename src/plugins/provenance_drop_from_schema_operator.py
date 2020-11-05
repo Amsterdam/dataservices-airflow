@@ -42,3 +42,4 @@ class ProvenanceDropFromSchemaOperator(BaseOperator):
         ]
 
         pg_hook.run(sqls)
+

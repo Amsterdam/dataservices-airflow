@@ -42,6 +42,8 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         container="Dataservices",
         object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/" "afval_api.zip",
         swift_conn_id="objectstore_dataservices",
+        # optionals
+        # db_target_schema will create the schema if not present 
         db_target_schema="pte",
     )
 
