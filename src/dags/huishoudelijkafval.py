@@ -32,8 +32,11 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     )
 
     # 2. Drop tables in target schema PTE (schema which orginates from the DB dump file, see next step)
+    #    based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
-        task_id="drop_tables", dataset_name="huishoudelijkafval", pg_schema="pte",
+        task_id="drop_tables", 
+        dataset_name="huishoudelijkafval", 
+        pg_schema="pte",
     )
 
     # 3. load the dump file
@@ -42,7 +45,9 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         container="Dataservices",
         object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/" "afval_api.zip",
         swift_conn_id="objectstore_dataservices",
-        db_target_schema="pte",
+        # optionals
+        # db_target_schema will create the schema if not present 
+        db_target_schema="pte",      
     )
 
     # 4. Make the provenance translations
