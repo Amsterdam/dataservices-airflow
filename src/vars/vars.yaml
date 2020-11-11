@@ -70,7 +70,7 @@ winkelgebieden:
 bouwstroompunten:
   data_endpoints:
     auth: auth/local/
-    data: power-stations/
+    data: power-stations?city=Amsterdam
 precariobelasting:
   data_endpoints:
     bedrijfsvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/3
