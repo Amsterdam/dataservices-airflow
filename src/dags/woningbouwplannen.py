@@ -1,4 +1,5 @@
 from airflow import DAG
+from airflow.operators.postgres_operator import PostgresOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
@@ -17,6 +18,32 @@ DATASTORE_TYPE = (
 
 dag_id = "woningbouwplannen"
 
+NM_RENAMES_SQL = """
+    DROP TABLE IF EXISTS public.woningbouwplannen_strategischeruimtes_buurten;
+    ALTER TABLE pte.wbw_rel_strategischeruimte_buurt SET SCHEMA public;
+    ALTER TABLE wbw_rel_strategischeruimte_buurt
+        RENAME TO woningbouwplannen_strategischeruimtes_buurten;
+
+    DROP TABLE IF EXISTS public.woningbouwplannen_woningbouwplan_buurten;
+    ALTER TABLE pte.wbw_rel_woningbouwplan_buurt SET SCHEMA public;
+    ALTER TABLE wbw_rel_woningbouwplan_buurt
+        RENAME TO woningbouwplannen_woningbouwplan_buurten;
+
+    ALTER TABLE woningbouwplannen_strategischeruimtes_buurten
+        RENAME COLUMN wbw_strategischeruimte_id TO strategischeruimtes_id;
+    ALTER TABLE woningbouwplannen_strategischeruimtes_buurten
+        RENAME COLUMN gbd_buurt_id TO buurten_id;
+
+    ALTER TABLE woningbouwplannen_woningbouwplan_buurten
+        RENAME COLUMN wbw_woningbouwplan_id TO woningbouwplan_id;
+    ALTER TABLE woningbouwplannen_woningbouwplan_buurten
+        RENAME COLUMN gbd_buurt_id TO buurten_id;
+
+    ALTER TABLE woningbouwplannen_woningbouwplan_buurten ALTER COLUMN
+        woningbouwplan_id TYPE integer USING woningbouwplan_id::integer;
+    ALTER TABLE woningbouwplannen_strategischeruimtes_buurten ALTER COLUMN
+        strategischeruimtes_id TYPE integer USING strategischeruimtes_id::integer;
+"""
 
 owner = "team_ruimte"
 with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
@@ -68,6 +95,15 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         task_id="swap_schema", dataset_name="woningbouwplannen"
     )
 
-# FLOW
+    # 6. Extra manual renaming for the nm-tables
+    nm_tables_rename = PostgresOperator(task_id="nm_tables_rename", sql=NM_RENAMES_SQL,)
 
-slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema
+# FLOW
+(
+    slack_at_start
+    >> drop_tables
+    >> swift_load_task
+    >> provenance_renames
+    >> swap_schema
+    >> nm_tables_rename
+)
