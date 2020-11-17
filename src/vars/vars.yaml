@@ -162,4 +162,17 @@ sport:
       openbaresportplek: open_geodata/geojson.php?KAARTLAAG=SPORT_OPENBAAR&THEMA=sport
 verzinkbarepalen:
   data_endpoints: open_geodata/geojson.php?KAARTLAAG=VIS_BFA&THEMA=vis
-    
+basiskaart:
+  # TODO: Amsterdam schema as source for object creation.
+  tables_to_create:
+    gebouw_vlak: SELECT_GEBOUW_VLAK_SQL 
+    inrichtingselement_lijn: SELECT_INRICHTINGSELEMENT_LIJN_SQL
+    inrichtingselement_punt: SELECT_INRICHTINGSELEMENT_PUNT_SQL
+    inrichtingselement_vlak: SELECT_INRICHTINGSELEMENT_VLAK_SQL
+    spoor_lijn: SELECT_SPOOR_LIJN_SQL
+    terreindeel_vlak: SELECT_TERREINDEEL_VLAK_SQL
+    waterdeel_lijn: SELECT_WATERDEEL_LIJN_SQL
+    waterdeel_vlak: SELECT_WATERDEEL_VLAK_SQL
+    wegdeel_vlak: SELECT_WEGDEEL_VLAK_SQL
+    wegdeel_lijn: SELECT_WEGDEEL_LIJN_SQL
+    labels: SELECT_LABELS_SQL
