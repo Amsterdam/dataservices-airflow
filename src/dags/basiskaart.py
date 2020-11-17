@@ -1,4 +1,6 @@
 import re
+import logging
+
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -23,16 +25,16 @@ from common import (
 from sql.basiskaart import CREATE_TABLES
 from sql.basiskaart import CREATE_MVIEWS
 
-from sql.basiskaart import SELECT_GEBOUW_VLAK_SQL as SELECT_GEBOUW_VLAK_SQL
-from sql.basiskaart import SELECT_INRICHTINGSELEMENT_LIJN_SQL as SELECT_INRICHTINGSELEMENT_LIJN_SQL
-from sql.basiskaart import SELECT_INRICHTINGSELEMENT_PUNT_SQL as SELECT_INRICHTINGSELEMENT_PUNT_SQL
-from sql.basiskaart import SELECT_INRICHTINGSELEMENT_VLAK_SQL as SELECT_INRICHTINGSELEMENT_VLAK_SQL
-from sql.basiskaart import SELECT_SPOOR_LIJN_SQL as SELECT_SPOOR_LIJN_SQL
-from sql.basiskaart import SELECT_TERREINDEEL_VLAK_SQL as SELECT_TERREINDEEL_VLAK_SQL
-from sql.basiskaart import SELECT_WATERDEEL_LIJN_SQL as SELECT_WATERDEEL_LIJN_SQL
-from sql.basiskaart import SELECT_WATERDEEL_VLAK_SQL as SELECT_WATERDEEL_VLAK_SQL
-from sql.basiskaart import SELECT_WEGDEEL_VLAK_SQL as SELECT_WEGDEEL_VLAK_SQL
-from sql.basiskaart import SELECT_WEGDEEL_LIJN_SQL as SELECT_WEGDEEL_LIJN_SQL
+from sql.basiskaart import SELECT_GEBOUWVLAK_SQL as SELECT_GEBOUWVLAK_SQL
+from sql.basiskaart import SELECT_INRICHTINGSELEMENTLIJN_SQL as SELECT_INRICHTINGSELEMENTLIJN_SQL
+from sql.basiskaart import SELECT_INRICHTINGSELEMENTPUNT_SQL as SELECT_INRICHTINGSELEMENTPUNT_SQL
+from sql.basiskaart import SELECT_INRICHTINGSELEMENTVLAK_SQL as SELECT_INRICHTINGSELEMENTVLAK_SQL
+from sql.basiskaart import SELECT_SPOORLIJN_SQL as SELECT_SPOORLIJN_SQL
+from sql.basiskaart import SELECT_TERREINDEELVLAK_SQL as SELECT_TERREINDEELVLAK_SQL
+from sql.basiskaart import SELECT_WATERDEELLIJN_SQL as SELECT_WATERDEELLIJN_SQL
+from sql.basiskaart import SELECT_WATERDEELVLAK_SQL as SELECT_WATERDEELVLAK_SQL
+from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL
+from sql.basiskaart import SELECT_WEGDEELLIJN_SQL as SELECT_WEGDEELLIJN_SQL
 from sql.basiskaart import SELECT_LABELS_SQL as SELECT_LABELS_SQL
 
 
@@ -42,6 +44,7 @@ variables = Variable.get(dag_id, deserialize_json=True)
 tables_to_create = variables["tables_to_create"]
 source_connection="AIRFLOW_CONN_POSTGRES_BASISKAART"
 import_step = 10000
+logger = logging.getLogger(__name__)
 
 
 def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select_statement, target_base_table, *args, **kwargs):
@@ -69,7 +72,8 @@ def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select
             count += batch_count
             if batch_count < import_step:
                 break
-        print(f"Imported: {count}")
+    logger.info(f"Imported: {count}")
+
 
 
 def copy_data_in_batch(target_base_table, fetch_iterator):
@@ -110,7 +114,7 @@ def copy_data_in_batch(target_base_table, fetch_iterator):
         except Exception as e:
             raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
         else:
-            print("Created {} records.".format(result))
+            logger.info(f"Created {result} records.")        
     
     return result
 
@@ -184,7 +188,7 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
         provenance_translation = ProvenanceRenameOperator(
                 task_id="rename_columns",
                 dataset_name=f"{dag_id}",
-                prefix_table_name=f"{table_name}",
+                prefix_table_name=f"{dag_id}_",
                 rename_indexes=False,
                 pg_schema="public",
             )
@@ -226,10 +230,3 @@ for i, (table, select_statement) in enumerate(tables_to_create.items()):
     globals()[f"{dag_id}_{table}"] = create_basiskaart_dag(
         i == 0, table, select_statement
     )
-
-
-
-
-
-
-

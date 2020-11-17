@@ -165,14 +165,14 @@ verzinkbarepalen:
 basiskaart:
     # TODO: Amsterdam schema as source for object creation.
   tables_to_create:
-    gebouw_vlak: SELECT_GEBOUW_VLAK_SQL 
-    inrichtingselement_lijn: SELECT_INRICHTINGSELEMENT_LIJN_SQL
-    inrichtingselement_punt: SELECT_INRICHTINGSELEMENT_PUNT_SQL
-    inrichtingselement_vlak: SELECT_INRICHTINGSELEMENT_VLAK_SQL
-    spoor_lijn: SELECT_SPOOR_LIJN_SQL
-    terreindeel_vlak: SELECT_TERREINDEEL_VLAK_SQL
-    waterdeel_lijn: SELECT_WATERDEEL_LIJN_SQL
-    waterdeel_vlak: SELECT_WATERDEEL_VLAK_SQL
-    wegdeel_vlak: SELECT_WEGDEEL_VLAK_SQL
-    wegdeel_lijn: SELECT_WEGDEEL_LIJN_SQL
+    gebouwvlak: SELECT_GEBOUWVLAK_SQL 
+    inrichtingselementlijn: SELECT_INRICHTINGSELEMENTLIJN_SQL
+    inrichtingselementpunt: SELECT_INRICHTINGSELEMENTPUNT_SQL
+    inrichtingselementvlak: SELECT_INRICHTINGSELEMENTVLAK_SQL
+    spoorlijn: SELECT_SPOORLIJN_SQL
+    terreindeelvlak: SELECT_TERREINDEELVLAK_SQL
+    waterdeellijn: SELECT_WATERDEELLIJN_SQL
+    waterdeelvlak: SELECT_WATERDEELVLAK_SQL
+    wegdeelvlak: SELECT_WEGDEELVLAK_SQL
+    wegdeellijn: SELECT_WEGDEELLIJN_SQL
     labels: SELECT_LABELS_SQL    

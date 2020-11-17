@@ -22,7 +22,7 @@ CREATE_TABLES = """
 	
 	DROP TABLE IF EXISTS {{ params.dag_id }}_{{ params.base_table }}_TEMP CASCADE;
     CREATE TABLE IF NOT EXISTS {{ params.dag_id }}_{{ params.base_table }}_TEMP (
-      identificatie_lokaalid character varying PRIMARY KEY,
+      id character varying PRIMARY KEY,
       type character varying,
       geometrie geometry,
       hoek float,
@@ -32,7 +32,7 @@ CREATE_TABLES = """
       maxzoom integer     
     );
     CREATE TABLE IF NOT EXISTS {{ params.dag_id }}_{{ params.base_table }} (
-      identificatie_lokaalid character varying PRIMARY KEY,
+      id character varying PRIMARY KEY,
       type character varying,
       geometrie geometry,
       hoek float,
@@ -46,7 +46,7 @@ CREATE_TABLES = """
     
 	DROP TABLE IF EXISTS {{ params.dag_id }}_{{ params.base_table }}_TEMP CASCADE;
     CREATE TABLE IF NOT EXISTS {{ params.dag_id }}_{{ params.base_table }}_TEMP (
-      identificatie_lokaalid character varying PRIMARY KEY,
+      id character varying PRIMARY KEY,
       type character varying,
       geometrie geometry,
       relatievehoogteligging integer,
@@ -55,7 +55,7 @@ CREATE_TABLES = """
       maxzoom integer     
     );
     CREATE TABLE IF NOT EXISTS {{ params.dag_id }}_{{ params.base_table }} (
-      identificatie_lokaalid character varying PRIMARY KEY,
+      id character varying PRIMARY KEY,
       type character varying,
       geometrie geometry,
       relatievehoogteligging integer,
@@ -82,15 +82,17 @@ CREATE_MVIEWS = """
 
 	/* creating index on geometrie */
 	CREATE INDEX IF NOT EXISTS bgt_vw_{{ params.base_table }}_geom_idx ON bgt_vw_{{ params.base_table }} USING gist (geometrie);
+	/* renaming the ID to identificatie_lokaalid as used in the T-REX tile server */
+	ALTER MATERIALIZED VIEW IF EXISTS bgt_vw_{{ params.base_table }} RENAME COLUMN id TO identificatie_lokaalid;
 """
 
 #--------------------------------------------------------------------------
 # SELECT statements (to get data out of basiskaart DB)
 #--------------------------------------------------------------------------
 
-SELECT_GEBOUW_VLAK_SQL = """
+SELECT_GEBOUWVLAK_SQL = """
 SELECT
-	"BGTPLUS_GISE_bordes".identificatie_lokaalid || 'BGTPLUS_GISE_bordes' as identificatie_lokaalid,
+	"BGTPLUS_GISE_bordes".identificatie_lokaalid || 'BGTPLUS_GISE_bordes' as id,
     "BGTPLUS_GISE_bordes".plus_type as type,
 	ST_makeValid(    "BGTPLUS_GISE_bordes".geometrie) as geometrie,
     "BGTPLUS_GISE_bordes".relatievehoogteligging, 
@@ -101,7 +103,7 @@ SELECT
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_GISE_luifel".identificatie_lokaalid || 'BGTPLUS_GISE_luifel' as identificatie_lokaalid,
+	"BGTPLUS_GISE_luifel".identificatie_lokaalid || 'BGTPLUS_GISE_luifel' as id,
     "BGTPLUS_GISE_luifel".plus_type as type,
 	ST_makeValid(    "BGTPLUS_GISE_luifel".geometrie) as geometrie,
     "BGTPLUS_GISE_luifel".relatievehoogteligging, 
@@ -112,7 +114,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_GISE_onbekend".identificatie_lokaalid || 'BGTPLUS_GISE_onbekend' as identificatie_lokaalid,
+	"BGTPLUS_GISE_onbekend".identificatie_lokaalid || 'BGTPLUS_GISE_onbekend' as id,
     "BGTPLUS_GISE_onbekend".plus_type as type,
 	ST_makeValid(    "BGTPLUS_GISE_onbekend".geometrie) as geometrie,
     "BGTPLUS_GISE_onbekend".relatievehoogteligging, 
@@ -123,7 +125,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_GISE_toegangstrap".identificatie_lokaalid || 'BGTPLUS_GISE_toegangstrap' as identificatie_lokaalid,
+	"BGTPLUS_GISE_toegangstrap".identificatie_lokaalid || 'BGTPLUS_GISE_toegangstrap' as id,
     "BGTPLUS_GISE_toegangstrap".plus_type as type,
 	ST_makeValid(    "BGTPLUS_GISE_toegangstrap".geometrie) as geometrie,
     "BGTPLUS_GISE_toegangstrap".relatievehoogteligging, 
@@ -134,7 +136,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OBW_bunker".identificatie_lokaalid || 'BGTPLUS_OBW_bunker' as identificatie_lokaalid,
+	"BGTPLUS_OBW_bunker".identificatie_lokaalid || 'BGTPLUS_OBW_bunker' as id,
     "BGTPLUS_OBW_bunker".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OBW_bunker".geometrie) as geometrie,
     "BGTPLUS_OBW_bunker".relatievehoogteligging, 
@@ -145,7 +147,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OBW_onbekend".identificatie_lokaalid || 'BGTPLUS_OBW_onbekend' as identificatie_lokaalid,
+	"BGTPLUS_OBW_onbekend".identificatie_lokaalid || 'BGTPLUS_OBW_onbekend' as id,
     "BGTPLUS_OBW_onbekend".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OBW_onbekend".geometrie) as geometrie,
     "BGTPLUS_OBW_onbekend".relatievehoogteligging, 
@@ -156,7 +158,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OBW_schuur".identificatie_lokaalid || 'BGTPLUS_OBW_schuur' as identificatie_lokaalid,
+	"BGTPLUS_OBW_schuur".identificatie_lokaalid || 'BGTPLUS_OBW_schuur' as id,
     "BGTPLUS_OBW_schuur".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OBW_schuur".geometrie) as geometrie,
     "BGTPLUS_OBW_schuur".relatievehoogteligging, 
@@ -167,7 +169,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OBW_voedersilo".identificatie_lokaalid || 'BGTPLUS_OBW_voedersilo' as identificatie_lokaalid,
+	"BGTPLUS_OBW_voedersilo".identificatie_lokaalid || 'BGTPLUS_OBW_voedersilo' as id,
     "BGTPLUS_OBW_voedersilo".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OBW_voedersilo".geometrie) as geometrie,
     "BGTPLUS_OBW_voedersilo".relatievehoogteligging, 
@@ -178,7 +180,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_bassin".identificatie_lokaalid || 'BGT_OBW_bassin' as identificatie_lokaalid,
+	"BGT_OBW_bassin".identificatie_lokaalid || 'BGT_OBW_bassin' as id,
     "BGT_OBW_bassin".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_bassin".geometrie) as geometrie,
     "BGT_OBW_bassin".relatievehoogteligging, 
@@ -189,7 +191,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_bezinkbak".identificatie_lokaalid || 'BGT_OBW_bezinkbak' as identificatie_lokaalid,
+	"BGT_OBW_bezinkbak".identificatie_lokaalid || 'BGT_OBW_bezinkbak' as id,
     "BGT_OBW_bezinkbak".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_bezinkbak".geometrie) as geometrie,
     "BGT_OBW_bezinkbak".relatievehoogteligging, 
@@ -200,7 +202,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_lage_trafo".identificatie_lokaalid || 'BGT_OBW_lage_trafo' as identificatie_lokaalid,
+	"BGT_OBW_lage_trafo".identificatie_lokaalid || 'BGT_OBW_lage_trafo' as id,
     "BGT_OBW_lage_trafo".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_lage_trafo".geometrie) as geometrie,
     "BGT_OBW_lage_trafo".relatievehoogteligging, 
@@ -211,7 +213,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_open_loods".identificatie_lokaalid || 'BGT_OBW_open_loods' as identificatie_lokaalid,
+	"BGT_OBW_open_loods".identificatie_lokaalid || 'BGT_OBW_open_loods' as id,
     "BGT_OBW_open_loods".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_open_loods".geometrie) as geometrie,
     "BGT_OBW_open_loods".relatievehoogteligging, 
@@ -222,7 +224,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_opslagtank".identificatie_lokaalid || 'BGT_OBW_opslagtank' as identificatie_lokaalid,
+	"BGT_OBW_opslagtank".identificatie_lokaalid || 'BGT_OBW_opslagtank' as id,
     "BGT_OBW_opslagtank".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_opslagtank".geometrie) as geometrie,
     "BGT_OBW_opslagtank".relatievehoogteligging, 
@@ -233,7 +235,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_overkapping".identificatie_lokaalid || 'BGT_OBW_overkapping' as identificatie_lokaalid,
+	"BGT_OBW_overkapping".identificatie_lokaalid || 'BGT_OBW_overkapping' as id,
     "BGT_OBW_overkapping".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_overkapping".geometrie) as geometrie,
     "BGT_OBW_overkapping".relatievehoogteligging, 
@@ -244,7 +246,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_transitie".identificatie_lokaalid || 'BGT_OBW_transitie' as identificatie_lokaalid,
+	"BGT_OBW_transitie".identificatie_lokaalid || 'BGT_OBW_transitie' as id,
     "BGT_OBW_transitie".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_transitie".geometrie) as geometrie,
     "BGT_OBW_transitie".relatievehoogteligging, 
@@ -255,7 +257,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_OBW_windturbine".identificatie_lokaalid || 'BGT_OBW_windturbine' as identificatie_lokaalid,
+	"BGT_OBW_windturbine".identificatie_lokaalid || 'BGT_OBW_windturbine' as id,
     "BGT_OBW_windturbine".bgt_type as type,
 	ST_makeValid(    "BGT_OBW_windturbine".geometrie) as geometrie,
     "BGT_OBW_windturbine".relatievehoogteligging, 
@@ -266,7 +268,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_PND_pand".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_PND_pand".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_PND_pand' as identificatie_lokaalid,
+	"BGT_PND_pand".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_PND_pand".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_PND_pand' as id,
     "BGT_PND_pand".bgt_status as type,
 	ST_makeValid(    "BGT_PND_pand".geometrie) as geometrie,
     "BGT_PND_pand".relatievehoogteligging, 
@@ -383,9 +385,9 @@ UNION
   FROM kbk50."GBW_kassen"
 """
 
-SELECT_INRICHTINGSELEMENT_LIJN_SQL = """
+SELECT_INRICHTINGSELEMENTLIJN_SQL = """
 SELECT
-	"BGTPLUS_OSDG_damwand".identificatie_lokaalid || 'BGTPLUS_OSDG_damwand' as identificatie_lokaalid,
+	"BGTPLUS_OSDG_damwand".identificatie_lokaalid || 'BGTPLUS_OSDG_damwand' as id,
     "BGTPLUS_OSDG_damwand".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OSDG_damwand".geometrie) as geometrie,
     "BGTPLUS_OSDG_damwand".relatievehoogteligging, 
@@ -396,7 +398,7 @@ SELECT
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OSDG_geluidsscherm".identificatie_lokaalid || 'BGTPLUS_OSDG_geluidsscherm' as identificatie_lokaalid,
+	"BGTPLUS_OSDG_geluidsscherm".identificatie_lokaalid || 'BGTPLUS_OSDG_geluidsscherm' as id,
     "BGTPLUS_OSDG_geluidsscherm".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OSDG_geluidsscherm".geometrie) as geometrie,
     "BGTPLUS_OSDG_geluidsscherm".relatievehoogteligging, 
@@ -407,7 +409,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OSDG_hek".identificatie_lokaalid || 'BGTPLUS_OSDG_hek' as identificatie_lokaalid,
+	"BGTPLUS_OSDG_hek".identificatie_lokaalid || 'BGTPLUS_OSDG_hek' as id,
     "BGTPLUS_OSDG_hek".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OSDG_hek".geometrie) as geometrie,
     "BGTPLUS_OSDG_hek".relatievehoogteligging, 
@@ -418,7 +420,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OSDG_kademuur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_kademuur_L' as identificatie_lokaalid,
+	"BGTPLUS_OSDG_kademuur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_kademuur_L' as id,
     "BGTPLUS_OSDG_kademuur_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OSDG_kademuur_L".geometrie) as geometrie,
     "BGTPLUS_OSDG_kademuur_L".relatievehoogteligging, 
@@ -429,7 +431,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OSDG_muur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_L' as identificatie_lokaalid,
+	"BGTPLUS_OSDG_muur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_L' as id,
     "BGTPLUS_OSDG_muur_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OSDG_muur_L".geometrie) as geometrie,
     "BGTPLUS_OSDG_muur_L".relatievehoogteligging, 
@@ -440,7 +442,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_OSDG_walbescherming".identificatie_lokaalid || 'BGTPLUS_OSDG_walbescherming' as identificatie_lokaalid,
+	"BGTPLUS_OSDG_walbescherming".identificatie_lokaalid || 'BGTPLUS_OSDG_walbescherming' as id,
     "BGTPLUS_OSDG_walbescherming".plus_type as type,
 	ST_makeValid(    "BGTPLUS_OSDG_walbescherming".geometrie) as geometrie,
     "BGTPLUS_OSDG_walbescherming".relatievehoogteligging, 
@@ -451,7 +453,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_SDG_draadraster".identificatie_lokaalid || 'BGTPLUS_SDG_draadraster' as identificatie_lokaalid,
+	"BGTPLUS_SDG_draadraster".identificatie_lokaalid || 'BGTPLUS_SDG_draadraster' as id,
     "BGTPLUS_SDG_draadraster".plus_type as type,
 	ST_makeValid(    "BGTPLUS_SDG_draadraster".geometrie) as geometrie,
     "BGTPLUS_SDG_draadraster".relatievehoogteligging, 
@@ -462,7 +464,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_SDG_faunaraster".identificatie_lokaalid || 'BGTPLUS_SDG_faunaraster' as identificatie_lokaalid,
+	"BGTPLUS_SDG_faunaraster".identificatie_lokaalid || 'BGTPLUS_SDG_faunaraster' as id,
     "BGTPLUS_SDG_faunaraster".plus_type as type,
 	ST_makeValid(    "BGTPLUS_SDG_faunaraster".geometrie) as geometrie,
     "BGTPLUS_SDG_faunaraster".relatievehoogteligging, 
@@ -473,7 +475,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_VGT_haag_L".identificatie_lokaalid || 'BGTPLUS_VGT_haag_L' as identificatie_lokaalid,
+	"BGTPLUS_VGT_haag_L".identificatie_lokaalid || 'BGTPLUS_VGT_haag_L' as id,
     "BGTPLUS_VGT_haag_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_VGT_haag_L".geometrie) as geometrie,
     "BGTPLUS_VGT_haag_L".relatievehoogteligging, 
@@ -484,7 +486,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WDI_geleidewerk".identificatie_lokaalid || 'BGTPLUS_WDI_geleidewerk' as identificatie_lokaalid,
+	"BGTPLUS_WDI_geleidewerk".identificatie_lokaalid || 'BGTPLUS_WDI_geleidewerk' as id,
     "BGTPLUS_WDI_geleidewerk".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WDI_geleidewerk".geometrie) as geometrie,
     "BGTPLUS_WDI_geleidewerk".relatievehoogteligging, 
@@ -495,7 +497,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WDI_remmingswerk".identificatie_lokaalid || 'BGTPLUS_WDI_remmingswerk' as identificatie_lokaalid,
+	"BGTPLUS_WDI_remmingswerk".identificatie_lokaalid || 'BGTPLUS_WDI_remmingswerk' as id,
     "BGTPLUS_WDI_remmingswerk".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WDI_remmingswerk".geometrie) as geometrie,
     "BGTPLUS_WDI_remmingswerk".relatievehoogteligging, 
@@ -506,7 +508,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WGI_balustrade".identificatie_lokaalid || 'BGTPLUS_WGI_balustrade' as identificatie_lokaalid,
+	"BGTPLUS_WGI_balustrade".identificatie_lokaalid || 'BGTPLUS_WGI_balustrade' as id,
     "BGTPLUS_WGI_balustrade".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WGI_balustrade".geometrie) as geometrie,
     "BGTPLUS_WGI_balustrade".relatievehoogteligging, 
@@ -517,7 +519,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WGI_geleideconstructie_L".identificatie_lokaalid || 'BGTPLUS_WGI_geleideconstructie_L' as identificatie_lokaalid,
+	"BGTPLUS_WGI_geleideconstructie_L".identificatie_lokaalid || 'BGTPLUS_WGI_geleideconstructie_L' as id,
     "BGTPLUS_WGI_geleideconstructie_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WGI_geleideconstructie_L".geometrie) as geometrie,
     "BGTPLUS_WGI_geleideconstructie_L".relatievehoogteligging, 
@@ -528,7 +530,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WGI_rooster_L".identificatie_lokaalid || 'BGTPLUS_WGI_rooster_L' as identificatie_lokaalid,
+	"BGTPLUS_WGI_rooster_L".identificatie_lokaalid || 'BGTPLUS_WGI_rooster_L' as id,
     "BGTPLUS_WGI_rooster_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WGI_rooster_L".geometrie) as geometrie,
     "BGTPLUS_WGI_rooster_L".relatievehoogteligging, 
@@ -539,7 +541,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WGI_wildrooster_L".identificatie_lokaalid || 'BGTPLUS_WGI_wildrooster_L' as identificatie_lokaalid,
+	"BGTPLUS_WGI_wildrooster_L".identificatie_lokaalid || 'BGTPLUS_WGI_wildrooster_L' as id,
     "BGTPLUS_WGI_wildrooster_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WGI_wildrooster_L".geometrie) as geometrie,
     "BGTPLUS_WGI_wildrooster_L".relatievehoogteligging, 
@@ -550,7 +552,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_KDL_stuw_L".identificatie_lokaalid || 'BGT_KDL_stuw_L' as identificatie_lokaalid,
+	"BGT_KDL_stuw_L".identificatie_lokaalid || 'BGT_KDL_stuw_L' as id,
     "BGT_KDL_stuw_L".bgt_type as type,
 	ST_makeValid(    "BGT_KDL_stuw_L".geometrie) as geometrie,
     "BGT_KDL_stuw_L".relatievehoogteligging, 
@@ -561,7 +563,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_SDG_damwand".identificatie_lokaalid || 'BGT_SDG_damwand' as identificatie_lokaalid,
+	"BGT_SDG_damwand".identificatie_lokaalid || 'BGT_SDG_damwand' as id,
     "BGT_SDG_damwand".bgt_type as type,
 	ST_makeValid(    "BGT_SDG_damwand".geometrie) as geometrie,
     "BGT_SDG_damwand".relatievehoogteligging, 
@@ -572,7 +574,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_SDG_geluidsscherm".identificatie_lokaalid || 'BGT_SDG_geluidsscherm' as identificatie_lokaalid,
+	"BGT_SDG_geluidsscherm".identificatie_lokaalid || 'BGT_SDG_geluidsscherm' as id,
     "BGT_SDG_geluidsscherm".bgt_type as type,
 	ST_makeValid(    "BGT_SDG_geluidsscherm".geometrie) as geometrie,
     "BGT_SDG_geluidsscherm".relatievehoogteligging, 
@@ -583,7 +585,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_SDG_hek".identificatie_lokaalid || 'BGT_SDG_hek' as identificatie_lokaalid,
+	"BGT_SDG_hek".identificatie_lokaalid || 'BGT_SDG_hek' as id,
     "BGT_SDG_hek".bgt_type as type,
 	ST_makeValid(    "BGT_SDG_hek".geometrie) as geometrie,
     "BGT_SDG_hek".relatievehoogteligging, 
@@ -594,7 +596,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_SDG_kademuur_L".identificatie_lokaalid || 'BGT_SDG_kademuur_L' as identificatie_lokaalid,
+	"BGT_SDG_kademuur_L".identificatie_lokaalid || 'BGT_SDG_kademuur_L' as id,
     "BGT_SDG_kademuur_L".bgt_type as type,
 	ST_makeValid(    "BGT_SDG_kademuur_L".geometrie) as geometrie,
     "BGT_SDG_kademuur_L".relatievehoogteligging, 
@@ -605,7 +607,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_SDG_muur_L".identificatie_lokaalid || 'BGT_SDG_muur_L' as identificatie_lokaalid,
+	"BGT_SDG_muur_L".identificatie_lokaalid || 'BGT_SDG_muur_L' as id,
     "BGT_SDG_muur_L".bgt_type as type,
 	ST_makeValid(    "BGT_SDG_muur_L".geometrie) as geometrie,
     "BGT_SDG_muur_L".relatievehoogteligging, 
@@ -616,7 +618,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGT_SDG_walbescherming".identificatie_lokaalid || 'BGT_SDG_walbescherming' as identificatie_lokaalid,
+	"BGT_SDG_walbescherming".identificatie_lokaalid || 'BGT_SDG_walbescherming' as id,
     "BGT_SDG_walbescherming".bgt_type as type,
 	ST_makeValid(    "BGT_SDG_walbescherming".geometrie) as geometrie,
     "BGT_SDG_walbescherming".relatievehoogteligging, 
@@ -627,7 +629,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_KDL_onbekend_L".identificatie_lokaalid || 'BGTPLUS_KDL_onbekend_L' as identificatie_lokaalid,
+	"BGTPLUS_KDL_onbekend_L".identificatie_lokaalid || 'BGTPLUS_KDL_onbekend_L' as id,
     "BGTPLUS_KDL_onbekend_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_KDL_onbekend_L".geometrie) as geometrie,
     "BGTPLUS_KDL_onbekend_L".relatievehoogteligging, 
@@ -638,7 +640,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_SDG_onbekend_L".identificatie_lokaalid || 'BGTPLUS_SDG_onbekend_L' as identificatie_lokaalid,
+	"BGTPLUS_SDG_onbekend_L".identificatie_lokaalid || 'BGTPLUS_SDG_onbekend_L' as id,
     "BGTPLUS_SDG_onbekend_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_SDG_onbekend_L".geometrie) as geometrie,
     "BGTPLUS_SDG_onbekend_L".relatievehoogteligging, 
@@ -649,7 +651,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_VGT_onbekend_L".identificatie_lokaalid || 'BGTPLUS_VGT_onbekend_L' as identificatie_lokaalid,
+	"BGTPLUS_VGT_onbekend_L".identificatie_lokaalid || 'BGTPLUS_VGT_onbekend_L' as id,
     "BGTPLUS_VGT_onbekend_L".plus_type as type,
 	ST_makeValid(    "BGTPLUS_VGT_onbekend_L".geometrie) as geometrie,
     "BGTPLUS_VGT_onbekend_L".relatievehoogteligging, 
@@ -660,7 +662,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WGI_lijnafwatering".identificatie_lokaalid || 'BGTPLUS_WGI_lijnafwatering' as identificatie_lokaalid,
+	"BGTPLUS_WGI_lijnafwatering".identificatie_lokaalid || 'BGTPLUS_WGI_lijnafwatering' as id,
     "BGTPLUS_WGI_lijnafwatering".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WGI_lijnafwatering".geometrie) as geometrie,
     "BGTPLUS_WGI_lijnafwatering".relatievehoogteligging, 
@@ -671,7 +673,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-	"BGTPLUS_WGI_molgoot".identificatie_lokaalid || 'BGTPLUS_WGI_molgoot' as identificatie_lokaalid,
+	"BGTPLUS_WGI_molgoot".identificatie_lokaalid || 'BGTPLUS_WGI_molgoot' as id,
     "BGTPLUS_WGI_molgoot".plus_type as type,
 	ST_makeValid(    "BGTPLUS_WGI_molgoot".geometrie) as geometrie,
     "BGTPLUS_WGI_molgoot".relatievehoogteligging, 
@@ -725,9 +727,9 @@ UNION
 """
 
 
-SELECT_INRICHTINGSELEMENT_PUNT_SQL = """
+SELECT_INRICHTINGSELEMENTPUNT_SQL = """
 SELECT
-		"BGTPLUS_BAK_afvalbak".identificatie_lokaalid || 'BGTPLUS_BAK_afvalbak' as identificatie_lokaalid,
+		"BGTPLUS_BAK_afvalbak".identificatie_lokaalid || 'BGTPLUS_BAK_afvalbak' as id,
     "BGTPLUS_BAK_afvalbak".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BAK_afvalbak".geometrie) as geometrie,
     "BGTPLUS_BAK_afvalbak".relatievehoogteligging, 
@@ -738,7 +740,7 @@ SELECT
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BAK_afval_apart_plaats".identificatie_lokaalid || 'BGTPLUS_BAK_afval_apart_plaats' as identificatie_lokaalid,
+		"BGTPLUS_BAK_afval_apart_plaats".identificatie_lokaalid || 'BGTPLUS_BAK_afval_apart_plaats' as id,
     "BGTPLUS_BAK_afval_apart_plaats".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BAK_afval_apart_plaats".geometrie) as geometrie,
     "BGTPLUS_BAK_afval_apart_plaats".relatievehoogteligging, 
@@ -749,7 +751,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_ISE_onbekend".identificatie_lokaalid || 'BGTPLUS_ISE_onbekend' as identificatie_lokaalid,
+		"BGTPLUS_ISE_onbekend".identificatie_lokaalid || 'BGTPLUS_ISE_onbekend' as id,
     "BGTPLUS_ISE_onbekend".plus_type as type,
 		ST_makeValid(    "BGTPLUS_ISE_onbekend".geometrie) as geometrie,
     "BGTPLUS_ISE_onbekend".relatievehoogteligging, 
@@ -760,7 +762,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_ISE_pomp".identificatie_lokaalid || 'BGTPLUS_ISE_pomp' as identificatie_lokaalid,
+		"BGTPLUS_ISE_pomp".identificatie_lokaalid || 'BGTPLUS_ISE_pomp' as id,
     "BGTPLUS_ISE_pomp".plus_type as type,
 		ST_makeValid(    "BGTPLUS_ISE_pomp".geometrie) as geometrie,
     "BGTPLUS_ISE_pomp".relatievehoogteligging, 
@@ -771,7 +773,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_cai-kast".identificatie_lokaalid || 'BGTPLUS_KST_cai-kast' as identificatie_lokaalid,
+		"BGTPLUS_KST_cai-kast".identificatie_lokaalid || 'BGTPLUS_KST_cai-kast' as id,
     "BGTPLUS_KST_cai-kast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_cai-kast".geometrie) as geometrie,
     "BGTPLUS_KST_cai-kast".relatievehoogteligging, 
@@ -782,7 +784,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_elektrakast".identificatie_lokaalid || 'BGTPLUS_KST_elektrakast' as identificatie_lokaalid,
+		"BGTPLUS_KST_elektrakast".identificatie_lokaalid || 'BGTPLUS_KST_elektrakast' as id,
     "BGTPLUS_KST_elektrakast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_elektrakast".geometrie) as geometrie,
     "BGTPLUS_KST_elektrakast".relatievehoogteligging, 
@@ -793,7 +795,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_onbekend".identificatie_lokaalid || 'BGTPLUS_KST_onbekend' as identificatie_lokaalid,
+		"BGTPLUS_KST_onbekend".identificatie_lokaalid || 'BGTPLUS_KST_onbekend' as id,
     "BGTPLUS_KST_onbekend".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_onbekend".geometrie) as geometrie,
     "BGTPLUS_KST_onbekend".relatievehoogteligging, 
@@ -804,7 +806,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_lichtmast".identificatie_lokaalid || 'BGTPLUS_PAL_lichtmast' as identificatie_lokaalid,
+		"BGTPLUS_PAL_lichtmast".identificatie_lokaalid || 'BGTPLUS_PAL_lichtmast' as id,
     "BGTPLUS_PAL_lichtmast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_lichtmast".geometrie) as geometrie,
     "BGTPLUS_PAL_lichtmast".relatievehoogteligging, 
@@ -815,7 +817,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_brandkraan_-put".identificatie_lokaalid || 'BGTPLUS_PUT_brandkraan_-put' as identificatie_lokaalid,
+		"BGTPLUS_PUT_brandkraan_-put".identificatie_lokaalid || 'BGTPLUS_PUT_brandkraan_-put' as id,
     "BGTPLUS_PUT_brandkraan_-put".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_brandkraan_-put".geometrie) as geometrie,
     "BGTPLUS_PUT_brandkraan_-put".relatievehoogteligging, 
@@ -826,7 +828,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_inspectie-_rioolput".identificatie_lokaalid || 'BGTPLUS_PUT_inspectie-_rioolput' as identificatie_lokaalid,
+		"BGTPLUS_PUT_inspectie-_rioolput".identificatie_lokaalid || 'BGTPLUS_PUT_inspectie-_rioolput' as id,
     "BGTPLUS_PUT_inspectie-_rioolput".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_inspectie-_rioolput".geometrie) as geometrie,
     "BGTPLUS_PUT_inspectie-_rioolput".relatievehoogteligging, 
@@ -837,7 +839,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_kolk".identificatie_lokaalid || 'BGTPLUS_PUT_kolk' as identificatie_lokaalid,
+		"BGTPLUS_PUT_kolk".identificatie_lokaalid || 'BGTPLUS_PUT_kolk' as id,
     "BGTPLUS_PUT_kolk".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_kolk".geometrie) as geometrie,
     "BGTPLUS_PUT_kolk".relatievehoogteligging, 
@@ -848,7 +850,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_abri".identificatie_lokaalid || 'BGTPLUS_SMR_abri' as identificatie_lokaalid,
+		"BGTPLUS_SMR_abri".identificatie_lokaalid || 'BGTPLUS_SMR_abri' as id,
     "BGTPLUS_SMR_abri".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_abri".geometrie) as geometrie,
     "BGTPLUS_SMR_abri".relatievehoogteligging, 
@@ -859,7 +861,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_betaalautomaat".identificatie_lokaalid || 'BGTPLUS_SMR_betaalautomaat' as identificatie_lokaalid,
+		"BGTPLUS_SMR_betaalautomaat".identificatie_lokaalid || 'BGTPLUS_SMR_betaalautomaat' as id,
     "BGTPLUS_SMR_betaalautomaat".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_betaalautomaat".geometrie) as geometrie,
     "BGTPLUS_SMR_betaalautomaat".relatievehoogteligging, 
@@ -870,7 +872,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_fietsenrek".identificatie_lokaalid || 'BGTPLUS_SMR_fietsenrek' as identificatie_lokaalid,
+		"BGTPLUS_SMR_fietsenrek".identificatie_lokaalid || 'BGTPLUS_SMR_fietsenrek' as id,
     "BGTPLUS_SMR_fietsenrek".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_fietsenrek".geometrie) as geometrie,
     "BGTPLUS_SMR_fietsenrek".relatievehoogteligging, 
@@ -881,7 +883,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_herdenkingsmonument".identificatie_lokaalid || 'BGTPLUS_SMR_herdenkingsmonument' as identificatie_lokaalid,
+		"BGTPLUS_SMR_herdenkingsmonument".identificatie_lokaalid || 'BGTPLUS_SMR_herdenkingsmonument' as id,
     "BGTPLUS_SMR_herdenkingsmonument".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_herdenkingsmonument".geometrie) as geometrie,
     "BGTPLUS_SMR_herdenkingsmonument".relatievehoogteligging, 
@@ -892,7 +894,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_kunstobject".identificatie_lokaalid || 'BGTPLUS_SMR_kunstobject' as identificatie_lokaalid,
+		"BGTPLUS_SMR_kunstobject".identificatie_lokaalid || 'BGTPLUS_SMR_kunstobject' as id,
     "BGTPLUS_SMR_kunstobject".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_kunstobject".geometrie) as geometrie,
     "BGTPLUS_SMR_kunstobject".relatievehoogteligging, 
@@ -903,7 +905,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_openbaar_toilet".identificatie_lokaalid || 'BGTPLUS_SMR_openbaar_toilet' as identificatie_lokaalid,
+		"BGTPLUS_SMR_openbaar_toilet".identificatie_lokaalid || 'BGTPLUS_SMR_openbaar_toilet' as id,
     "BGTPLUS_SMR_openbaar_toilet".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_openbaar_toilet".geometrie) as geometrie,
     "BGTPLUS_SMR_openbaar_toilet".relatievehoogteligging, 
@@ -914,7 +916,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_reclamezuil".identificatie_lokaalid || 'BGTPLUS_SMR_reclamezuil' as identificatie_lokaalid,
+		"BGTPLUS_SMR_reclamezuil".identificatie_lokaalid || 'BGTPLUS_SMR_reclamezuil' as id,
     "BGTPLUS_SMR_reclamezuil".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_reclamezuil".geometrie) as geometrie,
     "BGTPLUS_SMR_reclamezuil".relatievehoogteligging, 
@@ -925,7 +927,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_telefooncel".identificatie_lokaalid || 'BGTPLUS_SMR_telefooncel' as identificatie_lokaalid,
+		"BGTPLUS_SMR_telefooncel".identificatie_lokaalid || 'BGTPLUS_SMR_telefooncel' as id,
     "BGTPLUS_SMR_telefooncel".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_telefooncel".geometrie) as geometrie,
     "BGTPLUS_SMR_telefooncel".relatievehoogteligging, 
@@ -936,7 +938,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_VGT_boom".identificatie_lokaalid || 'BGTPLUS_VGT_boom' as identificatie_lokaalid,
+		"BGTPLUS_VGT_boom".identificatie_lokaalid || 'BGTPLUS_VGT_boom' as id,
     "BGTPLUS_VGT_boom".plus_type as type,
 		ST_makeValid(    "BGTPLUS_VGT_boom".geometrie) as geometrie,
     "BGTPLUS_VGT_boom".relatievehoogteligging, 
@@ -947,7 +949,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGT_KDL_hoogspanningsmast_P".identificatie_lokaalid || 'BGT_KDL_hoogspanningsmast_P' as identificatie_lokaalid,
+		"BGT_KDL_hoogspanningsmast_P".identificatie_lokaalid || 'BGT_KDL_hoogspanningsmast_P' as id,
     "BGT_KDL_hoogspanningsmast_P".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_hoogspanningsmast_P".geometrie) as geometrie,
     "BGT_KDL_hoogspanningsmast_P".relatievehoogteligging, 
@@ -958,7 +960,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BRD_informatiebord".identificatie_lokaalid || 'BGTPLUS_BRD_informatiebord' as identificatie_lokaalid,
+		"BGTPLUS_BRD_informatiebord".identificatie_lokaalid || 'BGTPLUS_BRD_informatiebord' as id,
     "BGTPLUS_BRD_informatiebord".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BRD_informatiebord".geometrie) as geometrie,
     "BGTPLUS_BRD_informatiebord".relatievehoogteligging, 
@@ -969,7 +971,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BRD_reclamebord".identificatie_lokaalid || 'BGTPLUS_BRD_reclamebord' as identificatie_lokaalid,
+		"BGTPLUS_BRD_reclamebord".identificatie_lokaalid || 'BGTPLUS_BRD_reclamebord' as id,
     "BGTPLUS_BRD_reclamebord".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BRD_reclamebord".geometrie) as geometrie,
     "BGTPLUS_BRD_reclamebord".relatievehoogteligging, 
@@ -980,7 +982,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BRD_straatnaambord".identificatie_lokaalid || 'BGTPLUS_BRD_straatnaambord' as identificatie_lokaalid,
+		"BGTPLUS_BRD_straatnaambord".identificatie_lokaalid || 'BGTPLUS_BRD_straatnaambord' as id,
     "BGTPLUS_BRD_straatnaambord".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BRD_straatnaambord".geometrie) as geometrie,
     "BGTPLUS_BRD_straatnaambord".relatievehoogteligging, 
@@ -991,7 +993,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BRD_verkeersbord".identificatie_lokaalid || 'BGTPLUS_BRD_verkeersbord' as identificatie_lokaalid,
+		"BGTPLUS_BRD_verkeersbord".identificatie_lokaalid || 'BGTPLUS_BRD_verkeersbord' as id,
     "BGTPLUS_BRD_verkeersbord".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BRD_verkeersbord".geometrie) as geometrie,
     "BGTPLUS_BRD_verkeersbord".relatievehoogteligging, 
@@ -1002,7 +1004,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BRD_verklikker_transportleiding".identificatie_lokaalid || 'BGTPLUS_BRD_verklikker_transportleiding' as identificatie_lokaalid,
+		"BGTPLUS_BRD_verklikker_transportleiding".identificatie_lokaalid || 'BGTPLUS_BRD_verklikker_transportleiding' as id,
     "BGTPLUS_BRD_verklikker_transportleiding".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BRD_verklikker_transportleiding".geometrie) as geometrie,
     "BGTPLUS_BRD_verklikker_transportleiding".relatievehoogteligging, 
@@ -1013,7 +1015,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_BRD_wegwijzer".identificatie_lokaalid || 'BGTPLUS_BRD_wegwijzer' as identificatie_lokaalid,
+		"BGTPLUS_BRD_wegwijzer".identificatie_lokaalid || 'BGTPLUS_BRD_wegwijzer' as id,
     "BGTPLUS_BRD_wegwijzer".plus_type as type,
 		ST_makeValid(    "BGTPLUS_BRD_wegwijzer".geometrie) as geometrie,
     "BGTPLUS_BRD_wegwijzer".relatievehoogteligging, 
@@ -1024,7 +1026,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_gaskast".identificatie_lokaalid || 'BGTPLUS_KST_gaskast' as identificatie_lokaalid,
+		"BGTPLUS_KST_gaskast".identificatie_lokaalid || 'BGTPLUS_KST_gaskast' as id,
     "BGTPLUS_KST_gaskast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_gaskast".geometrie) as geometrie,
     "BGTPLUS_KST_gaskast".relatievehoogteligging, 
@@ -1035,7 +1037,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_gms_kast".identificatie_lokaalid || 'BGTPLUS_KST_gms_kast' as identificatie_lokaalid,
+		"BGTPLUS_KST_gms_kast".identificatie_lokaalid || 'BGTPLUS_KST_gms_kast' as id,
     "BGTPLUS_KST_gms_kast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_gms_kast".geometrie) as geometrie,
     "BGTPLUS_KST_gms_kast".relatievehoogteligging, 
@@ -1046,7 +1048,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_openbare_verlichtingkast".identificatie_lokaalid || 'BGTPLUS_KST_openbare_verlichtingkast' as identificatie_lokaalid,
+		"BGTPLUS_KST_openbare_verlichtingkast".identificatie_lokaalid || 'BGTPLUS_KST_openbare_verlichtingkast' as id,
     "BGTPLUS_KST_openbare_verlichtingkast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_openbare_verlichtingkast".geometrie) as geometrie,
     "BGTPLUS_KST_openbare_verlichtingkast".relatievehoogteligging, 
@@ -1057,7 +1059,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_rioolkast".identificatie_lokaalid || 'BGTPLUS_KST_rioolkast' as identificatie_lokaalid,
+		"BGTPLUS_KST_rioolkast".identificatie_lokaalid || 'BGTPLUS_KST_rioolkast' as id,
     "BGTPLUS_KST_rioolkast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_rioolkast".geometrie) as geometrie,
     "BGTPLUS_KST_rioolkast".relatievehoogteligging, 
@@ -1068,7 +1070,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_telecom_kast".identificatie_lokaalid || 'BGTPLUS_KST_telecom_kast' as identificatie_lokaalid,
+		"BGTPLUS_KST_telecom_kast".identificatie_lokaalid || 'BGTPLUS_KST_telecom_kast' as id,
     "BGTPLUS_KST_telecom_kast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_telecom_kast".geometrie) as geometrie,
     "BGTPLUS_KST_telecom_kast".relatievehoogteligging, 
@@ -1079,7 +1081,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_telkast".identificatie_lokaalid || 'BGTPLUS_KST_telkast' as identificatie_lokaalid,
+		"BGTPLUS_KST_telkast".identificatie_lokaalid || 'BGTPLUS_KST_telkast' as id,
     "BGTPLUS_KST_telkast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_telkast".geometrie) as geometrie,
     "BGTPLUS_KST_telkast".relatievehoogteligging, 
@@ -1090,7 +1092,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_KST_verkeersregelinstallatiekast".identificatie_lokaalid || 'BGTPLUS_KST_verkeersregelinstallatiekast' as identificatie_lokaalid,
+		"BGTPLUS_KST_verkeersregelinstallatiekast".identificatie_lokaalid || 'BGTPLUS_KST_verkeersregelinstallatiekast' as id,
     "BGTPLUS_KST_verkeersregelinstallatiekast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KST_verkeersregelinstallatiekast".geometrie) as geometrie,
     "BGTPLUS_KST_verkeersregelinstallatiekast".relatievehoogteligging, 
@@ -1101,7 +1103,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_MST_onbekend".identificatie_lokaalid || 'BGTPLUS_MST_onbekend' as identificatie_lokaalid,
+		"BGTPLUS_MST_onbekend".identificatie_lokaalid || 'BGTPLUS_MST_onbekend' as id,
     "BGTPLUS_MST_onbekend".plus_type as type,
 		ST_makeValid(    "BGTPLUS_MST_onbekend".geometrie) as geometrie,
     "BGTPLUS_MST_onbekend".relatievehoogteligging, 
@@ -1112,7 +1114,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_MST_zendmast".identificatie_lokaalid || 'BGTPLUS_MST_zendmast' as identificatie_lokaalid,
+		"BGTPLUS_MST_zendmast".identificatie_lokaalid || 'BGTPLUS_MST_zendmast' as id,
     "BGTPLUS_MST_zendmast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_MST_zendmast".geometrie) as geometrie,
     "BGTPLUS_MST_zendmast".relatievehoogteligging, 
@@ -1123,7 +1125,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_afsluitpaal".identificatie_lokaalid || 'BGTPLUS_PAL_afsluitpaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_afsluitpaal".identificatie_lokaalid || 'BGTPLUS_PAL_afsluitpaal' as id,
     "BGTPLUS_PAL_afsluitpaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_afsluitpaal".geometrie) as geometrie,
     "BGTPLUS_PAL_afsluitpaal".relatievehoogteligging, 
@@ -1134,7 +1136,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_drukknoppaal".identificatie_lokaalid || 'BGTPLUS_PAL_drukknoppaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_drukknoppaal".identificatie_lokaalid || 'BGTPLUS_PAL_drukknoppaal' as id,
     "BGTPLUS_PAL_drukknoppaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_drukknoppaal".geometrie) as geometrie,
     "BGTPLUS_PAL_drukknoppaal".relatievehoogteligging, 
@@ -1145,7 +1147,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_haltepaal".identificatie_lokaalid || 'BGTPLUS_PAL_haltepaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_haltepaal".identificatie_lokaalid || 'BGTPLUS_PAL_haltepaal' as id,
     "BGTPLUS_PAL_haltepaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_haltepaal".geometrie) as geometrie,
     "BGTPLUS_PAL_haltepaal".relatievehoogteligging, 
@@ -1156,7 +1158,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_hectometerpaal".identificatie_lokaalid || 'BGTPLUS_PAL_hectometerpaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_hectometerpaal".identificatie_lokaalid || 'BGTPLUS_PAL_hectometerpaal' as id,
     "BGTPLUS_PAL_hectometerpaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_hectometerpaal".geometrie) as geometrie,
     "BGTPLUS_PAL_hectometerpaal".relatievehoogteligging, 
@@ -1167,7 +1169,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_poller".identificatie_lokaalid || 'BGTPLUS_PAL_poller' as identificatie_lokaalid,
+		"BGTPLUS_PAL_poller".identificatie_lokaalid || 'BGTPLUS_PAL_poller' as id,
     "BGTPLUS_PAL_poller".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_poller".geometrie) as geometrie,
     "BGTPLUS_PAL_poller".relatievehoogteligging, 
@@ -1178,7 +1180,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_telpaal".identificatie_lokaalid || 'BGTPLUS_PAL_telpaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_telpaal".identificatie_lokaalid || 'BGTPLUS_PAL_telpaal' as id,
     "BGTPLUS_PAL_telpaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_telpaal".geometrie) as geometrie,
     "BGTPLUS_PAL_telpaal".relatievehoogteligging, 
@@ -1189,7 +1191,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_verkeersbordpaal".identificatie_lokaalid || 'BGTPLUS_PAL_verkeersbordpaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_verkeersbordpaal".identificatie_lokaalid || 'BGTPLUS_PAL_verkeersbordpaal' as id,
     "BGTPLUS_PAL_verkeersbordpaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_verkeersbordpaal".geometrie) as geometrie,
     "BGTPLUS_PAL_verkeersbordpaal".relatievehoogteligging, 
@@ -1200,7 +1202,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_verkeersregelinstallatiepaal".identificatie_lokaalid || 'BGTPLUS_PAL_verkeersregelinstallatiepaal' as identificatie_lokaalid,
+		"BGTPLUS_PAL_verkeersregelinstallatiepaal".identificatie_lokaalid || 'BGTPLUS_PAL_verkeersregelinstallatiepaal' as id,
     "BGTPLUS_PAL_verkeersregelinstallatiepaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_verkeersregelinstallatiepaal".geometrie) as geometrie,
     "BGTPLUS_PAL_verkeersregelinstallatiepaal".relatievehoogteligging, 
@@ -1211,7 +1213,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PAL_vlaggenmast".identificatie_lokaalid || 'BGTPLUS_PAL_vlaggenmast' as identificatie_lokaalid,
+		"BGTPLUS_PAL_vlaggenmast".identificatie_lokaalid || 'BGTPLUS_PAL_vlaggenmast' as id,
     "BGTPLUS_PAL_vlaggenmast".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PAL_vlaggenmast".geometrie) as geometrie,
     "BGTPLUS_PAL_vlaggenmast".relatievehoogteligging, 
@@ -1222,7 +1224,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_benzine-_olieput".identificatie_lokaalid || 'BGTPLUS_PUT_benzine-_olieput' as identificatie_lokaalid,
+		"BGTPLUS_PUT_benzine-_olieput".identificatie_lokaalid || 'BGTPLUS_PUT_benzine-_olieput' as id,
     "BGTPLUS_PUT_benzine-_olieput".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_benzine-_olieput".geometrie) as geometrie,
     "BGTPLUS_PUT_benzine-_olieput".relatievehoogteligging, 
@@ -1233,7 +1235,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_drainageput".identificatie_lokaalid || 'BGTPLUS_PUT_drainageput' as identificatie_lokaalid,
+		"BGTPLUS_PUT_drainageput".identificatie_lokaalid || 'BGTPLUS_PUT_drainageput' as id,
     "BGTPLUS_PUT_drainageput".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_drainageput".geometrie) as geometrie,
     "BGTPLUS_PUT_drainageput".relatievehoogteligging, 
@@ -1244,7 +1246,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_gasput".identificatie_lokaalid || 'BGTPLUS_PUT_gasput' as identificatie_lokaalid,
+		"BGTPLUS_PUT_gasput".identificatie_lokaalid || 'BGTPLUS_PUT_gasput' as id,
     "BGTPLUS_PUT_gasput".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_gasput".geometrie) as geometrie,
     "BGTPLUS_PUT_gasput".relatievehoogteligging, 
@@ -1255,7 +1257,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_onbekend".identificatie_lokaalid || 'BGTPLUS_PUT_onbekend' as identificatie_lokaalid,
+		"BGTPLUS_PUT_onbekend".identificatie_lokaalid || 'BGTPLUS_PUT_onbekend' as id,
     "BGTPLUS_PUT_onbekend".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_onbekend".geometrie) as geometrie,
     "BGTPLUS_PUT_onbekend".relatievehoogteligging, 
@@ -1266,7 +1268,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_PUT_waterleidingput".identificatie_lokaalid || 'BGTPLUS_PUT_waterleidingput' as identificatie_lokaalid,
+		"BGTPLUS_PUT_waterleidingput".identificatie_lokaalid || 'BGTPLUS_PUT_waterleidingput' as id,
     "BGTPLUS_PUT_waterleidingput".plus_type as type,
 		ST_makeValid(    "BGTPLUS_PUT_waterleidingput".geometrie) as geometrie,
     "BGTPLUS_PUT_waterleidingput".relatievehoogteligging, 
@@ -1277,7 +1279,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_bank".identificatie_lokaalid || 'BGTPLUS_SMR_bank' as identificatie_lokaalid,
+		"BGTPLUS_SMR_bank".identificatie_lokaalid || 'BGTPLUS_SMR_bank' as id,
     "BGTPLUS_SMR_bank".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_bank".geometrie) as geometrie,
     "BGTPLUS_SMR_bank".relatievehoogteligging, 
@@ -1288,7 +1290,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_brievenbus".identificatie_lokaalid || 'BGTPLUS_SMR_brievenbus' as identificatie_lokaalid,
+		"BGTPLUS_SMR_brievenbus".identificatie_lokaalid || 'BGTPLUS_SMR_brievenbus' as id,
     "BGTPLUS_SMR_brievenbus".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_brievenbus".geometrie) as geometrie,
     "BGTPLUS_SMR_brievenbus".relatievehoogteligging, 
@@ -1299,7 +1301,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_fietsenkluis".identificatie_lokaalid || 'BGTPLUS_SMR_fietsenkluis' as identificatie_lokaalid,
+		"BGTPLUS_SMR_fietsenkluis".identificatie_lokaalid || 'BGTPLUS_SMR_fietsenkluis' as id,
     "BGTPLUS_SMR_fietsenkluis".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_fietsenkluis".geometrie) as geometrie,
     "BGTPLUS_SMR_fietsenkluis".relatievehoogteligging, 
@@ -1310,7 +1312,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_lichtpunt".identificatie_lokaalid || 'BGTPLUS_SMR_lichtpunt' as identificatie_lokaalid,
+		"BGTPLUS_SMR_lichtpunt".identificatie_lokaalid || 'BGTPLUS_SMR_lichtpunt' as id,
     "BGTPLUS_SMR_lichtpunt".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_lichtpunt".geometrie) as geometrie,
     "BGTPLUS_SMR_lichtpunt".relatievehoogteligging, 
@@ -1321,7 +1323,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_slagboom".identificatie_lokaalid || 'BGTPLUS_SMR_slagboom' as identificatie_lokaalid,
+		"BGTPLUS_SMR_slagboom".identificatie_lokaalid || 'BGTPLUS_SMR_slagboom' as id,
     "BGTPLUS_SMR_slagboom".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_slagboom".geometrie) as geometrie,
     "BGTPLUS_SMR_slagboom".relatievehoogteligging, 
@@ -1332,7 +1334,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SMR_speelvoorziening".identificatie_lokaalid || 'BGTPLUS_SMR_speelvoorziening' as identificatie_lokaalid,
+		"BGTPLUS_SMR_speelvoorziening".identificatie_lokaalid || 'BGTPLUS_SMR_speelvoorziening' as id,
     "BGTPLUS_SMR_speelvoorziening".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SMR_speelvoorziening".geometrie) as geometrie,
     "BGTPLUS_SMR_speelvoorziening".relatievehoogteligging, 
@@ -1343,7 +1345,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SSR_camera".identificatie_lokaalid || 'BGTPLUS_SSR_camera' as identificatie_lokaalid,
+		"BGTPLUS_SSR_camera".identificatie_lokaalid || 'BGTPLUS_SSR_camera' as id,
     "BGTPLUS_SSR_camera".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SSR_camera".geometrie) as geometrie,
     "BGTPLUS_SSR_camera".relatievehoogteligging, 
@@ -1354,7 +1356,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SSR_flitser".identificatie_lokaalid || 'BGTPLUS_SSR_flitser' as identificatie_lokaalid,
+		"BGTPLUS_SSR_flitser".identificatie_lokaalid || 'BGTPLUS_SSR_flitser' as id,
     "BGTPLUS_SSR_flitser".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SSR_flitser".geometrie) as geometrie,
     "BGTPLUS_SSR_flitser".relatievehoogteligging, 
@@ -1365,7 +1367,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_SSR_waterstandmeter".identificatie_lokaalid || 'BGTPLUS_SSR_waterstandmeter' as identificatie_lokaalid,
+		"BGTPLUS_SSR_waterstandmeter".identificatie_lokaalid || 'BGTPLUS_SSR_waterstandmeter' as id,
     "BGTPLUS_SSR_waterstandmeter".plus_type as type,
 		ST_makeValid(    "BGTPLUS_SSR_waterstandmeter".geometrie) as geometrie,
     "BGTPLUS_SSR_waterstandmeter".relatievehoogteligging, 
@@ -1376,7 +1378,7 @@ UNION
   WHERE 1 = 1
 UNION
  SELECT
-		"BGTPLUS_WDI_meerpaal".identificatie_lokaalid || 'BGTPLUS_WDI_meerpaal' as identificatie_lokaalid,
+		"BGTPLUS_WDI_meerpaal".identificatie_lokaalid || 'BGTPLUS_WDI_meerpaal' as id,
     "BGTPLUS_WDI_meerpaal".plus_type as type,
 		ST_makeValid(    "BGTPLUS_WDI_meerpaal".geometrie) as geometrie,
     "BGTPLUS_WDI_meerpaal".relatievehoogteligging, 
@@ -1388,9 +1390,9 @@ UNION
 """
 
 
-SELECT_INRICHTINGSELEMENT_VLAK_SQL = """
+SELECT_INRICHTINGSELEMENTVLAK_SQL = """
 SELECT
-		"BGTPLUS_KDL_keermuur".identificatie_lokaalid || 'BGTPLUS_KDL_keermuur' as identificatie_lokaalid,
+		"BGTPLUS_KDL_keermuur".identificatie_lokaalid || 'BGTPLUS_KDL_keermuur' as id,
     "BGTPLUS_KDL_keermuur".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KDL_keermuur". geometrie) as geometrie, 
      "BGTPLUS_KDL_keermuur".relatievehoogteligging, 
@@ -1401,7 +1403,7 @@ SELECT
   WHERE 1=1
 UNION
  SELECT
-		"BGTPLUS_OSDG_muur_V".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_V' as identificatie_lokaalid,
+		"BGTPLUS_OSDG_muur_V".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_V' as id,
      "BGTPLUS_OSDG_muur_V".plus_type as type,
 		ST_makeValid(    "BGTPLUS_OSDG_muur_V". geometrie) as geometrie, 
      "BGTPLUS_OSDG_muur_V".relatievehoogteligging, 
@@ -1412,7 +1414,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGTPLUS_VGT_haag_V".identificatie_lokaalid || 'BGTPLUS_VGT_haag_V' as identificatie_lokaalid,
+		"BGTPLUS_VGT_haag_V".identificatie_lokaalid || 'BGTPLUS_VGT_haag_V' as id,
     "BGTPLUS_VGT_haag_V".plus_type as type,
 		ST_makeValid(    "BGTPLUS_VGT_haag_V". geometrie) as geometrie, 
      "BGTPLUS_VGT_haag_V".relatievehoogteligging, 
@@ -1423,7 +1425,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGTPLUS_WGI_boomspiegel_V".identificatie_lokaalid || 'BGTPLUS_WGI_boomspiegel_V' as identificatie_lokaalid,
+		"BGTPLUS_WGI_boomspiegel_V".identificatie_lokaalid || 'BGTPLUS_WGI_boomspiegel_V' as id,
     "BGTPLUS_WGI_boomspiegel_V".plus_type as type,
 		ST_makeValid(    "BGTPLUS_WGI_boomspiegel_V". geometrie) as geometrie, 
      "BGTPLUS_WGI_boomspiegel_V".relatievehoogteligging, 
@@ -1434,7 +1436,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGTPLUS_WGI_rooster_V".identificatie_lokaalid || 'BGTPLUS_WGI_rooster_V' as identificatie_lokaalid,
+		"BGTPLUS_WGI_rooster_V".identificatie_lokaalid || 'BGTPLUS_WGI_rooster_V' as id,
     "BGTPLUS_WGI_rooster_V".plus_type as type,
 		ST_makeValid(    "BGTPLUS_WGI_rooster_V". geometrie) as geometrie, 
      "BGTPLUS_WGI_rooster_V".relatievehoogteligging, 
@@ -1445,7 +1447,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGTPLUS_WGI_wildrooster_V".identificatie_lokaalid || 'BGTPLUS_WGI_wildrooster_V' as identificatie_lokaalid,
+		"BGTPLUS_WGI_wildrooster_V".identificatie_lokaalid || 'BGTPLUS_WGI_wildrooster_V' as id,
     "BGTPLUS_WGI_wildrooster_V".plus_type as type,
 		ST_makeValid(    "BGTPLUS_WGI_wildrooster_V". geometrie) as geometrie, 
      "BGTPLUS_WGI_wildrooster_V".relatievehoogteligging, 
@@ -1456,7 +1458,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_KDL_gemaal".identificatie_lokaalid || 'BGT_KDL_gemaal' as identificatie_lokaalid,
+		"BGT_KDL_gemaal".identificatie_lokaalid || 'BGT_KDL_gemaal' as id,
     "BGT_KDL_gemaal".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_gemaal". geometrie) as geometrie, 
      "BGT_KDL_gemaal".relatievehoogteligging, 
@@ -1467,7 +1469,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_KDL_hoogspanningsmast_V".identificatie_lokaalid || 'BGT_KDL_hoogspanningsmast_V' as identificatie_lokaalid,
+		"BGT_KDL_hoogspanningsmast_V".identificatie_lokaalid || 'BGT_KDL_hoogspanningsmast_V' as id,
     "BGT_KDL_hoogspanningsmast_V".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_hoogspanningsmast_V". geometrie) as geometrie, 
      "BGT_KDL_hoogspanningsmast_V".relatievehoogteligging, 
@@ -1478,7 +1480,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_KDL_sluis".identificatie_lokaalid || 'BGT_KDL_sluis' as identificatie_lokaalid,
+		"BGT_KDL_sluis".identificatie_lokaalid || 'BGT_KDL_sluis' as id,
     "BGT_KDL_sluis".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_sluis". geometrie) as geometrie, 
      "BGT_KDL_sluis".relatievehoogteligging, 
@@ -1489,7 +1491,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_KDL_steiger".identificatie_lokaalid || 'BGT_KDL_steiger' as identificatie_lokaalid,
+		"BGT_KDL_steiger".identificatie_lokaalid || 'BGT_KDL_steiger' as id,
     "BGT_KDL_steiger".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_steiger". geometrie) as geometrie, 
      "BGT_KDL_steiger".relatievehoogteligging, 
@@ -1500,7 +1502,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_KDL_stuw_V".identificatie_lokaalid || 'BGT_KDL_stuw_V' as identificatie_lokaalid,
+		"BGT_KDL_stuw_V".identificatie_lokaalid || 'BGT_KDL_stuw_V' as id,
     "BGT_KDL_stuw_V".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_stuw_V". geometrie) as geometrie, 
      "BGT_KDL_stuw_V".relatievehoogteligging, 
@@ -1511,7 +1513,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_SDG_kademuur_V".identificatie_lokaalid || 'BGT_SDG_kademuur_V' as identificatie_lokaalid,
+		"BGT_SDG_kademuur_V".identificatie_lokaalid || 'BGT_SDG_kademuur_V' as id,
     "BGT_SDG_kademuur_V".bgt_type as type,
 		ST_makeValid(    "BGT_SDG_kademuur_V". geometrie) as geometrie, 
      "BGT_SDG_kademuur_V".relatievehoogteligging, 
@@ -1522,7 +1524,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
-		"BGT_SDG_muur_V".identificatie_lokaalid || 'BGT_SDG_muur_V' as identificatie_lokaalid,
+		"BGT_SDG_muur_V".identificatie_lokaalid || 'BGT_SDG_muur_V' as id,
     "BGT_SDG_muur_V".bgt_type as type,
 		ST_makeValid(    "BGT_SDG_muur_V". geometrie) as geometrie, 
      "BGT_SDG_muur_V".relatievehoogteligging, 
@@ -1557,9 +1559,9 @@ UNION
   WHERE 1=1
 """
 
-SELECT_SPOOR_LIJN_SQL = """
+SELECT_SPOORLIJN_SQL = """
   SELECT
- 		"BGT_SPR_sneltram".identificatie_lokaalid || 'BGT_SPR_sneltram' as identificatie_lokaalid,
+ 		"BGT_SPR_sneltram".identificatie_lokaalid || 'BGT_SPR_sneltram' as id,
         "BGT_SPR_sneltram".bgt_functie as type,
 		ST_makeValid(        "BGT_SPR_sneltram".geometrie) as geometrie,
         "BGT_SPR_sneltram".relatievehoogteligging, 
@@ -1570,7 +1572,7 @@ SELECT_SPOOR_LIJN_SQL = """
     WHERE  1=1
 UNION
     SELECT
- 		"BGT_SPR_tram".identificatie_lokaalid || 'BGT_SPR_tram' as identificatie_lokaalid,
+ 		"BGT_SPR_tram".identificatie_lokaalid || 'BGT_SPR_tram' as id,
         "BGT_SPR_tram".bgt_functie as type,
 		ST_makeValid(        "BGT_SPR_tram".geometrie) as geometrie,
         "BGT_SPR_tram".relatievehoogteligging, 
@@ -1581,7 +1583,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_SPR_trein".identificatie_lokaalid || 'BGT_SPR_trein' as identificatie_lokaalid,
+ 		"BGT_SPR_trein".identificatie_lokaalid || 'BGT_SPR_trein' as id,
         "BGT_SPR_trein".bgt_functie as type,
 		ST_makeValid(        "BGT_SPR_trein".geometrie) as geometrie,
         "BGT_SPR_trein".relatievehoogteligging, 
@@ -1740,9 +1742,9 @@ UNION
     WHERE 1=1
 """
 
-SELECT_TERREINDEEL_VLAK_SQL = """
+SELECT_TERREINDEELVLAK_SQL = """
 SELECT
- 		"BGT_BTRN_boomteelt".identificatie_lokaalid || 'BGT_BTRN_boomteelt' as identificatie_lokaalid,
+ 		"BGT_BTRN_boomteelt".identificatie_lokaalid || 'BGT_BTRN_boomteelt' as id,
     "BGT_BTRN_boomteelt".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_boomteelt".geometrie) as geometrie,
     "BGT_BTRN_boomteelt".relatievehoogteligging, 
@@ -1753,7 +1755,7 @@ SELECT
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_bouwland".identificatie_lokaalid || 'BGT_BTRN_bouwland' as identificatie_lokaalid,
+ 		"BGT_BTRN_bouwland".identificatie_lokaalid || 'BGT_BTRN_bouwland' as id,
     "BGT_BTRN_bouwland".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_bouwland".geometrie) as geometrie,
     "BGT_BTRN_bouwland".relatievehoogteligging, 
@@ -1764,7 +1766,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_fruitteelt".identificatie_lokaalid || 'BGT_BTRN_fruitteelt' as identificatie_lokaalid,
+ 		"BGT_BTRN_fruitteelt".identificatie_lokaalid || 'BGT_BTRN_fruitteelt' as id,
     "BGT_BTRN_fruitteelt".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_fruitteelt".geometrie) as geometrie,
     "BGT_BTRN_fruitteelt".relatievehoogteligging, 
@@ -1775,7 +1777,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_gemengd_bos".identificatie_lokaalid || 'BGT_BTRN_gemengd_bos' as identificatie_lokaalid,
+ 		"BGT_BTRN_gemengd_bos".identificatie_lokaalid || 'BGT_BTRN_gemengd_bos' as id,
     "BGT_BTRN_gemengd_bos".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_gemengd_bos".geometrie) as geometrie,
     "BGT_BTRN_gemengd_bos".relatievehoogteligging, 
@@ -1786,7 +1788,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_grasland_agrarisch".identificatie_lokaalid ||'-'||  "BGT_BTRN_grasland_agrarisch".tijdstipregistratie ||'-'||  'BGT_BTRN_grasland_agrarisch' as identificatie_lokaalid,
+ 		"BGT_BTRN_grasland_agrarisch".identificatie_lokaalid ||'-'||  "BGT_BTRN_grasland_agrarisch".tijdstipregistratie ||'-'||  'BGT_BTRN_grasland_agrarisch' as id,
     "BGT_BTRN_grasland_agrarisch".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_grasland_agrarisch".geometrie) as geometrie,
     "BGT_BTRN_grasland_agrarisch".relatievehoogteligging, 
@@ -1797,7 +1799,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_grasland_overig".identificatie_lokaalid ||'-'||  "BGT_BTRN_grasland_overig".tijdstipregistratie ||'-'|| 'BGT_BTRN_grasland_overig' as identificatie_lokaalid,
+ 		"BGT_BTRN_grasland_overig".identificatie_lokaalid ||'-'||  "BGT_BTRN_grasland_overig".tijdstipregistratie ||'-'|| 'BGT_BTRN_grasland_overig' as id,
     "BGT_BTRN_grasland_overig".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_grasland_overig".geometrie) as geometrie,
     "BGT_BTRN_grasland_overig".relatievehoogteligging, 
@@ -1808,7 +1810,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_groenvoorziening".identificatie_lokaalid || 'BGT_BTRN_groenvoorziening' as identificatie_lokaalid,
+ 		"BGT_BTRN_groenvoorziening".identificatie_lokaalid || 'BGT_BTRN_groenvoorziening' as id,
     "BGT_BTRN_groenvoorziening".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_groenvoorziening".geometrie) as geometrie,
     "BGT_BTRN_groenvoorziening".relatievehoogteligging, 
@@ -1819,7 +1821,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_houtwal".identificatie_lokaalid || 'BGT_BTRN_houtwal' as identificatie_lokaalid,
+ 		"BGT_BTRN_houtwal".identificatie_lokaalid || 'BGT_BTRN_houtwal' as id,
     "BGT_BTRN_houtwal".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_houtwal".geometrie) as geometrie,
     "BGT_BTRN_houtwal".relatievehoogteligging, 
@@ -1830,7 +1832,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_loofbos".identificatie_lokaalid || 'BGT_BTRN_loofbos' as identificatie_lokaalid,
+ 		"BGT_BTRN_loofbos".identificatie_lokaalid || 'BGT_BTRN_loofbos' as id,
     "BGT_BTRN_loofbos".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_loofbos".geometrie) as geometrie,
     "BGT_BTRN_loofbos".relatievehoogteligging, 
@@ -1841,7 +1843,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_moeras".identificatie_lokaalid || 'BGT_BTRN_moeras' as identificatie_lokaalid,
+ 		"BGT_BTRN_moeras".identificatie_lokaalid || 'BGT_BTRN_moeras' as id,
     "BGT_BTRN_moeras".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_moeras".geometrie) as geometrie,
     "BGT_BTRN_moeras".relatievehoogteligging, 
@@ -1852,7 +1854,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_naaldbos".identificatie_lokaalid || 'BGT_BTRN_naaldbos' as identificatie_lokaalid,
+ 		"BGT_BTRN_naaldbos".identificatie_lokaalid || 'BGT_BTRN_naaldbos' as id,
     "BGT_BTRN_naaldbos".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_naaldbos".geometrie) as geometrie,
     "BGT_BTRN_naaldbos".relatievehoogteligging, 
@@ -1863,7 +1865,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_rietland".identificatie_lokaalid || 'BGT_BTRN_rietland' as identificatie_lokaalid,
+ 		"BGT_BTRN_rietland".identificatie_lokaalid || 'BGT_BTRN_rietland' as id,
     "BGT_BTRN_rietland".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_rietland".geometrie) as geometrie,
     "BGT_BTRN_rietland".relatievehoogteligging, 
@@ -1874,7 +1876,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_struiken".identificatie_lokaalid || 'BGT_BTRN_struiken' as identificatie_lokaalid,
+ 		"BGT_BTRN_struiken".identificatie_lokaalid || 'BGT_BTRN_struiken' as id,
     "BGT_BTRN_struiken".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_struiken".geometrie) as geometrie,
     "BGT_BTRN_struiken".relatievehoogteligging, 
@@ -1885,7 +1887,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_KDL_perron".identificatie_lokaalid || 'BGT_KDL_perron' as identificatie_lokaalid,
+ 		"BGT_KDL_perron".identificatie_lokaalid || 'BGT_KDL_perron' as id,
     "BGT_KDL_perron".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_perron".geometrie) as geometrie,
     "BGT_KDL_perron".relatievehoogteligging, 
@@ -1896,7 +1898,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_KDL_strekdam".identificatie_lokaalid || 'BGT_KDL_strekdam' as identificatie_lokaalid,
+ 		"BGT_KDL_strekdam".identificatie_lokaalid || 'BGT_KDL_strekdam' as id,
     "BGT_KDL_strekdam".bgt_type as type,
 		ST_makeValid(    "BGT_KDL_strekdam".geometrie) as geometrie,
     "BGT_KDL_strekdam".relatievehoogteligging, 
@@ -1907,7 +1909,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_OTRN_erf".identificatie_lokaalid ||'-'||  	"BGT_OTRN_erf".tijdstipregistratie ||'-'|| 'BGT_OTRN_erf' as identificatie_lokaalid,
+ 		"BGT_OTRN_erf".identificatie_lokaalid ||'-'||  	"BGT_OTRN_erf".tijdstipregistratie ||'-'|| 'BGT_OTRN_erf' as id,
     "BGT_OTRN_erf".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_OTRN_erf".geometrie) as geometrie,
     "BGT_OTRN_erf".relatievehoogteligging, 
@@ -1918,7 +1920,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_OTRN_gesloten_verharding".identificatie_lokaalid || 'BGT_OTRN_gesloten_verharding' as identificatie_lokaalid,
+ 		"BGT_OTRN_gesloten_verharding".identificatie_lokaalid || 'BGT_OTRN_gesloten_verharding' as id,
     "BGT_OTRN_gesloten_verharding".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_OTRN_gesloten_verharding".geometrie) as geometrie,
     "BGT_OTRN_gesloten_verharding".relatievehoogteligging, 
@@ -1929,7 +1931,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_OTRN_half_verhard".identificatie_lokaalid || 'BGT_OTRN_half_verhard' as identificatie_lokaalid,
+ 		"BGT_OTRN_half_verhard".identificatie_lokaalid || 'BGT_OTRN_half_verhard' as id,
     "BGT_OTRN_half_verhard".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_OTRN_half_verhard".geometrie) as geometrie,
     "BGT_OTRN_half_verhard".relatievehoogteligging, 
@@ -1940,7 +1942,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		 "BGT_OTRN_onverhard".identificatie_lokaalid || 'BGT_OTRN_onverhard' as identificatie_lokaalid,
+ 		 "BGT_OTRN_onverhard".identificatie_lokaalid || 'BGT_OTRN_onverhard' as id,
     "BGT_OTRN_onverhard".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_OTRN_onverhard".geometrie) as geometrie,
     "BGT_OTRN_onverhard".relatievehoogteligging, 
@@ -1951,7 +1953,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_OTRN_open_verharding".identificatie_lokaalid || 'BGT_OTRN_open_verharding' as identificatie_lokaalid,
+ 		"BGT_OTRN_open_verharding".identificatie_lokaalid || 'BGT_OTRN_open_verharding' as id,
     "BGT_OTRN_open_verharding".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_OTRN_open_verharding".geometrie) as geometrie,
     "BGT_OTRN_open_verharding".relatievehoogteligging, 
@@ -1962,7 +1964,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_OTRN_zand".identificatie_lokaalid || 'BGT_OTRN_zand' as identificatie_lokaalid,
+ 		"BGT_OTRN_zand".identificatie_lokaalid || 'BGT_OTRN_zand' as id,
     "BGT_OTRN_zand".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_OTRN_zand".geometrie) as geometrie,
     "BGT_OTRN_zand".relatievehoogteligging, 
@@ -1973,7 +1975,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_OWDL_oever_slootkant".identificatie_lokaalid ||'-'||  	"BGT_OWDL_oever_slootkant".tijdstipregistratie ||'-'|| 'BGT_OWDL_oever_slootkant' as identificatie_lokaalid,
+ 		"BGT_OWDL_oever_slootkant".identificatie_lokaalid ||'-'||  	"BGT_OWDL_oever_slootkant".tijdstipregistratie ||'-'|| 'BGT_OWDL_oever_slootkant' as id,
     "BGT_OWDL_oever_slootkant".bgt_type as type,
 		ST_makeValid(    "BGT_OWDL_oever_slootkant".geometrie) as geometrie,
     "BGT_OWDL_oever_slootkant".relatievehoogteligging, 
@@ -1984,7 +1986,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_WGL_spoorbaan".identificatie_lokaalid || 'BGT_WGL_spoorbaan' as identificatie_lokaalid,
+ 		"BGT_WGL_spoorbaan".identificatie_lokaalid || 'BGT_WGL_spoorbaan' as id,
     "BGT_WGL_spoorbaan".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_WGL_spoorbaan".geometrie) as geometrie,
     "BGT_WGL_spoorbaan".relatievehoogteligging, 
@@ -1995,7 +1997,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_BTRN_heide".identificatie_lokaalid || 'BGT_BTRN_heide' as identificatie_lokaalid,
+ 		"BGT_BTRN_heide".identificatie_lokaalid || 'BGT_BTRN_heide' as id,
     "BGT_BTRN_heide".bgt_fysiekvoorkomen as type,
 		ST_makeValid(    "BGT_BTRN_heide".geometrie) as geometrie,
     "BGT_BTRN_heide".relatievehoogteligging, 
@@ -2230,9 +2232,9 @@ UNION
 """
 
 
-SELECT_WATERDEEL_LIJN_SQL = """
+SELECT_WATERDEELLIJN_SQL = """
 SELECT
- 		"BGTPLUS_KDL_duiker_L".identificatie_lokaalid || 'BGTPLUS_KDL_duiker_L' as identificatie_lokaalid,
+ 		"BGTPLUS_KDL_duiker_L".identificatie_lokaalid || 'BGTPLUS_KDL_duiker_L' as id,
     "BGTPLUS_KDL_duiker_L".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KDL_duiker_L".geometrie) as geometrie,
     "BGTPLUS_KDL_duiker_L".relatievehoogteligging, 
@@ -2269,9 +2271,9 @@ SELECT
   WHERE 1=1
 """
 
-SELECT_WATERDEEL_VLAK_SQL = """
+SELECT_WATERDEELVLAK_SQL = """
 SELECT
- 		"BGTPLUS_KDL_duiker_V".identificatie_lokaalid || 'BGTPLUS_KDL_duiker_V' as identificatie_lokaalid,
+ 		"BGTPLUS_KDL_duiker_V".identificatie_lokaalid || 'BGTPLUS_KDL_duiker_V' as id,
     "BGTPLUS_KDL_duiker_V".plus_type as type,
 		ST_makeValid(    "BGTPLUS_KDL_duiker_V". geometrie) as geometrie, 
     "BGTPLUS_KDL_duiker_V".relatievehoogteligging, 
@@ -2282,7 +2284,7 @@ SELECT
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_WDL_greppel_droge_sloot".identificatie_lokaalid || 'BGT_WDL_greppel_droge_sloot' as identificatie_lokaalid,
+ 		"BGT_WDL_greppel_droge_sloot".identificatie_lokaalid || 'BGT_WDL_greppel_droge_sloot' as id,
     "BGT_WDL_greppel_droge_sloot".bgt_type as type,
 		ST_makeValid(    "BGT_WDL_greppel_droge_sloot". geometrie) as geometrie, 
     "BGT_WDL_greppel_droge_sloot".relatievehoogteligging, 
@@ -2293,7 +2295,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_WDL_waterloop".identificatie_lokaalid ||'-'|| "BGT_WDL_waterloop".tijdstipregistratie ||'-'|| 'BGT_WDL_waterloop' as identificatie_lokaalid,
+ 		"BGT_WDL_waterloop".identificatie_lokaalid ||'-'|| "BGT_WDL_waterloop".tijdstipregistratie ||'-'|| 'BGT_WDL_waterloop' as id,
     "BGT_WDL_waterloop".bgt_type as type,
 		ST_makeValid(    "BGT_WDL_waterloop". geometrie) as geometrie, 
     "BGT_WDL_waterloop".relatievehoogteligging, 
@@ -2304,7 +2306,7 @@ UNION
   WHERE 1=1
 UNION
  SELECT
- 		"BGT_WDL_watervlakte".identificatie_lokaalid || 'BGT_WDL_watervlakte' as identificatie_lokaalid,
+ 		"BGT_WDL_watervlakte".identificatie_lokaalid || 'BGT_WDL_watervlakte' as id,
     "BGT_WDL_watervlakte".bgt_type as type,
 		ST_makeValid(    "BGT_WDL_watervlakte". geometrie) as geometrie, 
     "BGT_WDL_watervlakte".relatievehoogteligging, 
@@ -2355,10 +2357,10 @@ UNION
 """
 
 
-SELECT_WEGDEEL_LIJN_SQL = """
+SELECT_WEGDEELLIJN_SQL = """
 /* --- KBK10 ---- */
     select
-        "WGL_smalle_weg".ogc_fid::text ||'-'|| 'WGL_smalle_weg' as identificatie_lokaalid,
+        "WGL_smalle_weg".ogc_fid::text ||'-'|| 'WGL_smalle_weg' as id,
         'smalle_weg' as type,
 		ST_makeValid(        "WGL_smalle_weg".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2370,7 +2372,7 @@ SELECT_WEGDEEL_LIJN_SQL = """
     where 1 = 1
     UNION ALL
       select
-        "WGL_autoveer".ogc_fid::text ||'-'|| 'WGL_autoveer' as identificatie_lokaalid,
+        "WGL_autoveer".ogc_fid::text ||'-'|| 'WGL_autoveer' as id,
         'autoveer' as type,
 		ST_makeValid(        "WGL_autoveer".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2382,7 +2384,7 @@ SELECT_WEGDEEL_LIJN_SQL = """
     where 1 = 1
     UNION ALL
       select
-        "WGL_hartlijn".ogc_fid::text ||'-'|| 'WGL_hartlijn' as identificatie_lokaalid,
+        "WGL_hartlijn".ogc_fid::text ||'-'|| 'WGL_hartlijn' as id,
         'hartlijn' as type,
 		ST_makeValid(        "WGL_hartlijn".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2394,7 +2396,7 @@ SELECT_WEGDEEL_LIJN_SQL = """
     where 1 = 1
 UNION
     SELECT 
-        "WGL_voetveer".ogc_fid::text ||'-'|| 'WGL_voetveer' as identificatie_lokaalid,
+        "WGL_voetveer".ogc_fid::text ||'-'|| 'WGL_voetveer' as id,
         'voetveer' as type,
 		ST_makeValid(        "WGL_voetveer".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2407,7 +2409,7 @@ UNION
  /* --- KBK50 ---- */
 UNION
     SELECT 
-        "WGL_straat_in_tunnel".ogc_fid::text ||'-'|| 'WGL_straat_in_tunnel' as identificatie_lokaalid,
+        "WGL_straat_in_tunnel".ogc_fid::text ||'-'|| 'WGL_straat_in_tunnel' as id,
         'straat_in_tunnel' as type,
 		ST_makeValid(        "WGL_straat_in_tunnel".geom) as geometrie, 
         0  as relatievehoogteligging, 
@@ -2418,7 +2420,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_hoofdweg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_hoofdweg_in_tunnel' as identificatie_lokaalid,
+        "WGL_hoofdweg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_hoofdweg_in_tunnel' as id,
         'hoofdweg_in_tunnel' as type,
 		ST_makeValid(        "WGL_hoofdweg_in_tunnel".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2429,7 +2431,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_regionale_weg".ogc_fid::text ||'-'|| 'WGL_regionale_weg' as identificatie_lokaalid,
+        "WGL_regionale_weg".ogc_fid::text ||'-'|| 'WGL_regionale_weg' as id,
         'regionale_weg' as type,
 		ST_makeValid(        "WGL_regionale_weg".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2440,7 +2442,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_regionale_weg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_regionale_weg_in_tunnel' as identificatie_lokaalid,
+        "WGL_regionale_weg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_regionale_weg_in_tunnel' as id,
         'regionale_weg_in_tunnel' as type,
 		ST_makeValid(        "WGL_regionale_weg_in_tunnel".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2451,7 +2453,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_autosnelweg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_autosnelweg_in_tunnel' as identificatie_lokaalid,
+        "WGL_autosnelweg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_autosnelweg_in_tunnel' as id,
         'autosnelweg_in_tunnel' as type,
 		ST_makeValid(        "WGL_autosnelweg_in_tunnel".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2462,7 +2464,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_straat".ogc_fid::text ||'-'|| 'WGL_straat' as identificatie_lokaalid,
+        "WGL_straat".ogc_fid::text ||'-'|| 'WGL_straat' as id,
         'straat' as type,
 		ST_makeValid(        "WGL_straat".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2473,7 +2475,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_hoofdweg".ogc_fid::text ||'-'|| 'WGL_hoofdweg' as identificatie_lokaalid,
+        "WGL_hoofdweg".ogc_fid::text ||'-'|| 'WGL_hoofdweg' as id,
         'hoofdweg' as type,
 		ST_makeValid(        "WGL_hoofdweg".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2484,7 +2486,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_autosnelweg".ogc_fid::text ||'-'|| 'WGL_autosnelweg' as identificatie_lokaalid,
+        "WGL_autosnelweg".ogc_fid::text ||'-'|| 'WGL_autosnelweg' as id,
         'autosnelweg' as type,
 		ST_makeValid(        "WGL_autosnelweg".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2495,7 +2497,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "WGL_veerverbinding".ogc_fid::text ||'-'|| 'WGL_veerverbinding' as identificatie_lokaalid,
+        "WGL_veerverbinding".ogc_fid::text ||'-'|| 'WGL_veerverbinding' as id,
         'veerverbinding' as type,
 		ST_makeValid(        "WGL_veerverbinding".geom) as geometrie,
         0  as relatievehoogteligging, 
@@ -2506,9 +2508,9 @@ UNION
     WHERE 1=1
 """
 
-SELECT_WEGDEEL_VLAK_SQL = """
+SELECT_WEGDEELVLAK_SQL = """
  SELECT
- 		"BGT_OWGL_berm".identificatie_lokaalid ||'-'|| "BGT_OWGL_berm".tijdstipregistratie ||'-'|| 'BGT_OWGL_berm' as identificatie_lokaalid,
+ 		"BGT_OWGL_berm".identificatie_lokaalid ||'-'|| "BGT_OWGL_berm".tijdstipregistratie ||'-'|| 'BGT_OWGL_berm' as id,
         "BGT_OWGL_berm".bgt_functie as type,
         "BGT_OWGL_berm".bgt_fysiekvoorkomen as subtype,
         "BGT_OWGL_berm".plus_fysiekvoorkomen as subsubtype,
@@ -2521,7 +2523,7 @@ SELECT_WEGDEEL_VLAK_SQL = """
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_OWGL_verkeerseiland".identificatie_lokaalid || 'BGT_OWGL_verkeerseiland' as identificatie_lokaalid,
+ 		"BGT_OWGL_verkeerseiland".identificatie_lokaalid || 'BGT_OWGL_verkeerseiland' as id,
         "BGT_OWGL_verkeerseiland".bgt_functie as type,
         "BGT_OWGL_verkeerseiland".bgt_fysiekvoorkomen as subtype,
         "BGT_OWGL_verkeerseiland".plus_fysiekvoorkomen as subsubtype,
@@ -2534,7 +2536,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_baan_voor_vliegverkeer".identificatie_lokaalid || 'BGT_WGL_baan_voor_vliegverkeer' as identificatie_lokaalid,
+ 		"BGT_WGL_baan_voor_vliegverkeer".identificatie_lokaalid || 'BGT_WGL_baan_voor_vliegverkeer' as id,
         "BGT_WGL_baan_voor_vliegverkeer".bgt_functie as type,
         "BGT_WGL_baan_voor_vliegverkeer".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_baan_voor_vliegverkeer".plus_fysiekvoorkomen as subsubtype,
@@ -2547,7 +2549,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_fietspad".identificatie_lokaalid ||'-'|| "BGT_WGL_fietspad".tijdstipregistratie ||'-'||  'BGT_WGL_fietspad' as identificatie_lokaalid,
+ 		"BGT_WGL_fietspad".identificatie_lokaalid ||'-'|| "BGT_WGL_fietspad".tijdstipregistratie ||'-'||  'BGT_WGL_fietspad' as id,
         "BGT_WGL_fietspad".bgt_functie as type,
         "BGT_WGL_fietspad".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_fietspad".plus_fysiekvoorkomen as subsubtype,
@@ -2560,7 +2562,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_inrit".identificatie_lokaalid || 'BGT_WGL_inrit' as identificatie_lokaalid,
+ 		"BGT_WGL_inrit".identificatie_lokaalid || 'BGT_WGL_inrit' as id,
         "BGT_WGL_inrit".bgt_functie as type,
         "BGT_WGL_inrit".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_inrit".plus_fysiekvoorkomen as subsubtype,
@@ -2573,7 +2575,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_ov-baan".identificatie_lokaalid || 'BGT_WGL_ov-baan' as identificatie_lokaalid,
+ 		"BGT_WGL_ov-baan".identificatie_lokaalid || 'BGT_WGL_ov-baan' as id,
         "BGT_WGL_ov-baan".bgt_functie as type,
         "BGT_WGL_ov-baan".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_ov-baan".plus_fysiekvoorkomen as subsubtype,
@@ -2586,7 +2588,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_overweg".identificatie_lokaalid || 'BGT_WGL_overweg' as identificatie_lokaalid,
+ 		"BGT_WGL_overweg".identificatie_lokaalid || 'BGT_WGL_overweg' as id,
         "BGT_WGL_overweg".bgt_functie as type,
         "BGT_WGL_overweg".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_overweg".plus_fysiekvoorkomen as subsubtype,
@@ -2599,7 +2601,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_parkeervlak".identificatie_lokaalid || 'BGT_WGL_parkeervlak' as identificatie_lokaalid,
+ 		"BGT_WGL_parkeervlak".identificatie_lokaalid || 'BGT_WGL_parkeervlak' as id,
         "BGT_WGL_parkeervlak".bgt_functie as type,
         "BGT_WGL_parkeervlak".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_parkeervlak".plus_fysiekvoorkomen as subsubtype,
@@ -2612,7 +2614,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_rijbaan_autosnelweg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_autosnelweg".tijdstipregistratie ||'-'||  'BGT_WGL_rijbaan_autosnelweg' as identificatie_lokaalid,
+ 		"BGT_WGL_rijbaan_autosnelweg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_autosnelweg".tijdstipregistratie ||'-'||  'BGT_WGL_rijbaan_autosnelweg' as id,
         "BGT_WGL_rijbaan_autosnelweg".bgt_functie as type,
         "BGT_WGL_rijbaan_autosnelweg".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_rijbaan_autosnelweg".plus_fysiekvoorkomen as subsubtype,
@@ -2625,7 +2627,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_rijbaan_autoweg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_autoweg".tijdstipregistratie ||'-'||  'BGT_WGL_rijbaan_autoweg' as identificatie_lokaalid,
+ 		"BGT_WGL_rijbaan_autoweg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_autoweg".tijdstipregistratie ||'-'||  'BGT_WGL_rijbaan_autoweg' as id,
         "BGT_WGL_rijbaan_autoweg".bgt_functie as type,
         "BGT_WGL_rijbaan_autoweg".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_rijbaan_autoweg".plus_fysiekvoorkomen as subsubtype,
@@ -2638,7 +2640,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_rijbaan_lokale_weg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_lokale_weg".tijdstipregistratie ||'-'||   'BGT_WGL_rijbaan_lokale_weg' as identificatie_lokaalid,
+ 		"BGT_WGL_rijbaan_lokale_weg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_lokale_weg".tijdstipregistratie ||'-'||   'BGT_WGL_rijbaan_lokale_weg' as id,
         "BGT_WGL_rijbaan_lokale_weg".bgt_functie as type,
         "BGT_WGL_rijbaan_lokale_weg".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_rijbaan_lokale_weg".plus_fysiekvoorkomen as subsubtype,
@@ -2651,7 +2653,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_rijbaan_regionale_weg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_regionale_weg".tijdstipregistratie ||'-'|| 'BGT_WGL_rijbaan_regionale_weg' as identificatie_lokaalid,
+ 		"BGT_WGL_rijbaan_regionale_weg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_regionale_weg".tijdstipregistratie ||'-'|| 'BGT_WGL_rijbaan_regionale_weg' as id,
         "BGT_WGL_rijbaan_regionale_weg".bgt_functie as type,
         "BGT_WGL_rijbaan_regionale_weg".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_rijbaan_regionale_weg".plus_fysiekvoorkomen as subsubtype,
@@ -2664,7 +2666,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_ruiterpad".identificatie_lokaalid ||'-'|| "BGT_WGL_ruiterpad".tijdstipregistratie ||'-'||  'BGT_WGL_ruiterpad' as identificatie_lokaalid,
+ 		"BGT_WGL_ruiterpad".identificatie_lokaalid ||'-'|| "BGT_WGL_ruiterpad".tijdstipregistratie ||'-'||  'BGT_WGL_ruiterpad' as id,
         "BGT_WGL_ruiterpad".bgt_functie as type,
         "BGT_WGL_ruiterpad".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_ruiterpad".plus_fysiekvoorkomen as subsubtype,
@@ -2677,7 +2679,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_voetgangersgebied".identificatie_lokaalid ||'-'|| "BGT_WGL_voetgangersgebied".tijdstipregistratie ||'-'||  'BGT_WGL_voetgangersgebied' as identificatie_lokaalid,
+ 		"BGT_WGL_voetgangersgebied".identificatie_lokaalid ||'-'|| "BGT_WGL_voetgangersgebied".tijdstipregistratie ||'-'||  'BGT_WGL_voetgangersgebied' as id,
         "BGT_WGL_voetgangersgebied".bgt_functie as type,
         "BGT_WGL_voetgangersgebied".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_voetgangersgebied".plus_fysiekvoorkomen as subsubtype,
@@ -2690,7 +2692,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT
- 		"BGT_WGL_voetpad".identificatie_lokaalid ||'-'|| "BGT_WGL_voetpad".tijdstipregistratie ||'-'||  'BGT_WGL_voetpad' as identificatie_lokaalid,
+ 		"BGT_WGL_voetpad".identificatie_lokaalid ||'-'|| "BGT_WGL_voetpad".tijdstipregistratie ||'-'||  'BGT_WGL_voetpad' as id,
         "BGT_WGL_voetpad".bgt_functie as type,
         "BGT_WGL_voetpad".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_voetpad".plus_fysiekvoorkomen as subsubtype,
@@ -2703,7 +2705,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "BGT_WGL_voetpad_op_trap".identificatie_lokaalid ||'-'|| "BGT_WGL_voetpad_op_trap".tijdstipregistratie ||'-'||  'BGT_WGL_voetpad_op_trap' as identificatie_lokaalid,
+        "BGT_WGL_voetpad_op_trap".identificatie_lokaalid ||'-'|| "BGT_WGL_voetpad_op_trap".tijdstipregistratie ||'-'||  'BGT_WGL_voetpad_op_trap' as id,
         "BGT_WGL_voetpad_op_trap".bgt_functie as type,
         "BGT_WGL_voetpad_op_trap".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_voetpad_op_trap".plus_fysiekvoorkomen as subsubtype,
@@ -2716,7 +2718,7 @@ UNION
     WHERE 1=1
 UNION
     SELECT 
-        "BGT_WGL_woonerf".identificatie_lokaalid ||'-'|| "BGT_WGL_woonerf".tijdstipregistratie ||'-'||  'BGT_WGL_woonerf' as identificatie_lokaalid,
+        "BGT_WGL_woonerf".identificatie_lokaalid ||'-'|| "BGT_WGL_woonerf".tijdstipregistratie ||'-'||  'BGT_WGL_woonerf' as id,
         "BGT_WGL_woonerf".bgt_functie as type,
         "BGT_WGL_woonerf".bgt_fysiekvoorkomen as subtype,
         "BGT_WGL_woonerf".plus_fysiekvoorkomen as subsubtype,
@@ -2799,7 +2801,7 @@ UNION
 
 SELECT_LABELS_SQL = """
 SELECT
-    "BAG_LBL_Ligplaatsnummeraanduidingreeks"."BAG_identificatie" || 'BAG_LBL_Ligplaatsnummeraanduidingreeks' as identificatie_lokaalid,
+    "BAG_LBL_Ligplaatsnummeraanduidingreeks"."BAG_identificatie" || 'BAG_LBL_Ligplaatsnummeraanduidingreeks' as id,
     'ligplaats' as type,
 	ST_GeometryN(ST_makeValid("BAG_LBL_Ligplaatsnummeraanduidingreeks".geometrie),1) as geometrie,
     "BAG_LBL_Ligplaatsnummeraanduidingreeks".hoek,
@@ -2810,7 +2812,7 @@ SELECT
    FROM bgt."BAG_LBL_Ligplaatsnummeraanduidingreeks"
 UNION
 SELECT
-    "BAG_LBL_Standplaatsnummeraanduidingreeks"."BAG_identificatie" || 'BAG_LBL_Standplaatsnummeraanduidingreeks' as identificatie_lokaalid,
+    "BAG_LBL_Standplaatsnummeraanduidingreeks"."BAG_identificatie" || 'BAG_LBL_Standplaatsnummeraanduidingreeks' as id,
     'standplaats' as type,
 	ST_GeometryN(ST_makeValid("BAG_LBL_Standplaatsnummeraanduidingreeks".geometrie),1) as geometrie,
     "BAG_LBL_Standplaatsnummeraanduidingreeks".hoek,
@@ -2821,7 +2823,7 @@ SELECT
    FROM bgt."BAG_LBL_Standplaatsnummeraanduidingreeks"
 UNION
 SELECT
-    "BGT_LBL_administratief_gebied".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_administratief_gebied".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_administratief_gebied' as identificatie_lokaalid,
+    "BGT_LBL_administratief_gebied".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_administratief_gebied".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_administratief_gebied' as id,
     "BGT_LBL_administratief_gebied".openbareruimtetype as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_administratief_gebied".geometrie),1) as geometrie,
     "BGT_LBL_administratief_gebied".hoek,
@@ -2832,7 +2834,7 @@ SELECT
    FROM bgt."BGT_LBL_administratief_gebied"
 UNION
 SELECT
-    "BGT_LBL_kunstwerk".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_kunstwerk".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'||  'BGT_LBL_kunstwerk' as identificatie_lokaalid,
+    "BGT_LBL_kunstwerk".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_kunstwerk".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'||  'BGT_LBL_kunstwerk' as id,
     "BGT_LBL_kunstwerk".openbareruimtetype as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_kunstwerk".geometrie),1) as geometrie,
     "BGT_LBL_kunstwerk".hoek,
@@ -2843,7 +2845,7 @@ SELECT
    FROM bgt."BGT_LBL_kunstwerk"
 UNION
 SELECT
-    "BGT_LBL_landschappelijk_gebied".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_landschappelijk_gebied".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_landschappelijk_gebied' as identificatie_lokaalid,
+    "BGT_LBL_landschappelijk_gebied".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_landschappelijk_gebied".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_landschappelijk_gebied' as id,
     "BGT_LBL_landschappelijk_gebied".openbareruimtetype as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_landschappelijk_gebied".geometrie),1) as geometrie,
     "BGT_LBL_landschappelijk_gebied".hoek,
@@ -2854,7 +2856,7 @@ SELECT
    FROM bgt."BGT_LBL_landschappelijk_gebied"
 UNION
 SELECT
-    "BGT_LBL_nummeraanduidingreeks".identificatie_lokaalid ||'-'|| "BGT_LBL_nummeraanduidingreeks".tekst ||'-'|| "BGT_LBL_nummeraanduidingreeks".ogc_fid ||'-'|| 'BGT_LBL_nummeraanduidingreeks' as identificatie_lokaalid,
+    "BGT_LBL_nummeraanduidingreeks".identificatie_lokaalid ||'-'|| "BGT_LBL_nummeraanduidingreeks".tekst ||'-'|| "BGT_LBL_nummeraanduidingreeks".ogc_fid ||'-'|| 'BGT_LBL_nummeraanduidingreeks' as id,
     'nummeraanduiding' as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_nummeraanduidingreeks".geometrie),1) as geometrie,
     "BGT_LBL_nummeraanduidingreeks".hoek,
@@ -2865,7 +2867,7 @@ SELECT
    FROM bgt."BGT_LBL_nummeraanduidingreeks"
 UNION
 SELECT
-    "BGT_LBL_terrein".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_terrein".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_terrein' as identificatie_lokaalid,
+    "BGT_LBL_terrein".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_terrein".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_terrein' as id,
     "BGT_LBL_terrein".openbareruimtetype as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_terrein".geometrie),1) as geometrie,
     "BGT_LBL_terrein".hoek,
@@ -2876,7 +2878,7 @@ SELECT
    FROM bgt."BGT_LBL_terrein"
 UNION
 SELECT
-    "BGT_LBL_water".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_water".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_water' as identificatie_lokaalid,
+    "BGT_LBL_water".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_water".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_water' as id,
     "BGT_LBL_water".openbareruimtetype as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_water".geometrie),1) as geometrie,
     "BGT_LBL_water".hoek,
@@ -2887,7 +2889,7 @@ SELECT
    FROM bgt."BGT_LBL_water"
 UNION
 SELECT
-    "BGT_LBL_weg".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_weg".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_weg' as identificatie_lokaalid,
+    "BGT_LBL_weg".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_LBL_weg".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_LBL_weg' as id,
     "BGT_LBL_weg".openbareruimtetype as type,
 	ST_GeometryN(ST_makeValid("BGT_LBL_weg".geometrie),1) as geometrie,
     "BGT_LBL_weg".hoek,

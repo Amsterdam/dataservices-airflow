@@ -88,6 +88,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
     def execute(self, context=None):
         dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
+        print(dataset)
         pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
         sqls = []
         existing_tables_lookup = self._get_existing_tables(
