@@ -88,6 +88,8 @@ def copy_data_in_batch(target_base_table, fetch_iterator):
     result = len(items)
         
     # execute SQL insert statement
+    # the Airflow PostgresHook.insert_rows instance method is used to "executemany" SQL query
+    # which also serializes the data to a save SQL format
     if result:              
         try:            
             masterdb_hook.insert_rows(target_base_table, items, target_fields=None, commit_every=1000, replace=False)            
