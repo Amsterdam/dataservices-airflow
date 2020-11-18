@@ -46,6 +46,7 @@ source_connection="AIRFLOW_CONN_POSTGRES_BASISKAART"
 import_step = 10000
 logger = logging.getLogger(__name__)
 
+  
 
 def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select_statement, target_base_table, *args, **kwargs):
     """
@@ -64,7 +65,7 @@ def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select
 
     # fetch data from source DB
     with source_engine.connect() as source_connection:
-        count = 0
+        count = 0        
         cursor = source_connection.execute(source_select_statement)     
         while True:
             fetch_iterator = cursor.fetchmany(size=import_step)
@@ -72,49 +73,26 @@ def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select
             count += batch_count
             if batch_count < import_step:
                 break
-    logger.info(f"Imported: {count}")
-
+    logger.info(f"Total records imported: {count}")
 
 
 def copy_data_in_batch(target_base_table, fetch_iterator):
-    
+
+    masterdb_hook = PostgresHook()
     items = []
-    
+
     # setup SQL insert values the be executed
     for row in fetch_iterator:
-
-        row_insert = []        
-        for column_value in row:
-            
-            # escape single quote in labels, conflicts with sql insert statement i.e. Jachthaven 't Eiland
-            if 'labels' in target_base_table:                
-                p = re.compile("([\w\s]{0,})(')([\w\s]+)")
-                m = p.match(str(column_value))
-                if m:
-                    column_value = m.group(1)+'\''+m.group(2)+m.group(3)
-            
-            row_insert.append(f"'{column_value}'" if column_value else "NULL")
-        
-        items.append ('(' + ','.join(row_insert) + ')')
-            
+            items.append([column_value for column_value in row])
+       
     result = len(items)
-
-    # execute SQL insert statement
-    if result:
-        items_sql = ",".join(items)
-        insert_sql = (
-            f"INSERT INTO {dag_id}_{target_base_table}_TEMP "
-            f"VALUES {items_sql};"
-        )
-
-        masterdb_hook = PostgresHook()
         
-        try:
-            masterdb_hook.run(insert_sql)
+    # execute SQL insert statement
+    if result:              
+        try:            
+            masterdb_hook.insert_rows(target_base_table, items, target_fields=None, commit_every=1000, replace=False)            
         except Exception as e:
-            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
-        else:
-            logger.info(f"Created {result} records.")        
+            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))      
     
     return result
 
@@ -165,7 +143,7 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
                 python_callable=create_tables_from_basiskaartdb_to_masterdb,
                 op_kwargs={ "source_connection":source_connection,
                             "source_select_statement":globals()[select_statement],
-                            "target_base_table":table_name,
+                            "target_base_table":f"{dag_id}_{table_name}_temp",
                             },
                 dag=dag,
         )       
@@ -209,7 +187,7 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
 
     dag.doc_md = """
     #### DAG summery
-    This DAG containts BGT (basisregistratie grootschalige topografie) and KBK10 (kleinschalige basis kaart 10) and KBK50 (kleinschalige basis kaart 50) data
+    This DAG containts BGT (basisregistratie grootschalige topografie) and KBK10 (kleinschalige basiskaart 10) and KBK50 (kleinschalige basiskaart 50) data
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
@@ -230,3 +208,10 @@ for i, (table, select_statement) in enumerate(tables_to_create.items()):
     globals()[f"{dag_id}_{table}"] = create_basiskaart_dag(
         i == 0, table, select_statement
     )
+
+
+
+
+
+
+
