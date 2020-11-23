@@ -9,7 +9,6 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     slack_webhook_token,
     MessageOperator,
-
 )
 
 DATASTORE_TYPE = (
@@ -34,9 +33,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     # 2. Drop tables in target schema PTE (schema which orginates from the DB dump file, see next step)
     #    based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
-        task_id="drop_tables", 
-        dataset_name="huishoudelijkafval", 
-        pg_schema="pte",
+        task_id="drop_tables", dataset_name="huishoudelijkafval", pg_schema="pte",
     )
 
     # 3. load the dump file
@@ -46,8 +43,8 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/" "afval_api.zip",
         swift_conn_id="objectstore_dataservices",
         # optionals
-        # db_target_schema will create the schema if not present 
-        db_target_schema="pte",      
+        # db_target_schema will create the schema if not present
+        db_target_schema="pte",
     )
 
     # 4. Make the provenance translations
@@ -63,6 +60,7 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         task_id="swap_schema", dataset_name="huishoudelijkafval"
     )
 
-#FLOW
+
+# FLOW
 
 slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema
