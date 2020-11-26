@@ -25,9 +25,9 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         self,
         data_schema_name,
         data_schema_env=None,
-        db_conn=None,
-        ind_table=None,
-        ind_identifier_index=None,
+        db_conn=default_db_conn,
+        ind_table=True,
+        ind_identifier_index=True,
         *args,
         **kwargs,
     ):
@@ -35,11 +35,10 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         self.data_schema_name = data_schema_name
         # Optionals
         self.data_schema_env = f"{data_schema_env}." if data_schema_env else ""
-        self.db_conn = db_conn if db_conn else default_db_conn
-        self.ind_table = True if ind_table is None else ind_table
-        self.ind_identifier_index = (
-            True if ind_identifier_index is None else ind_identifier_index
-        )
+        self.db_conn = db_conn
+        self.ind_table = ind_table
+        self.ind_identifier_index = ind_identifier_index
+
 
     def execute(self, context=None):
         """ Executes the 'generate_db_object' method from schema-tools.
