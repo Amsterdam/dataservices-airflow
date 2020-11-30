@@ -150,8 +150,8 @@ class HttpGobOperator(BaseOperator):
                 schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log
             )
 
-            importer.generate_tables(
-                table_name=self.schema, db_table_name=f"{self.db_table_name}_new",
+            importer.generate_db_objects(
+                table_name=self.schema, db_table_name=f"{self.db_table_name}_new", ind_tables=True, ind_identifier_index=False
             )
             # For GOB content, cursor value is exactly the same as
             # the record index. If this were not true, the cursor needed

@@ -68,7 +68,7 @@ class PostgresTableCopyOperator(PostgresOperator):
             for sql in (
                 "CREATE TABLE IF NOT EXISTS {target_table_name} (LIKE {source_table_name} "
                 "INCLUDING CONSTRAINTS INCLUDING INDEXES)",
-                "TRUNCATE TABLE {target_table_name}",
+                "TRUNCATE TABLE {target_table_name} CASCADE",
                 "INSERT INTO {target_table_name} SELECT * FROM {source_table_name}",
             ):
 
