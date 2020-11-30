@@ -24,6 +24,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
     def __init__(
         self,
         data_schema_name,
+        data_table_name,
         data_schema_env=None,
         db_conn=default_db_conn,
         ind_table=True,
@@ -33,6 +34,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
     ):
         super().__init__(*args, **kwargs)
         self.data_schema_name = data_schema_name
+        self.data_table_name = data_table_name
         # Optionals
         self.data_schema_env = f"{data_schema_env}." if data_schema_env else ""
         self.db_conn = db_conn
@@ -54,8 +56,11 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         importer = BaseImporter(dataset_schema, engine)
 
         for table in data["tables"]:
-            importer.generate_db_objects(
-                table["id"],
-                ind_tables=self.ind_table,
-                ind_identifier_index=self.ind_identifier_index,
-            )
+            if self.data_schema_name + '_' + table["id"] == f"{self.data_table_name}":
+                importer.generate_db_objects(
+                    table["id"],
+                    ind_tables=self.ind_table,
+                    ind_identifier_index=self.ind_identifier_index,
+                )
+            else:
+                continue

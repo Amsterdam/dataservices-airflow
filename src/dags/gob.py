@@ -2,10 +2,11 @@ import json
 import pathlib
 from airflow import DAG
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_table_init_operator import PostgresTableInitOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from http_gob_operator import HttpGobOperator
-from common import default_args, DATAPUNT_ENVIRONMENT
+from common import default_args, DATAPUNT_ENVIRONMENT, MessageOperator, slack_webhook_token
 from schematools import TMP_TABLE_POSTFIX
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
@@ -48,25 +49,50 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
     )
 
     with dag:
+
+        # 1. Post info message on slack
+        slack_at_start = MessageOperator(
+            task_id=f"slack_at_start_{gob_db_table_name}",
+            http_conn_id="slack",
+            webhook_token=slack_webhook_token,
+            message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+            username="admin",
+        )
+
+        # 2. drop temp table if exists
         init_table = PostgresTableInitOperator(
             task_id=f"init_{gob_db_table_name}",
             table_name=f"{gob_db_table_name}{TMP_TABLE_POSTFIX}",
             drop_table=True,
         )
 
+        # 3. load data into temp table
         load_data = HttpGobOperator(**{**kwargs, **extra_kwargs})
 
+        # 4. truncate target table and insert data from temp table
         copy_table = PostgresTableCopyOperator(
             task_id=f"copy_{gob_db_table_name}",
             source_table_name=f"{gob_db_table_name}{TMP_TABLE_POSTFIX}",
             target_table_name=gob_db_table_name,
         )
 
+        # 5. create an index on the identifier fields (as specified in the JSON data schema)
+        create_identifier_index = SqlAlchemyCreateObjectOperator(
+            task_id=f"create_identifier_index_{gob_db_table_name}",
+            data_schema_name=kwargs.get('dataset', None),
+            data_table_name=f'{gob_db_table_name}',
+            # when set to false, it doesn't create the tables; only the index
+            ind_table=False,
+            ind_identifier_index=True,
+        )
+
+        # 6. trigger next DAG (estafette / relay run)
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag", dag_id_prefix="gob_", trigger_rule="all_done",
         )
 
-        init_table >> load_data >> copy_table >> trigger_next_dag
+        # FLOW
+        slack_at_start >> init_table >> load_data >> copy_table >> create_identifier_index >> trigger_next_dag
 
     return dag
 
