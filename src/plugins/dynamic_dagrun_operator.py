@@ -27,6 +27,11 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
         self.dag_id_prefix = dag_id_prefix
 
     def execute(self, context):
+        # Do not trigger next dag when param no_next_dag is available
+        dag_run = context["dag_run"]
+        if dag_run is not None and dag_run.conf.get("no_next_dag"):
+            self.log.info("Not starting next dag ('no_next_dag' in dag_run config)!")
+            return
         current_dag_id = self.dag.dag_id
         self.log.info("Starting dag %s", current_dag_id)
         session = Session()
