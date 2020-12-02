@@ -2,7 +2,6 @@ import operator
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.dummy_operator import DummyOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -23,14 +22,18 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-# to snake case is needed in target table because of the provenance check, because
-# number are seen as a start for underscore seperator.Covid19 is therefore translated as covid_19
-# to do: change logic for snake_case when dealing with numbers
+# Note: to snake case is needed in target table because of the provenance check, because
+# number are seen as a start for underscore seperator. Covid19 is therefore translated as covid_19
+# TODO: change logic for snake_case when dealing with numbers
 dag_id = "covid_19"
-
 variables_covid19 = Variable.get("covid19", deserialize_json=True)
 files_to_download = variables_covid19["files_to_download"]
+
+# Note: Gebiedsverbod is absolete since "nieuwe tijdelijke wetgeving Corona maatregelen 01-12-2020"
+# TODO: remove Gebiedsverbod from var.yml, if DSO-API endpoint and Amsterdam Schema definition can be removed
 tables_to_create = variables_covid19["tables_to_create"]
+tables_to_check = { k:v for k, v in tables_to_create.items() if k != 'gebiedsverbod' }
+
 tmp_dir = f"/tmp/{dag_id}"
 total_checks = []
 count_checks = []
@@ -44,7 +47,7 @@ def quote(instr):
 
 with DAG(
     dag_id,
-    description="alcohol-, straatartiest-, aanleg- en parkenverbodsgebieden, mondmaskerverplichtinggebieden, e.d.",
+    description="type of restriction area's.",
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
     template_searchpath=["/"],
@@ -114,7 +117,7 @@ with DAG(
     )
 
     # Prepare the checks and added them per source to a dictionary
-    for key, _ in tables_to_create.items():
+    for key in tables_to_check.keys():
 
         total_checks.clear()
         count_checks.clear()
@@ -140,18 +143,17 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[f"{key}"] = total_checks
 
-    # 13. Execute bundled checks on database
+    # 8. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
         )
-        for key in tables_to_create.keys()
+        for key in tables_to_check.keys()
     ]
 
-    # # 9. drop exsisting table
-    # drop_table = PostgresOperator(
-    #     task_id=f"drop_table", sql=[f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",],
-    # )
+    # 9. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
 
     # 10. Rename TABLE
     rename_tables = [
@@ -167,13 +169,11 @@ for data in zip(download_data):
 
     data >> Interface >> SHP_to_SQL
 
-for (create_SQL, create_table, multi_check, rename_table,) in zip(
-    SHP_to_SQL, create_tables, multi_checks, rename_tables,
+for (create_SQL, create_table, rename_table,) in zip(
+    SHP_to_SQL, create_tables, rename_tables,
 ):
 
-    [create_SQL >> create_table] >> provenance_translation >> multi_check
-
-    [multi_check >> rename_table]
+    [create_SQL >> create_table] >> provenance_translation >> multi_checks >> Interface2 >> rename_table
 
 slack_at_start >> mkdir >> download_data
 
@@ -191,6 +191,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/covid_19.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/covid_19.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=covid_19/covid_19&x=106434&y=488995&radius=10
 """
