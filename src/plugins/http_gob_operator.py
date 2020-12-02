@@ -30,8 +30,7 @@ OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET")
 
 
 class HttpGobOperator(BaseOperator):
-    """ Operator for fetching data from Gob
-    """
+    """Operator for fetching data from Gob"""
 
     # template_fields = [
     #     "endpoint",
@@ -151,7 +150,10 @@ class HttpGobOperator(BaseOperator):
             )
 
             importer.generate_db_objects(
-                table_name=self.schema, db_table_name=f"{self.db_table_name}_new", ind_tables=True, ind_identifier_index=False
+                table_name=self.schema,
+                db_table_name=f"{self.db_table_name}_new",
+                ind_tables=True,
+                ind_identifier_index=False,
             )
             # For GOB content, cursor value is exactly the same as
             # the record index. If this were not true, the cursor needed
@@ -197,9 +199,7 @@ class HttpGobOperator(BaseOperator):
                 records_loaded += batch_size
                 # No records returns one newline and a Content-Length header
                 # If records are available, there is no Content-Length header
-                if int(response.headers.get("Content-Length", "2")) < 2 or (
-                    max_records is not None and records_loaded >= max_records
-                ):
+                if int(response.headers.get("Content-Length", "2")) < 2:
                     break
                 # When content is encoded (gzip etc.) we need this:
                 # response.raw.read = functools.partial(response.raw.read, decode_content=True)
@@ -226,7 +226,9 @@ class HttpGobOperator(BaseOperator):
                 self.log.info(
                     "Loading db took %s seconds", time.time() - request_end_time,
                 )
-                if last_record is None:
+                if last_record is None or (
+                    max_records is not None and records_loaded >= max_records
+                ):
                     break
                 cursor_pos = last_record["cursor"]
 
