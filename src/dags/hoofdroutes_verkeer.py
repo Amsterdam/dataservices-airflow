@@ -128,10 +128,12 @@ def _load_geojson(postgres_conn_id):
     for route in ROUTES:
         geojson_path = files[route.name]
         logger.info("Importing %s into %s", route.name, route.tmp_db_table_name)
-        importer.generate_tables(
+        importer.generate_db_objects(
             table_name=route.schema_table_name,
             db_table_name=route.tmp_db_table_name,
             truncate=True,  # when reexecuting the same task
+            ind_tables=True,
+            ind_identifier_index=False
         )
         importer.load_file(geojson_path,)
         if route.post_process:
