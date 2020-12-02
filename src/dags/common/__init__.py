@@ -6,6 +6,9 @@ import traceback
 from datetime import timedelta, datetime
 from environs import Env
 from airflow.utils.dates import days_ago
+from airflow.exceptions import AirflowException
+
+from requests.exceptions import ConnectionError
 
 
 from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
@@ -17,10 +20,20 @@ env = Env()
 slack_webhook_token = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
+
+class SlackFailsafeWebhookOperator(SlackWebhookOperator):
+    def execute(self, context):
+        try:
+            super().execute(context)
+        except (AirflowException, ConnectionError):
+            self.log.warning("Unable to reach Slack!! Falling back to logger.")
+            self.log.info(self.message)
+
+
 MessageOperator = (
     LogMessageOperator
     if DATAPUNT_ENVIRONMENT == "development"
-    else SlackWebhookOperator
+    else SlackFailsafeWebhookOperator
 )
 
 
@@ -88,9 +101,9 @@ vsd_default_args["postgres_conn_id"] = "postgres_default"
 
 
 def addloopvariables(iterable):
-    """ Pass through all values from the given iterable.
-        Return items of the iterable and booleans
-        signalling the first and the last item
+    """Pass through all values from the given iterable.
+    Return items of the iterable and booleans
+    signalling the first and the last item
     """
     # Get an iterator and pull the first value.
     it = iter(iterable)
