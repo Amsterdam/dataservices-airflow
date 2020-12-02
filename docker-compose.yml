@@ -46,8 +46,8 @@ services:
       AIRFLOW_CONN_OIDC_SERVER: "https://iam.amsterdam.nl/https"
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
-      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"  
-      FERNET_KEY: ${FERNET_KEY}      
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"
+      FERNET_KEY: ${FERNET_KEY}
       AIRFLOW_LOGGING_LEVEL: ${AIRFLOW_LOGGING_LEVEL:-INFO}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
       DATAPUNT_ENVIRONMENT: development
@@ -59,7 +59,7 @@ services:
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
       OOV_BRIEVENBUS_USER: ${oov_brievenbus_user}
       OOV_BRIEVENBUS_PASSWORD: ${oov_brievenbus_password}
-      OOV_BRIEVENBUS_HOST: ${oov_brievenbus_host}  
+      OOV_BRIEVENBUS_HOST: ${oov_brievenbus_host}
       OOV_BRIEVENBUS_PORT: ${oov_brievenbus_port}
       DAG_SYNC_PATH: /tmp/synced-dags
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
@@ -67,17 +67,19 @@ services:
       SCHEMA_URL: ${SCHEMA_URL}
       AIRFLOW_USER_ADMIN_PASSWD: ${dataservices_airflow_user_admin_passwd}
       AIRFLOW_USER_DATASERVICES_PASSWD: ${dataservices_airflow_user_dataservices_passwd}
-      AIRFLOW_USER_TEAM_RUIMTE_PASSWD: ${dataservices_airflow_user_team_ruimte_passwd}  
+      AIRFLOW_USER_TEAM_RUIMTE_PASSWD: ${dataservices_airflow_user_team_ruimte_passwd}
       OIDC_TOKEN_ENDPOINT: ${OIDC_TOKEN_ENDPOINT}
       OIDC_CLIENT_ID: ${DATASERVICES_GOB_EXPORT_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${DATASERVICES_GOB_EXPORT_CLIENT_SECRET}
+      AIRFLOW_LOG_CLEANUP__MAX_LOG_AGE_IN_DAYS: 90
+      AIRFLOW_LOG_CLEANUP__ENABLE_DELETE_CHILD_LOG: "true"
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
       - ./src/vars:/usr/local/airflow/vars
       - ./src/vsd:/usr/local/airflow/vsd
       - ./develop:/usr/local/airflow/develop
-      - /var/run/docker.sock:/var/run/docker.sock      
+      - /var/run/docker.sock:/var/run/docker.sock
     # extra_hosts:
     #- "dockerhost:$DOCKERHOST"
 
