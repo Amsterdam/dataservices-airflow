@@ -31,7 +31,7 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
         # Due to bug in Airflow, dagrun misses 'conf' attribute
         # when DAG is triggered from another DAG
         dag_run = context["dag_run"]
-        if dag_run is not None and getattr(dag_run, "conf", {}).get("no_next_dag"):
+        if dag_run is not None and (getattr(dag_run, "conf") or {}).get("no_next_dag"):
             self.log.info("Not starting next dag ('no_next_dag' in dag_run config)!")
             return
         current_dag_id = self.dag.dag_id
