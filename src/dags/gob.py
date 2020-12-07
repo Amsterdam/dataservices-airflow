@@ -6,7 +6,12 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_table_init_operator import PostgresTableInitOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from http_gob_operator import HttpGobOperator
-from common import default_args, DATAPUNT_ENVIRONMENT, MessageOperator, slack_webhook_token
+from common import (
+    default_args,
+    DATAPUNT_ENVIRONMENT,
+    MessageOperator,
+    slack_webhook_token,
+)
 from schematools import TMP_TABLE_POSTFIX
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
@@ -33,7 +38,9 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
     dag = DAG(
         f"{dag_id}_{gob_db_table_name}",
         default_args={"owner": owner, **default_args},
-        schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
+        schedule_interval=f"0 {schedule_start_hour} * * *"
+        if is_first
+        else None,
         tags=["gob"],
     )
 
@@ -77,22 +84,24 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
         )
 
         # 5. create an index on the identifier fields (as specified in the JSON data schema)
-        create_identifier_index = SqlAlchemyCreateObjectOperator(
-            task_id=f"create_identifier_index_{gob_db_table_name}",
-            data_schema_name=kwargs.get('dataset', None),
-            data_table_name=f'{gob_db_table_name}',
+        create_extra_index = SqlAlchemyCreateObjectOperator(
+            task_id=f"create_extra_index_{gob_db_table_name}",
+            data_schema_name=kwargs.get("dataset", None),
+            data_table_name=f"{gob_db_table_name}",
             # when set to false, it doesn't create the tables; only the index
             ind_table=False,
-            ind_identifier_index=True,
+            ind_extra_index=True,
         )
 
         # 6. trigger next DAG (estafette / relay run)
         trigger_next_dag = TriggerDynamicDagRunOperator(
-            task_id="trigger_next_dag", dag_id_prefix="gob_", trigger_rule="all_done",
+            task_id="trigger_next_dag",
+            dag_id_prefix="gob_",
+            trigger_rule="all_done",
         )
 
         # FLOW
-        slack_at_start >> init_table >> load_data >> copy_table >> create_identifier_index >> trigger_next_dag
+        slack_at_start >> init_table >> load_data >> copy_table >> create_extra_index >> trigger_next_dag
 
     return dag
 

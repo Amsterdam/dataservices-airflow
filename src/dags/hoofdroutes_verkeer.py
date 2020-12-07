@@ -118,7 +118,9 @@ def _load_geojson(postgres_conn_id):
         files[route.name] = dest
 
     # 2. generate schema ("schema introspect geojson *.geojson")
-    schema = introspect_geojson_files("gevaarlijke-routes", files=list(files.values()))
+    schema = introspect_geojson_files(
+        "gevaarlijke-routes", files=list(files.values())
+    )
     schema = DatasetSchema.from_dict(schema)  # TODO: move to schema-tools?
 
     # XXX This is not running as one transaction atm, but autocommitting per chunk
@@ -127,15 +129,19 @@ def _load_geojson(postgres_conn_id):
     importer = GeoJSONImporter(schema, db_engine, logger=logger)
     for route in ROUTES:
         geojson_path = files[route.name]
-        logger.info("Importing %s into %s", route.name, route.tmp_db_table_name)
+        logger.info(
+            "Importing %s into %s", route.name, route.tmp_db_table_name
+        )
         importer.generate_db_objects(
             table_name=route.schema_table_name,
             db_table_name=route.tmp_db_table_name,
             truncate=True,  # when reexecuting the same task
             ind_tables=True,
-            ind_identifier_index=False
+            ind_extra_index=False,
         )
-        importer.load_file(geojson_path,)
+        importer.load_file(
+            geojson_path,
+        )
         if route.post_process:
             hook = PostgresHook(postgres_conn_id=postgres_conn_id)
             hook.run(route.post_process)
@@ -149,7 +155,9 @@ with DAG(dag_id, default_args=default_args) as dag:
     renames = []
 
     drop_old_tables = PostgresOperator(
-        task_id="drop_old_tables", sql=DROP_TMPL, params=dict(tablenames=TABLES_TO_DROP)
+        task_id="drop_old_tables",
+        sql=DROP_TMPL,
+        params=dict(tablenames=TABLES_TO_DROP),
     )
 
     import_geojson = PythonOperator(
@@ -189,7 +197,9 @@ with DAG(dag_id, default_args=default_args) as dag:
         )
 
     checks = count_checks + colname_checks + geo_checks
-    multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
+    multi_check = PostgresMultiCheckOperator(
+        task_id="multi_check", checks=checks
+    )
 
     renames = [
         PostgresTableRenameOperator(

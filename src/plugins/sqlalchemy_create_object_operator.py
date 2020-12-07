@@ -14,9 +14,10 @@ default_db_conn = env("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
 
 
 class SqlAlchemyCreateObjectOperator(BaseOperator):
-    """ This operator takes a JSON data schema definition and DB connection to create the specified
+    """This operator takes a JSON data schema definition and DB connection to create the specified
     tables and/or an index. The latter is based on the Identifier object in the data JSON schema i.e.
-    "identifier": ["identificatie", "volgnummer"] which is common for temporal data.
+    "identifier": ["identificatie", "volgnummer"] which is common for temporal data. And on the Relation
+    specification in the schema where "many-to-many" intersection tables can be defined.
     Note: The table creation alone leads to the creation of a PK which is already indexed by default.
     Note2: A geometry column type, when specified in the JSON schema, also defaults to an index in the database.
     """
@@ -28,7 +29,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         data_schema_env=None,
         db_conn=default_db_conn,
         ind_table=True,
-        ind_identifier_index=True,
+        ind_extra_index=True,
         *args,
         **kwargs,
     ):
@@ -39,13 +40,12 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         self.data_schema_env = f"{data_schema_env}." if data_schema_env else ""
         self.db_conn = db_conn
         self.ind_table = ind_table
-        self.ind_identifier_index = ind_identifier_index
-
+        self.ind_extra_index = ind_extra_index
 
     def execute(self, context=None):
-        """ Executes the 'generate_db_object' method from schema-tools.
+        """Executes the 'generate_db_object' method from schema-tools.
         Which leads to the creation of tables and/or an index on the identifier (as specified in the data JSON schema).
-        By default both tables and the identifier index are created.
+        By default both tables and the identifier and 'many-to-many table' indexes are created.
         By setting the boolean indicators in the method parameters, tables or an identifier index (per table) can be created.
         """
         data_schema_url = f"https://{self.data_schema_env}schemas.data.amsterdam.nl/datasets/{self.data_schema_name}/{self.data_schema_name}"
@@ -56,11 +56,14 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         importer = BaseImporter(dataset_schema, engine)
 
         for table in data["tables"]:
-            if self.data_schema_name + '_' + table["id"] == f"{self.data_table_name}":
+            if (
+                self.data_schema_name + "_" + table["id"]
+                == f"{self.data_table_name}"
+            ):
                 importer.generate_db_objects(
                     table["id"],
                     ind_tables=self.ind_table,
-                    ind_identifier_index=self.ind_identifier_index,
+                    ind_extra_index=self.ind_extra_index,
                 )
             else:
                 continue
