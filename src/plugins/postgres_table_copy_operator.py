@@ -15,15 +15,20 @@ class PostgresTableCopyOperator(PostgresOperator):
         target_table_name: str,
         postgres_conn_id="postgres_default",
         task_id="copy_table",
+        ind_drop=True,
         **kwargs,
     ):
         check_safe_name(source_table_name)
         check_safe_name(target_table_name)
         super().__init__(
-            task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs
+            task_id=task_id,
+            sql=[],
+            postgres_conn_id=postgres_conn_id,
+            **kwargs,
         )
         self.source_table_name = source_table_name
         self.target_table_name = target_table_name
+        self.ind_drop = ind_drop
 
     def execute(self, context):
         hook = PostgresHook(
@@ -31,7 +36,12 @@ class PostgresTableCopyOperator(PostgresOperator):
         )
 
         # Start a list to hold copy information
-        table_copies = [(self.source_table_name, self.target_table_name,)]
+        table_copies = [
+            (
+                self.source_table_name,
+                self.target_table_name,
+            )
+        ]
 
         # Find the cross-tables for n-m relations, we assume they have
         # a name that start with f"{source_table_name}_"
@@ -70,6 +80,9 @@ class PostgresTableCopyOperator(PostgresOperator):
                 "INCLUDING CONSTRAINTS INCLUDING INDEXES)",
                 "TRUNCATE TABLE {target_table_name} CASCADE",
                 "INSERT INTO {target_table_name} SELECT * FROM {source_table_name}",
+                "DROP TABLE IF EXISTS {source_table_name} CASCADE"
+                if self.ind_drop
+                else None,
             ):
 
                 self.sql.append(sql.format(**lookup))

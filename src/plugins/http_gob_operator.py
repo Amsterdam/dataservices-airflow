@@ -118,7 +118,8 @@ class HttpGobOperator(BaseOperator):
         # alternative would be to parse query with graphql-core lib, alter AST
         # and render query, seems overkill for now
         return query.replace(
-            "active: false", f"active: false, first: {batch_size}, after: {cursor_pos}",
+            "active: false",
+            f"active: false, first: {batch_size}, after: {cursor_pos}",
         )
 
     def execute(self, context):
@@ -137,7 +138,9 @@ class HttpGobOperator(BaseOperator):
         batch_size = params.get("batch_size", self.batch_size)
         with TemporaryDirectory() as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
-            http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
+            http = HttpParamsHook(
+                http_conn_id=self.http_conn_id, method="POST"
+            )
 
             self.log.info("Calling GOB graphql endpoint")
 
@@ -153,7 +156,7 @@ class HttpGobOperator(BaseOperator):
                 table_name=self.schema,
                 db_table_name=f"{self.db_table_name}_new",
                 ind_tables=True,
-                ind_identifier_index=False,
+                ind_extra_index=False,
             )
             # For GOB content, cursor value is exactly the same as
             # the record index. If this were not true, the cursor needed
@@ -171,7 +174,9 @@ class HttpGobOperator(BaseOperator):
                 for i in range(3):
                     try:
                         request_start_time = time.time()
-                        headers = self._fetch_headers(force_refresh=force_refresh_token)
+                        headers = self._fetch_headers(
+                            force_refresh=force_refresh_token
+                        )
                         response = http.run(
                             self.endpoint,
                             self._fetch_params(),
@@ -193,8 +198,12 @@ class HttpGobOperator(BaseOperator):
                         break
                 else:
                     # Save cursor_pos in a variable
-                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
-                    raise AirflowException("All retries on GOB-API have failed.")
+                    Variable.set(
+                        f"{self.db_table_name}.cursor_pos", cursor_pos
+                    )
+                    raise AirflowException(
+                        "All retries on GOB-API have failed."
+                    )
 
                 records_loaded += batch_size
                 # No records returns one newline and a Content-Length header
@@ -220,11 +229,14 @@ class HttpGobOperator(BaseOperator):
                         tmp_file,
                         f"/tmp/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
                     )
-                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
+                    Variable.set(
+                        f"{self.db_table_name}.cursor_pos", cursor_pos
+                    )
                     raise AirflowException("A database error has occurred.")
 
                 self.log.info(
-                    "Loading db took %s seconds", time.time() - request_end_time,
+                    "Loading db took %s seconds",
+                    time.time() - request_end_time,
                 )
                 if last_record is None or (
                     max_records is not None and records_loaded >= max_records
