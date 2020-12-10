@@ -38,9 +38,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
     dag = DAG(
         f"{dag_id}_{gob_db_table_name}",
         default_args={"owner": owner, **default_args},
-        schedule_interval=f"0 {schedule_start_hour} * * *"
-        if is_first
-        else None,
+        schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
         tags=["gob"],
     )
 
@@ -101,7 +99,14 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
         )
 
         # FLOW
-        slack_at_start >> init_table >> load_data >> copy_table >> create_extra_index >> trigger_next_dag
+        (
+            slack_at_start
+            >> init_table
+            >> load_data
+            >> copy_table
+            >> create_extra_index
+            >> trigger_next_dag
+        )
 
     return dag
 
