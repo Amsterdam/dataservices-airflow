@@ -1,6 +1,9 @@
 import requests
 import re
+import json
+from urllib.parse import urlparse
 
+from airflow.hooks.http_hook import HttpHook
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.hooks.postgres_hook import PostgresHook
@@ -37,6 +40,7 @@ class TypeAHeadLocationOperator(BaseOperator):
         source_key_column: str = "id",
         geometry_column: str = "geometry",
         postgres_conn_id: str = "postgres_default",
+        http_conn_id: str = "api_data_amsterdam_conn_id",
         *args,
         **kwargs,
     ) -> None:
@@ -46,6 +50,7 @@ class TypeAHeadLocationOperator(BaseOperator):
         self.source_key_column = source_key_column
         self.geometry_column = geometry_column
         self.postgres_conn_id = postgres_conn_id
+        self.http_conn_id = http_conn_id
 
     def get_non_geometry_records(self):
         """get location values from table (for record with no geometry)"""
@@ -69,49 +74,59 @@ class TypeAHeadLocationOperator(BaseOperator):
 
         return rows
 
-    def get_typeahead_result(self, record):
-        """Look up BAG verblijfsobject id from typeahead service for non-geometry location data"""
+    def prepare_typeahead_call(self, record):
+        """Prep typeahead service call for non-geometry location data"""
 
         # setup result list
         typeadhead_result = {}
 
         # Make dictionary out of list, so it's easier to query later.
         record_dict = {}
-        record_dict[self.source_location_column] = record[0]
-        record_dict[self.source_key_column] = record[1]
+        record_dict[self.source_location_column] = location_value = record[0]
+        record_dict[self.source_key_column] = key_value = record[1]
 
-        # Alias entries in the record_dict for easy use
-        key_value = record_dict[self.source_key_column]
-        location_value = record_dict[self.source_location_column]
-
-        # Feed typeahead with location data
+        # Call the typeahead service with params
         data_headers = {"content-type": "application/json"}
-        data_url = f"https://api.data.amsterdam.nl/atlas/typeahead/bag/?q={location_value}"
-        data_response = requests.get(data_url, headers=data_headers, verify=False)
+        http_endpoint = f"/atlas/typeahead/bag/?q={location_value}"
+        http_response = self.get_typeahead_result(http_endpoint, data_headers)
+        http_data = None
+
+        try:
+            http_data = json.loads(http_response.text)[0]['content'][0]['uri']
+            self.log.info(f"BAG id found for {location_value}.")
+
+        except IndexError:
+            self.log.error(f"Attempt 1: No BAG id found for {location_value}, empty result...")
 
         # TODO: find better solution
         # If no match, try matching only on the first number of
-        # an address (i.e. 'street 1-100 => street 1')
-        if not data_response.json():
+        # an address (i.e. 'street 1-100 (hiven is invalid input) => street 1')
+        if not http_data:
             location_value = location_value.split("-")[0]
-            data_url = f"https://api.data.amsterdam.nl/atlas/typeahead/bag/?q={location_value}"
-            data_response = requests.get(data_url, headers=data_headers, verify=False)
+            http_endpoint = f"/atlas/typeahead/bag/?q={location_value}"
+            http_response = self.get_typeahead_result(http_endpoint, data_headers)
 
-        self.log.error(
-            f"typeahead status {data_response} "
-            f"gets result {data_response.json()} "
-            f"for value {location_value}"
-        )
+            try:
+                http_data = json.loads(http_response.text)[0]['content'][0]['uri']
+                self.log.info(f"BAG id found for {location_value}.")
 
-        # Get the first result, if there are multiple responses
-        # i.e. address without number or addition leads to more than one result
-        try:
-            typeadhead_result[key_value] = data_response.json()[0]["content"][0] or None
+            except IndexError:
+                self.log.error(f"Attempt 2: No BAG id found for {location_value}, empty result...")
 
-        except IndexError:
-            self.log.error(f"No results for {location_value}")
+
+        typeadhead_result[key_value] = http_data
 
         return typeadhead_result
+
+
+    def get_typeahead_result(self, http_endpoint, data_headers):
+        """Look up BAG verblijfsobject id from typeahead service for non-geometry location data"""
+
+        http = HttpHook(method="GET", http_conn_id=self.http_conn_id)
+        http_response = http.run(endpoint=http_endpoint, data=None, headers=data_headers)
+
+        return http_response
+
 
     def execute(self, context=None):
         """look up the geometry where no geometry is present"""
@@ -122,7 +137,7 @@ class TypeAHeadLocationOperator(BaseOperator):
         # get BAG verblijfsobject ID from typeahead
         for record in rows:
 
-            get_typeadhead_result = self.get_typeahead_result(record)
+            get_typeadhead_result = self.prepare_typeahead_call(record)
             record_key = None
             bag_url = None
             for key, value in get_typeadhead_result.items():
@@ -132,11 +147,12 @@ class TypeAHeadLocationOperator(BaseOperator):
             # extract the BAG id from the url, which is the last
             # series of numbers before the last forward-slash
             try:
-                bag_id = re.search("(/)([0-9]+)(/)$", bag_url["uri"]).group(2)
-                self.log.error(f"BAG id found for {record_key}: {bag_id}")
+                get_uri = urlparse(bag_url)
+                bag_id = get_uri.path.rsplit("/")[-2]
+                self.log.info(f"BAG id found for {record_key}: {bag_id}")
 
             except AttributeError:
-                self.log.error(f"No BAG id found for {record_key}, empty result...")
+                self.log.error(f"No BAG id found for {record_key} {bag_id} {bag_url}, empty result...")
                 continue
 
             pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
@@ -150,13 +166,13 @@ class TypeAHeadLocationOperator(BaseOperator):
                         SELECT geometrie
                         FROM public.baggob_verblijfsobjecten
                         WHERE 1=1
-                        AND identificatie = '{bag_id}'
+                        AND identificatie = %s
                         )
                         UPDATE {self.source_table}
                         SET {self.geometry_column} = BAG_VBO_GEOM.geometrie
                         FROM BAG_VBO_GEOM
                         WHERE 1=1
-                        AND {self.source_key_column} = '{record_key}';
+                        AND {self.source_key_column} = %s;
                         COMMIT;
-                        """
+                        """, ( bag_id, record_key, )
                 )
