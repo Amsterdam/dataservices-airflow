@@ -1,9 +1,7 @@
 {
   "extra_kwargs": {
-    "endpoint": "gob/secure/graphql/streaming/",
     "geojson_field": "geometrie,plaatscoordinaten,bijpijlingGeometrie",
     "protected": true
   },
   "schedule_start_hour_offset": 6
 }
-

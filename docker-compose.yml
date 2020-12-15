@@ -47,6 +47,8 @@ services:
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"
+      GOB_PUBLIC_ENDPOINT: "gob/graphql/streaming/"
+      GOB_SECURE_ENDPOINT: "gob/secure/graphql/streaming/"
       FERNET_KEY: ${FERNET_KEY}
       AIRFLOW_LOGGING_LEVEL: ${AIRFLOW_LOGGING_LEVEL:-WARN}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
