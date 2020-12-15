@@ -11,10 +11,13 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
     slack_webhook_token,
+    env,
 )
 from schematools import TMP_TABLE_POSTFIX
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
+GOB_PUBLIC_ENDPOINT = env("GOB_PUBLIC_ENDPOINT")
+GOB_SECURE_ENDPOINT = env("GOB_SECURE_ENDPOINT")
 
 dag_id = "gob"
 owner = "gob"
@@ -33,7 +36,9 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
         with graphql_params_path.open() as json_file:
             args_from_file = json.load(json_file)
             extra_kwargs = args_from_file.get("extra_kwargs", {})
-            # schedule_start_hour += args_from_file.get("schedule_start_hour_offset", 0)
+            protected = extra_kwargs.get("protected", False)
+            if protected:
+                extra_kwargs["endpoint"] = GOB_SECURE_ENDPOINT
 
     dag = DAG(
         f"{dag_id}_{gob_db_table_name}",
@@ -44,7 +49,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
 
     kwargs = dict(
         task_id=f"load_{gob_db_table_name}",
-        endpoint="gob/graphql/streaming/",
+        endpoint=GOB_PUBLIC_ENDPOINT,
         dataset=gob_dataset_name,
         schema=gob_table_name,
         retries=3,

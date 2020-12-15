@@ -1,10 +1,8 @@
 {
   "extra_kwargs": {
-    "endpoint": "gob/secure/graphql/streaming/",
     "batch_size": 100,
     "protected": true
   },
 
   "schedule_start_hour_offset": 6
 }
-
