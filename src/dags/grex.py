@@ -35,9 +35,8 @@ def wkt_loads_wrapped(data):
     elif isinstance(p, MultiPolygon):
         pass
     else:
-        p = None
-    if p:
-        p = WKTElement(p.wkt, srid=4326)
+        p = p
+    p = WKTElement(p.wkt, srid=4326)
     return p
 
 
@@ -70,7 +69,7 @@ def load_grex_from_dwh(table_name):
             "startdatum": Date(),
             "planstatus": Text(),
             "oppervlakte": Float(),
-            "geometry": Geometry(geometry_type="MULTIPOLYGON", srid=4326),
+            "geometry": Geometry(geometry_type="GEOMETRY", srid=4326),
         }
         df.to_sql(
             table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype
@@ -79,22 +78,29 @@ def load_grex_from_dwh(table_name):
             connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
             connection.execute(
                 f"""
+                 UPDATE {table_name}
+                 SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
+                 WHERE ST_IsValid(geometry) = False
+                 OR ST_GeometryType(geometry) != 'ST_MultiPolygon';
+                 COMMIT;
+             """
+            )
+            connection.execute(
+                f"""
                  ALTER TABLE {table_name}
                  ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
-                 USING ST_Transform(geometry,28992)
+                 USING ST_Transform(geometry,28992);
              """
             )
             connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
-            connection.execute(
-                f"""
-                 UPDATE {table_name}
-                 SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
-                 WHERE ST_IsValid(geometry) = False;
-             """
-            )
 
 
-with DAG("grex", default_args=default_args, description="GrondExploitatie",) as dag:
+with DAG(
+    "grex",
+    default_args=default_args,
+    description="GrondExploitatie",
+    schedule_interval="0 6 * * *",
+    ) as dag:
 
     load_data = PythonOperator(
         task_id="load_data",
