@@ -28,6 +28,8 @@ dag_id = "overlastgebieden"
 variables_overlastgebieden = Variable.get("overlastgebieden", deserialize_json=True)
 files_to_download = variables_overlastgebieden["files_to_download"]
 tables_to_create = variables_overlastgebieden["tables_to_create"]
+# Note: Vuurwerkvrijezones (VVZ) data is temporaly! not processed due to covid19 national measures
+tables_to_check = { k:v for k, v in tables_to_create.items() if k != 'vuurwerkvrij' }
 tmp_dir = f"/tmp/{dag_id}"
 total_checks = []
 count_checks = []
@@ -126,7 +128,7 @@ with DAG(
     ]
 
     # Prepare the checks and added them per source to a dictionary
-    for key in tables_to_create.keys():
+    for key in tables_to_check.keys():
 
         total_checks.clear()
         count_checks.clear()
@@ -159,10 +161,14 @@ with DAG(
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
         )
-        for key in tables_to_create.keys()
+        for key in tables_to_check.keys()
     ]
 
-    # 10. Rename TABLE
+    # 10. Dummy operator acts as an interface between parallel tasks to another parallel
+    #     tasks with different number of lanes (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
+    # 11. Rename TABLE
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
@@ -180,21 +186,15 @@ for (
     create_SQL,
     create_table,
     remove_null_geometry_record,
-    multi_check,
-    rename_table,
 ) in zip(
     SHP_to_SQL,
     create_tables,
     remove_null_geometry_records,
-    multi_checks,
-    rename_tables,
 ):
 
     [
         create_SQL >> create_table >> remove_null_geometry_record
-    ] >> provenance_translation >> multi_check
-
-    [multi_check >> rename_table]
+    ] >> provenance_translation >> multi_checks >> Interface2 >> rename_tables
 
 slack_at_start >> mkdir >> download_data
 
@@ -212,6 +212,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/overlastgebieden.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/overlastgebieden.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=overlastgebieden/vuurwerkvrij&x=106434&y=488995&radius=10
 """
