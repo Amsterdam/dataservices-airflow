@@ -103,7 +103,7 @@ with DAG(
 
     # 6. Set datatype date for date columns that where not detected by ogr2ogr
     set_datatype_date = PostgresOperator(
-            task_id=f"set_datatype_date", 
+            task_id=f"set_datatype_date",
             sql=SET_DATE_DATATYPE,
             params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
@@ -122,7 +122,7 @@ with DAG(
     count_checks.append(
         COUNT_CHECK.make_check(
             check_id=f"count_check",
-            pass_value=100,
+            pass_value=75,
             params=dict(table_name=f"{dag_id}_{dag_id}_new"),
             result_checker=operator.ge,
         )
@@ -177,6 +177,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/evenementen.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/evenementen.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=evenementen/evenementen&x=106434&y=488995&radius=10
 """
