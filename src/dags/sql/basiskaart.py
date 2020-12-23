@@ -412,29 +412,31 @@ UNION
 """
 
 SELECT_INRICHTINGSELEMENTLIJN_SQL = """
-# NOTE: since 23 dec not present any more in the source. Possibly part of BGT instead of BGTPLUS.
-# SELECT
-# 	"BGTPLUS_OSDG_damwand".identificatie_lokaalid || 'BGTPLUS_OSDG_damwand' as id,
-#     "BGTPLUS_OSDG_damwand".plus_type as type,
-# 	ST_makeValid(    "BGTPLUS_OSDG_damwand".geometrie) as geometrie,
-#     "BGTPLUS_OSDG_damwand".relatievehoogteligging,
-#  	'bgtplus' as bron,
-#  	16  as minzoom,
-#  	NULL::int  as maxzoom
-#    FROM bgt."BGTPLUS_OSDG_damwand"
-#   WHERE 1=1
-# UNION
-#  SELECT
-# 	"BGTPLUS_OSDG_geluidsscherm".identificatie_lokaalid || 'BGTPLUS_OSDG_geluidsscherm' as id,
-#     "BGTPLUS_OSDG_geluidsscherm".plus_type as type,
-# 	ST_makeValid(    "BGTPLUS_OSDG_geluidsscherm".geometrie) as geometrie,
-#     "BGTPLUS_OSDG_geluidsscherm".relatievehoogteligging,
-#  	'bgtplus' as bron,
-#  	16  as minzoom,
-#  	NULL::int  as maxzoom
-#    FROM bgt."BGTPLUS_OSDG_geluidsscherm"
-#   WHERE 1=1
-# UNION
+/*
+NOTE: since 23 dec not present any more in the source. Possibly part of BGT instead of BGTPLUS.
+SELECT
+	"BGTPLUS_OSDG_damwand".identificatie_lokaalid || 'BGTPLUS_OSDG_damwand' as id,
+    "BGTPLUS_OSDG_damwand".plus_type as type,
+	ST_makeValid(    "BGTPLUS_OSDG_damwand".geometrie) as geometrie,
+    "BGTPLUS_OSDG_damwand".relatievehoogteligging,
+ 	'bgtplus' as bron,
+ 	16  as minzoom,
+ 	NULL::int  as maxzoom
+   FROM bgt."BGTPLUS_OSDG_damwand"
+  WHERE 1=1
+UNION
+ SELECT
+	"BGTPLUS_OSDG_geluidsscherm".identificatie_lokaalid || 'BGTPLUS_OSDG_geluidsscherm' as id,
+    "BGTPLUS_OSDG_geluidsscherm".plus_type as type,
+	ST_makeValid(    "BGTPLUS_OSDG_geluidsscherm".geometrie) as geometrie,
+    "BGTPLUS_OSDG_geluidsscherm".relatievehoogteligging,
+ 	'bgtplus' as bron,
+ 	16  as minzoom,
+ 	NULL::int  as maxzoom
+   FROM bgt."BGTPLUS_OSDG_geluidsscherm"
+  WHERE 1=1
+UNION
+*/
  SELECT
 	"BGTPLUS_OSDG_hek".identificatie_lokaalid || 'BGTPLUS_OSDG_hek' as id,
     "BGTPLUS_OSDG_hek".plus_type as type,
