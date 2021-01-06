@@ -1,5 +1,3 @@
-import requests
-import re
 import json
 from urllib.parse import urlparse
 
@@ -92,7 +90,7 @@ class TypeAHeadLocationOperator(BaseOperator):
         http_data = None
 
         try:
-            http_data = json.loads(http_response.text)[0]['content'][0]['uri']
+            http_data = json.loads(http_response.text)[0]["content"][0]["uri"]
             self.log.info(f"BAG id found for {location_value}.")
 
         except IndexError:
@@ -107,17 +105,15 @@ class TypeAHeadLocationOperator(BaseOperator):
             http_response = self.get_typeahead_result(http_endpoint, data_headers)
 
             try:
-                http_data = json.loads(http_response.text)[0]['content'][0]['uri']
+                http_data = json.loads(http_response.text)[0]["content"][0]["uri"]
                 self.log.info(f"BAG id found for {location_value}.")
 
             except IndexError:
                 self.log.error(f"Attempt 2: No BAG id found for {location_value}, empty result...")
 
-
         typeadhead_result[key_value] = http_data
 
         return typeadhead_result
-
 
     def get_typeahead_result(self, http_endpoint, data_headers):
         """Look up BAG verblijfsobject id from typeahead service for non-geometry location data"""
@@ -126,7 +122,6 @@ class TypeAHeadLocationOperator(BaseOperator):
         http_response = http.run(endpoint=http_endpoint, data=None, headers=data_headers)
 
         return http_response
-
 
     def execute(self, context=None):
         """look up the geometry where no geometry is present"""
@@ -139,6 +134,7 @@ class TypeAHeadLocationOperator(BaseOperator):
 
             get_typeadhead_result = self.prepare_typeahead_call(record)
             record_key = None
+            bag_id = None
             bag_url = None
             for key, value in get_typeadhead_result.items():
                 record_key = key
@@ -148,11 +144,13 @@ class TypeAHeadLocationOperator(BaseOperator):
             # series of numbers before the last forward-slash
             try:
                 get_uri = urlparse(bag_url)
-                bag_id = get_uri.path.rsplit("/")[-2]
+                bag_id = get_uri.path.rsplit(b"/")[-2]
                 self.log.info(f"BAG id found for {record_key}: {bag_id}")
 
             except AttributeError:
-                self.log.error(f"No BAG id found for {record_key} {bag_id} {bag_url}, empty result...")
+                self.log.error(
+                    f"No BAG id found for {record_key} {bag_id} {bag_url}, empty result..."
+                )
                 continue
 
             pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
@@ -174,5 +172,9 @@ class TypeAHeadLocationOperator(BaseOperator):
                         WHERE 1=1
                         AND {self.source_key_column} = %s;
                         COMMIT;
-                        """, ( bag_id, record_key, )
+                        """,
+                    (
+                        bag_id,
+                        record_key,
+                    ),
                 )
