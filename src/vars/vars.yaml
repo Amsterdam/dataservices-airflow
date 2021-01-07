@@ -40,12 +40,14 @@ asbest:
   rename_tablenames:
     - asbest_daken
     - asbest_percelen
-bed_and_breakfast:
-  sql_file_base: bb_quotum
+vergunningen:
+  files_to_download: [bb_quotum.sql, omzettingen_quotum.sql]
+  table_source_names: [quota_bbkaartlaagexport, quota_omzettingenkaartlaagexport]
+  table_target_names: [bedandbreakfast, omzetting]
 bedrijveninvesteringszones:
   files_to_download:
     shp_files: [BIZZONES.dbf, BIZZONES.shx, BIZZONES.shp]
-    xlsx_files: [BIZZONES_dataset.xlsx]  
+    xlsx_files: [BIZZONES_dataset.xlsx]
 hior:
   xls_endpoint: "hior/HIOR Amsterdam.xlsx"
 cmsa:
@@ -151,7 +153,7 @@ sport:
     csv:
       zwembad: dcatd/datasets/o-HEFxsOggSf8A/purls/bjpABHIt0g6IyQ
       sportaanbieder: dcatd/datasets/a6WW_Ay-oeY_dQ/purls/aT3gGdCZycJHjg
-      gymsportzaal: dcatd/datasets/XtEra6am2lDbHg/purls/gL_MLa12hbigZA   
+      gymsportzaal: dcatd/datasets/XtEra6am2lDbHg/purls/gL_MLa12hbigZA
       sporthal: dcatd/datasets/o-HEFxsOggSf8A/purls/bjpABHIt0g6IyQ
     geojson_file:
       hardlooproute: dcatd/datasets/IOWJ4z4vmfF8Hw/purls/1
@@ -165,7 +167,7 @@ verzinkbarepalen:
 basiskaart:
     # TODO: Amsterdam schema as source for object creation.
   tables_to_create:
-    gebouwvlak: SELECT_GEBOUWVLAK_SQL 
+    gebouwvlak: SELECT_GEBOUWVLAK_SQL
     inrichtingselementlijn: SELECT_INRICHTINGSELEMENTLIJN_SQL
     inrichtingselementpunt: SELECT_INRICHTINGSELEMENTPUNT_SQL
     inrichtingselementvlak: SELECT_INRICHTINGSELEMENTVLAK_SQL
@@ -175,4 +177,4 @@ basiskaart:
     waterdeelvlak: SELECT_WATERDEELVLAK_SQL
     wegdeelvlak: SELECT_WEGDEELVLAK_SQL
     wegdeellijn: SELECT_WEGDEELLIJN_SQL
-    labels: SELECT_LABELS_SQL    
+    labels: SELECT_LABELS_SQL
