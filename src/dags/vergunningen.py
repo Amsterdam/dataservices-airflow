@@ -106,7 +106,7 @@ with DAG(
     # if table not exists yet
     create_table = SqlAlchemyCreateObjectOperator(
         task_id="create_target_tables_based_upon_schema",
-        data_schema_name="kamerverhuur",
+        data_schema_name="vergunningen",
         data_table_name=None,
         ind_table=True,
         # when set to false, it doesn't create indexes; only tables
