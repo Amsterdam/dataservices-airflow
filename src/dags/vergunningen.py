@@ -51,7 +51,7 @@ total_checks = []
 count_checks = []
 geo_checks = []
 check_name = {}
-DATAPUNT_ENVIRONMENT='acceptance'
+
 
 with DAG(
     dag_id,
