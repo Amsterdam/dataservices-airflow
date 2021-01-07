@@ -51,7 +51,7 @@ total_checks = []
 count_checks = []
 geo_checks = []
 check_name = {}
-
+DATAPUNT_ENVIRONMENT='acceptance'
 
 with DAG(
     dag_id,
@@ -104,14 +104,17 @@ with DAG(
 
     # 5. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
-    create_table = SqlAlchemyCreateObjectOperator(
-        task_id="create_target_tables_based_upon_schema",
-        data_schema_name=f"{dag_id}",
-        data_table_name=None,
-        ind_table=True,
-        # when set to false, it doesn't create indexes; only tables
-        ind_extra_index=False,
-    )
+    create_tables = [
+        SqlAlchemyCreateObjectOperator(
+            task_id=f"create_{target_name}_based_upon_schema",
+            data_schema_name=f"{dag_id}",
+            data_table_name=f"{dag_id}_{target_name}",
+            ind_table=True,
+            # when set to false, it doesn't create indexes; only tables
+            ind_extra_index=False,
+        )
+        for _, _, target_name in table_renames
+    ]
 
     # 6. Recreate tmp table in DB
     recreate_tmp_tables = [
@@ -192,17 +195,24 @@ with DAG(
     ]
 
 # FLOW
-for (download, remove, replace, recreate_tmp_table) in zip(
-    download_data, remove_owner_alters, replace_tablename, recreate_tmp_tables
+for (download,
+    remove,
+    replace,
+    create_table,
+    recreate_tmp_table,
+    insert_data,
+    multi_check,
+    detection_modifications,
+    drop_tmp_table) in zip(download_data, remove_owner_alters, replace_tablename,
+    create_tables, recreate_tmp_tables, import_table, multi_checks, change_data_capture, drop_tmp_tables
 ):
 
-    [download >> remove >> replace] >> create_table >> recreate_tmp_tables
-
-for (recreate_tmp_table, insert_data, multi_check, detection_modifications, drop_tmp_table) in zip(
-    recreate_tmp_tables, import_table, multi_checks, change_data_capture, drop_tmp_tables
-):
-
-    [recreate_tmp_table >> insert_data >> multi_check >> detection_modifications >> drop_tmp_table]
+    [download >> remove >>  replace >> create_table
+    >> recreate_tmp_table
+    >> insert_data
+    >> multi_check
+    >> detection_modifications
+    >> drop_tmp_table]
 
 slack_at_start >> download_data
 
