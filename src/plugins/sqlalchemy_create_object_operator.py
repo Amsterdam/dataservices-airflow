@@ -53,9 +53,10 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         engine = _get_engine(self.db_conn)
         parent_schema = SchemaType(data)
         dataset_schema = DatasetSchema(parent_schema)
-        importer = BaseImporter(dataset_schema, engine)
-
+        importer = BaseImporter(dataset_schema, engine)        
+        print("data_schema_url=", data_schema_url, "engine=", engine, "ind_table=", self.ind_table)
         for table in data["tables"]:
+            print("ind_table=", self.ind_table, "table['id']", table["id"])
             if (
                 self.data_schema_name + "_" + table["id"]
                 == f"{self.data_table_name}"
