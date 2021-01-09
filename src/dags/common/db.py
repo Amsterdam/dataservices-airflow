@@ -8,6 +8,16 @@ from airflow.hooks.postgres_hook import PostgresHook
 
 from . import env
 
+class DatabaseEngine:
+    """Construct the elements of the SQLAlchemy database engine"""
+    def __init__(self, postgres_conn_id="postgres_default"):
+        self.connection = PostgresHook().get_connection(postgres_conn_id)
+        self.user = self.connection.login
+        self.password = self.connection.password
+        self.host = self.connection.host
+        self.port = self.connection.port
+        self.db = self.connection.schema
+
 
 def get_engine(postgres_conn_id="postgres_default") -> Engine:
     """Construct the SQLAlchemy database engine"""
