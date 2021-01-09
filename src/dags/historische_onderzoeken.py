@@ -28,7 +28,8 @@ from postgres_check_operator import (
 )
 
 
-dag_id = "onderzoeken"
+dag_id = "historische_onderzoeken"
+dataset_name="historischeonderzoeken"
 variables = Variable.get(f"{dag_id}", deserialize_json=True)
 files_to_download = variables["files_to_download"]
 db_conn = DatabaseEngine()
@@ -73,7 +74,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {dataset_name} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
@@ -93,8 +94,8 @@ with DAG(
     # if table not exists yet
     create_tables = SqlAlchemyCreateObjectOperator(
             task_id="create_db_table_based_upon_schema",
-            data_schema_name=f"{dag_id}",
-            data_table_name=f"{dag_id}_{dag_id}",
+            data_schema_name=f"{dataset_name}",
+            data_table_name=f"{dataset_name}_{dataset_name}",
             ind_table=True,
             # when set to false, it doesn't create indexes; only tables
             ind_extra_index=False,
@@ -103,7 +104,7 @@ with DAG(
     # 5.create the SQL for creating the table using ORG2OGR PGDump
     GEOJSON_to_DB = Ogr2OgrOperator(
             task_id="import_data",
-            target_table_name=f"{dag_id}_{dag_id}_new",
+            target_table_name=f"{dataset_name}_{dataset_name}_new",
             input_file=f"{tmp_dir}/{files_to_download}",
             s_srs=None,
             t_srs="EPSG:28992",
@@ -115,8 +116,8 @@ with DAG(
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
-        prefix_table_name=f"{dag_id}_",
+        dataset_name=f"{dataset_name}",
+        prefix_table_name=f"{dataset_name}_",
         postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
@@ -131,7 +132,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=10,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
+            params=dict(table_name=f"{dataset_name}_{dataset_name}_new"),
             result_checker=operator.ge,
         )
     )
@@ -140,7 +141,7 @@ with DAG(
         GEO_CHECK.make_check(
             check_id="geo_check",
             params=dict(
-                table_name=f"{dag_id}_{dag_id}_new",
+                table_name=f"{dataset_name}_{dataset_name}_new",
                 geotype=["MULTIPOLYGON",],
                 geo_column="geometrie",
             ),
@@ -149,32 +150,32 @@ with DAG(
     )
 
     total_checks = count_checks + geo_checks
-    check_name["{dag_id}"] = total_checks
+    check_name["{dataset_name}"] = total_checks
 
     # 7. Execute bundled checks on database
     multi_checks = PostgresMultiCheckOperator(
-            task_id="multi_check", checks=check_name["{dag_id}"]
+            task_id="multi_check", checks=check_name["{dataset_name}"]
         )
 
     # 8. Drop cols - that do not show up in the API
     drop_unnecessary_cols = PostgresOperator(
             task_id="drop_unnecessary_cols_tmp_table",
             sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+            params=dict(tablename=f"{dataset_name}_{dataset_name}_new"),
         )
 
     # 9. Check for changes to merge in target table
     change_data_capture = PgComparatorCDCOperator(
             task_id="change_data_capture",
-            source_table=f"{dag_id}_{dag_id}_new",
-            target_table=f"{dag_id}_{dag_id}",
+            source_table=f"{dataset_name}_{dataset_name}_new",
+            target_table=f"{dataset_name}_{dataset_name}",
         )
 
     # 10. Clean up
     clean_up = PostgresOperator(
             task_id="clean_up",
             sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+            params=dict(tablename=f"{dataset_name}_{dataset_name}_new"),
         )
 
 # FLOW
