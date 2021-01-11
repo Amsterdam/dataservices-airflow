@@ -1,0 +1,51 @@
+airflow:
+  executor: LocalExecutor
+  config:
+
+      ## Security
+      AIRFLOW__CORE__SECURE_MODE: "False"
+      AIRFLOW__API__AUTH_BACKEND: "airflow.api.auth.backend.deny_all"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "True"
+      AIRFLOW__WEBSERVER__RBAC: "False"
+
+  extraConfigmapMounts:
+    - name: airflow-dags
+      mountPath: "/opt/airflow/efs/dags"
+      configMap: airflow-dags
+
+  # extraVolumes:
+  #   - name: ds-airflow-dags
+  #     hostPath:
+  #       path: ./src/dags/
+  #       type: Directory
+  #   - name: ds-airflow-logs
+  #     hostPath:
+  #       path: ./logs/
+  #       type: Directory
+  #
+  # extraVolumeMounts:
+  #   - name: ds-airflow-dags
+  #     mountPath: /opt/airflow/efs/dags
+  #   - name: ds-airflow-logs
+  #     mountPath: /opt/airflow/efs/logs
+
+dags:
+  path: /opt/airflow/efs/dags
+  persistence:
+    enabled: false
+
+logs:
+  persistence:
+    enabled: false
+
+flower:
+  enabled: false
+
+rbac:
+  create: false
+
+postgresql:
+  enabled: true
+
+redis:
+  enabled: false

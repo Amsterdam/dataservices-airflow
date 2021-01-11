@@ -1,5 +1,5 @@
 # Airflow depends on cattrs~=0.9, which makes it <= python3.7
-FROM amsterdam/python:3.7-buster AS builder
+FROM amsterdam/python:3.7.6-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
 # Seems that pg_comparator installs full postgresql, that's not what we want
