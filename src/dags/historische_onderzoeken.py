@@ -106,7 +106,7 @@ with DAG(
             task_id="import_data",
             target_table_name=f"{dataset_name}_{dataset_name}_new",
             input_file=f"{tmp_dir}/{files_to_download}",
-            s_srs=None,
+            s_srs="EPSG:3857",
             t_srs="EPSG:28992",
             geometry_name="geometrie",
             ind_sql=False,
