@@ -28,8 +28,7 @@ from postgres_check_operator import (
 )
 
 
-dag_id = "historische_onderzoeken"
-dataset_name="historischeonderzoeken"
+dag_id = "ondergrond"
 variables = Variable.get(f"{dag_id}", deserialize_json=True)
 files_to_download = variables["files_to_download"]
 db_conn = DatabaseEngine()
@@ -43,6 +42,7 @@ check_name = {}
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
 def quote(instr):
     return f"'{instr}'"
+
 
 SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE = """
     ALTER TABLE {{ params.tablename }}
@@ -63,7 +63,7 @@ SQL_DROP_TMP_TABLE = """
 
 with DAG(
     dag_id,
-    description="uitgevoerde onderzoeken per locatie, bijv. Archeologische verwachtingen (A), Bodemkwaliteit (B), Conventionele explosieven (C) kademuren Dateren (D) en Ondergrondse Obstakels (OO).",
+    description="uitgevoerde onderzoeken in of op de ondergrond, bijv. Archeologische verwachtingen (A), Bodemkwaliteit (B), Conventionele explosieven (C) kademuren Dateren (D) en Ondergrondse Obstakels (OO).",
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
     template_searchpath=["/"],
@@ -74,7 +74,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dataset_name} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
@@ -83,41 +83,41 @@ with DAG(
 
     # 3. Download data
     download_data = SwiftOperator(
-            task_id="download",
-            swift_conn_id="objectstore_dataservices",
-            container="Dataservices",
-            object_id=f"historische_onderzoeken/{files_to_download}",
-            output_path=f"{tmp_dir}/{files_to_download}",
-        )
+        task_id="download",
+        swift_conn_id="objectstore_dataservices",
+        container="Dataservices",
+        object_id=f"historische_onderzoeken/{files_to_download}",
+        output_path=f"{tmp_dir}/{files_to_download}",
+    )
 
     # 4. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_tables = SqlAlchemyCreateObjectOperator(
-            task_id="create_db_table_based_upon_schema",
-            data_schema_name=f"{dataset_name}",
-            data_table_name=f"{dataset_name}_{dataset_name}",
-            ind_table=True,
-            # when set to false, it doesn't create indexes; only tables
-            ind_extra_index=False,
-        )
+        task_id="create_db_table_based_upon_schema",
+        data_schema_name=f"{dag_id}",
+        data_table_name=f"{dag_id}_{dag_id}",
+        ind_table=True,
+        # when set to false, it doesn't create indexes; only tables
+        ind_extra_index=False,
+    )
 
     # 5.create the SQL for creating the table using ORG2OGR PGDump
     GEOJSON_to_DB = Ogr2OgrOperator(
-            task_id="import_data",
-            target_table_name=f"{dataset_name}_{dataset_name}_new",
-            input_file=f"{tmp_dir}/{files_to_download}",
-            s_srs="EPSG:3857",
-            t_srs="EPSG:28992",
-            geometry_name="geometrie",
-            ind_sql=False,
-            db_conn=db_conn,
-        )
+        task_id="import_data",
+        target_table_name=f"{dag_id}_{dag_id}_new",
+        input_file=f"{tmp_dir}/{files_to_download}",
+        s_srs="EPSG:3857",
+        t_srs="EPSG:28992",
+        geometry_name="geometrie",
+        ind_sql=False,
+        db_conn=db_conn,
+    )
 
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dataset_name}",
-        prefix_table_name=f"{dataset_name}_",
+        dag_id=f"{dag_id}",
+        prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
@@ -132,7 +132,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=10,
-            params=dict(table_name=f"{dataset_name}_{dataset_name}_new"),
+            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
             result_checker=operator.ge,
         )
     )
@@ -141,42 +141,44 @@ with DAG(
         GEO_CHECK.make_check(
             check_id="geo_check",
             params=dict(
-                table_name=f"{dataset_name}_{dataset_name}_new",
-                geotype=["MULTIPOLYGON",],
+                table_name=f"{dag_id}_{dag_id}_new",
+                geotype=[
+                    "MULTIPOLYGON",
+                ],
                 geo_column="geometrie",
             ),
-                pass_value=1,
+            pass_value=1,
         )
     )
 
     total_checks = count_checks + geo_checks
-    check_name["{dataset_name}"] = total_checks
+    check_name["{dag_id}"] = total_checks
 
     # 7. Execute bundled checks on database
     multi_checks = PostgresMultiCheckOperator(
-            task_id="multi_check", checks=check_name["{dataset_name}"]
-        )
+        task_id="multi_check", checks=check_name["{dag_id}"]
+    )
 
     # 8. Drop cols - that do not show up in the API
     drop_unnecessary_cols = PostgresOperator(
-            task_id="drop_unnecessary_cols_tmp_table",
-            sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
-            params=dict(tablename=f"{dataset_name}_{dataset_name}_new"),
-        )
+        task_id="drop_unnecessary_cols_tmp_table",
+        sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
+        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+    )
 
     # 9. Check for changes to merge in target table
     change_data_capture = PgComparatorCDCOperator(
-            task_id="change_data_capture",
-            source_table=f"{dataset_name}_{dataset_name}_new",
-            target_table=f"{dataset_name}_{dataset_name}",
-        )
+        task_id="change_data_capture",
+        source_table=f"{dag_id}_{dag_id}_new",
+        target_table=f"{dag_id}_{dag_id}",
+    )
 
     # 10. Clean up
     clean_up = PostgresOperator(
-            task_id="clean_up",
-            sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dataset_name}_{dataset_name}_new"),
-        )
+        task_id="clean_up",
+        sql=SQL_DROP_TMP_TABLE,
+        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+    )
 
 # FLOW
 (
@@ -205,8 +207,8 @@ dag.doc_md = """
     #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing
-    https://api.data.amsterdam.nl/v1/docs/datasets/onderzoeken.html
-    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/onderzoeken.html
+    https://api.data.amsterdam.nl/v1/docs/datasets/ondergrond.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/ondergrond.html
     Example geosearch:
-    https://api.data.amsterdam.nl/geosearch?datasets=onderzoeken/onderzoeken&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=ondergrond/ondergrond&x=106434&y=488995&radius=10
 """
