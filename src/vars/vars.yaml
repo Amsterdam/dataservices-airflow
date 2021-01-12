@@ -179,4 +179,5 @@ basiskaart:
     wegdeellijn: SELECT_WEGDEELLIJN_SQL
     labels: SELECT_LABELS_SQL
 ondergrond:
-    files_to_download: kaartlaag_database_historisch_onderzoeken.geojson
+  files_to_download:
+    historischeonderzoeken: kaartlaag_database_historisch_onderzoeken.geojson
