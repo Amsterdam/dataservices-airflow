@@ -9,6 +9,7 @@ from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from airflow.operators.dummy_operator import DummyOperator
 
 
 from common.db import DatabaseEngine
@@ -82,117 +83,163 @@ with DAG(
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
     # 3. Download data
-    download_data = SwiftOperator(
-        task_id="download",
-        swift_conn_id="objectstore_dataservices",
-        container="Dataservices",
-        object_id=f"historische_onderzoeken/{files_to_download}",
-        output_path=f"{tmp_dir}/{files_to_download}",
-    )
+    download_data = [
+        SwiftOperator(
+            task_id=f"download_{data_file}",
+            swift_conn_id="objectstore_dataservices",
+            container="Dataservices",
+            object_id=f"{dag_id}/{data_file}",
+            output_path=f"{tmp_dir}/{data_file}",
+        )
+        for _, data_file in files_to_download.items()
+    ]
 
     # 4. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
-    create_tables = SqlAlchemyCreateObjectOperator(
-        task_id="create_db_table_based_upon_schema",
-        data_schema_name=f"{dag_id}",
-        data_table_name=f"{dag_id}_{dag_id}",
-        ind_table=True,
-        # when set to false, it doesn't create indexes; only tables
-        ind_extra_index=False,
-    )
+    create_tables = [
+        SqlAlchemyCreateObjectOperator(
+            task_id=f"create_{table_name}_based_upon_schema",
+            data_schema_name=f"{dag_id}",
+            data_table_name=f"{dag_id}_{table_name}",
+            ind_table=True,
+            # when set to false, it doesn't create indexes; only tables
+            ind_extra_index=False,
+        )
+        for table_name, data_file in files_to_download.items()
+    ]
 
     # 5.create the SQL for creating the table using ORG2OGR PGDump
-    GEOJSON_to_DB = Ogr2OgrOperator(
-        task_id="import_data",
-        target_table_name=f"{dag_id}_{dag_id}_new",
-        input_file=f"{tmp_dir}/{files_to_download}",
-        s_srs="EPSG:3857",
-        t_srs="EPSG:28992",
-        geometry_name="geometrie",
-        ind_sql=False,
-        db_conn=db_conn,
-    )
+    GEOJSON_to_DB = [
+        Ogr2OgrOperator(
+            task_id=f"import_data_{table_name}",
+            target_table_name=f"{dag_id}_{table_name}_new",
+            input_file=f"{tmp_dir}/{data_file}",
+            s_srs="EPSG:3857",
+            t_srs="EPSG:28992",
+            geometry_name="geometrie",
+            ind_sql=False,
+            db_conn=db_conn,
+        )
+        for table_name, data_file in files_to_download.items()
+    ]
 
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns",
-        dag_id=f"{dag_id}",
-        prefix_table_name=f"{dag_id}_",
-        postfix_table_name="_new",
-        rename_indexes=False,
-        pg_schema="public",
-    )
+            task_id="rename_columns",
+            dataset_name=dag_id,
+            prefix_table_name=f"{dag_id}_",
+            postfix_table_name="_new",
+            rename_indexes=False,
+            pg_schema="public",
+        )
+
 
     # prepare the checks and added them per source to a dictionary
-    total_checks.clear()
-    count_checks.clear()
-    geo_checks.clear()
+    for table_name, _ in files_to_download.items():
 
-    count_checks.append(
-        COUNT_CHECK.make_check(
-            check_id="count_check",
-            pass_value=10,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
-            result_checker=operator.ge,
+        total_checks.clear()
+        count_checks.clear()
+        geo_checks.clear()
+
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{table_name}",
+                pass_value=10,
+                params=dict(table_name=f"{dag_id}_{table_name}_new"),
+                result_checker=operator.ge,
+            )
         )
-    )
 
-    geo_checks.append(
-        GEO_CHECK.make_check(
-            check_id="geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}_new",
-                geotype=[
-                    "MULTIPOLYGON",
-                ],
-                geo_column="geometrie",
-            ),
-            pass_value=1,
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{table_name}",
+                params=dict(
+                    table_name=f"{dag_id}_{table_name}_new",
+                    geotype=[
+                        "MULTIPOLYGON",
+                    ],
+                    geo_column="geometrie",
+                ),
+                pass_value=1,
+            )
         )
-    )
 
-    total_checks = count_checks + geo_checks
-    check_name["{dag_id}"] = total_checks
+        total_checks = count_checks + geo_checks
+        check_name["{table_name}"] = total_checks
 
     # 7. Execute bundled checks on database
-    multi_checks = PostgresMultiCheckOperator(
-        task_id="multi_check", checks=check_name["{dag_id}"]
-    )
+    multi_checks = [
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{table_name}",
+            checks=check_name["{table_name}"],
+        )
+        for table_name, _ in files_to_download.items()
+    ]
 
-    # 8. Drop cols - that do not show up in the API
-    drop_unnecessary_cols = PostgresOperator(
-        task_id="drop_unnecessary_cols_tmp_table",
-        sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
-    )
+    # 8. Dummy operator acts as an Interface between parallel tasks
+    # to another parallel tasks (i.e. lists or tuples) with different
+    # number of lanes (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
 
-    # 9. Check for changes to merge in target table
-    change_data_capture = PgComparatorCDCOperator(
-        task_id="change_data_capture",
-        source_table=f"{dag_id}_{dag_id}_new",
-        target_table=f"{dag_id}_{dag_id}",
-    )
+    # 9. Drop cols - that do not show up in the API
+    drop_unnecessary_cols = [
+        PostgresOperator(
+            task_id=f"drop_unnecessary_cols_{dag_id}_{table_name}_new",
+            sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
+            params=dict(tablename=f"{dag_id}_{table_name}_new"),
+        )
+        for table_name, _ in files_to_download.items()
+        if table_name == "historischeonderzoeken"
+    ]
 
-    # 10. Clean up
-    clean_up = PostgresOperator(
-        task_id="clean_up",
-        sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
-    )
+    # 10. Dummy operator acts as an Interface between parallel tasks
+    # to another parallel tasks (i.e. lists or tuples) with different
+    # number of lanes (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
 
-# FLOW
-(
-    slack_at_start
-    >> mkdir
-    >> download_data
-    >> create_tables
-    >> GEOJSON_to_DB
-    >> provenance_translation
-    >> multi_checks
-    >> drop_unnecessary_cols
-    >> change_data_capture
-    >> clean_up
-)
+    # 11. Check for changes to merge in target table
+    change_data_capture = [
+        PgComparatorCDCOperator(
+            task_id=f"change_data_capture_{table_name}",
+            source_table=f"{dag_id}_{table_name}_new",
+            target_table=f"{dag_id}_{table_name}",
+        )
+        for table_name, _ in files_to_download.items()
+    ]
+
+    # 12. Clean up
+    clean_up = [
+        PostgresOperator(
+            task_id="clean_up",
+            sql=SQL_DROP_TMP_TABLE,
+            params=dict(tablename=f"{dag_id}_{table_name}_new"),
+        )
+        for table_name, _ in files_to_download.items()
+    ]
+
+    # FLOW
+    for (download_file, create_table, import_data) in zip(
+        download_data, create_tables, GEOJSON_to_DB
+    ):
+
+        [
+            download_file >> create_table >> import_data
+        ] >> provenance_translation >> multi_checks
+
+    for (check_data) in zip(multi_checks):
+
+        check_data >> Interface >> drop_unnecessary_cols
+
+    for (drop_cols) in zip(drop_unnecessary_cols):
+
+        drop_cols >> Interface2 >> change_data_capture
+
+    for (check_changes, clean_tmp) in zip(change_data_capture, clean_up):
+
+        [check_changes >> clean_tmp]
+
+slack_at_start >> mkdir >> download_data
+
 
 # Mark down
 dag.doc_md = """
