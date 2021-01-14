@@ -1,5 +1,6 @@
 import logging
 import pendulum
+from requests.exceptions import HTTPError
 
 from datetime import timedelta
 from environs import Env
@@ -14,7 +15,8 @@ from airflow.settings import Session
 
 env = Env()
 
-# split is used to remove url params, if exists. For database connection the url params must be omitted.
+# split is used to remove url params, if exists.
+# For database connection the url params must be omitted.
 default_db_conn = env("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
 default_schema_url = env("SCHEMA_URL")
 datapunt_evironment = env("DATAPUNT_ENVIRONMENT")
@@ -24,7 +26,8 @@ class PostgresPermissionsOperator(BaseOperator):
     """
     This operator executes DB grants << on >> DB tables / fields << to >> DB roles.
 
-    It can be envoked based upon a single dataset or a list of datasets. It uses the dag_id to identify the dataset.
+    It can be envoked based upon a single dataset or a list of datasets.
+    It uses the dag_id to identify the dataset.
 
     The DB roles are derived from the AUTH element as defined in the Amsterdam schema.
     When no AUTH element is provided in the Amsterdam schema, it default to DB role SCOPE_OPENBAAR.
@@ -35,8 +38,9 @@ class PostgresPermissionsOperator(BaseOperator):
     This results that grants must be (re)applied again to the roles.
 
     An other way to deal with is, is to update tables based upon the pgcomparator_cdc_operator.py.
-    Which detects differences between source and target table, and upserts the target table if nessacery
-    in stead of dropping, recreating the target table and inserting the records on each run.
+    Which detects differences between source and target table, and upserts the differences into
+    target table if nessacery. In stead of dropping, recreating the target table and inserting the
+    records on each run.
     """
 
     def __init__(
@@ -70,8 +74,9 @@ class PostgresPermissionsOperator(BaseOperator):
         self.create_roles = create_roles
         self.revoke = revoke
 
-    def execute(self, context=None):
-        """Executes the 'apply_schema_and_profile_permissions' method from schema-tools to set the database permissions on objects to roles"""
+    def execute(self, context=None):  # noqa: C901
+        """Executes the 'apply_schema_and_profile_permissions' method
+        from schema-tools to set the database permissions on objects to roles"""
 
         # setup logger so output can be added to the Airflow logs
         logger = logging.getLogger(__name__)
@@ -86,11 +91,11 @@ class PostgresPermissionsOperator(BaseOperator):
             now = pendulum.now("Europe/Amsterdam")
 
             # calculate the delta between current datetime and specified time window
-            time_window_hour = int(self.batch_timewindow.split(':')[0])
-            time_window_minutes = int(self.batch_timewindow.split(':')[1])
+            time_window_hour = int(self.batch_timewindow.split(":")[0])
+            time_window_minutes = int(self.batch_timewindow.split(":")[1])
             delta = now - timedelta(hours=time_window_hour, minutes=time_window_minutes)
 
-            logger.info(f"the time window is set starting at: {delta} till now")
+            logger.info("the time window is set starting at: %s till now", delta)
 
             # setup an Airflow session to access Airflow repository data
             session = Session()
@@ -106,14 +111,11 @@ class PostgresPermissionsOperator(BaseOperator):
                 .filter((DagRun.dag_id != "airflow_db_permissions"))
             ]
 
-
             if executed_dags_after_delta:
 
                 for dataset_name in executed_dags_after_delta:
 
-                    logger.info(
-                            f"set grants for {dataset_name}"
-                        )
+                    logger.info("set grants for %s", dataset_name)
 
                     try:
                         ams_schema = schema_defs_from_url(
@@ -133,15 +135,14 @@ class PostgresPermissionsOperator(BaseOperator):
                             revoke=self.revoke,
                         )
 
-                    except:
-                        logger.error(
-                            f"Could not get data schema for {dataset_name}"
-                        )
+                    except HTTPError:
+                        logger.error("Could not get data schema for %s", dataset_name)
                         continue
 
             else:
                 logger.error(
-                    f"Nothing to grant, no finished dags detected within time window of {self.batch_timewindow}."
+                    "Nothing to grant, no finished dags detected within time window of %s",
+                    self.batch_timewindow,
                 )
 
         # Option TWO: grant on single dataset (can be used as a final step within a dag run)
@@ -164,8 +165,6 @@ class PostgresPermissionsOperator(BaseOperator):
                     revoke=self.revoke,
                 )
 
-            except:
-                logger.error(
-                    f"Could not get data schema for {self.dataset_name}"
-                )
+            except HTTPError:
+                logger.error("Could not get data schema for %s", self.dataset_name)
                 pass
