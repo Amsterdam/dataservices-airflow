@@ -85,11 +85,7 @@ class HttpGobOperator(BaseOperator):
         headers = {"Content-Type": "application/x-ndjson"}
         if not self.protected:
             return headers
-        if (
-            self.access_token is None
-            or time.time() - 5 > self.token_expires_time
-            or force_refresh
-        ):
+        if self.access_token is None or time.time() - 5 > self.token_expires_time or force_refresh:
             form_params = dict(
                 grant_type="client_credentials",
                 client_id=OIDC_CLIENT_ID,
@@ -122,7 +118,7 @@ class HttpGobOperator(BaseOperator):
             f"active: false, first: {batch_size}, after: {cursor_pos}",
         )
 
-    def execute(self, context):
+    def execute(self, context):  # NoQA
         # When doing 'airflow test' there is a context['params']
         # For full dag runs, there is dag_run["conf"]
         dag_run = context["dag_run"]
@@ -132,15 +128,11 @@ class HttpGobOperator(BaseOperator):
             params = dag_run.conf or {}
         self.log.debug("PARAMS: %s", params)
         max_records = params.get("max_records", self.max_records)
-        cursor_pos = params.get(
-            "cursor_pos", Variable.get(f"{self.db_table_name}.cursor_pos", 0)
-        )
+        cursor_pos = params.get("cursor_pos", Variable.get(f"{self.db_table_name}.cursor_pos", 0))
         batch_size = params.get("batch_size", self.batch_size)
         with TemporaryDirectory() as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
-            http = HttpParamsHook(
-                http_conn_id=self.http_conn_id, method="POST"
-            )
+            http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
 
             self.log.info("Calling GOB graphql endpoint")
 
@@ -148,9 +140,7 @@ class HttpGobOperator(BaseOperator):
             # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresHook()
             schema_def = schema_def_from_url(SCHEMA_URL, self.dataset)
-            importer = NDJSONImporter(
-                schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log
-            )
+            importer = NDJSONImporter(schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log)
 
             importer.generate_db_objects(
                 table_name=self.schema,
@@ -174,9 +164,7 @@ class HttpGobOperator(BaseOperator):
                 for i in range(3):
                     try:
                         request_start_time = time.time()
-                        headers = self._fetch_headers(
-                            force_refresh=force_refresh_token
-                        )
+                        headers = self._fetch_headers(force_refresh=force_refresh_token)
                         response = http.run(
                             self.endpoint,
                             self._fetch_params(),
@@ -198,12 +186,8 @@ class HttpGobOperator(BaseOperator):
                         break
                 else:
                     # Save cursor_pos in a variable
-                    Variable.set(
-                        f"{self.db_table_name}.cursor_pos", cursor_pos
-                    )
-                    raise AirflowException(
-                        "All retries on GOB-API have failed."
-                    )
+                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
+                    raise AirflowException("All retries on GOB-API have failed.")
 
                 records_loaded += batch_size
                 # No records returns one newline and a Content-Length header
@@ -223,16 +207,14 @@ class HttpGobOperator(BaseOperator):
                         cursor_pos,
                     )
                     last_record = importer.load_file(tmp_file)
-                except (SQLAlchemyError, ProtocolError):
+                except (SQLAlchemyError, ProtocolError, UnicodeDecodeError) as e:
                     # Save last imported file for further inspection
                     shutil.copy(
                         tmp_file,
                         f"/tmp/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
                     )
-                    Variable.set(
-                        f"{self.db_table_name}.cursor_pos", cursor_pos
-                    )
-                    raise AirflowException("A database error has occurred.")
+                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
+                    raise AirflowException("A database error has occurred.") from e
 
                 self.log.info(
                     "Loading db took %s seconds",
