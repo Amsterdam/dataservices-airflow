@@ -105,7 +105,7 @@ class PostgresPermissionsOperator(BaseOperator):
             executed_dags_after_delta = [
                 dag.dag_id
                 for dag in session.query(DagRun)
-                .filter(DagRun.execution_date > delta)
+                .filter(DagRun.end_date > delta)
                 .filter(DagRun._state == "success")
                 # exclude the dag itself that calls this batch grant method
                 .filter((DagRun.dag_id != "airflow_db_permissions"))
