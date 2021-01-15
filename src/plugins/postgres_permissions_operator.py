@@ -109,6 +109,8 @@ class PostgresPermissionsOperator(BaseOperator):
                 .filter(DagRun._state == "success")
                 # exclude the dag itself that calls this batch grant method
                 .filter((DagRun.dag_id != "airflow_db_permissions"))
+                # exclude the update_dag, it does not contain DB objects to grant
+                .filter((DagRun.dag_id != "update_dags "))
             ]
 
             if executed_dags_after_delta:
