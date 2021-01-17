@@ -21,6 +21,22 @@ default_db_conn = env("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
 default_schema_url = env("SCHEMA_URL")
 datapunt_evironment = env("DATAPUNT_ENVIRONMENT")
 
+# some DAG's do not match dag_id with dataschema name.
+# the reason can be that for one dataset multiple DAG's are implemented i.e.
+# for each table one DAG.
+# Since the dataschema is the basis for the database permissions, for the situation
+# where dag_id does not match dataschema name, the relation between the dag_id and
+# schema name is held in this constant.
+DAG_DATASET = {
+    "basiskaart_": "basiskaart",
+    "baggob_": "baggob",
+    "brk_": "brk",
+    "gebieden_": "gebieden",
+    "horeca_": "horeca",
+    "beschermde_": "beschermdestadsdorpsgezichten",
+    "hoofdroutes_": "hoofdroutes",
+}
+
 
 class PostgresPermissionsOperator(BaseOperator):
     """
@@ -116,6 +132,11 @@ class PostgresPermissionsOperator(BaseOperator):
             if executed_dags_after_delta:
 
                 for dataset_name in executed_dags_after_delta:
+
+                    # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
+                    for key in DAG_DATASET.keys():
+                        if key in dataset_name:
+                            dataset_name = DAG_DATASET[key]
 
                     logger.info("set grants for %s", dataset_name)
 
