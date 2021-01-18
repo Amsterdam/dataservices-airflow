@@ -137,6 +137,7 @@ class PostgresPermissionsOperator(BaseOperator):
                     for key in DAG_DATASET.keys():
                         if key in dataset_name:
                             dataset_name = DAG_DATASET[key]
+                            break
 
                     logger.info("set grants for %s", dataset_name)
 
