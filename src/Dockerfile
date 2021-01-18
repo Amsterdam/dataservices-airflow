@@ -22,7 +22,7 @@ WORKDIR /tmp/pg_comparator-2.3.1
 RUN make pgsql_install
 
 # Start runtime image,
-FROM amsterdam/python:3.7-slim-buster
+FROM amsterdam/python:3.8-slim-buster
 
 
 # Copy python build artifacts from builder image
