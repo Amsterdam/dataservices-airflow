@@ -40,21 +40,18 @@ a scheduler. The script `scripts/run.sh` is preparing some Airflow configuration
 supervisor.
 
 The airflow webserver is running at http://localhost:8080/
-The webserver UI is protected with a password, the associated admin user needs to be created
-once inside of the PostgreSQL database using this command:
+The webserver UI is protected with a password, admin user is created automatically during startup and can be used right away:
+
+    Username: `admin`
+    Password: `admin`
+
+Extra users can be created using airflow shell:
 
     1. log in the airflow container: docker exec -it airflow bash
-    2. create admin user: airflow create_user -r Admin -u admin -e admin@example.com -f admin -l admin -p test
+    2. airflow users create -r User -u <username> -e <email> -f <first_name> -l <last_name> -p <password>
 
-    # Since activating the timezone on the Airflow GUI, this doesn't work anymore and is therefore comment out
-    # docker-compose exec airflow python scripts/mkuser.py <username> <e-mail address user>
-
-
-This script prompts for a password and stores the credentials in the PostgreSQL database.
-To create a superuser, add the `--superuser` flag to the command.
-
-Dags can only be seen in the UI by the owner, or by the superuser. The default owner is dataservices.
-In order to see the dataservices dags you have to create a superuser or the dataservices user.
+Dags can only be seen in the UI by the owner, or by the admin. The default owner is dataservices.
+In order to see the dataservices dags you have to use admin or the dataservices user.
 
 # Managing requirements.txt
 
