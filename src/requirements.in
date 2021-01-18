@@ -1,6 +1,6 @@
 amsterdam-schema-tools == 0.16.6
-apache-airflow[crypto,postgres,sentry] == 1.10.10
-cattrs == 0.9
+apache-airflow[crypto,postgres,sentry] == 1.10.14
+cattrs == 1.1.2
 datapunt-objectstore == 2019.4.8
 dsnparse == 0.1.15
 flake8 == 3.7.9

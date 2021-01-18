@@ -1,5 +1,4 @@
-# Airflow depends on cattrs~=0.9, which makes it <= python3.7
-FROM amsterdam/python:3.7-buster AS builder
+FROM amsterdam/python:3.8-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
 # Seems that pg_comparator installs full postgresql, that's not what we want
@@ -23,14 +22,14 @@ WORKDIR /tmp/pg_comparator-2.3.1
 RUN make pgsql_install
 
 # Start runtime image,
-FROM amsterdam/python:3.7-slim-buster
+FROM amsterdam/python:3.8-slim-buster
 
 
 # Copy python build artifacts from builder image
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libaio* /usr/lib/x86_64-linux-gnu/
-COPY --from=builder /usr/local/lib/python3.7/site-packages/ /usr/local/lib/python3.7/site-packages/
+COPY --from=builder /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/perl5/. /usr/lib/x86_64-linux-gnu/perl5/
@@ -61,8 +60,8 @@ ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
 # Fix problem with env vars that prevents useage of 'airflow shell'
-COPY patches/cli.py.patch /tmp/cli.py.patch
-RUN patch -d/ -p0 < /tmp/cli.py.patch
+# COPY patches/cli.py.patch /tmp/cli.py.patch
+# RUN patch -d/ -p0 < /tmp/cli.py.patch
 
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 COPY scripts/run.sh /run.sh
