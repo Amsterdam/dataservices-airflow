@@ -26,17 +26,19 @@ def main():
     df = pd.read_csv(
         args.input_csv,
         sep=";",
-        names=["organisatie", "type_interventie", "aantal", "week_nummer"],
-        converters={"organisatie": strip, "type_interventie": strip,},
+        names=["organisatie", "type_interventie", "aantal", "week_nummer", "jaar"],
+        converters={
+            "organisatie": strip,
+            "type_interventie": strip,
+        },
         header=0,
-
     )
     df.index.name = "id"
     engine = get_engine()
     df.to_sql(
         "corona_handhaving_new",
         engine,
-        dtype={"id": Integer(), "aantal": Integer(), "week_nummer": Integer()},
+        dtype={"id": Integer(), "aantal": Integer(), "week_nummer": Integer(), "jaar": Integer()},
     )
 
 

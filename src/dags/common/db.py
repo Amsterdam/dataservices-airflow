@@ -6,10 +6,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from airflow.hooks.postgres_hook import PostgresHook
 
-from . import env
 
 class DatabaseEngine:
     """Construct the elements of the SQLAlchemy database engine"""
+
     def __init__(self, postgres_conn_id="postgres_default"):
         self.connection = PostgresHook().get_connection(postgres_conn_id)
         self.user = self.connection.login
@@ -43,7 +43,7 @@ def get_ora_engine(oracle_conn_id="oracle_default") -> Engine:
     db = connection.schema
 
     try:
-        uri = f"oracle+cx_oracle://{user}:{password}@{host}:{port}/{db}?encoding=UTF-8&nencoding=UTF-8"
+        uri = f"oracle+cx_oracle://{user}:{password}@{host}:{port}/{db}?encoding=UTF-8&nencoding=UTF-8"  # noqa: E501
         return create_engine(uri, auto_convert_lobs=True)
     except SQLAlchemyError as e:
         raise AirflowException(str(e)) from e
@@ -51,6 +51,9 @@ def get_ora_engine(oracle_conn_id="oracle_default") -> Engine:
 
 def fetch_pg_env_vars(postgres_conn_id="postgres_default"):
     # Need to get rid of trailing '&'
+    # moved from to here due to circular import error
+    from . import env
+
     stripped_env = env("AIRFLOW_CONN_POSTGRES_DEFAULT")[:-1]
     pg_conn_info = dsnparse.parse(stripped_env)
     return {
