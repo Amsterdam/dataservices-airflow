@@ -137,3 +137,9 @@ dmypy.json
 
 # local experiments, not for the repo
 /scratch
+
+# direnv
+.envrc
+
+# IntelliJ based IDEs
+.idea/
