@@ -20,7 +20,7 @@ def get_objectstore_file(location, dir1, connection):
     if connection:
         credentials = fetch_objectstore_credentials(connection)
     else:
-        credentials = fetch_objectstore_credentials(connection)
+        credentials = fetch_objectstore_credentials()
     connection = objectstore.get_connection(credentials)
     container = location.split("/")[0]
     new_data = objectstore.get_object(connection, {"name": path}, container)
