@@ -53,7 +53,6 @@ def fetch_pg_env_vars(postgres_conn_id="postgres_default"):
     # Need to get rid of trailing '&'
     # moved from to here due to circular import error
     from . import env
-
     stripped_env = env("AIRFLOW_CONN_POSTGRES_DEFAULT")[:-1]
     pg_conn_info = dsnparse.parse(stripped_env)
     return {

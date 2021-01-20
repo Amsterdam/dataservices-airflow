@@ -1,11 +1,8 @@
-import json
 import pathlib
-from string_utils import slugify
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 
@@ -28,7 +25,6 @@ from importscripts.import_cmsa import import_cmsa
 dag_id = "cmsa"
 variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
-data_objects = variables["objects"]
 tmp_dir = f"/tmp/{dag_id}"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 fetch_jsons = []
@@ -49,26 +45,14 @@ SQL_TABLE_RENAMES = """
 """
 
 
-def merge_sensor_files(tmp_dir, obj_names):
-    root = []
-    for obj_name in obj_names:
-        with (pathlib.Path(tmp_dir) / f"{obj_name}.json").open() as f:
-            rows = json.load(f)
-            for row in rows:
-                row["SELECTIE"] = obj_name
-            root.append(rows)
-
-    with (pathlib.Path(tmp_dir) / "sensors.json").open("w") as f:
-        json.dump(root, f)
-
-
 with DAG(
-    dag_id, 
-    description="Crowd Monitoring Systeem Amsterdam: 3D sensoren, wifi sensoren, (tel)camera's en beacons",
-    default_args=default_args, 
-    template_searchpath=["/"]) as dag:
+    dag_id,
+    description="""Crowd Monitoring Systeem Amsterdam:
+                3D sensoren, wifi sensoren, (tel)camera's en beacons""",
+    default_args=default_args,
+    template_searchpath=["/"],
+) as dag:
 
-    
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
@@ -81,32 +65,15 @@ with DAG(
     # 2. Create temp directory to store files
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
-    # 2. Download data from maps.amsterdam.nl
-    for name in data_objects:
-        data = {
-            "TABEL": "CROWDSENSOREN",
-            "SELECT": name,
-            "SELECTIEKOLOM": "Soort",
-            "THEMA": "cmsa",
-            "TAAL": "en",
-            "BEHEER": 0,
-            "NIEUW": "niet",
-        }
-        fetch_jsons.append(
-            HttpFetchOperator(
-                task_id=f"fetch_{slugify(name, separator='_')}",
-                endpoint="_php/haal_objecten.php",
-                data=data,
-                http_conn_id="ams_maps_conn_id",
-                tmp_file=f"{tmp_dir}/{name}.json",
-            )
-        )
-    
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
-    
-    # 3. Download additional data (beacons.csv, cameras.xlsx)
+    # 3. Download sensor data (geojson) from maps.amsterdam.nl
+    download_geojson = HttpFetchOperator(
+        task_id="download_geojson",
+        endpoint="open_geodata/geojson.php?KAARTLAAG=CROWDSENSOREN&THEMA=cmsa",
+        http_conn_id="ams_maps_conn_id",
+        tmp_file=f"{tmp_dir}/sensors.geojson",
+    )
+
+    # 4. Download additional data (beacons.csv, cameras.xlsx)
     fetch_files = [
         SwiftOperator(
             task_id=f"download_{file}",
@@ -116,35 +83,28 @@ with DAG(
             object_id=str(file),
             output_path=f"{tmp_dir}/{file}",
         )
-        for file in files_to_download        
+        for file in files_to_download
     ]
 
-    # 3. Merge downloaded data into one file
-    merge_sensors = PythonOperator(
-        task_id="merge_sensor_data",
-        python_callable=merge_sensor_files,
-        op_args=[tmp_dir, data_objects],
-    )
-
-    # 4. Create SQL insert statements out of downloaded data
+    # 5. Create SQL insert statements out of downloaded data
     proces_cmsa = PythonOperator(
         task_id="proces_sensor_data",
         python_callable=import_cmsa,
         op_args=[
             f"{tmp_dir}/cameras.xlsx",
             f"{tmp_dir}/beacons.csv",
-            f"{tmp_dir}/sensors.json",
+            f"{tmp_dir}/sensors.geojson",
             f"{tmp_dir}",
         ],
     )
 
-    # 5. Create target tables: Sensor en Locatie
+    # 6. Create target tables: Sensor en Locatie
     create_tables = PostgresFilesOperator(
-        task_id="create_target_tables", 
+        task_id="create_target_tables",
         sql_files=[f"{sql_path}/cmsa_data_create.sql"],
     )
 
-    # 6. Insert data into DB
+    # 7. Insert data into DB
     import_data = PostgresFilesOperator(
         task_id="import_data_into_DB",
         sql_files=[
@@ -153,12 +113,13 @@ with DAG(
         ],
     )
 
-    # 7. Create target tables: Markering (join between Sensor en Locatie)
+    # 8. Create target tables: Markering (join between Sensor en Locatie)
     fill_markering = PostgresFilesOperator(
-        task_id="insert_into_table_markering", sql_files=[f"{sql_path}/cmsa_data_insert_markering.sql"],
+        task_id="insert_into_table_markering",
+        sql_files=[f"{sql_path}/cmsa_data_insert_markering.sql"],
     )
 
-    # 12. RENAME columns based on PROVENANCE    
+    # 9. RENAME columns based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
         task_id="provenance_rename",
         dataset_name=f"{dag_id}",
@@ -168,30 +129,28 @@ with DAG(
         pg_schema="public",
     )
 
-    # 8. Rename temp named tables to final names
+    # 10. Rename temp named tables to final names
     rename_tables = PostgresOperator(task_id="rename_tables", sql=SQL_TABLE_RENAMES)
 
-      
+
 (
     slack_at_start
     >> mkdir
-    >> fetch_jsons
-    >> Interface
+    >> download_geojson
     >> fetch_files
-    >> merge_sensors
     >> proces_cmsa
     >> create_tables
     >> import_data
     >> fill_markering
     >> provenance_translation
     >> rename_tables
-
 )
 
 
 dag.doc_md = """
     #### DAG summery
-    This DAG containts crowd monitoring sensor data, the source is the CMSA (Crowd Monitoring Systeem Amsterdam)
+    This DAG containts crowd monitoring sensor data,
+    the source is the CMSA (Crowd Monitoring Systeem Amsterdam)
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
@@ -203,6 +162,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/cmsa.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/cmsa.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=cmsa/locatie&x=106434&y=488995&radius=10
 """

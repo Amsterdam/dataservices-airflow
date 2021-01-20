@@ -99,12 +99,16 @@ def get_geometry(x, y, code):
 
 def location(sensor, referentie_code, naam, rd_x, rd_y, wgs84_lat, wgs84_lon):
     # if there is no RD geometry based data then use WGS84 data
-    geometry = get_geometry(wgs84_lon, wgs84_lat, 4326) if rd_x is None or rd_y is None else get_geometry(rd_x, rd_y, 28992)
+    geometry = (
+        get_geometry(wgs84_lon, wgs84_lat, 4326)
+        if rd_x is None or rd_y is None
+        else get_geometry(rd_x, rd_y, 28992)
+    )
     return {
         "sensor_id": sensor,
         "referentiecode": referentie_code,
         "naam": naam,
-        "geometry": geometry
+        "geometry": geometry,
     }
 
 
@@ -121,30 +125,29 @@ def import_sensors(filename):
     locations = []
     with open(filename, newline="") as jsonfile:
         reader = json.load(jsonfile)
-        for id, items in enumerate(reader):
-            for row in items:
-                id = f'{row["SELECTIE"]}.{row["VOLGNR"]}'
-                things.append(
-                    thing(
-                        id=id,
-                        referentie_code=row["VOLGNR"],
-                        naam=row["LABEL"],
-                        omschrijving=row["SELECTIE"],
-                        type=row["SELECTIE"],
-                        doel=row["SELECTIE"],
-                    )
+        for row in reader["features"]:
+            id = f'{row["properties"]["Soort"]}.{row["id"]}'
+            things.append(
+                thing(
+                    id=id,
+                    referentie_code=row["id"],
+                    naam=row["properties"]["Objectnummer"],
+                    omschrijving=row["properties"]["Soort"],
+                    type=row["properties"]["Soort"],
+                    doel=row["properties"]["Soort"],
                 )
-                locations.append(
-                    location(
-                        sensor=id,
-                        referentie_code=row["LABEL"],
-                        naam=row["LABEL"],
-                        rd_x=None,
-                        rd_y=None,
-                        wgs84_lat=row["LATMAX"],
-                        wgs84_lon=row["LNGMAX"],
-                    )
+            )
+            locations.append(
+                location(
+                    sensor=id,
+                    referentie_code=row["id"],
+                    naam=row["properties"]["Objectnummer"],
+                    rd_x=None,
+                    rd_y=None,
+                    wgs84_lat=row["geometry"]["coordinates"][0],
+                    wgs84_lon=row["geometry"]["coordinates"][1],
                 )
+            )
     print_summary(id="Sensors", things=things, locations=locations)
     return (things, locations)
 
@@ -213,11 +216,11 @@ def import_cameras(filename):
     things = []
     locations = []
     for sheet in sheet_names:
-        print ('sheet:', sheet)
+        print("sheet:", sheet)
         for row in df[sheet].iterrows():
-            print ('row:', row)
+            print("row:", row)
             id, series = row
-            print ('id:', id, 'series:', series)
+            print("id:", id, "series:", series)
             try:
                 id = f"cameras.{sheet}.{int(id)}"
             except ValueError:
