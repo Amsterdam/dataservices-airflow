@@ -5,6 +5,7 @@ from airflow.operators.bash_operator import BashOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
 
 from common import (
@@ -17,13 +18,13 @@ from common import (
 
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
-    COUNT_CHECK,    
+    COUNT_CHECK,
 )
 
 
 dag_id = "vastgoed"
 variables_vastgoed = Variable.get("vastgoed", deserialize_json=True)
-files_to_download = variables_vastgoed["files_to_download"]
+files_to_download = variables_vastgoed["files_to_download"]  # type: ignore
 tmp_dir = f"/tmp/{dag_id}"
 total_checks = []
 count_checks = []
@@ -50,42 +51,47 @@ with DAG(
 
     # 3. Download data
     download_data = SwiftOperator(
-            task_id=f"download_{files_to_download[0]}",
-            # when swift_conn_id is ommitted then the default connection will be the VSD objectstore
-            # swift_conn_id="SWIFT_DEFAULT",
-            container="vastgoed",
-            object_id=f"{files_to_download[0]}",
-            output_path=f"{tmp_dir}/{files_to_download[0]}",
-        )
-    
+        task_id=f"download_{files_to_download[0]}",
+        # when swift_conn_id is ommitted then the default connection will be the VSD objectstore
+        # swift_conn_id="SWIFT_DEFAULT",
+        container="vastgoed",
+        object_id=f"{files_to_download[0]}",
+        output_path=f"{tmp_dir}/{files_to_download[0]}",
+    )
+
     # 4. Convert data to UTF8 character set
     convert_to_UTF8 = BashOperator(
-                      task_id="convert_to_UTF8",
-                      bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{files_to_download[0]} > "
-                                   f"{tmp_dir}/{dag_id}_utf8.csv",
+        task_id="convert_to_UTF8",
+        bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{files_to_download[0]} > "
+        f"{tmp_dir}/{dag_id}_utf8.csv",
     )
 
     # 5. Create TABLE from CSV
     # The source has no spatial data, but OGR2OGR is used to create the SQL insert statements.
     CSV_to_SQL = BashOperator(
-            task_id=f"CSV_to_SQL",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
-            f"-nln {dag_id}_{dag_id}_new "
-            f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}_utf8.csv "          
-            f"-lco SEPARATOR=SEMICOLON "
-            f"-oo AUTODETECT_TYPE=YES "
-            f"-lco FID=id "
-            # remove empty records
-            f"-sql \'SELECT * FROM {dag_id}_utf8 WHERE 1=1 AND \"bag pand id\" is not NULL \'",
-        )
+        task_id="CSV_to_SQL",
+        bash_command=f"ogr2ogr -f 'PGDump' "
+        f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
+        f"-nln {dag_id}_{dag_id}_new "
+        f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}_utf8.csv "
+        f"-lco SEPARATOR=SEMICOLON "
+        f"-oo AUTODETECT_TYPE=YES "
+        f"-lco FID=id "
+        # remove empty records and cast bag ids to strings
+        f"-sql 'SELECT * FROM {dag_id}_utf8 WHERE 1=1 AND \"bag pand id\" is not NULL '",
+    )
+
+    # 5a. Convert bag FK types from INT8 -> VARCHAR
+    cast_bag_fk_type = BashOperator(
+        task_id="cast_bag_fk_type", bash_command=f"sed -i s/INT8/VARCHAR/g {tmp_dir}/{dag_id}.sql"
+    )
 
     # 6. Create TABLE
     insert_data = BashOperator(
-            task_id=f"SQL_insert_data_{dag_id}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
-        ) 
-    
+        task_id=f"SQL_insert_data_{dag_id}",
+        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
+    )
+
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
@@ -96,34 +102,56 @@ with DAG(
         pg_schema="public",
     )
 
+    # 7a. Add leading zeros (ogr2ogr destroys those)
+    add_leading_zeros = PostgresOperator(
+        task_id="add_leading_zeros",
+        sql=[
+            "UPDATE vastgoed_vastgoed_new SET pand_id = lpad(pand_id, 16, '0')",
+            """UPDATE vastgoed_vastgoed_new
+                    SET verblijfsobject_id = lpad(verblijfsobject_id, 16, '0')""",
+        ],
+    )
+
     # Prepare the checks and added them per source to a dictionary
     total_checks.clear()
-    count_checks.clear()   
+    count_checks.clear()
 
     count_checks.append(
-            COUNT_CHECK.make_check(
-                check_id=f"count_check",
-                pass_value=20,
-                params=dict(table_name=f"{dag_id}_{dag_id}_new"),
-                result_checker=operator.ge,
-            )
+        COUNT_CHECK.make_check(
+            check_id="count_check",
+            pass_value=20,
+            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
+            result_checker=operator.ge,
         )
+    )
 
     check_name[f"{dag_id}"] = count_checks
 
     # 8. Execute bundled checks on database (in this case just a count check)
     multi_checks = PostgresMultiCheckOperator(
-            task_id=f"count_check_{dag_id}", checks=check_name[f"{dag_id}"]
-        )    
+        task_id=f"count_check_{dag_id}", checks=check_name[f"{dag_id}"]
+    )
 
     # 9. Rename TABLE
     rename_tables = PostgresTableRenameOperator(
-            task_id=f"rename_table_{dag_id}",
-            old_table_name=f"{dag_id}_{dag_id}_new",
-            new_table_name=f"{dag_id}_{dag_id}",
-        )    
+        task_id=f"rename_table_{dag_id}",
+        old_table_name=f"{dag_id}_{dag_id}_new",
+        new_table_name=f"{dag_id}_{dag_id}",
+    )
 
-slack_at_start >> mkdir >> download_data >> convert_to_UTF8 >> CSV_to_SQL >> insert_data >> provenance_translation >> multi_checks >> rename_tables
+(
+    slack_at_start
+    >> mkdir
+    >> download_data
+    >> convert_to_UTF8
+    >> CSV_to_SQL
+    >> cast_bag_fk_type
+    >> insert_data
+    >> provenance_translation
+    >> add_leading_zeros
+    >> multi_checks
+    >> rename_tables
+)
 
 dag.doc_md = """
     #### DAG summery
@@ -139,6 +167,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/vastgoed.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/vastgoed.html
-    Example geosearch: 
+    Example geosearch:
     not applicable
 """

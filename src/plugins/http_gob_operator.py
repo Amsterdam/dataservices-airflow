@@ -48,7 +48,7 @@ class HttpGobOperator(BaseOperator):
         geojson_field: str = None,
         lowercase: bool = False,
         flatten: bool = False,
-        graphql_query_path: str,
+        graphql_query_path: Path,
         batch_size: int = 10000,
         max_records: Optional[int] = None,
         protected: bool = False,
@@ -68,7 +68,7 @@ class HttpGobOperator(BaseOperator):
         self.protected = protected
         self.copy_bufsize = copy_bufsize
         self.db_table_name = f"{self.dataset}_{self.schema}"
-        self.token_expires_time = None
+        self.token_expires_time = 0
         self.access_token = None
         super().__init__(*args, **kwargs)
 
@@ -101,7 +101,7 @@ class HttpGobOperator(BaseOperator):
                 else:
                     break
             else:
-                raise
+                raise AirflowException("Failure to get Keycloak token after 3 tries")
             token_info = response.json()
             self.access_token = token_info["access_token"]
             self.token_expires_time = time.time() + token_info["expires_in"]
