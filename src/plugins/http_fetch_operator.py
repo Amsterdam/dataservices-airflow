@@ -68,8 +68,6 @@ class HttpFetchOperator(BaseOperator):
                 with open(self.tmp_file, "wb") as wf:
                     shutil.copyfileobj(response.raw, wf)
 
-            wf.close()
-
         # ---------- TEMPORARY ELSE REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----------
         else:
             print(os.getcwd())
@@ -79,6 +77,4 @@ class HttpFetchOperator(BaseOperator):
             with open(self.tmp_file, "wt") as wf:
                 wf.write(data)
 
-            source.close()
-            wf.close()
         # ---------- TEMPORARY ELSE REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----------
