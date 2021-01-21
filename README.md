@@ -186,3 +186,56 @@ Beware! Both databases must have the libraries installed and the pgcmp extension
 The third example below compares the table 'table_one' with 'table_two' on the different/seperate database, but with the extra argument of looking at specific columns. These are indicated by adding a questionmark (?) following the key of the source table, then a semicolon (:) following the columns to use in the comparision seperated by a comma.
 Beware! Both databases must have the libraries installed and the pgcmp extension created.
 `pg_comparator --verbose --do-it --synchronize pgsql://dataservices:insecure@dso_database/dataservices/table_one?column1:column2,column3 pgsql://ds_airflow:insecure@database/ds_airflow/table_two`
+
+# PyCharm
+
+PyCharm has a great source code formatter that is extremely fast.
+But not everyone uses PyCharm.
+To ensure Python code is formatted consistently,
+regardless of the development environment used,
+we use `black` and `isort`.
+PyCharm can easily be configured to run these those external programs.
+First create a shell script `fmt_code.sh`:
+
+
+```sh
+#!/usr/bin/env sh
+
+PY_INTERPRETER_PATH=$1
+FILE_PATH=$2
+
+${PY_INTERPRETER_PATH} -m black ${FILE_PATH}
+${PY_INTERPRETER_PATH} -m isort ${FILE_PATH}
+```
+
+There are two options to use this script from within PyCharm:
+
+- Run it as an external tool with a keyboard shortcut assigned to it
+- Configure a file watcher to have it run automatically on file save
+
+Configuring it as an external tool is detailed below.
+Configuring as a file watcher should be very similar.
+
+Go to:
+
+- `File | Settings | Tools | External Tools`
+- Click on the `+` icon
+- Fill out the fields:
+    - Name: `Black + isort`
+    - Program: `$ProjectFileDir$/fmt_code.sh`
+    - Arguments: `$JDKPath$ $FilePath$`
+    - Output paths to refresh: `$FilePath$`
+    - Working directory: `$ProjectFileDir$`
+    - Untick option *Open console for tool output*
+    - Click `OK`  (Edit Tool dialog)
+    - Click `Apply` (Settings dialog)
+- Still in the Setting dialog, go to `Keymap`
+- In search field type: `Black + isort`
+- Right click on the entry found and select `Add keyboard shortcut`
+- Press `Ctrl + Alt + L`  (or whatever you deem convenient)
+- Click `OK` (Keyboard Shortcut dialog)
+- Click `OK` (Settings dialog)
+
+If you regularly reformat the Python module under development using `Ctrl + Alt + L`,
+the Git pre-commit hook will notcomplain about the layout of your code.
+
