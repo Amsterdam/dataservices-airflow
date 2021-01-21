@@ -30,7 +30,6 @@ class HttpFetchOperator(BaseOperator):
         *args,
         **kwargs,
     ) -> None:
-        self.http_conn_id = http_conn_id
         self.endpoint = endpoint
         self.headers = headers or {}
         self.http_conn_id = http_conn_id
@@ -48,7 +47,7 @@ class HttpFetchOperator(BaseOperator):
 
             Path(self.tmp_file).parents[0].mkdir(parents=True, exist_ok=True)
             http = HttpHook(http_conn_id=self.http_conn_id, method="GET")
-            
+
 
             self.log.info("Calling HTTP Fetch method")
             self.log.info(self.endpoint)
@@ -56,7 +55,7 @@ class HttpFetchOperator(BaseOperator):
                 self.endpoint, self.data, self.headers, extra_options={"stream": True}
             )
             # set encoding schema explictly if given
-            if self.encoding_schema: 
+            if self.encoding_schema:
                 response.encoding = self.encoding_schema
             self.log.info(f"Encoding schema is {response.encoding}")
 
