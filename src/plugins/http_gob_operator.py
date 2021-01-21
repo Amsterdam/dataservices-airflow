@@ -54,6 +54,7 @@ class HttpGobOperator(BaseOperator):
         protected: bool = False,
         copy_bufsize: int = 16 * 1024 * 1024,
         http_conn_id="http_default",
+        token_expires_margin=5,
         **kwargs,
     ) -> None:
         self.dataset = dataset
@@ -67,6 +68,7 @@ class HttpGobOperator(BaseOperator):
         self.max_records = max_records
         self.protected = protected
         self.copy_bufsize = copy_bufsize
+        self.token_expires_margin = token_expires_margin
         self.db_table_name = f"{self.dataset}_{self.schema}"
         self.token_expires_time = None
         self.access_token = None
@@ -85,7 +87,11 @@ class HttpGobOperator(BaseOperator):
         headers = {"Content-Type": "application/x-ndjson"}
         if not self.protected:
             return headers
-        if self.access_token is None or time.time() - 5 > self.token_expires_time or force_refresh:
+        if (
+            self.access_token is None
+            or time.time() + self.token_expires_margin > self.token_expires_time
+            or force_refresh
+        ):
             form_params = dict(
                 grant_type="client_credentials",
                 client_id=OIDC_CLIENT_ID,

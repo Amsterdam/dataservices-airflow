@@ -18,6 +18,7 @@ from schematools import TMP_TABLE_POSTFIX
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
 GOB_PUBLIC_ENDPOINT = env("GOB_PUBLIC_ENDPOINT")
 GOB_SECURE_ENDPOINT = env("GOB_SECURE_ENDPOINT")
+OAUTH_TOKEN_EXPIRES_MARGIN = env.int("OAUTH_TOKEN_EXPIRES_MARGIN", 5)
 
 dag_id = "gob"
 owner = "gob"
@@ -56,6 +57,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
         graphql_query_path=graphql_dir_path / "query.graphql",
         max_records=MAX_RECORDS,
         http_conn_id="gob_graphql",
+        token_expires_margin=OAUTH_TOKEN_EXPIRES_MARGIN,
     )
 
     with dag:
