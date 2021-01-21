@@ -11,3 +11,7 @@ pre-commit == 2.2.0
 
 # Some installers need wheel support
 wheel == 0.34.1
+
+# Source code formatting
+black
+isort
