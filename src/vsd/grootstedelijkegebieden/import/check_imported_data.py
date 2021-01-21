@@ -11,7 +11,7 @@ sql_checks = [
         "geometrie",
         """
 select count(*) from gbd_grootstedelijke_projecten_new where
-wkb_geometry is null or ST_GeometryType(wkb_geometry) <> 'ST_MultiPolygon'
+ST_GeometryType(geometrie) <> 'ST_MultiPolygon'
     """,
         assert_count_zero(),
     ),
