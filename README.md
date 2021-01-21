@@ -8,6 +8,7 @@ Airflow setup for Dataservices, running in a Docker container.
 
     python3 -m venv .venv
     source .venv/bin/activate
+    pip install -U wheel pip
     cd src
     make install  # installs src/requirements_dev.txt
 
@@ -127,7 +128,7 @@ In a running containers, the following commands can update the variables:
 
 # Connections
 
-Airflow maintains a list of connections (DB connections, http connections etc.). 
+Airflow maintains a list of connections (DB connections, http connections etc.).
 These connections can be maintained through the web UI.
 During startup a set of connections is created/updated (see `scripts/run.sh`)
 The preferred way to add new connections is by using environment variables of the
@@ -151,10 +152,10 @@ outside of the operators, because access to variables means access to the postgr
 # PG comparator
 The pg_comparator can be used on table level synchronization. It can detect modifications (inserts, update and deletes) on a table,and even on specific columns of that table, and synchronize these change to a target table. Beware, the synchronization removes all tuples of the target table that does not exists in the source table. The source table is leading. In the examples below the source table is indicated as "table_one". The target table as "table_two".
 
-The dso_database container is created by a build instead of a direct image. 
+The dso_database container is created by a build instead of a direct image.
 The build installs the amsterdam/postgres11 image and additional libraries i.e. libdbd-pg-perl that pg_comparator needs.
-Note that in order to use the pg_comparator on Postgres databases, all Postgres databases involved must have 
-the libraries installed and the pgcmp extension created. 
+Note that in order to use the pg_comparator on Postgres databases, all Postgres databases involved must have
+the libraries installed and the pgcmp extension created.
 Also the envoking container that runs the pg_comparator cmd, in this case Airlow container itself, must have the pg_comparator
 installed as well including the needed libraries i.e. libdbd-pg-perl.
 
@@ -179,9 +180,9 @@ In order to only do inserts for example, use --skip-deletes and --skip-updates f
 `pg_comparator --verbose --do-it --synchronize --skip-deletes --skip-updates pgsql://dataservices:insecure@dso_database/dataservices/table_one pgsql://dataservices:insecure@dso_database/dataservices/table_two`
 
 The second example below compares the table 'table_one' with 'table_two' on the different/seperate database.
-Beware! Both databases must have the libraries installed and the pgcmp extension created. 
+Beware! Both databases must have the libraries installed and the pgcmp extension created.
 `pg_comparator --verbose --do-it --synchronize pgsql://dataservices:insecure@dso_database/dataservices/table_one pgsql://ds_airflow:insecure@database/ds_airflow/table_two`
 
 The third example below compares the table 'table_one' with 'table_two' on the different/seperate database, but with the extra argument of looking at specific columns. These are indicated by adding a questionmark (?) following the key of the source table, then a semicolon (:) following the columns to use in the comparision seperated by a comma.
-Beware! Both databases must have the libraries installed and the pgcmp extension created. 
+Beware! Both databases must have the libraries installed and the pgcmp extension created.
 `pg_comparator --verbose --do-it --synchronize pgsql://dataservices:insecure@dso_database/dataservices/table_one?column1:column2,column3 pgsql://ds_airflow:insecure@database/ds_airflow/table_two`
