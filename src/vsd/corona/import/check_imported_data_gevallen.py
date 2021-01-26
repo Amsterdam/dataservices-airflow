@@ -5,12 +5,12 @@ from shared.utils.check_imported_data import (
 )
 
 sql_checks = [
-    ("count", "select count(*) from corona_rivm_new", assert_count_minimum(300)),
+    ("count", "select count(*) from corona_gevallen_new", assert_count_minimum(300)),
     (
         "columns",
         """
     select count(column_name) from information_schema.columns where
-    table_schema = 'public' and table_name = 'corona_rivm_new'
+    table_schema = 'public' and table_name = 'corona_gevallen_new'
     and column_name in ('id', 'datumtijd', 'gemeente_naam',
             'gemeente_code', 'provincie', 'aantal_totaal',
             'aantal_ziekenhuisopnames', 'aantal_sterfgevallen')

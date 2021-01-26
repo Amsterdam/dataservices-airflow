@@ -56,7 +56,7 @@ def main():
     result.columns = result.columns.str.lower()
 
     result.to_sql(
-        "corona_rivm_new",
+        "corona_gevallen_new",
         engine,
         dtype={
             "id": Integer(),
