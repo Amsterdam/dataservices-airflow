@@ -6,11 +6,11 @@ from shared.utils.check_imported_data import (
 )
 
 sql_checks = [
-    ("count", "select count(*) from gbd_grootstedelijke_projecten_new", assert_count_minimum(74)),
+    ("count", "select count(*) from gebieden_grootstedelijke_projecten_new", assert_count_minimum(74)),
     (
         "geometrie",
         """
-select count(*) from gbd_grootstedelijke_projecten_new where
+select count(*) from gebieden_grootstedelijke_projecten_new where
 ST_GeometryType(geometrie) <> 'ST_MultiPolygon'
     """,
         assert_count_zero(),
