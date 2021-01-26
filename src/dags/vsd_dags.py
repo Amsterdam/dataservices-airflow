@@ -8,6 +8,9 @@ from common.db import fetch_pg_env_vars
 
 vsd_dir = pathlib.Path(__file__).resolve().parents[1] / "vsd"
 
+SCHEDULE_INTERVAL_EXCEPTIONS = {
+    "grootstedelijke_projecten": "@monthly"
+}
 
 def fetch_env_vars():
     return {
@@ -23,7 +26,15 @@ def create_vsd_dag(vsd_id, default_args):
     shared_dir = vsd_dir / "shared"
     data_dir = vsd_dir / vsd_id / "data"
 
-    dag = DAG(f"vsd_{vsd_id}", default_args=default_args, template_searchpath=["/"])
+    kwargs = {
+        "default_args": default_args,
+        "template_searchpath" : ["/"]
+    }
+    schedule_interval = SCHEDULE_INTERVAL_EXCEPTIONS.get(vsd_id)
+    if schedule_interval:
+        kwargs["schedule_interval"] = schedule_interval
+
+    dag = DAG(f"vsd_{vsd_id}", **kwargs)
 
     with dag:
         BashEnvOperator(
