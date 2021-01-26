@@ -50,6 +50,7 @@ services:
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"
+      AIRFLOW_CONN_RIVM_BASE_URL: "https://data.rivm.nl/covid-19/"
       GOB_PUBLIC_ENDPOINT: "gob/public/graphql/streaming/"
       GOB_SECURE_ENDPOINT: "gob/graphql/streaming/"
       OAUTH_TOKEN_EXPIRES_MARGIN: 20
