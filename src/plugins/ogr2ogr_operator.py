@@ -52,12 +52,7 @@ class Ogr2OgrOperator(BaseOperator):
             ogr2ogr_cmd.append(f"{self.sql_output_file} {self.input_file} ")
 
             # optionals for SQL file
-            self.input_file_sep and ogr2ogr_cmd.append(
-                f"-lco SEPARATOR={self.input_file_sep} "
-            )
-            self.auto_dect_type and ogr2ogr_cmd.append(
-                f"-oo AUTODETECT_TYPE={self.auto_dect_type} "
-            )
+            self.input_file_sep and ogr2ogr_cmd.append(f"-lco SEPARATOR={self.input_file_sep} ")
             self.sql_statement and ogr2ogr_cmd.append(f"-sql {self.sql_statement}")
 
         # Option 2 DIRECT LOAD: load data directly into DB; no sql file created in between
@@ -72,6 +67,7 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"{'-s_srs ' + self.s_srs if self.s_srs else ''} -t_srs {self.t_srs} ")
         ogr2ogr_cmd.append(f"-lco FID={self.fid} ")
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
+        ogr2ogr_cmd.append(f"-oo AUTODETECT_TYPE={self.auto_dect_type} ")
 
         # execute cmd string
         subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)
