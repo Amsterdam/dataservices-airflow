@@ -11,7 +11,7 @@ env = Env()
 # split is used to remove url params, if exists.
 # for database connection the url params must be omitted.
 default_db_conn = env("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
-
+SCHEMA_URL = env("SCHEMA_URL")
 
 class SqlAlchemyCreateObjectOperator(BaseOperator):
     """This operator takes a JSON data schema definition and DB connection to create the specified
@@ -48,15 +48,13 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         By default both tables and the identifier and 'many-to-many table' indexes are created.
         By setting the boolean indicators in the method parameters, tables or an identifier index (per table) can be created.
         """
-        data_schema_url = f"https://{self.data_schema_env}schemas.data.amsterdam.nl/datasets/{self.data_schema_name}/{self.data_schema_name}"
+        data_schema_url = f"{SCHEMA_URL.split('//')[0]}//{self.data_schema_env}{SCHEMA_URL.split('//')[1]}{self.data_schema_name}/{self.data_schema_name}"
         data = schema_fetch_url_file(data_schema_url)
         engine = _get_engine(self.db_conn)
         parent_schema = SchemaType(data)
         dataset_schema = DatasetSchema(parent_schema)
-        importer = BaseImporter(dataset_schema, engine)        
-        print("data_schema_url=", data_schema_url, "engine=", engine, "ind_table=", self.ind_table)
+        importer = BaseImporter(dataset_schema, engine)
         for table in data["tables"]:
-            print("ind_table=", self.ind_table, "table['id']", table["id"])
             if (
                 self.data_schema_name + "_" + table["id"]
                 == f"{self.data_table_name}"

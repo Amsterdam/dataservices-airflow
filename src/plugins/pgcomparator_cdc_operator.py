@@ -21,7 +21,7 @@ class PgComparatorCDCOperator(BaseOperator):
 
         self.log.info("Start change data capture (with pg_comparator) from: %s to: %s", self.source_table,  self.target_table)
         subprocess.run(
-            f'pg_comparator --do-it --synchronize --max-ratio=2.0 ' \
+            f'pg_comparator --do-it --synchronize --max-ratio=2.0 --prefix={self.target_table}_cmp ' \
             f'pgsql://{db_connection}/{self.source_table} ' \
             f'pgsql://{db_connection}/{self.target_table}' \
             , shell=True, check=True
