@@ -195,17 +195,17 @@ ondergrond:
     historischeonderzoeken: kaartlaag_database_historisch_onderzoeken.geojson
 risicozones:
   files_to_download:
-    lpgtank: [dmb_lpg_tank.csv]
-    lpgtankstation: [dmb_lpg_station.csv, dmb_lpg_station_punten.csv]
-    lpgafleverzuil: [dmb_lpg_afleverzuil.csv]
-    lpgvulpunt: [dmb_lpg_vulpunt.csv]
+    lpgtanks: [dmb_lpg_tank.csv]
+    lpgtankstations: [dmb_lpg_station.csv, dmb_lpg_station_punten.csv]
+    lpgafleverzuilen: [dmb_lpg_afleverzuil.csv]
+    lpgvulpunten: [dmb_lpg_vulpunt.csv]
     bedrijven: [dmb_veilig_bedrijven.csv, dmb_veilig_bedr_punten.csv]
     bronnen: [dmb_veilig_bronnen.csv]
     contouren: [dmb_veilig_contouren.csv]
     infrastructuur:
       [dro_risico_spoorweg.csv, dro_risico_vaarweg.csv, dro_risico_weg.csv]
-    aardgasleiding: [dmb_aardgas_leiding.csv]
-    aardgasgebied:
+    aardgasleidingen: [dmb_aardgas_leiding.csv]
+    aardgasgebieden:
       [
         dmb_aardgas_100let.csv,
         dmb_aardgas_1let.csv,
@@ -213,7 +213,7 @@ risicozones:
         dmb_aardgas_zakelijk.csv,
       ]
   files_to_merge:
-    lpgtankstation:
+    lpgtankstations:
       target_file: dmb_lpg_station.csv
       source_file: dmb_lpg_station_punten.csv
       mutual_key: stationnummer
@@ -223,7 +223,7 @@ risicozones:
       source_file: dmb_veilig_bedr_punten.csv
       mutual_key: id
       map_source_field_to_target: '{"geometrie":"geometrie_punt"}'
-    lpgvulpunt:
+    lpgvulpunten:
       target_file: dmb_lpg_vulpunt.csv
       source_file: dmb_lpg_vulpunt.csv
       mutual_key: stationnummer
@@ -240,7 +240,7 @@ risicozones:
           "filter_column": "geometrie",
           "filter_value": "POLYGON",
         }
-    lpgafleverzuil:
+    lpgafleverzuilen:
       target_file: dmb_lpg_afleverzuil.csv
       source_file: dmb_lpg_afleverzuil.csv
       mutual_key: stationnummer
@@ -258,7 +258,7 @@ risicozones:
           "filter_value": "POLYGON",
         }
   files_to_union:
-    aardgasbied:
+    aardgasbieden:
       target_file: dmb_aardgas_100let.csv
       source_file:
         [
@@ -289,8 +289,8 @@ risicozones:
       source_file: dmb_veilig_bronnen.csv
       row_unique_cols: [bedrijfsnaam, geometrie]
   files_to_fix_geom:
-    aardgasleiding:
-      source_name: aardgasleiding
+    aardgasleidingen:
+      source_name: aardgasleidingen
       source_file: dmb_aardgas_leiding.csv
       geom_data_type_to_use: MultiLineString
     infrastructuur:
