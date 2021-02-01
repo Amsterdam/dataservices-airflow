@@ -27,7 +27,7 @@ echo "Download ${FILENAME_HANDHAVING} from objectstore as the startingpoint (the
 python ${SHARED_DIR}/utils/get_objectstore_file.py "${OBJECTSTORE_PATH_HANDHAVING}"
 
 echo "Download source ${FILENAME_RIVM} (json) from RIVM gevallen"
-curl -k "${AIRFLOW_CONN_RIVM_BASE_URL}/COVID-19_aantallen_gemeente_cumulatief.json" -o "${FILENAME_RIVM_PATH}/${FILENAME_RIVM}" --create-dirs
+curl -k "${AIRFLOW_CONN_RIVM_BASE_URL}/COVID-19_aantallen_gemeente_per_dag.json" -o "${FILENAME_RIVM_PATH}/${FILENAME_RIVM}" --create-dirs
 
 echo "Upload source ${FILENAME_RIVM} (json) from RIVM gevallen to Object Store"
 curl -X PUT -T ${FILENAME_RIVM_PATH}/${FILENAME_RIVM} --user ${OS_USERNAME}:${OS_PASSWORD} https://${OS_TENANT_NAME}.objectstore.eu/${OBJECTSTORE_PATH_RIVM}
