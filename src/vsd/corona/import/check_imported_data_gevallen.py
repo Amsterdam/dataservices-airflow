@@ -11,7 +11,7 @@ sql_checks = [
         """
     select count(column_name) from information_schema.columns where
     table_schema = 'public' and table_name = 'corona_gevallen_new'
-    and column_name in ('id', 'datumtijd', 'gemeente_naam',
+    and column_name in ('id', 'datum', 'gemeente_naam',
             'gemeente_code', 'provincie', 'aantal_totaal',
             'aantal_ziekenhuisopnames', 'aantal_sterfgevallen')
     """,
