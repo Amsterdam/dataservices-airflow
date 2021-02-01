@@ -1,0 +1,60 @@
+{
+  bagLigplaatsen(active: false) {
+    edges {
+      node {
+        identificatie 
+        cursor
+        volgnummer 
+        registratiedatum 
+        geconstateerd 
+        status 
+        heeftHoofdadres {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftNevenadres {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        geometrie 
+        gebruiksdoel 
+        beginGeldigheid 
+        eindGeldigheid 
+        heeftOnderzoeken {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        documentdatum 
+        documentnummer 
+        ligtInBuurt {
+          edges {
+            node {
+              identificatie 
+              volgnummer 
+            }
+          }
+        }
+        heeftDossier {
+          edges {
+            node {
+              dossier 
+            }
+          }
+        }
+        bagproces 
+      }
+    }
+  }
+}
