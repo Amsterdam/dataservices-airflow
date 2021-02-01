@@ -47,19 +47,26 @@ def main():
         subset_amterdam.append(row)
         result = pd.DataFrame(subset_amterdam)
 
-    log.info(f"Starting import {args.input_json}")
-
-    # set primary id
-    result.index.name = "id"
-    engine = get_engine()
     # lower all column names
     result.columns = result.columns.str.lower()
+
+    # aggregating numbers per group
+    result = result.groupby(
+        ['date_of_publication', 'municipality_code', 'municipality_name', 'province']).agg(
+        total_reported = ('total_reported','sum'),
+        hospital_admission  = ('hospital_admission','sum'),
+        deceased  = ('deceased','sum'),
+        ).reset_index()
+
+    log.info(f"Starting import {args.input_json}")
+
+    engine = get_engine()
 
     result.to_sql(
         "corona_gevallen_new",
         engine,
         dtype={
-            "id": Integer(),
+            "index": Integer(),
             "date_of_publication": Date(),
             "municipality_code": String(),
             "municipality_name": String(),

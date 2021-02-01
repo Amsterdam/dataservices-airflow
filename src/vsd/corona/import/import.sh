@@ -60,7 +60,7 @@ ALTER TABLE corona_handhaving_new RENAME TO corona_handhaving;
 ALTER INDEX ix_corona_handhaving_new_id RENAME TO ix_corona_handhaving_id;
 DROP TABLE IF EXISTS corona_gevallen CASCADE;
 ALTER TABLE corona_gevallen_new RENAME TO corona_gevallen;
-ALTER INDEX ix_corona_gevallen_new_id RENAME TO ix_corona_gevallen_id;
+ALTER INDEX ix_corona_gevallen_new_index RENAME TO ix_corona_gevallen_id;
 COMMIT;
 SQL
 
