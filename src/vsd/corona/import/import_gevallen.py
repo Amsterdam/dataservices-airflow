@@ -17,49 +17,6 @@ subset_amterdam = list()
 
 
 def data_parser(file):
-1
-
-import json
-
-2
-
-import logging
-
-3
-
-import os
-
-4
-
-import argparse
-
-5
-
-​
-
-6
-
-import pandas as pd
-
-7
-
-from sqlalchemy import Integer, Date, String
-
-8
-
-from common.db import get_engine
-
-9
-
-​
-
-10
-
-from provenance_rename_operator import ProvenanceRenameOperator
-
-11
-
-​
     """ loading data and parsing json """
     log.info(f"read file {file}")
     with open(file, "r") as data:
