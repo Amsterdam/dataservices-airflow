@@ -42,7 +42,8 @@ asbest:
     - asbest_percelen
 vergunningen:
   files_to_download: [bb_quotum.sql, omzettingen_quotum.sql]
-  table_source_names: [quota_bbkaartlaagexport, quota_omzettingenkaartlaagexport]
+  table_source_names:
+    [quota_bbkaartlaagexport, quota_omzettingenkaartlaagexport]
   table_target_names: [bedandbreakfast, omzetting]
 bedrijveninvesteringszones:
   files_to_download:
@@ -98,26 +99,35 @@ bodem:
 explosieven:
   files_to_download:
     bominslag: [Inslagen_ea.shp, Inslagen_ea.shx, Inslagen_ea.dbf]
-    verdachtgebied: [Verdachte_gebieden.shp,Verdachte_gebieden.shx,Verdachte_gebieden.dbf]
-    gevrijwaardgebied: [Gevrijwaard_gebied.shp,Gevrijwaard_gebied.shx, Gevrijwaard_gebied.dbf]
-    uitgevoerdonderzoek: [Reeds_uitgevoerde_CE_onderzoeken.shp,Reeds_uitgevoerde_CE_onderzoeken.shx, Reeds_uitgevoerde_CE_onderzoeken.dbf]
+    verdachtgebied:
+      [Verdachte_gebieden.shp, Verdachte_gebieden.shx, Verdachte_gebieden.dbf]
+    gevrijwaardgebied:
+      [Gevrijwaard_gebied.shp, Gevrijwaard_gebied.shx, Gevrijwaard_gebied.dbf]
+    uitgevoerdonderzoek:
+      [
+        Reeds_uitgevoerde_CE_onderzoeken.shp,
+        Reeds_uitgevoerde_CE_onderzoeken.shx,
+        Reeds_uitgevoerde_CE_onderzoeken.dbf,
+      ]
 geluidszones:
   files_to_download:
     themas: dro_thema.csv
     metro-spoorwegen-industrie: dro_geluid.csv
     schiphol: dro_geluid_schiphol.csv
 covid19:
-    files_to_download: [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
-    tables_to_create:
-      alcoholverkoopverbod: AVV
-      straatartiestverbod: SAV
-      gebiedsverbod: GVP
+  files_to_download:
+    [OOV_COVID19_totaal.shp, OOV_COVID19_totaal.shx, OOV_COVID19_totaal.dbf]
+  tables_to_create:
+    alcoholverkoopverbod: AVV
+    straatartiestverbod: SAV
+    gebiedsverbod: GVP
 spoorlijnen:
   files_to_download:
     metro: [metro.shp, metro.shx, metro.dbf]
     tram: [tram.shp, tram.shx, tram.dbf]
 overlastgebieden:
-  files_to_download: [OOV_gebieden_totaal.shp, OOV_gebieden_totaal.shx, OOV_gebieden_totaal.dbf]
+  files_to_download:
+    [OOV_gebieden_totaal.shp, OOV_gebieden_totaal.shx, OOV_gebieden_totaal.dbf]
   tables_to_create:
     cameratoezicht: CTG
     dealeroverlast: DOG
@@ -137,13 +147,19 @@ milieuzones:
     vrachtauto: vracht
     bestelbus: bestel
 evenementen:
-    data_endpoint: https://evenementen.amsterdam.nl/?geojson=true&pager_rows=5000
+  data_endpoint: https://evenementen.amsterdam.nl/?geojson=true&pager_rows=5000
 aardgasvrijezones:
-    files_to_download:
-      buurt: [buurten_na_inspraak.dbf, buurten_na_inspraak.shp, buurten_na_inspraak.shx]
-      buurtinitiatief: [buurtinitiatieven.dbf, buurtinitiatieven.shp, buurtinitiatieven.shx]
+  files_to_download:
+    buurt:
+      [
+        buurten_na_inspraak.dbf,
+        buurten_na_inspraak.shp,
+        buurten_na_inspraak.shx,
+      ]
+    buurtinitiatief:
+      [buurtinitiatieven.dbf, buurtinitiatieven.shp, buurtinitiatieven.shx]
 vastgoed:
-    files_to_download: [export_vastgoed.csv]
+  files_to_download: [export_vastgoed.csv]
 sport:
   files_to_download:
     csv:
@@ -161,7 +177,7 @@ sport:
 verzinkbarepalen:
   data_endpoints: open_geodata/geojson.php?KAARTLAAG=VIS_BFA&THEMA=vis
 basiskaart:
-    # TODO: Amsterdam schema as source for object creation.
+  # TODO: Amsterdam schema as source for object creation.
   tables_to_create:
     gebouwvlak: SELECT_GEBOUWVLAK_SQL
     inrichtingselementlijn: SELECT_INRICHTINGSELEMENTLIJN_SQL
@@ -177,3 +193,7 @@ basiskaart:
 ondergrond:
   files_to_download:
     historischeonderzoeken: kaartlaag_database_historisch_onderzoeken.geojson
+veiligeafstanden:
+  files_to_download:
+    themas: dro_thema.csv
+    veiligeafstanden: dro_veiligheid.csv
