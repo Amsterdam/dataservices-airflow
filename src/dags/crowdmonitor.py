@@ -88,7 +88,7 @@ WITH cmsa_1h_v6 AS (
   SELECT sensor
        , date_trunc('hour'::text, timestamp_rounded) AS datum_uur
        , SUM(total_count) AS aantal_passanten
-  FROM cmsa_15min_view_v6_materialized
+  FROM cmsa_15min_view_v7_materialized
   WHERE timestamp_rounded > to_date('2019-01-01'::text, 'YYYY-MM-DD'::text)
   GROUP BY sensor, (date_trunc('hour'::text,timestamp_rounded)))
 SELECT v.sensor, s.location_name, v.datum_uur, v.aantal_passanten, s.gebied, s.geom as geometrie
