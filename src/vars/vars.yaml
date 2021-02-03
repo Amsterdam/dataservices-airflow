@@ -307,4 +307,10 @@ risicozones:
     bedrijven:
       source_file: dmb_veilig_bedrijven.csv
       geom_data_type_to_use: MultiPolygon
-
+schiphol:
+  files_to_download:
+    themas: dro_thema.csv
+    hoogtebeperkingradar: dro_schiphol_radar.csv
+    maatgevendetoetshoogtes: dro_schiphol_maatgevende_toetshoogte.csv
+    vogelvrijwaringsgebieden: dro_vogel.csv
+    geluidzones: dro_geluid_schiphol.csv
