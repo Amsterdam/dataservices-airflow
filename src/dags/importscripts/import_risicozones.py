@@ -2,7 +2,6 @@ import ccsv as csv
 import json
 import sys
 import hashlib
-from collections import namedtuple
 from collections import defaultdict
 import operator
 from shapely import wkt
