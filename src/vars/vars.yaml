@@ -197,3 +197,114 @@ veiligeafstanden:
   files_to_download:
     themas: dro_thema.csv
     veiligeafstanden: dro_veiligheid.csv
+risicozones:
+  files_to_download:
+    lpgtanks: [dmb_lpg_tank.csv]
+    lpgtankstations: [dmb_lpg_station.csv, dmb_lpg_station_punten.csv]
+    lpgafleverzuilen: [dmb_lpg_afleverzuil.csv]
+    lpgvulpunten: [dmb_lpg_vulpunt.csv]
+    bedrijven: [dmb_veilig_bedrijven.csv, dmb_veilig_bedr_punten.csv]
+    bronnen: [dmb_veilig_bronnen.csv]
+    contouren: [dmb_veilig_contouren.csv]
+    infrastructuur:
+      [dro_risico_spoorweg.csv, dro_risico_vaarweg.csv, dro_risico_weg.csv]
+    aardgasleidingen: [dmb_aardgas_leiding.csv]
+    aardgasgebieden:
+      [
+        dmb_aardgas_100let.csv,
+        dmb_aardgas_1let.csv,
+        dmb_aardgas_pr10_6.csv,
+        dmb_aardgas_zakelijk.csv,
+      ]
+  files_to_merge:
+    lpgtankstations:
+      target_file: dmb_lpg_station.csv
+      source_file: dmb_lpg_station_punten.csv
+      mutual_key: stationnummer
+      map_source_field_to_target: '{"geometrie":"geometrie_punt"}'
+    bedrijven:
+      target_file: dmb_veilig_bedrijven.csv
+      source_file: dmb_veilig_bedr_punten.csv
+      mutual_key: id
+      map_source_field_to_target: '{"geometrie":"geometrie_punt"}'
+    lpgvulpunten:
+      target_file: dmb_lpg_vulpunt.csv
+      source_file: dmb_lpg_vulpunt.csv
+      mutual_key: stationnummer
+      map_source_field_to_target: '{"geometrie":"geometrie_punt"}'
+      source_filter:
+        {
+          "filter_type": "like",
+          "filter_column": "geometrie",
+          "filter_value": "POINT",
+        }
+      target_filter:
+        {
+          "filter_type": "like",
+          "filter_column": "geometrie",
+          "filter_value": "POLYGON",
+        }
+    lpgafleverzuilen:
+      target_file: dmb_lpg_afleverzuil.csv
+      source_file: dmb_lpg_afleverzuil.csv
+      mutual_key: stationnummer
+      map_source_field_to_target: '{"geometrie":"geometrie_punt"}'
+      source_filter:
+        {
+          "filter_type": "like",
+          "filter_column": "geometrie",
+          "filter_value": "POINT",
+        }
+      target_filter:
+        {
+          "filter_type": "like",
+          "filter_column": "geometrie",
+          "filter_value": "POLYGON",
+        }
+  files_to_union:
+    aardgasbieden:
+      target_file: dmb_aardgas_100let.csv
+      source_file:
+        [
+          dmb_aardgas_100let.csv,
+          dmb_aardgas_1let.csv,
+          dmb_aardgas_pr10_6.csv,
+          dmb_aardgas_zakelijk.csv,
+        ]
+      source_file_content_type:
+        [
+          letaliteitsafstand_100%,
+          letaliteitsafstand_1%,
+          plaatsgebondenrisico,
+          belemmeringenstrook,
+        ]
+      source_file_content_column: [type]
+      row_unique_cols: [geometrie]
+    infrastructuur:
+      target_file: dro_risico_spoorweg.csv
+      source_file:
+        [dro_risico_spoorweg.csv, dro_risico_vaarweg.csv, dro_risico_weg.csv]
+      source_file_content_type: [spoorweg, vaarweg, autoweg]
+      source_file_content_column: [type]
+      row_unique_cols: [geometrie]
+  files_to_cleanse:
+    bronnen:
+      source_file: dmb_veilig_bronnen.csv
+      row_unique_cols: [bedrijfsnaam, geometrie]
+  files_to_fix_geom:
+    aardgasleidingen:
+      source_file: dmb_aardgas_leiding.csv
+      geom_data_type_to_use: MultiLineString
+    infrastructuur:
+      source_file: dro_risico_spoorweg.csv
+      geom_data_type_to_use: MultiPolygon
+    bronnen:
+      source_file: dmb_veilig_bronnen.csv
+      geom_data_type_to_use: MultiPolygon
+    contouren:
+      source_file: dmb_veilig_contouren.csv
+      geom_data_type_to_use: MultiPolygon
+    bedrijven:
+      source_file: dmb_veilig_bedrijven.csv
+      geom_data_type_to_use: MultiPolygon
+

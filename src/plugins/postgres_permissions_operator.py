@@ -29,7 +29,7 @@ datapunt_evironment = env("DATAPUNT_ENVIRONMENT")
 # schema name is held in this constant.
 DAG_DATASET = {
     "basiskaart_": "basiskaart",
-    "baggob_": "baggob",
+    "bag_": "bag",
     "brk_": "brk",
     "gebieden_": "gebieden",
     "horeca_": "horeca",
