@@ -103,9 +103,7 @@ with DAG(
             task_id=f"merge_{subject}",
             python_callable=merge_files_iter,
             op_kwargs={
-                "target_file_name": subject,
                 "target_file": f"{tmp_dir}/{params['target_file']}",
-                "source_file_name": "source",
                 "source_file": f"{tmp_dir}/{params['source_file']}",
                 "mutual_key": params["mutual_key"],
                 "map_source_field_to_target": params["map_source_field_to_target"],
@@ -127,7 +125,6 @@ with DAG(
             task_id=f"union_{subject}",
             python_callable=union_files_iter,
             op_kwargs={
-                "target_name": subject,
                 "target_file": f"{tmp_dir}/{params['target_file']}",
                 "source_file": params["source_file"],
                 "source_file_content_type": params["source_file_content_type"],
@@ -150,7 +147,6 @@ with DAG(
             task_id=f"cleanse_{subject}",
             python_callable=cleanse_misformed_data_iter,
             op_kwargs={
-                "source_name": subject,
                 "source_file": f"{tmp_dir}/{params['source_file']}",
                 "row_unique_cols": params["row_unique_cols"],
                 "extra_cols": params.get("extra_cols", None),
@@ -170,7 +166,6 @@ with DAG(
             task_id=f"fix_geom_{subject}",
             python_callable=unify_geometry_data_iter,
             op_kwargs={
-                "source_name": subject,
                 "source_file": f"{tmp_dir}/{params['source_file']}",
                 "geom_data_type_to_use": params["geom_data_type_to_use"],
             },
@@ -207,7 +202,7 @@ with DAG(
             s_srs="EPSG:28992",
             t_srs="EPSG:28992",
             geometry_name="geometrie",
-            auto_dect_type="YES",
+            auto_detect_type="YES",
             fid="id",
             ind_sql=False,
             db_conn=db_conn,

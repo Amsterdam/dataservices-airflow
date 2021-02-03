@@ -285,27 +285,21 @@ risicozones:
       row_unique_cols: [geometrie]
   files_to_cleanse:
     bronnen:
-      source_name: bronnen
       source_file: dmb_veilig_bronnen.csv
       row_unique_cols: [bedrijfsnaam, geometrie]
   files_to_fix_geom:
     aardgasleidingen:
-      source_name: aardgasleidingen
       source_file: dmb_aardgas_leiding.csv
       geom_data_type_to_use: MultiLineString
     infrastructuur:
-      source_name: infrastructuur
       source_file: dro_risico_spoorweg.csv
       geom_data_type_to_use: MultiPolygon
     bronnen:
-      source_name: bronnen
       source_file: dmb_veilig_bronnen.csv
       geom_data_type_to_use: MultiPolygon
     contouren:
-      source_name: contouren
       source_file: dmb_veilig_contouren.csv
       geom_data_type_to_use: MultiPolygon
     bedrijven:
-      source_name: bedrijven
       source_file: dmb_veilig_bedrijven.csv
       geom_data_type_to_use: MultiPolygon
