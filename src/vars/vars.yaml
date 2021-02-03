@@ -193,6 +193,10 @@ basiskaart:
 ondergrond:
   files_to_download:
     historischeonderzoeken: kaartlaag_database_historisch_onderzoeken.geojson
+veiligeafstanden:
+  files_to_download:
+    themas: dro_thema.csv
+    veiligeafstanden: dro_veiligheid.csv
 risicozones:
   files_to_download:
     lpgtanks: [dmb_lpg_tank.csv]
@@ -303,3 +307,4 @@ risicozones:
     bedrijven:
       source_file: dmb_veilig_bedrijven.csv
       geom_data_type_to_use: MultiPolygon
+
