@@ -9,11 +9,13 @@ from schematools.importer.base import BaseImporter
 from schematools.types import DatasetSchema, SchemaType
 from schematools.utils import schema_fetch_url_file
 
+from common.url import URL
+
 env = Env()
 # split is used to remove url params, if exists.
 # for database connection the url params must be omitted.
 DEFAULT_DB_CONN = env("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
-SCHEMA_URL = env("SCHEMA_URL")
+SCHEMA_URL = URL(env("SCHEMA_URL"))
 
 
 class SqlAlchemyCreateObjectOperator(BaseOperator):
@@ -73,9 +75,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         table' indexes are created. By setting the boolean indicators in the method parameters,
         tables or an identifier index (per table) can be created.
         """
-        data_schema_url = "/".join(
-            map(lambda s: s.strip("/"), (SCHEMA_URL, self.data_schema_name, self.data_schema_name))
-        )
+        data_schema_url = SCHEMA_URL / self.data_schema_name / self.data_schema_name
         data = schema_fetch_url_file(data_schema_url)
         engine = _get_engine(self.db_conn)
         parent_schema = SchemaType(data)
