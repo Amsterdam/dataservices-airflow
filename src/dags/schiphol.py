@@ -71,7 +71,7 @@ with DAG(
         BashOperator(
             task_id=f"change_seperator_{key}",
             bash_command=f"sed 's/|/;/g' -i  {tmp_dir}/{file};"
-            f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/seperator_{file} > "
+            f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{file} > "
             f"{tmp_dir}/utf-8_{file}",
         )
         for key, file in files_to_download.items()
