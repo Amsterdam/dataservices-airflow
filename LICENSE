@@ -371,3 +371,9 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
   This Source Code Form is "Incompatible With Secondary Licenses", as
   defined by the Mozilla Public License, v. 2.0.
+
+-----------------------------------------------------------------------
+
+This product bundles the URL class, developed at https://www.surf.nl/,
+which is available under a Apache 2.0 license. For details see:
+https://github.com/workfloworchestrator/nwa-stdlib/blob/master/nwastdlib/url.py
