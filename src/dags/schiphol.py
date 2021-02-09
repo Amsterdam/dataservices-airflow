@@ -20,6 +20,7 @@ dag_id = "schiphol"
 variables = Variable.get(dag_id, deserialize_json=True)
 tmp_dir = f"/tmp/{dag_id}"
 files_to_download = variables["files_to_download"]
+tables_to_proces = [table for table in variables["files_to_download"] if table != 'themas']
 db_conn = DatabaseEngine()
 total_checks = []
 count_checks = []
@@ -69,7 +70,7 @@ with DAG(
     change_seperator = [
         BashOperator(
             task_id=f"change_seperator_{key}",
-            bash_command=f"cat {tmp_dir}/{file} | sed 's/|/;/g' > {tmp_dir}/seperator_{file} ;"
+            bash_command=f"sed 's/|/;/g' -i  {tmp_dir}/{file};"
             f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/seperator_{file} > "
             f"{tmp_dir}/utf-8_{file}",
         )
@@ -119,8 +120,7 @@ with DAG(
             sql=DROP_COLS,
             params=dict(tablename=f"{dag_id}_{key}_new"),
         )
-        for key in files_to_download.keys()
-        if key != "themas"
+        for key in tables_to_proces
     ]
 
     # 9. RE-define GEOM type (because ogr2ogr cannot set geom with any .csv source file)
@@ -130,8 +130,7 @@ with DAG(
             sql=SET_GEOM,
             params=dict(tablename=f"{dag_id}_{key}_new"),
         )
-        for key in files_to_download.keys()
-        if key != "themas"
+        for key in tables_to_proces
     ]
 
     # 10. Create the DB target table (as specified in the JSON data schema)
@@ -145,8 +144,7 @@ with DAG(
             # when set to false, it doesn't create indexes; only tables
             ind_extra_index=False,
         )
-        for key in files_to_download.keys()
-        if key != "themas"
+        for key in tables_to_proces
     ]
 
     # 11. Rename COLUMNS based on Provenance
@@ -160,8 +158,7 @@ with DAG(
     )
 
     # Prepare the checks and added them per source to a dictionary
-    for key in files_to_download.keys():
-        if key != "themas":
+    for key in tables_to_proces:
 
             total_checks.clear()
             count_checks.clear()
@@ -194,8 +191,7 @@ with DAG(
     # 12. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
-        for key in files_to_download.keys()
-        if key != "themas"
+        for key in tables_to_proces
     ]
 
     # 13. Check for changes to merge in target table by using CDC
@@ -205,8 +201,7 @@ with DAG(
             source_table=f"{dag_id}_{key}_new",
             target_table=f"{dag_id}_{key}",
         )
-        for key in files_to_download.keys()
-        if key != "themas"
+        for key in tables_to_proces
     ]
 
     # 14. Clean up; delete temp table
@@ -216,8 +211,7 @@ with DAG(
             sql=SQL_DROP_TMP_TABLE,
             params=dict(tablename=f"{dag_id}_{key}_new"),
         )
-        for key in files_to_download.keys()
-        if key != "themas"
+        for key in tables_to_proces
     ]
 
     # 15. Drop parent table THEMAS, not needed anymore
