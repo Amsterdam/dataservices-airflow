@@ -162,6 +162,14 @@ idna==2.10
     # via
     #   email-validator
     #   requests
+importlib-metadata==2.1.1
+    # via
+    #   apache-airflow
+    #   argcomplete
+    #   importlib-resources
+    #   jsonschema
+    #   oslo.config
+    #   stevedore
 importlib-resources==1.5.0
     # via apache-airflow
 iso8601==0.1.13
@@ -440,6 +448,8 @@ text-unidecode==1.3
     # via python-slugify
 thrift==0.13.0
     # via apache-airflow
+typing-extensions==3.7.4.3
+    # via apache-airflow
 tzlocal==1.5.1
     # via
     #   apache-airflow
@@ -470,6 +480,10 @@ xlrd==1.2.0
     # via -r requirements.in
 yamlip==0.0.2
     # via -r requirements.in
+zipp==3.4.0
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 zope.deprecation==4.4.0
     # via apache-airflow
 
