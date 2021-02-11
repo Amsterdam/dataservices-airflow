@@ -17,7 +17,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.http_hook import HttpHook
 from airflow.exceptions import AirflowException
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import schema_def_from_url
+from schematools.utils import schema_def_from_url, toCamelCase
 
 from http_params_hook import HttpParamsHook
 
@@ -149,8 +149,10 @@ class HttpGobOperator(BaseOperator):
             schema_def = schema_def_from_url(SCHEMA_URL, self.dataset)
             importer = NDJSONImporter(schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log)
 
+            # Here we enter the schema-world, so table_name needs to be camelized
+            # Or, should this be done later in the chain?
             importer.generate_db_objects(
-                table_name=self.table_name,
+                table_name=toCamelCase(self.table_name),
                 db_table_name=f"{self.db_table_name}_new",
                 ind_tables=True,
                 ind_extra_index=False,
