@@ -52,7 +52,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
         task_id=f"load_{gob_db_table_name}",
         endpoint=GOB_PUBLIC_ENDPOINT,
         dataset=gob_dataset_name,
-        schema=gob_table_name,
+        table_name=gob_table_name,
         retries=3,
         graphql_query_path=graphql_dir_path / "query.graphql",
         max_records=MAX_RECORDS,

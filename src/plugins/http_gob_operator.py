@@ -43,12 +43,12 @@ class HttpGobOperator(BaseOperator):
         self,
         endpoint: str,
         dataset: str,
-        schema: str,
+        table_name: str,
         *args,
         geojson_field: str = None,
         lowercase: bool = False,
         flatten: bool = False,
-        graphql_query_path: str,
+        graphql_query_path: Path,
         batch_size: int = 10000,
         max_records: Optional[int] = None,
         protected: bool = False,
@@ -58,7 +58,7 @@ class HttpGobOperator(BaseOperator):
         **kwargs,
     ) -> None:
         self.dataset = dataset
-        self.schema = schema
+        self.table_name = table_name
         self.geojson = geojson_field
         self.graphql_query_path = graphql_query_path
         self.http_conn_id = http_conn_id
@@ -69,7 +69,7 @@ class HttpGobOperator(BaseOperator):
         self.protected = protected
         self.copy_bufsize = copy_bufsize
         self.token_expires_margin = token_expires_margin
-        self.db_table_name = f"{self.dataset}_{self.schema}"
+        self.db_table_name = f"{self.dataset}_{self.table_name}"
         self.token_expires_time = None
         self.access_token = None
         super().__init__(*args, **kwargs)
@@ -150,7 +150,7 @@ class HttpGobOperator(BaseOperator):
             importer = NDJSONImporter(schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log)
 
             importer.generate_db_objects(
-                table_name=self.schema,
+                table_name=self.table_name,
                 db_table_name=f"{self.db_table_name}_new",
                 ind_tables=True,
                 ind_extra_index=False,
