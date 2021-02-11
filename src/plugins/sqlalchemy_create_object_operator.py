@@ -4,12 +4,11 @@ from typing import Union
 
 from airflow.models.baseoperator import BaseOperator
 from environs import Env
+from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
 from schematools.types import DatasetSchema, SchemaType
 from schematools.utils import schema_fetch_url_file
-
-from common.url import URL
 
 env = Env()
 # split is used to remove url params, if exists.
