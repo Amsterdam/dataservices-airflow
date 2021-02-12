@@ -216,7 +216,7 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
 
     rm_tmp_tables = PostgresOperator(
         task_id="rm_tmp_tables",
-        sql="DROP TABLE {tables}".format(
+        sql="DROP TABLE IF EXISTS {tables}".format(
             tables=", ".join(map(lambda s: f"{TMP_TABLE_PREFIX}{s}", table_mappings.values()))
         ),
     )
@@ -235,11 +235,12 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
         slack_at_start
         >> mk_tmp_dir
         >> download_data
+        # Ensure we don't have any lingering tmp tables from a previously failed run.
+        >> rm_tmp_tables
         >> sqlalchemy_create_objects_from_schema
         >> postgres_create_tables_like
         >> transform_csv_files
         >> postgres_insert_csv
         >> change_data_capture
-        >> rm_tmp_tables
         >> rm_tmp_dir
     )
