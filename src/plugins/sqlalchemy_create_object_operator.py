@@ -1,8 +1,9 @@
 import re
 from re import Pattern
-from typing import Union
+from typing import Dict, Union, Any
 
 from airflow.models.baseoperator import BaseOperator
+from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
@@ -29,6 +30,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
     also defaults to an index in the database.
     """
 
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         data_schema_name: str,
@@ -36,8 +38,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         db_conn: str = DEFAULT_DB_CONN,
         ind_table: bool = True,
         ind_extra_index: bool = True,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ):
         """Initialize SqlAlchemyCreateObjectOperator.
 
@@ -66,7 +68,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator):
         self.ind_table = ind_table
         self.ind_extra_index = ind_extra_index
 
-    def execute(self, context=None):
+    def execute(self, context: Dict[str, Any]) -> None:
         """Executes the ``generate_db_object`` method from schema-tools.
 
         Which leads to the creation of tables and/or an index on the identifier (as specified in
