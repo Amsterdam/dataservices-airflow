@@ -3,12 +3,11 @@ import hashlib
 import itertools
 import shutil
 import sys
-import tempfile
 from csv import Dialect
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Callable, Dict, Tuple, TypedDict, Type, Any
+from typing import Any, Callable, Dict, Tuple, Type, TypedDict
 
 from airflow import DAG
 from airflow.models import Variable
@@ -25,7 +24,7 @@ FileStem = str
 UrlPath = str
 
 DAG_ID = "bbga"
-TMP_DIR_BASE = Path("/tmp")
+TMP_DIR = Path("/tmp") / DAG_ID
 TMP_TABLE_PREFIX = "tmp_"
 VARS = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: Dict[FileStem, UrlPath] = VARS["data_endpoints"]
@@ -212,11 +211,14 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
         username="admin",
     )
 
+    def _mk_tmp_dir(**_: Any) -> str:
+        TMP_DIR.mkdir(parents=True, exist_ok=True)
+        return TMP_DIR.as_posix()
+
     mk_tmp_dir = PythonOperator(
         # The resulting tmp dir is returned via XCom using the task_id
         task_id="mk_tmp_dir",
-        python_callable=tempfile.mkdtemp,
-        op_kwargs=dict(prefix="bbga_", dir=TMP_DIR_BASE),
+        python_callable=_mk_tmp_dir,
     )
 
     download_data = [
