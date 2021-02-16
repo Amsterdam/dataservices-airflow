@@ -1,23 +1,23 @@
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.utils.decorators import apply_defaults
+from typing import Any, Dict
 
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name
 
 
 class PostgresTableCopyOperator(PostgresOperator):
     """Copy table to another table, create target table structure if needed from source """
 
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         source_table_name: str,
         target_table_name: str,
-        postgres_conn_id="postgres_default",
-        task_id="copy_table",
-        ind_drop=True,
-        **kwargs,
-    ):
+        postgres_conn_id: str = "postgres_default",
+        task_id: str = "copy_table",
+        **kwargs: Any,
+    ) -> None:
         check_safe_name(source_table_name)
         check_safe_name(target_table_name)
         super().__init__(
@@ -28,12 +28,9 @@ class PostgresTableCopyOperator(PostgresOperator):
         )
         self.source_table_name = source_table_name
         self.target_table_name = target_table_name
-        self.ind_drop = ind_drop
 
-    def execute(self, context):
-        hook = PostgresHook(
-            postgres_conn_id=self.postgres_conn_id, schema=self.database
-        )
+    def execute(self, context: Dict[str, Any]) -> None:
+        hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
         # Start a list to hold copy information
         table_copies = [
@@ -80,11 +77,9 @@ class PostgresTableCopyOperator(PostgresOperator):
                 "INCLUDING CONSTRAINTS INCLUDING INDEXES)",
                 "TRUNCATE TABLE {target_table_name} CASCADE",
                 "INSERT INTO {target_table_name} SELECT * FROM {source_table_name}",
-                "DROP TABLE IF EXISTS {source_table_name} CASCADE"
-                if self.ind_drop
-                else None,
+                "DROP TABLE IF EXISTS {source_table_name} CASCADE",
             ):
 
                 self.sql.append(sql.format(**lookup))
 
-        return super().execute(context)
+        super().execute(context)
