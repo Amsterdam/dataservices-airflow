@@ -11,13 +11,14 @@ from typing import Any, Callable, Dict, Tuple, Type, TypedDict
 
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
 from http_fetch_operator import HttpFetchOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from postgres_create_tables_like_operator import PostgresCreateTablesLikeOperator
 from postgres_insert_csv_operator import FileTable, PostgresInsertCsvOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 FileStem = str
@@ -254,11 +255,20 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
         for table in table_mappings.values()
     ]
 
-    postgres_create_tables_like = PostgresCreateTablesLikeOperator(
-        task_id="postgres_create_tables_like",
-        table_name_regex=f"^{DAG_ID}_.*",
-        prefix=TMP_TABLE_PREFIX,
-    )
+    join_parallel_tasks = DummyOperator(task_id="join_parallel_tasks")
+
+    postgres_create_tables_like = [
+        PostgresTableCopyOperator(
+            task_id=f"postgres_create_tables_like_{table}",
+            source_table_name=table,
+            target_table_name=f"{TMP_TABLE_PREFIX}{table}",
+            # Only copy table definitions. Don't do anything else.
+            truncate_target=False,
+            copy_data=False,
+            drop_source=False,
+        )
+        for table in table_mappings.values()
+    ]
 
     def _transform_csv_files(**kwargs: Any) -> None:
         """Transform CSV files to have suitable headers and columns for DB insertion.
@@ -349,6 +359,7 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
         >> rm_tmp_tables_pre
         >> sqlalchemy_create_objects_from_schema
         >> add_cdc_ids
+        >> join_parallel_tasks
         >> postgres_create_tables_like
         >> transform_csv_files
         >> postgres_insert_csv
