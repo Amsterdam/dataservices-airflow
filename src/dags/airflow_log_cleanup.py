@@ -15,6 +15,7 @@ from datetime import timedelta
 import os
 import logging
 import airflow
+from common import SHARED_DIR
 
 from environs import Env
 env = Env()
@@ -46,7 +47,7 @@ DIRECTORIES_TO_DELETE = [BASE_LOG_FOLDER]
 ENABLE_DELETE_CHILD_LOG = Variable.get(
     "AIRFLOW_LOG_CLEANUP__ENABLE_DELETE_CHILD_LOG", "False"
 )
-LOG_CLEANUP_PROCESS_LOCK_FILE = "/tmp/airflow_log_cleanup_worker.lock"
+LOG_CLEANUP_PROCESS_LOCK_FILE = "{SHARED_DIR}/airflow_log_cleanup_worker.lock"
 logging.info("ENABLE_DELETE_CHILD_LOG  " + ENABLE_DELETE_CHILD_LOG)
 
 if not BASE_LOG_FOLDER or BASE_LOG_FOLDER.strip() == "":

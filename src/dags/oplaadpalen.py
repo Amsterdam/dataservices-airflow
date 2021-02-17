@@ -13,6 +13,7 @@ from common import (
     vsd_default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 from importscripts.oplaadpalen.import_oplaadpalen_allego import import_oplaadpalen
@@ -58,7 +59,7 @@ with DAG(
     schedule_interval="@hourly",
 ) as dag:
 
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",

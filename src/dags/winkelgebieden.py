@@ -15,6 +15,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -31,7 +32,7 @@ data_path = pathlib.Path(__file__).resolve().parents[1] / "data"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 variables = Variable.get(dag_id, deserialize_json=True)
 schema_end_point = variables["schema_end_point"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 metadataschema = f"{tmp_dir}/winkelgebieden_dataschema.json"
 total_checks = []
 count_checks = []

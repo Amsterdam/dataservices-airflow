@@ -5,7 +5,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
 
-from common import pg_params, default_args
+from common import pg_params, default_args, SHARED_DIR
 from common.sql import SQL_TABLE_RENAME
 
 env = Env()
@@ -20,7 +20,7 @@ with DAG(
 
     zip_file = dag_config["zip_file"]
     shp_file = dag_config["shp_file"]
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
 
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
 

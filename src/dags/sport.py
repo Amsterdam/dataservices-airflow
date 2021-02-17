@@ -17,6 +17,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -30,7 +31,7 @@ from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS
 
 dag_id = "sport"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 data_endpoints = variables["data_endpoints"]
 files_to_SQL = {**files_to_download, **data_endpoints}

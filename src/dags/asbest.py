@@ -10,6 +10,7 @@ from common import (
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 from common.sql import SQL_TABLE_RENAMES
@@ -31,7 +32,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
     shp_files = dag_config["shp_files"]
     tables = dag_config["tables"]
     rename_tablenames = dag_config["rename_tablenames"]
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
@@ -45,7 +46,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         task_id="fetch_zip",
         container=dag_id,
         object_id=zip_file,
-        output_path=f"/tmp/{dag_id}/{zip_file}",
+        output_path=f"{tmp_dir}/{zip_file}",
     )
 
     extract_zip = BashOperator(

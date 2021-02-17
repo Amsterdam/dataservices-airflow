@@ -5,7 +5,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow import DAG
 
 
-from common import pg_params, default_args
+from common import pg_params, default_args, SHARED_DIR
 from common.sql import (
     SQL_TABLE_RENAME,
     SQL_CHECK_COUNT,
@@ -20,7 +20,7 @@ dag_id = "hoofdroutes"
 
 with DAG(dag_id, default_args=default_args,) as dag:
 
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
     tmp_file_prefix = f"{tmp_dir}/{dag_id}"
     colnames = [["id"], ["name"], ["ogc_fid"], ["route"], ["type"], ["wkb_geometry"]]
 

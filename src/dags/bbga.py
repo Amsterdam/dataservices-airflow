@@ -14,7 +14,13 @@ from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import (
+    DATAPUNT_ENVIRONMENT, 
+    MessageOperator, 
+    default_args, 
+    slack_webhook_token,
+    SHARED_DIR
+)
 from http_fetch_operator import HttpFetchOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_insert_csv_operator import FileTable, PostgresInsertCsvOperator
@@ -25,7 +31,7 @@ FileStem = str
 UrlPath = str
 
 DAG_ID = "bbga"
-TMP_DIR = Path("/tmp") / DAG_ID
+TMP_DIR = Path(SHARED_DIR) / DAG_ID
 TMP_TABLE_PREFIX = "tmp_"
 VARS = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: Dict[FileStem, UrlPath] = VARS["data_endpoints"]

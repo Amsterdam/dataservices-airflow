@@ -15,6 +15,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -31,7 +32,7 @@ dag_id = "milieuzones"
 variables_milieuzones = Variable.get("milieuzones", deserialize_json=True)
 files_to_download = variables_milieuzones["files_to_download"]
 tables_to_create = variables_milieuzones["tables_to_create"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []

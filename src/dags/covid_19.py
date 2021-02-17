@@ -13,6 +13,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -34,7 +35,7 @@ files_to_download = variables_covid19["files_to_download"]
 tables_to_create = variables_covid19["tables_to_create"]
 tables_to_check = { k:v for k, v in tables_to_create.items() if k != 'gebiedsverbod' }
 
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []

@@ -22,6 +22,7 @@ from common import (
     slack_webhook_token,
     MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
 )
 
 from postgres_check_operator import (
@@ -32,7 +33,7 @@ from postgres_check_operator import (
 
 dag_id = "verzinkbarepalen"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 variables = Variable.get(dag_id, deserialize_json=True)
 data_endpoints = variables["data_endpoints"]
 total_checks = []

@@ -70,6 +70,7 @@ services:
       OOV_BRIEVENBUS_HOST: ${oov_brievenbus_host}
       OOV_BRIEVENBUS_PORT: ${oov_brievenbus_port}
       DAG_SYNC_PATH: /tmp/synced-dags
+      SHARED_DIR: /tmp
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types
       SCHEMA_URL: ${SCHEMA_URL}

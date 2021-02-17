@@ -11,6 +11,7 @@ from common import (
     slack_webhook_token,
     MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
 )
 
 from common.sql import (
@@ -31,7 +32,7 @@ def checker(records, pass_value):
 
 with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as dag:
 
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
     colnames = [
         "ogc_fid",
         "wkb_geometry",

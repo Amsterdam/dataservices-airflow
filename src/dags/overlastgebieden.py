@@ -14,6 +14,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -30,7 +31,7 @@ files_to_download = variables_overlastgebieden["files_to_download"]
 tables_to_create = variables_overlastgebieden["tables_to_create"]
 # Note: Vuurwerkvrijezones (VVZ) data is temporaly! not processed due to covid19 national measures
 tables_to_check = { k:v for k, v in tables_to_create.items() if k != 'vuurwerkvrij' }
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []
