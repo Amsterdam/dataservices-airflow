@@ -11,6 +11,7 @@ from common import (
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -23,7 +24,7 @@ dag_id = "anpr"
 table_id = "anpr_taxi"
 http_conn_id = "taxi_waarnemingen_conn_id" if DATASTORE_TYPE != 'acceptance' else "taxi_waarnemingen_acc_conn_id"
 endpoint = "/v0/milieuzone/passage/export-taxi/"
-TMP_PATH = "/tmp/{dag_id}/"
+TMP_PATH = f"{SHARED_DIR}/{dag_id}/"
 
 
 args = default_args.copy()

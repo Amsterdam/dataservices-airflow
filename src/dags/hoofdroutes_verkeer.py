@@ -9,7 +9,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.postgres_hook import PostgresHook
 
-from common import default_args
+from common import default_args, SHARED_DIR
 from common.db import get_engine
 from common.http import download_file
 from postgres_check_operator import (
@@ -106,7 +106,7 @@ def _load_geojson(postgres_conn_id):
     Otherwise, the (large) file is downloaded by one host,
     and stored in the XCom table to be shared between tasks.
     """
-    tmp_dir = Path(f"/tmp/{dag_id}")
+    tmp_dir = Path(f"{SHARED_DIR}/{dag_id}")
     tmp_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. download files

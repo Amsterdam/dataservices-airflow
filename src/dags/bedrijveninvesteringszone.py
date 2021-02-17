@@ -18,6 +18,7 @@ from common import (
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -33,7 +34,7 @@ from postgres_check_operator import (
 
 dag_id = "bedrijveninvesteringszones"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 total_checks = []
 count_checks = []

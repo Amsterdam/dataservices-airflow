@@ -16,6 +16,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 from postgres_check_operator import (
@@ -28,7 +29,7 @@ dag_id = "parkeerzones"
 variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
 files_to_proces = variables["files_to_proces"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 total_checks = []
 count_checks = []

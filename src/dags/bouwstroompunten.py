@@ -20,6 +20,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -35,7 +36,7 @@ dag_id = "bouwstroompunten"
 variables = Variable.get(dag_id, deserialize_json=True)
 auth_endpoint = variables["data_endpoints"]["auth"]
 data_endpoint = variables["data_endpoints"]["data"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 data_file = f"{tmp_dir}/bouwstroompunten_data.geojson"
 env = Env()
 password = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD")

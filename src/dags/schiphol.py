@@ -12,13 +12,19 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
-from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import (
+    DATAPUNT_ENVIRONMENT, 
+    SHARED_DIR,
+    MessageOperator, 
+    default_args, 
+    slack_webhook_token,
+)
 from common.db import DatabaseEngine
 from sql.schiphol import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM, SQL_DROP_TMP_TABLE
 
 dag_id = "schiphol"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 tables_to_proces = [table for table in variables["files_to_download"] if table != 'themas']
 db_conn = DatabaseEngine()

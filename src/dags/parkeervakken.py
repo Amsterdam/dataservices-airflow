@@ -13,7 +13,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
-from common import default_args
+from common import default_args, SHARED_DIR
 
 dag_id = "parkeervakken"
 postgres_conn_id = "parkeervakken_postgres"
@@ -71,7 +71,7 @@ SQL_RENAME_TEMP_TABLES = """
         ON {{ params.base_table }} USING gist(geometry);
 """
 
-TMP_DIR = f"/tmp/{dag_id}"
+TMP_DIR = f"{SHARED_DIR}/{dag_id}"
 
 E_TYPES = dict(
     E1="Parkeerverbod",

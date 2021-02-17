@@ -16,6 +16,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -32,7 +33,7 @@ variables = Variable.get("openbareverlichting", deserialize_json=True)
 data_endpoints = variables["data_endpoints"]
 dataset_objects = list(data_endpoints.keys())[0]
 dataset_objecttypes = list(data_endpoints.keys())[1]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []

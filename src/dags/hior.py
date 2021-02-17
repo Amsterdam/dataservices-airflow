@@ -10,6 +10,7 @@ from common import (
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -43,7 +44,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
     import_tables = []
     import_linked_tables = []
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",

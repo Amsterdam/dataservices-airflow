@@ -5,7 +5,7 @@ from airflow.operators.bash_operator import BashOperator
 from environs import Env
 
 from airflow import DAG
-from common import default_args
+from common import default_args, SHARED_DIR
 
 env = Env()
 
@@ -26,18 +26,18 @@ with DAG(
 
     fetch_dags_from_github = BashOperator(
         task_id="fetch_dags_from_github",
-        bash_command=f"wget {github_url} -O /tmp/repo.zip",
+        bash_command=f"wget {github_url} -O {SHARED_DIR}/repo.zip",
     )
 
     extract_zip = BashOperator(
-        task_id="extract_zip", bash_command="unzip -o /tmp/repo.zip -d /tmp"
+        task_id="extract_zip", bash_command=f"unzip -o {SHARED_DIR}/repo.zip -d {SHARED_DIR}"
     )
 
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {DAG_SYNC_PATH}")
 
     move_dags = BashOperator(
         task_id="move_dags",
-        bash_command=f"rsync -av /tmp/dataservices-airflow-master/src/dags/ {DAG_SYNC_PATH}",
+        bash_command=f"rsync -av {SHARED_DIR}/dataservices-airflow-master/src/dags/ {DAG_SYNC_PATH}",
     )
 
     # show = PythonOperator(task_id="show", python_callable=doit)

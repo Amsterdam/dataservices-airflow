@@ -16,9 +16,9 @@ from common.db import DatabaseEngine
 
 from common import (
     default_args,
-    pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -33,7 +33,7 @@ dag_id = "ondergrond"
 variables = Variable.get(f"{dag_id}", deserialize_json=True)
 files_to_download = variables["files_to_download"]
 db_conn = DatabaseEngine()
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []

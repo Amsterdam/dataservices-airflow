@@ -19,6 +19,8 @@ from airflow.exceptions import AirflowException
 from schematools.importer.ndjson import NDJSONImporter
 from schematools.utils import schema_def_from_url
 
+from common import SHARED_DIR
+
 from http_params_hook import HttpParamsHook
 
 env = Env()
@@ -136,7 +138,7 @@ class HttpGobOperator(BaseOperator):
         max_records = params.get("max_records", self.max_records)
         cursor_pos = params.get("cursor_pos", Variable.get(f"{self.db_table_name}.cursor_pos", 0))
         batch_size = params.get("batch_size", self.batch_size)
-        with TemporaryDirectory() as temp_dir:
+        with TemporaryDirectory(dir=SHARED_DIR) as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
             http = HttpParamsHook(http_conn_id=self.http_conn_id, method="POST")
 
@@ -217,7 +219,7 @@ class HttpGobOperator(BaseOperator):
                     # Save last imported file for further inspection
                     shutil.copy(
                         tmp_file,
-                        f"/tmp/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
+                        f"{SHARED_DIR}/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
                     )
                     Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
                     raise AirflowException("A database error has occurred.") from e

@@ -15,6 +15,7 @@ from common import (
     slack_webhook_token,
     MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
 )
 
 from postgres_check_operator import (
@@ -46,7 +47,7 @@ files_to_download = variables["files_to_download"]
 table_source_names = variables["table_source_names"]
 table_target_names = variables["table_target_names"]
 table_renames = list(zip(files_to_download, table_source_names, table_target_names))
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []

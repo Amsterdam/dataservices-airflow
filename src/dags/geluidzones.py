@@ -16,6 +16,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -30,7 +31,7 @@ from sql.geluidzones import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM
 dag_id = "geluidszones"
 variables_bodem = Variable.get("geluidszones", deserialize_json=True)
 files_to_download = variables_bodem["files_to_download"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []

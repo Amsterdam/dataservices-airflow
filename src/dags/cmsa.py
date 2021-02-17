@@ -18,6 +18,7 @@ from common import (
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 from importscripts.import_cmsa import import_cmsa
@@ -25,7 +26,7 @@ from importscripts.import_cmsa import import_cmsa
 dag_id = "cmsa"
 variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 fetch_jsons = []
 

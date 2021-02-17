@@ -9,6 +9,7 @@ from common import (
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 from importscripts.import_fietspaaltjes import import_fietspaaltjes
@@ -21,7 +22,7 @@ sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 
 with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
-    tmp_dir = f"/tmp/{dag_id}"
+    tmp_dir = f"{SHARED_DIR}/{dag_id}"
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",

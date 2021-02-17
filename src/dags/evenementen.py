@@ -16,6 +16,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -32,7 +33,7 @@ dag_id = "evenementen"
 
 variables_evenementen = Variable.get("evenementen", deserialize_json=True)
 data_endpoint = variables_evenementen["data_endpoint"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 data_file = f"{tmp_dir}/evenementen.geojson"
 total_checks = []
 count_checks = []

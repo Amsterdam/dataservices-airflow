@@ -20,9 +20,9 @@ from common.db import DatabaseEngine
 
 from common import (
     default_args,
-    pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 
@@ -42,7 +42,7 @@ from importscripts.import_risicozones import (
 
 dag_id = "risicozones"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 files_to_merge = variables["files_to_merge"]
 files_to_union = variables["files_to_union"]

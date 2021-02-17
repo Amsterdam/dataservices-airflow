@@ -12,6 +12,7 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
     default_args,
     slack_webhook_token,
@@ -22,7 +23,7 @@ from sql.veiligeafstanden import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM, SQL_DRO
 dag_id = "veiligeafstanden"
 variables_bodem = Variable.get("veiligeafstanden", deserialize_json=True)
 files_to_download = variables_bodem["files_to_download"]
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 db_conn = DatabaseEngine()
 total_checks = []
 count_checks = []

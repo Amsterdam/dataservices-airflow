@@ -16,6 +16,7 @@ from common import (
     pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
     MessageOperator,
 )
 from postgres_check_operator import (
@@ -31,7 +32,7 @@ from sql.precariobelasting_add import (
 
 dag_id = "precariobelasting"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 data_endpoints = variables["data_endpoints"]
 data_endpoints = variables["temp_data"]
 metadataschema_endpoint = variables["metadataschema_endpoint"]

@@ -20,6 +20,8 @@ env = Env()
 slack_webhook_token = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
+SHARED_DIR = env("SHARED_DIR", "/tmp")
+
 
 class SlackFailsafeWebhookOperator(SlackWebhookOperator):
     def execute(self, context):
