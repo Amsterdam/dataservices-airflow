@@ -30,7 +30,7 @@ with DAG(
     )
 
     extract_zip = BashOperator(
-        task_id="extract_zip", bash_command="unzip -o {SHARED_DIR}/repo.zip -d {SHARED_DIR}"
+        task_id="extract_zip", bash_command=f"unzip -o {SHARED_DIR}/repo.zip -d {SHARED_DIR}"
     )
 
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {DAG_SYNC_PATH}")
