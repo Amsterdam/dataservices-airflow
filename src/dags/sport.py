@@ -20,6 +20,7 @@ from common import (
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
+    SHARED_DIR,
 )
 
 from postgres_check_operator import (
@@ -59,7 +60,7 @@ COMPOSITE_KEYS = {
 
 dag_id = "sport"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"/tmp/{dag_id}"
+tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 data_endpoints = variables["data_endpoints"]
 files_to_import = defaultdict(list)
