@@ -31,17 +31,21 @@ services:
         "postgresql://dataservices:insecure@dso_database:5432\
         /dataservices?cursor=dictcursor&"
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
-      AIRFLOW_CONN_ORACLE_DWH_STADSDELEN:
-        "oracle://oracle_user:insecure@localhost:1521/SID001?encoding=UTF-8&nencoding=UTF-8"
-      AIRFLOW_CONN_OBJECTSTORE_DATASERVICES: "s3://dataservices:${DATASERVICES_PASSWD}@\
+      AIRFLOW_CONN_ORACLE_DWH_STADSDELEN: "oracle://oracle_user:insecure@localhost:1521/SID001?encoding=UTF-8&nencoding=UTF-8"
+      AIRFLOW_CONN_OBJECTSTORE_DATASERVICES:
+        "s3://dataservices:${DATASERVICES_PASSWD}@\
         356c76835e424b968ed6d654c51204f0"
-      AIRFLOW_CONN_OBJECTSTORE_PARKEERVAKKEN: "s3://parkeervakken:${PARKEERVAKKEN_PASSWD}@\
+      AIRFLOW_CONN_OBJECTSTORE_PARKEERVAKKEN:
+        "s3://parkeervakken:${PARKEERVAKKEN_PASSWD}@\
         091e3bedc85447ef936e82bcda88fcac"
-      AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN: "postgresql://mensen:${mensen_password}\
+      AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN:
+        "postgresql://mensen:${mensen_password}\
         @dbwaarnemingen-postgres-read.service.consul:5432/mensen"
-      AIRFLOW_CONN_POSTGRES_BASISKAART: "postgresql://${db_basiskaart_user}:${db_basiskaart_password}@\
+      AIRFLOW_CONN_POSTGRES_BASISKAART:
+        "postgresql://${db_basiskaart_user}:${db_basiskaart_password}@\
         ${db_basiskaart_host}:${db_basiskaart_port}/${db_basiskaart_name}"
-      AIRFLOW_CONN_OBJECTSTORE_MILIEUTHEMAS: "s3://milieuthemas:${MILIEUTHEMAS_PASSWD}@\
+      AIRFLOW_CONN_OBJECTSTORE_MILIEUTHEMAS:
+        "s3://milieuthemas:${MILIEUTHEMAS_PASSWD}@\
         e063b706cffc4002883c28d531f0234f"
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
@@ -51,6 +55,9 @@ services:
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"
       AIRFLOW_CONN_RIVM_BASE_URL: "https://data.rivm.nl/covid-19/"
+      AIRFLOW_CONN_WIOR_PASSWD: ${dataservices_wior_passwd}
+      AIRFLOW_CONN_WIOR_USER: ${dataservices_wior_user}
+      AIRFLOW_CONN_WIOR_BASE_URL: "https://data-wior-amsterdam-acceptatie.webgis.nl"
       GOB_PUBLIC_ENDPOINT: "gob/public/graphql/streaming/"
       GOB_SECURE_ENDPOINT: "gob/graphql/streaming/"
       OAUTH_TOKEN_EXPIRES_MARGIN: 20
