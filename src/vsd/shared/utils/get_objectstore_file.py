@@ -36,5 +36,5 @@ if __name__ == "__main__":
     parser.add_argument("filename")
     parser.add_argument("-s", "--swift_connection")
     args = parser.parse_args()
-    tmpdir = os.getenv("SHARED_DIR", "/tmp/")
+    tmpdir = os.getenv("TMPDIR", "/tmp/")
     get_objectstore_file(args.filename, tmpdir, args.swift_connection)

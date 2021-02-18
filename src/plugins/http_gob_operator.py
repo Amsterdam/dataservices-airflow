@@ -19,8 +19,6 @@ from airflow.exceptions import AirflowException
 from schematools.importer.ndjson import NDJSONImporter
 from schematools.utils import schema_def_from_url
 
-from common import SHARED_DIR
-
 from http_params_hook import HttpParamsHook
 
 env = Env()
@@ -129,6 +127,7 @@ class HttpGobOperator(BaseOperator):
     def execute(self, context):  # NoQA
         # When doing 'airflow test' there is a context['params']
         # For full dag runs, there is dag_run["conf"]
+        from commom import SHARED_DIR
         dag_run = context["dag_run"]
         if dag_run is None:
             params = context["params"]
