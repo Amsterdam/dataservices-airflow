@@ -167,12 +167,12 @@ sport:
       sportaanbieder: dcatd/datasets/a6WW_Ay-oeY_dQ/purls/aT3gGdCZycJHjg
       gymsportzaal: dcatd/datasets/XtEra6am2lDbHg/purls/gL_MLa12hbigZA
       sporthal: dcatd/datasets/o-HEFxsOggSf8A/purls/bjpABHIt0g6IyQ
-    geojson_file:
+    geojson:
       hardlooproute: dcatd/datasets/IOWJ4z4vmfF8Hw/purls/1
       sportveld: dcatd/datasets/mdp9l38vc9omBQ/purls/2
       sportpark: dcatd/datasets/mdp9l38vc9omBQ/purls/5
   data_endpoints:
-    geojson_api:
+    geojson:
       openbaresportplek: open_geodata/geojson.php?KAARTLAAG=SPORT_OPENBAAR&THEMA=sport
 verzinkbarepalen:
   data_endpoints: open_geodata/geojson.php?KAARTLAAG=VIS_BFA&THEMA=vis

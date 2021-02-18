@@ -117,7 +117,7 @@ with DAG(
             s_srs="EPSG:3857",
             t_srs="EPSG:28992",
             geometry_name="geometrie",
-            ind_sql=False,
+            mode="PostgreSQL",
             db_conn=db_conn,
         )
         for table_name, data_file in files_to_download.items()
@@ -125,14 +125,13 @@ with DAG(
 
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
-            task_id="rename_columns",
-            dataset_name=dag_id,
-            prefix_table_name=f"{dag_id}_",
-            postfix_table_name="_new",
-            rename_indexes=False,
-            pg_schema="public",
-        )
-
+        task_id="rename_columns",
+        dataset_name=dag_id,
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema="public",
+    )
 
     # prepare the checks and added them per source to a dictionary
     for table_name, _ in files_to_download.items():
@@ -222,15 +221,13 @@ with DAG(
         download_data, create_tables, GEOJSON_to_DB
     ):
 
-        [
-            download_file >> create_table >> import_data
-        ] >> provenance_translation >> multi_checks
+        [download_file >> create_table >> import_data] >> provenance_translation >> multi_checks
 
-    for (check_data) in zip(multi_checks):
+    for check_data in zip(multi_checks):
 
         check_data >> Interface >> drop_unnecessary_cols
 
-    for (drop_cols) in zip(drop_unnecessary_cols):
+    for drop_cols in zip(drop_unnecessary_cols):
 
         drop_cols >> Interface2 >> change_data_capture
 
