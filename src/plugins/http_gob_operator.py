@@ -127,7 +127,7 @@ class HttpGobOperator(BaseOperator):
     def execute(self, context):  # NoQA
         # When doing 'airflow test' there is a context['params']
         # For full dag runs, there is dag_run["conf"]
-        from commom import SHARED_DIR
+        from common import SHARED_DIR
         dag_run = context["dag_run"]
         if dag_run is None:
             params = context["params"]
