@@ -1,8 +1,6 @@
 import pathlib
 import operator
 
-from swift_hook import SwiftHook
-
 from airflow.models import Variable
 from airflow import DAG
 
@@ -13,8 +11,6 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from airflow.operators.bash_operator import BashOperator
 from http_fetch_operator import HttpFetchOperator
 from postgres_files_operator import PostgresFilesOperator
-
-from airflow.operators.python_operator import PythonOperator
 
 
 from common import (
@@ -68,8 +64,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")    
-
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
     # 3. Download data
     fetch_json = HttpFetchOperator(
@@ -81,10 +76,11 @@ with DAG(
 
     # 4. Translate to geojson to SQL
     geojson_to_sql = Ogr2OgrOperator(
-        task_id=f"create_SQL",
+        task_id="create_SQL",
         target_table_name=f"{dag_id}_{dag_id}_new",
         sql_output_file=f"{tmp_dir}/{dag_id}_{dag_id}_new.sql",
         input_file=f"{tmp_dir}/{dag_id}.geojson",
+        mode="PGDump",
     )
 
     # 5. Import data into DB
@@ -105,7 +101,7 @@ with DAG(
     # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=50,
             params=dict(table_name=f"{dag_id}_{dag_id}_new "),
             result_checker=operator.ge,
@@ -114,7 +110,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id=f"geo_check",
+            check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
                 geotype=["POINT"],
@@ -126,9 +122,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 7. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(
-        task_id=f"multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
     # 8. Rename TABLE
     rename_table = PostgresTableRenameOperator(
@@ -152,7 +146,7 @@ with DAG(
 
 dag.doc_md = """
     #### DAG summery
-    This DAG containts data about retractable posts and other closing mechanisms 
+    This DAG containts data about retractable posts and other closing mechanisms
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
@@ -161,9 +155,9 @@ dag.doc_md = """
     Inform the businessowner at [businessowner]@amsterdam.nl
     #### Business Use Case / process / origin
     Na
-    #### Prerequisites/Dependencies/Resourcing  
+    #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/verzinkbarepalen.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/verzinkbarepalen.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=verzinkbarepalen/verzinkbarepalen&x=106434&y=488995&radius=10
 """

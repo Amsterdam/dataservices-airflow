@@ -6,18 +6,19 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
+from collections import defaultdict
+from common.db import DatabaseEngine
 from ogr2ogr_operator import Ogr2OgrOperator
 from http_fetch_operator import HttpFetchOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
 from typeahead_location_operator import TypeAHeadLocationOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 from common import (
     default_args,
-    pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
     MessageOperator,
 )
 
@@ -27,38 +28,61 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS
+from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
+from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_geojson  # noqa
+
+
+# business / source keys
+COMPOSITE_KEYS = {
+    "csv": "add_unique_id_to_csv",
+    "resources_csv": {
+        "zwembad": ("Naam", "Type"),
+        "sportaanbieder": (
+            "Sport",
+            "Naam",
+            "Naam accommodatie",
+            "Adres accommodatie",
+            "Stadsdeel",
+            "Website",
+        ),
+        "gymsportzaal": ("Naam", "Type"),
+        "sporthal": ("Naam", "Type"),
+    },
+    "geojson": "add_unique_id_to_geojson",
+    "resources_geojson": {
+        "hardlooproute": ("name",),
+        "sportveld": ("GUID",),
+        "sportpark": ("CODE",),
+        "openbaresportplek": ("id",),
+    },
+}
 
 dag_id = "sport"
 variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
+tmp_dir = f"/tmp/{dag_id}"
 files_to_download = variables["files_to_download"]
 data_endpoints = variables["data_endpoints"]
-files_to_SQL = {**files_to_download, **data_endpoints}
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
+files_to_import = defaultdict(list)
+db_conn = DatabaseEngine()
+total_checks: list = []
+count_checks: list = []
+geo_checks: list = []
+check_name: dict = {}
+
+
+# populate all resources to proces for unique id generation
+for resource_type, resources in files_to_download.items():
+    for resource in resources:
+        files_to_import[resource_type].append(resource)
+
+for resource_type, resources in data_endpoints.items():
+    for resource in resources:
+        files_to_import[resource_type].append(resource)
 
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
 def quote(instr):
     return f"'{instr}'"
-
-
-# remove carriage returns / newlines and double spaces in data
-def clean_data(file_name):
-    data = open(file_name, "r").read()
-    remove_returns = re.sub(r"[\n\r]", "", data)
-    remove_double_spaces = re.sub(r"[ ]{2,}", " ", remove_returns)
-    # TODO: contact data maintainer to ask for encoding schema for
-    # sportvelden specificly, other datasets can be correctly encoded.
-    # the unicode replacement karakter is translated to the EM DASH sign
-    # the source seems to have the replacement karakter in it without no
-    # possibity to transform it anymore
-    remove_unkown_karakter = re.sub("\uFFFD", "\u2014", remove_double_spaces)
-    with open(file_name, "w") as output:
-        output.write(remove_unkown_karakter)
 
 
 with DAG(
@@ -83,28 +107,28 @@ with DAG(
     # 3. download source 1: .csv or .geojson data from Objectstore
     download_data_obs = [
         HttpFetchOperator(
-            task_id=f"download_obs_{file_name}_{source_type}",
+            task_id=f"download_obs_{resource}_{resource_type}",
             endpoint=f"{url}",
             http_conn_id="api_data_amsterdam_conn_id",
-            tmp_file=f"{tmp_dir}/{file_name}.{re.sub('_.*', '', source_type)}",
+            tmp_file=f"{tmp_dir}/{resource}.{re.sub('_.*', '', resource_type)}",
             output_type="text",
             encoding_schema="UTF-8",
         )
-        for source_type, data in files_to_download.items()
-        for file_name, url in data.items()
+        for resource_type, resources in files_to_download.items()
+        for resource, url in resources.items()
     ]
 
     # 4. Download source 2: .geojson from Maps.amsterdam.nl
     download_data_maps = [
         HttpFetchOperator(
-            task_id=f"download_maps_{file_name}_{source_type}",
+            task_id=f"download_maps_{resource}_{resource_type}",
             endpoint=f"{url}",
             http_conn_id="ams_maps_conn_id",
-            tmp_file=f"{tmp_dir}/{file_name}.{re.sub('_.*', '', source_type)}",
+            tmp_file=f"{tmp_dir}/{resource}.{re.sub('_.*', '', resource_type)}",
             output_type="text",
         )
-        for source_type, data in data_endpoints.items()
-        for file_name, url in data.items()
+        for resource_type, resources in data_endpoints.items()
+        for resource, url in resources.items()
     ]
 
     # 5. Dummy operator acts as an Interface between parallel tasks
@@ -112,59 +136,57 @@ with DAG(
     # of lanes (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 6.create the SQL for creating the table using ORG2OGR PGDump
-    to_sql = [
-        Ogr2OgrOperator(
-            task_id=f"{source_type}_to_SQL_{file_name}",
-            target_table_name=f"{dag_id}_{file_name}_new",
-            sql_output_file=f"{tmp_dir}/{file_name}.sql",
-            input_file=f"{tmp_dir}/{file_name}.{re.sub('_.*', '', source_type)}",
-        )
-        for source_type, data in files_to_SQL.items()
-        for file_name in data.keys()
-    ]
-
-    # 7. Clean data from returns and spaces
-    cleanse_data = [
+    # 6. Create unique ID for all sets based on a resource value(s)
+    unique_id = [
         PythonOperator(
-            task_id=f"cleanse_{file_name}",
-            python_callable=clean_data,
-            op_args=[
-                f"{tmp_dir}/{file_name}.sql",
-            ],
+            task_id=f"add_id_{resource}",
+            python_callable=globals()[COMPOSITE_KEYS[resource_format]],
+            op_kwargs={
+                "file": f"{tmp_dir}/{resource}.{resource_format}",
+                "composite_key": COMPOSITE_KEYS[f"resources_{resource_format}"][resource],
+            },
         )
-        for _, data in files_to_SQL.items()
-        for file_name in data.keys()
+        for resource_format, resources in files_to_import.items()
+        for resource in resources
     ]
 
-    # 8. Load data into the table
-    load_tables = [
-        BashOperator(
-            task_id=f"load_table_{file_name}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{file_name}.sql",
+    # 7. convert geojson to csv
+    load_data = [
+        Ogr2OgrOperator(
+            task_id=f"import_{resource}",
+            target_table_name=f"{dag_id}_{resource}_new",
+            input_file=f"{tmp_dir}/{resource}.{resource_format}",
+            s_srs="EPSG:4326",
+            t_srs="EPSG:28992",
+            input_file_sep="SEMICOLON",
+            auto_dect_type="YES",
+            geometry_name="geometry",
+            mode="PostgreSQL",
+            fid="id",
+            db_conn=db_conn,
         )
-        for data in files_to_SQL.values()
-        for file_name in data.keys()
+        for resource_format, resources in files_to_import.items()
+        for resource in resources
     ]
 
-    # 9. Dummy operator acts as an Interface between parallel tasks
-    # to another parallel tasks (i.e. lists or tuples) with different
-    # number of lanes (without this intermediar, Airflow will give an error)
+    # 8. Dummy operator acts as an Interface between parallel tasks
+    # to another parallel tasks (i.e. lists or tuples) with different number
+    # of lanes (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
-    # 10. Add geometry column for tables
-    #    where source file (like the .csv files) has no geometry field, only x and y fields
+    # 9. Add geometry column for tables
+    # where source file (like the .csv files) has no geometry field, only x and y fields
     add_geom_col = [
         PostgresOperator(
-            task_id=f"add_geom_column_{file_name}",
+            task_id=f"add_geom_column_{resource}",
             sql=ADD_GEOMETRY_COL,
-            params=dict(tablename=f"{dag_id}_{file_name}"),
+            params=dict(tablename=f"{dag_id}_{resource}"),
         )
-        for file_name in files_to_download["csv"].keys()
+        for resource in files_to_download["csv"].keys()
     ]
 
-    # 11. RENAME columns based on PROVENANCE
-    provenance_translation = ProvenanceRenameOperator(
+    # 10. RENAME columns based on PROVENANCE
+    provenance_trans = ProvenanceRenameOperator(
         task_id="provenance_rename",
         dataset_name=f"{dag_id}",
         prefix_table_name=f"{dag_id}_",
@@ -173,27 +195,27 @@ with DAG(
         pg_schema="public",
     )
 
-    # 12. Look up geometry based on non-geometry data (i.e. address)
+    # 11. Look up geometry based on non-geometry data (i.e. address)
     lookup_geometry_typeahead = [
         TypeAHeadLocationOperator(
-            task_id=f"lookup_geometry_if_not_exists_{file_name}",
-            source_table=f"{dag_id}_{file_name}_new",
+            task_id=f"lookup_geometry_if_not_exists_{resource}",
+            source_table=f"{dag_id}_{resource}_new",
             source_location_column="adres",
             source_key_column="id",
             geometry_column="geometry",
         )
-        for file_name in files_to_download["csv"].keys()
+        for resource in files_to_download["csv"].keys()
     ]
 
-    # 13. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
-    delete_duplicate_rows = PostgresOperator(
+    # 12. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
+    del_dupl_rows = PostgresOperator(
         task_id="del_duplicate_rows",
         sql=DEL_ROWS,
     )
 
     # Prepare the checks and added them per source to a dictionary
-    for data in files_to_SQL.values():
-        for file_name in data.keys():
+    for resources in files_to_import.values():
+        for resource in resources:
 
             total_checks.clear()
             count_checks.clear()
@@ -201,18 +223,18 @@ with DAG(
 
             count_checks.append(
                 COUNT_CHECK.make_check(
-                    check_id=f"count_check_{file_name}",
+                    check_id=f"count_check_{resource}",
                     pass_value=2,
-                    params=dict(table_name=f"{dag_id}_{file_name}_new"),
+                    params=dict(table_name=f"{dag_id}_{resource}_new"),
                     result_checker=operator.ge,
                 )
             )
 
             geo_checks.append(
                 GEO_CHECK.make_check(
-                    check_id=f"geo_check_{file_name}",
+                    check_id=f"geo_check_{resource}",
                     params=dict(
-                        table_name=f"{dag_id}_{file_name}_new",
+                        table_name=f"{dag_id}_{resource}_new",
                         geotype=[
                             "POINT",
                             "POLYGON",
@@ -226,48 +248,76 @@ with DAG(
             )
 
             total_checks = count_checks + geo_checks
-            check_name[f"{file_name}"] = total_checks
+            check_name[f"{resource}"] = total_checks
 
-    # 14. Execute bundled checks on database
+    # 13. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
-            task_id=f"multi_check_{file_name}", checks=check_name[f"{file_name}"]
+            task_id=f"multi_check_{resource}", checks=check_name[f"{resource}"]
         )
-        for data in files_to_SQL.values()
-        for file_name in data.keys()
+        for resources in files_to_import.values()
+        for resource in resources
     ]
 
-    # 15. RENAME TABLES
-    rename_tables = [
-        PostgresTableRenameOperator(
-            task_id=f"rename_table_{file_name}",
-            old_table_name=f"{dag_id}_{file_name}_new",
-            new_table_name=f"{dag_id}_{file_name}",
+    # 14. Create the DB target table (as specified in the JSON data schema)
+    # if table not exists yet
+    create_tables = [
+        SqlAlchemyCreateObjectOperator(
+            task_id=f"create_{resource}_based_upon_schema",
+            data_schema_name=f"{dag_id}",
+            data_table_name=f"{dag_id}_{resource}",
+            ind_table=True,
+            # when set to false, it doesn't create indexes; only tables
+            ind_extra_index=False,
         )
-        for data in files_to_SQL.values()
-        for file_name in data.keys()
+        for resources in files_to_import.values()
+        for resource in resources
+    ]
+
+    # 15. Check for changes to merge in target table
+    change_data_capture = [
+        PgComparatorCDCOperator(
+            task_id=f"change_data_capture_{resource}",
+            source_table=f"{dag_id}_{resource}_new",
+            target_table=f"{dag_id}_{resource}",
+        )
+        for resources in files_to_import.values()
+        for resource in resources
+    ]
+
+    # 16. Clean up (remove temp table _new)
+    clean_up = [
+        PostgresOperator(
+            task_id=f"clean_up_{resource}",
+            sql=SQL_DROP_TMP_TABLE,
+            params=dict(tablename=f"{dag_id}_{resource}_new"),
+        )
+        for resources in files_to_import.values()
+        for resource in resources
     ]
 
     # FLOW. define flow with parallel executing of serial tasks for each file
     for data in download_data_obs:
 
-        data >> Interface >> to_sql
+        data >> Interface >> unique_id
 
     for data_maps in download_data_maps:
 
-        data_maps >> Interface >> to_sql
+        data_maps >> Interface >> unique_id
 
-    for (to_sql, cleanse_data, load_tables) in zip(to_sql, cleanse_data, load_tables):
+    for (create_id, import_data) in zip(unique_id, load_data):
 
-        to_sql >> cleanse_data >> load_tables >> Interface2 >> add_geom_col
+        [create_id >> import_data] >> Interface2 >> add_geom_col
 
-    for add_geometry, lookup_geometry in zip(add_geom_col, lookup_geometry_typeahead):
+    for (add_geom, lookup_geom) in zip(add_geom_col, lookup_geometry_typeahead):
 
-        add_geometry >> provenance_translation >> lookup_geometry >> delete_duplicate_rows >> multi_checks
+        add_geom >> provenance_trans >> lookup_geom >> del_dupl_rows >> multi_checks
 
-    for multi_checks, rename_tables in zip(multi_checks, rename_tables):
+    for (multi_check, create_table, check_changes, clean_up) in zip(
+        multi_checks, create_tables, change_data_capture, clean_up
+    ):
 
-        multi_checks >> rename_tables
+        [multi_check >> create_table >> check_changes >> clean_up]
 
     slack_at_start >> mk_tmp_dir >> download_data_obs
     slack_at_start >> mk_tmp_dir >> download_data_maps

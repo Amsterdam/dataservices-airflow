@@ -1,5 +1,4 @@
 import operator
-import re
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
@@ -7,10 +6,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from ogr2ogr_operator import Ogr2OgrOperator
-from http_fetch_operator import HttpFetchOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from typeahead_location_operator import TypeAHeadLocationOperator
 from swift_operator import SwiftOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -204,7 +200,7 @@ with DAG(
             geometry_name="geometrie",
             auto_detect_type="YES",
             fid="id",
-            ind_sql=False,
+            mode="PostgreSQL",
             db_conn=db_conn,
         )
         for key, files in files_to_download.items()

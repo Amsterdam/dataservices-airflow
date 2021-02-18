@@ -92,7 +92,7 @@ with DAG(
             input_file_sep="SEMICOLON",
             auto_dect_type="YES",
             geometry_name="geometrie",
-            ind_sql=False,
+            mode="PostgreSQL",
             db_conn=db_conn,
         )
         for key, file in files_to_download.items()

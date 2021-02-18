@@ -13,10 +13,10 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
 from common import (
-    DATAPUNT_ENVIRONMENT, 
+    DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
-    MessageOperator, 
-    default_args, 
+    MessageOperator,
+    default_args,
     slack_webhook_token,
 )
 from common.db import DatabaseEngine
@@ -26,7 +26,7 @@ dag_id = "schiphol"
 variables = Variable.get(dag_id, deserialize_json=True)
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
-tables_to_proces = [table for table in variables["files_to_download"] if table != 'themas']
+tables_to_proces = [table for table in variables["files_to_download"] if table != "themas"]
 db_conn = DatabaseEngine()
 total_checks = []
 count_checks = []
@@ -96,7 +96,7 @@ with DAG(
             geometry_name="geometrie",
             auto_detect_type="YES",
             fid="id",
-            ind_sql=False,
+            mode="PostgreSQL",
             db_conn=db_conn,
         )
         for key, file in files_to_download.items()
@@ -166,33 +166,33 @@ with DAG(
     # Prepare the checks and added them per source to a dictionary
     for key in tables_to_proces:
 
-            total_checks.clear()
-            count_checks.clear()
-            geo_checks.clear()
+        total_checks.clear()
+        count_checks.clear()
+        geo_checks.clear()
 
-            count_checks.append(
-                COUNT_CHECK.make_check(
-                    check_id=f"count_check_{key}",
-                    pass_value=1,
-                    params=dict(table_name=f"{dag_id}_{key}_new"),
-                    result_checker=operator.ge,
-                )
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{key}",
+                pass_value=1,
+                params=dict(table_name=f"{dag_id}_{key}_new"),
+                result_checker=operator.ge,
             )
+        )
 
-            geo_checks.append(
-                GEO_CHECK.make_check(
-                    check_id=f"geo_check_{key}",
-                    params=dict(
-                        table_name=f"{dag_id}_{key}_new",
-                        geotype=["MULTIPOLYGON"],
-                        geo_column="geometrie",
-                    ),
-                    pass_value=1,
-                )
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{key}",
+                params=dict(
+                    table_name=f"{dag_id}_{key}_new",
+                    geotype=["MULTIPOLYGON"],
+                    geo_column="geometrie",
+                ),
+                pass_value=1,
             )
+        )
 
-            total_checks = count_checks + geo_checks
-            check_name[f"{key}"] = total_checks
+        total_checks = count_checks + geo_checks
+        check_name[f"{key}"] = total_checks
 
     # 12. Execute bundled checks on database
     multi_checks = [
