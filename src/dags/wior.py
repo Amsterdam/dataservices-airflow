@@ -2,7 +2,6 @@ import operator
 import requests
 from requests.auth import HTTPBasicAuth
 import json
-import logging
 
 from airflow import DAG
 from airflow.models import Variable
@@ -11,13 +10,13 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
 from common.db import DatabaseEngine
-from environs import Env
 
 from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
+from more_ds.network.url import URL
 
 from common import (
     default_args,
@@ -25,6 +24,8 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    logger,
+    env,
 )
 
 from postgres_check_operator import (
@@ -46,18 +47,14 @@ variables = Variable.get(dag_id, deserialize_json=True)
 data_endpoint = variables["data_endpoints"]["wfs"]
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 data_file = f"{tmp_dir}/{dag_id}.geojson"
-env = Env()
 db_conn = DatabaseEngine()
 password = env("AIRFLOW_CONN_WIOR_PASSWD")
 user = env("AIRFLOW_CONN_WIOR_USER")
-base_url = env("AIRFLOW_CONN_WIOR_BASE_URL")
+base_url = URL(env("AIRFLOW_CONN_WIOR_BASE_URL"))
 total_checks = []
 count_checks = []
 geo_checks = []
 
-
-# define logger for output to console
-logger = logging.getLogger(__name__)
 
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
@@ -73,18 +70,19 @@ class DataSourceError(Exception):
 def get_data() -> None:
     """calling the data endpoint"""
     # get data
-    data_url = f"{base_url}/{data_endpoint}"
+    data_url = base_url / data_endpoint
     data_request = requests.get(data_url, auth=HTTPBasicAuth(user, password))
     # store data
     if data_request.status_code == 200:
         try:
             data = data_request.json()
-        except json.decoder.JSONDecodeError:
-            logger.error(f"Failed to convert request output to json for url {data_url}")
-            raise
+        except json.decoder.JSONDecodeError as jde:
+            logger.exception(f"Failed to convert request output to json for url {data_url}")
+            raise JSONDecodeError from jde
         with open(f"{data_file}", "w") as file:
             file.write(json.dumps(data))
     else:
+        logger.exception(f"Failed to call {data_url}")
         raise DataSourceError(f"HTTP status code: {data_request.status_code}")
 
 
@@ -149,7 +147,7 @@ with DAG(
         pg_schema="public",
     )
 
-    # 7. Convert geometry to multipolygon
+    # 7. Add primary key to temp table (for cdc check)
     add_pk = PostgresOperator(
         task_id="add_pk",
         sql=SQL_ADD_PK,
