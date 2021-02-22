@@ -1,3 +1,4 @@
+import logging
 from inspect import cleandoc
 import pendulum
 import re
@@ -16,6 +17,9 @@ from log_message_operator import LogMessageOperator
 from airflow.hooks.base_hook import BaseHook
 
 env = Env()
+
+# define logger for output to console
+logger = logging.getLogger(__name__)
 
 slack_webhook_token = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
