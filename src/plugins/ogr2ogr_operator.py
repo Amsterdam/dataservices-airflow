@@ -79,5 +79,4 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
 
         # execute cmd string
-        print("".join(ogr2ogr_cmd))
         subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)
