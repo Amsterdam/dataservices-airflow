@@ -41,7 +41,7 @@ airflow connections delete api_data_amsterdam_conn_id
 airflow connections add api_data_amsterdam_conn_id \
     --conn-host  https://api.data.amsterdam.nl  \
     --conn-type http
-    
+
 airflow connections delete schemas_data_amsterdam_conn_id
 airflow connections add schemas_data_amsterdam_conn_id \
     --conn-host  https://schemas.data.amsterdam.nl \
@@ -54,7 +54,7 @@ airflow connections add airflow_home_conn_id \
 
 airflow connections delete verlichting_conn_id
 airflow connections add verlichting_conn_id \
-    --conn-host https://asd2.techtek.eu \
+    --conn-host https://asd.techtek.eu \
     --conn-type http
 
 airflow connections delete taxi_waarnemingen_conn_id
