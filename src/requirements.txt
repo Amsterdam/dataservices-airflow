@@ -6,7 +6,7 @@
 #
 alembic==1.4.3
     # via apache-airflow
-amsterdam-schema-tools==0.16.6
+amsterdam-schema-tools==0.17.5
     # via -r requirements.in
 apache-airflow[crypto,postgres,sentry]==1.10.14
     # via -r requirements.in
@@ -229,7 +229,7 @@ marshmallow==2.21.0
     #   marshmallow-sqlalchemy
 mccabe==0.6.1
     # via flake8
-more-ds==0.0.2
+more-ds==0.0.3
     # via -r requirements.in
 msgpack==1.0.2
     # via oslo.serialization
@@ -389,6 +389,8 @@ shapely==1.7.0
     # via
     #   -r requirements.in
     #   amsterdam-schema-tools
+simple-singleton==1.1
+    # via amsterdam-schema-tools
 simplejson==3.17.0
     # via -r requirements.in
 six==1.15.0
