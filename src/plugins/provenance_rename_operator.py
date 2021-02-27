@@ -1,10 +1,10 @@
 from collections import defaultdict
-from os.path import realpath
 from environs import Env
 from airflow.models.baseoperator import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from schematools.utils import schema_def_from_url, to_snake_case
+from typing import List, Tuple, Dict, DefaultDict, Set, Union, Iterable, KeysView, Any
 
 env = Env()
 SCHEMA_URL = env("SCHEMA_URL")
@@ -14,33 +14,80 @@ class ProvenanceRenameOperator(BaseOperator):
     @apply_defaults
     def __init__(
         self,
-        dataset_name,
-        pg_schema="public",
-        postgres_conn_id="postgres_default",
-        rename_indexes=False,
-        prefix_table_name="",
-        postfix_table_name="",
-        *args,
-        **kwargs,
-    ):
+        dataset_name: str,
+        pg_schema: str = "public",
+        postgres_conn_id: str = "postgres_default",
+        rename_indexes: bool = False,
+        prefix_table_name: str = "",
+        postfix_table_name: str = "",
+        table_name: str = "",
+        *args: Any,
+        **kwargs: Dict,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self.postgres_conn_id = postgres_conn_id
-        self.dataset_name = dataset_name
-        self.pg_schema = pg_schema
-        self.rename_indexes = rename_indexes
-        # The table to enforce the provenance translations is defined by the table ID in the schema definition.
-        # If the provenance translations must be applied on a temp table name i.e. 'spoorlijnen_metro_new'
-        # then specify the prefix (i.e. spoorlijnen_) and postfix (i.e. _new) when calling this operator.
-        self.prefix_table_name = prefix_table_name
-        self.postfix_table_name = postfix_table_name
+        self.postgres_conn_id: str = postgres_conn_id
+        self.dataset_name: str = dataset_name
+        self.pg_schema: str = pg_schema
+        self.rename_indexes: bool = rename_indexes
+        # The table to enforce the provenance translations is defined by
+        # the table ID in the schema definition. If the provenance translations
+        # must be applied on a temp table name i.e. 'spoorlijnen_metro_new'. Then specify
+        # the prefix (i.e. spoorlijnen_) and postfix (i.e. _new) when calling this operator.
+        self.prefix_table_name: str = prefix_table_name
+        self.postfix_table_name: str = postfix_table_name
+        # set table name for getting provenance for specific table
+        self.table_name: str = table_name
 
-    def _snake_tablenames(self, tablenames):
+    def _snake_tablenames(self, tablenames: Iterable[Union[List[Any], KeysView[Any]]]) -> str:
+        """Translates tablenames to snake case
+
+        Args:
+            tablenames: list of table names of type string
+
+        Return:
+            tuple of snaked cased table names of type string
+
+        """
         return ", ".join((f"'{to_snake_case(tn)}'" for tn in tablenames))
 
-    def _get_existing_tables(self, pg_hook, tables, pg_schema="public"):
+    def _get_existing_tables(
+        self, pg_hook: PostgresHook, tables: List, pg_schema: str = "public"
+    ) -> Iterable[Union[Dict[str, Any], List[Any]]]:
+        """Looks up the table name in schema (provenance can contain the orginal (real) name)
+        and relates them to existing table in database
+
+        Args:
+            pg_hook: Postgres connection
+            tables: list of table names of type string
+            pg_schema: name of database schema where table are located
+
+        Return:
+            dictionary of tables as objects
+
+        """
+
         if not tables:
             return []
+
+        if self.table_name:
+            index = next(
+                (
+                    index
+                    for (index, tables) in enumerate(tables)
+                    if tables["id"] == self.table_name
+                ),
+                None,
+            )
+            try:
+                table = tables[index]
+            except TypeError:
+                pass
+            else:
+                tables = []
+                tables.append(table)
+
         table_lookup = {}
+
         for table in tables:
             real_tablename = table.get(
                 "provenance",
@@ -58,7 +105,20 @@ class ProvenanceRenameOperator(BaseOperator):
 
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
-    def _get_existing_columns(self, pg_hook, snaked_tablenames, pg_schema="public"):
+    def _get_existing_columns(
+        self, pg_hook: str, snaked_tablenames: Tuple, pg_schema: str = "public"
+    ) -> DefaultDict[Any, Set[Any]]:
+        """Looks up the column name of table in database
+
+        Args:
+            pg_hook: Postgres connection
+            snaked_tablenames: list of table names in snake case of type string
+            pg_schema: name of database schema where table are located
+
+        Return:
+            dictionary containg a set of table columns of type string
+
+        """
         snaked_tablenames_str = self._snake_tablenames(snaked_tablenames)
         rows = pg_hook.get_records(
             f"""
@@ -71,7 +131,20 @@ class ProvenanceRenameOperator(BaseOperator):
             table_columns[row["table_name"]].add(row["column_name"])
         return table_columns
 
-    def _get_existing_indexes(self, pg_hook, snaked_tablenames, pg_schema="public"):
+    def _get_existing_indexes(
+        self, pg_hook: str, snaked_tablenames: Tuple, pg_schema: str = "public"
+    ) -> DefaultDict[Any, List[Any]]:
+        """Looks up the index name of table in database
+
+        Args:
+            pg_hook: Postgres connection
+            snaked_tablenames: list of table names in snake case of type string
+            pg_schema: name of database schema where table are located
+
+        Return:
+            dictionary containg a set of table indexes of type string
+
+        """
 
         tables_query_str = "|".join(f"{tn}%" for tn in snaked_tablenames)
         rows = pg_hook.get_records(
@@ -86,9 +159,20 @@ class ProvenanceRenameOperator(BaseOperator):
             idx_per_table[row["tablename"]].append(row["indexname"])
         return idx_per_table
 
-    def execute(self, context=None):
+    def execute(self, context: None = None) -> None:  # NoQA C901
+        """translates table, column and index names based on provenance
+         specification in schema
+
+        Args:
+            context: When this operator is created the context parameter is used
+                to refer to get_template_context for more context as part of
+                inheritance of the BaseOperator. It is set to None in this case.
+
+        Executes:
+            SQL alter statements to change database table names, columns and or indexes
+
+        """
         dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
-        print(dataset)
         pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
         sqls = []
         existing_tables_lookup = self._get_existing_tables(
@@ -124,7 +208,8 @@ class ProvenanceRenameOperator(BaseOperator):
                     if "relation" in field:
                         snaked_field_name += "_id"
                     if provenance.lower() in existing_columns[snaked_tablename]:
-                        # quotes are applied on the provenance name in case the source uses a space in the name
+                        # quotes are applied on the provenance name in case the
+                        # source uses a space in the name
                         sqls.append(
                             f"""ALTER TABLE {self.pg_schema}.{snaked_tablename}
                                 RENAME COLUMN "{provenance}" TO {snaked_field_name}"""

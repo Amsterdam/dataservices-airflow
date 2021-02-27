@@ -13,6 +13,8 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.models.dagrun import DagRun
 from airflow.settings import Session
 
+from typing import Union, Dict, Any
+
 env = Env()
 
 # split is used to remove url params, if exists.
@@ -35,6 +37,7 @@ DAG_DATASET = {
     "horeca_": "horeca",
     "beschermde_": "beschermdestadsdorpsgezichten",
     "hoofdroutes_": "hoofdroutes",
+    "reclamebelasting": "belastingen",
 }
 
 
@@ -61,20 +64,20 @@ class PostgresPermissionsOperator(BaseOperator):
 
     def __init__(
         self,
-        batch_ind=False,
-        batch_timewindow="0:30",
-        dag_name=None,
-        db_conn=default_db_conn,
-        schema_url=default_schema_url,
-        db_schema="public",
-        profiles=None,
-        role="AUTO",
-        scope=None,
-        dry_run=False,
-        create_roles=True,
-        revoke=False,
-        *args,
-        **kwargs,
+        batch_ind: bool = False,
+        batch_timewindow: str = "0:30",
+        dag_name: Union[str, None] = None,
+        db_conn: str = default_db_conn,
+        schema_url: str = default_schema_url,
+        db_schema: str = "public",
+        profiles: Union[str, None] = None,
+        role: str = "AUTO",
+        scope: Union[str, None] = None,
+        dry_run: bool = False,
+        create_roles: bool = True,
+        revoke: bool = False,
+        *args: Any,
+        **kwargs: Dict,
     ):
         super().__init__(*args, **kwargs)
         self.batch_ind = batch_ind
@@ -90,9 +93,19 @@ class PostgresPermissionsOperator(BaseOperator):
         self.create_roles = create_roles
         self.revoke = revoke
 
-    def execute(self, context=None):  # noqa: C901
+    def execute(self, context: None = None) -> None:  # noqa: C901
         """Executes the 'apply_schema_and_profile_permissions' method
-        from schema-tools to set the database permissions on objects to roles"""
+        from schema-tools to set the database permissions on objects to roles
+
+        Args:
+            context: When this operator is created the context parameter is used
+                to refer to get_template_context for more context as part of
+                inheritance of the BaseOperator. It is set to None in this case.
+
+        Executes:
+            SQL grant statements on database tables to database roles
+
+        """
 
         # setup logger so output can be added to the Airflow logs
         logger = logging.getLogger(__name__)
