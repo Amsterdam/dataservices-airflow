@@ -11,8 +11,9 @@ parkeerzones:
     parkeerzones: act_RDW_3EXP_VERGUNNINGGEBIED.shp
     parkeerzones_uitzondering: act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
 reclamebelasting:
-  shp_file: Reclame_tariefgebieden.shp
-  zip_file: reclame-tarief-gebieden.zip
+  files_to_download:
+    shp_file: Reclame_tariefgebieden.shp
+    zip_file: reclame-tarief-gebieden.zip
 bekendmakingen:
   wfs_endpoint: wfs
   wfs_params:
