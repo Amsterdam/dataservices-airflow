@@ -71,16 +71,11 @@ class ProvenanceRenameOperator(BaseOperator):
 
         if self.table_name:
             index = next(
-                (
-                    index
-                    for (index, tables) in enumerate(tables)
-                    if tables["id"] == self.table_name
-                ),
-                None,
+                (index for (index, tables) in enumerate(tables) if tables["id"] == self.table_name)
             )
             try:
                 table = tables[index]
-            except TypeError:
+            except StopIteration:
                 pass
             else:
                 tables = []
@@ -106,7 +101,7 @@ class ProvenanceRenameOperator(BaseOperator):
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(
-        self, pg_hook: str, snaked_tablenames: Tuple, pg_schema: str = "public"
+        self, pg_hook: PostgresHook, snaked_tablenames: Tuple, pg_schema: str = "public"
     ) -> DefaultDict[Any, Set[Any]]:
         """Looks up the column name of table in database
 
@@ -132,7 +127,7 @@ class ProvenanceRenameOperator(BaseOperator):
         return table_columns
 
     def _get_existing_indexes(
-        self, pg_hook: str, snaked_tablenames: Tuple, pg_schema: str = "public"
+        self, pg_hook: PostgresHook, snaked_tablenames: Tuple, pg_schema: str = "public"
     ) -> DefaultDict[Any, List[Any]]:
         """Looks up the index name of table in database
 
