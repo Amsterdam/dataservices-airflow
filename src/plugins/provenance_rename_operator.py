@@ -4,14 +4,14 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from schematools.utils import schema_def_from_url, to_snake_case
-from typing import List, Tuple, Dict, DefaultDict, Set, Union, Iterable, KeysView, Any
+from typing import List, Dict, DefaultDict, Set, Union, Iterable, KeysView, Any
 
 env = Env()
 SCHEMA_URL = env("SCHEMA_URL")
 
 
 class ProvenanceRenameOperator(BaseOperator):
-    @apply_defaults
+    @apply_defaults  # type: ignore
     def __init__(
         self,
         dataset_name: str,
@@ -52,7 +52,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
     def _get_existing_tables(
         self, pg_hook: PostgresHook, tables: List, pg_schema: str = "public"
-    ) -> Iterable[Union[Dict[str, Any], List[Any]]]:
+    ) -> Dict[str, Any]:
         """Looks up the table name in schema (provenance can contain the orginal (real) name)
         and relates them to existing table in database
 
@@ -67,7 +67,7 @@ class ProvenanceRenameOperator(BaseOperator):
         """
 
         if not tables:
-            return []
+            return {}
 
         if self.table_name:
             index = next(
@@ -101,7 +101,7 @@ class ProvenanceRenameOperator(BaseOperator):
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(
-        self, pg_hook: PostgresHook, snaked_tablenames: Tuple, pg_schema: str = "public"
+        self, pg_hook: PostgresHook, snaked_tablenames: KeysView[Any], pg_schema: str = "public"
     ) -> DefaultDict[Any, Set[Any]]:
         """Looks up the column name of table in database
 
@@ -127,7 +127,7 @@ class ProvenanceRenameOperator(BaseOperator):
         return table_columns
 
     def _get_existing_indexes(
-        self, pg_hook: PostgresHook, snaked_tablenames: Tuple, pg_schema: str = "public"
+        self, pg_hook: PostgresHook, snaked_tablenames: KeysView[Any], pg_schema: str = "public"
     ) -> DefaultDict[Any, List[Any]]:
         """Looks up the index name of table in database
 
