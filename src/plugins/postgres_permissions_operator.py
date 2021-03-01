@@ -13,7 +13,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.models.dagrun import DagRun
 from airflow.settings import Session
 
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Optional
 
 env = Env()
 
@@ -93,7 +93,7 @@ class PostgresPermissionsOperator(BaseOperator):
         self.create_roles = create_roles
         self.revoke = revoke
 
-    def execute(self, context: None = None) -> None:  # noqa: C901
+    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:  # noqa: C901
         """Executes the 'apply_schema_and_profile_permissions' method
         from schema-tools to set the database permissions on objects to roles
 

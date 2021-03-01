@@ -107,7 +107,7 @@ with DAG(
         dataset_name=schema_name,
         prefix_table_name=f"{schema_name}_",
         postfix_table_name="_new",
-        table_name=table_name,
+        subset_tables=["".join(table_name)],
         rename_indexes=False,
         pg_schema="public",
     )

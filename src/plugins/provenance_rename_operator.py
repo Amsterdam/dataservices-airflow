@@ -4,7 +4,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from schematools.utils import schema_def_from_url, to_snake_case
-from typing import List, Dict, DefaultDict, Set, Union, Iterable, KeysView, Any
+from typing import List, Dict, Set, Iterable, Any, Optional
 
 env = Env()
 SCHEMA_URL = env("SCHEMA_URL")
@@ -20,7 +20,7 @@ class ProvenanceRenameOperator(BaseOperator):
         rename_indexes: bool = False,
         prefix_table_name: str = "",
         postfix_table_name: str = "",
-        table_name: str = "",
+        subset_tables: Optional[List] = None,
         *args: Any,
         **kwargs: Dict,
     ) -> None:
@@ -36,9 +36,9 @@ class ProvenanceRenameOperator(BaseOperator):
         self.prefix_table_name: str = prefix_table_name
         self.postfix_table_name: str = postfix_table_name
         # set table name for getting provenance for specific table
-        self.table_name: str = table_name
+        self.subset_tables: Optional[List] = subset_tables
 
-    def _snake_tablenames(self, tablenames: Iterable[Union[List[Any], KeysView[Any]]]) -> str:
+    def _snake_tablenames(self, tablenames: Iterable[str]) -> str:
         """Translates tablenames to snake case
 
         Args:
@@ -69,17 +69,8 @@ class ProvenanceRenameOperator(BaseOperator):
         if not tables:
             return {}
 
-        if self.table_name:
-            index = next(
-                (index for (index, tables) in enumerate(tables) if tables["id"] == self.table_name)
-            )
-            try:
-                table = tables[index]
-            except StopIteration:
-                pass
-            else:
-                tables = []
-                tables.append(table)
+        if self.subset_tables:
+            tables = [table for table in tables if table["id"] in self.subset_tables]
 
         table_lookup = {}
 
@@ -101,8 +92,8 @@ class ProvenanceRenameOperator(BaseOperator):
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(
-        self, pg_hook: PostgresHook, snaked_tablenames: KeysView[Any], pg_schema: str = "public"
-    ) -> DefaultDict[Any, Set[Any]]:
+        self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
+    ) -> Dict[str, Set[str]]:
         """Looks up the column name of table in database
 
         Args:
@@ -127,8 +118,8 @@ class ProvenanceRenameOperator(BaseOperator):
         return table_columns
 
     def _get_existing_indexes(
-        self, pg_hook: PostgresHook, snaked_tablenames: KeysView[Any], pg_schema: str = "public"
-    ) -> DefaultDict[Any, List[Any]]:
+        self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
+    ) -> Dict[str, Set[str]]:
         """Looks up the index name of table in database
 
         Args:
@@ -154,7 +145,7 @@ class ProvenanceRenameOperator(BaseOperator):
             idx_per_table[row["tablename"]].append(row["indexname"])
         return idx_per_table
 
-    def execute(self, context: None = None) -> None:  # NoQA C901
+    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:  # NoQA C901
         """translates table, column and index names based on provenance
          specification in schema
 
