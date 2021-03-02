@@ -38,6 +38,9 @@ services:
       AIRFLOW_CONN_OBJECTSTORE_PARKEERVAKKEN:
         "s3://parkeervakken:${PARKEERVAKKEN_PASSWD}@\
         091e3bedc85447ef936e82bcda88fcac"
+      AIRFLOW_CONN_OBJECTSTORE_PROCESSENVERBAALVERKIEZINGEN:
+        "s3://dataportaal_publicaties_verkiezingen:${PROCESSENVERBAALVERKIEZINGEN_PASSWD}@\
+        0855010431b44f9caec7803bce29def8"
       AIRFLOW_CONN_POSTGRES_DBWAARNEMINGEN:
         "postgresql://mensen:${mensen_password}\
         @dbwaarnemingen-postgres-read.service.consul:5432/mensen"
