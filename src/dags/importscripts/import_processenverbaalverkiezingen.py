@@ -52,12 +52,12 @@ class ObjectStoreListing:
 
         """
 
-        list_, dirs, files = [], [], []
         try:
             self.connection.cwd(_path)
         except Exception:
             return [], []
         else:
+            list_, dirs, files = [], [], []
             self.connection.retrlines("LIST", lambda x: list_.append(x.split()))
             for info in list_:
                 type, name = info[0], info[-1]
@@ -146,10 +146,9 @@ def save_data(
             )
             data_to_save.append(metadata)
 
-    header = Data.__annotations__.keys()
-    data = [row.values() for row in data_to_save]
+    fieldnames = Data.__annotations__.keys()
 
     with open(output_file, "w") as f:
-        write = csv.writer(f, dialect=csv.unix_dialect)
-        write.writerow(header)
-        write.writerows(data)
+        writer = csv.DictWriter(f, fieldnames=fieldnames, dialect=csv.unix_dialect)
+        writer.writeheader()
+        writer.writerows(data_to_save)
