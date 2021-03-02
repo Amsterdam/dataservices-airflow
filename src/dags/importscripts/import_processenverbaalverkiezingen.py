@@ -1,9 +1,7 @@
 import csv
-from dataclasses import dataclass
-import ftplib
 from more_ds.network.url import URL
-from os import path as ospath
-from typing import List, TypedDict, Tuple, Optional, Generator
+from typing import List, TypedDict, Iterable
+from swift_hook import SwiftHook
 
 
 class Data(TypedDict):
@@ -17,20 +15,12 @@ class Data(TypedDict):
     id: str
 
 
-@dataclass
-class ListElement:
-    """Datastructure for listing elements providing more context"""
-
-    relative_path: str
-    files: str
-
-
 class ObjectStoreListing:
     """This class is used for traversing a given folder base on a FTP
-    server (objectstore) using DFS (Depth-First search) algorithm.
+    server (objectstore) using BFS (Breadth-First search) algorithm.
     """
 
-    def __init__(self, connection: ftplib.FTP) -> None:
+    def __init__(self, connection: str) -> None:
         """Initialize
 
         Args:
@@ -39,65 +29,38 @@ class ObjectStoreListing:
         """
         self.connection = connection
 
-    def list_dirs_and_files(self, _path: str) -> Tuple[List[str], Optional[List[str]]]:
-        """Return files and directories within a path
-        So it can be used to identifiy if there is need for another directory scan
-        to locate files. Files already found can be used to get the URI.
+    def list_files(self, start_folder: str) -> Iterable[str]:
+        """Return all files within a path and its sub directories
 
         Args:
-            _path: The path for looking for files and directories (within the same path)
+            start_folder: The starting path for looking for files
 
-        Returns:
-            list of found dictories and files
+        Generates:
+            found files of type str
 
         """
 
         try:
-            self.connection.cwd(_path)
-        except Exception:
-            return [], []
+            swift_hook = SwiftHook(self.connection)
+        except Exception as err:
+            raise Exception from err
         else:
-            list_, dirs, files = [], [], []
-            self.connection.retrlines("LIST", lambda x: list_.append(x.split()))
-            for info in list_:
-                type, name = info[0], info[-1]
-                if type.startswith("d"):
-                    dirs.append(name)
-                else:
-                    files.append(name)
-            return dirs, files
+            files = []
+            list_ = swift_hook.list_container(start_folder)
+            for element in list_:
+                if "directory" not in element.get("content_type", None):
+                    files.append(element["name"])
 
-    def traverse_folder(self, path: str = "/") -> Generator:
-        """Recursive walk through directory tree, based on a BFS algorithm.
-        This function acts like an orchestrator for looking for files and dirs.
-
-        Args:
-            path: The path for looking for files and directories at the same level
-
-        Yields:
-            list of all files incl its path until all directories are depleted
-
-        """
-        dirs, files = self.list_dirs_and_files(path)
-        yield path, dirs, files
-        for name in dirs:
-            path = ospath.join(path, name)
-            yield from self.traverse_folder(path)
-            self.connection.cwd("..")
-            path = ospath.dirname(path)
+        yield from files
 
 
-def save_data(
-    startfolder: str, prefix_url: str, host: str, user: str, passwd: str, output_file: str
-) -> None:
+def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) -> None:
     """Save listing of data files to csv
 
     Args:
-        startfolder: The starting directory to start looking for files and directories
-        prefix_url: The protocol, subdomain and domain part of the URI to locate files
-        host: the hostname of the objectstore where files are located
-        user: the username that can access the objectstore
-        passwd: the password that is used to access the objectstore
+        start_folder: The starting directory to start looking for files in main and sub directories
+        base_url: The protocol, subdomain and domain part of the URI to locate files
+        conn_id: Hold the connection to the objectstore
         output_file: name of .csv file to save
 
     Executes:
@@ -111,40 +74,41 @@ def save_data(
 
     """
     data_to_save: List = []
-    connection = ftplib.FTP(host=host)
-    connection.login(user=user, passwd=passwd)
-    get_listing = ObjectStoreListing(connection)
+    get_listing = ObjectStoreListing(conn_id)
+    for file in get_listing.list_files(start_folder):
 
-    for data in get_listing.traverse_folder(startfolder):
-        resultlist = ListElement(relative_path=data[0], files=data[2])
+        volgnummer = file.split(".")[0]
+        documentnaam = file.split(".")[1]
+        stemlocatie = file.split(".")[2]
+        uri = URL(base_url) / start_folder / file
+        verkiezingsjaar = file.split("/")[0]
 
-        for file in resultlist.files:
-
-            volgnummer = file.split(".")[0]
-            documentnaam = file.split(".")[1]
-            stemlocatie = file.split(".")[2]
-            uri = URL(prefix_url) / resultlist.relative_path / file
-            verkiezingsjaar = resultlist.relative_path.split("/")[1]
-
-            try:
-                verkiezingsjaar_int = int(verkiezingsjaar)
-            except ValueError as err:
-                raise ValueError(
-                    f"""Verkiezingsjaar is not a number. Check the folder
-                name where the files 'processenverbaal' are located: {resultlist.relative_path}
+        try:
+            verkiezingsjaar_int = int(verkiezingsjaar)
+        except ValueError as err:
+            raise ValueError(
+                """Verkiezingsjaar is not a number. Check the folder
+                name where the files 'processenverbaal' are located.
                 The folder name must be set as YYYY as year of election.
                 """
-                ) from err
+            ) from err
 
-            metadata = Data(
-                verkiezingsjaar=verkiezingsjaar_int,
-                volgnummer=volgnummer,
-                uri=uri,
-                documentnaam=documentnaam,
-                stemlocatie=stemlocatie,
-                id=verkiezingsjaar + volgnummer,
-            )
-            data_to_save.append(metadata)
+        try:
+            volgnummer_split = volgnummer.rsplit("/", 1)[1]
+        except IndexError:
+            # no subdirectories, just get orignal content
+            volgnummer_split = volgnummer
+            pass
+
+        metadata = Data(
+            verkiezingsjaar=verkiezingsjaar_int,
+            volgnummer=volgnummer_split,
+            uri=uri,
+            documentnaam=documentnaam,
+            stemlocatie=stemlocatie,
+            id="".join([verkiezingsjaar, volgnummer_split]),
+        )
+        data_to_save.append(metadata)
 
     fieldnames = Data.__annotations__.keys()
 
