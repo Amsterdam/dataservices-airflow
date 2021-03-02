@@ -35,10 +35,8 @@ table_name: str = "processenverbaal"
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
 data_file: str = f"{SHARED_DIR}/{dag_id}/{dag_id}.csv"
 conn: dict = fetch_objectstore_credentials("OBJECTSTORE_PROCESSENVERBAALVERKIEZINGEN")
-user: str = conn["USER"]
-passwd: str = conn["PASSWORD"]
+conn_id: str = "OBJECTSTORE_PROCESSENVERBAALVERKIEZINGEN"
 tenant: str = conn["TENANT_ID"]
-host: str = URL("ftp.objectstore.eu")
 base_url = URL(f"https://{tenant}.objectstore.eu")
 db_conn: object = DatabaseEngine()
 count_checks: list = []
@@ -48,7 +46,7 @@ check_name: dict = {}
 with DAG(
     dag_id,
     default_args=default_args,
-    description=f"""{user}, {passwd} , {tenant}, {host}, {base_url},Processenverbaal publicaties verkiezingen (pdf's in objectstore).""",
+    description="Processenverbaal publicaties verkiezingen (pdf's in objectstore).",
     # every ten minutes the data is refreshed
     schedule_interval="*/10 * * * *",
 ) as dag:
@@ -70,12 +68,10 @@ with DAG(
         task_id="get_file_listing",
         python_callable=save_data,
         op_kwargs={
-            "startfolder": "/",
+            "start_folder": table_name,
             "output_file": data_file,
-            "host": host,
-            "user": f"{tenant}:{user}",
-            "passwd": passwd,
-            "prefix_url": base_url,
+            "conn_id": conn_id,
+            "base_url": base_url,
         },
     )
 
