@@ -48,7 +48,7 @@ check_name: dict = {}
 with DAG(
     dag_id,
     default_args=default_args,
-    description="""Processenverbaal publicaties verkiezingen (pdf's in objectstore).""",
+    description=f"""{user}, {passwd} , {tenant}, {host}, {base_url},Processenverbaal publicaties verkiezingen (pdf's in objectstore).""",
     # every ten minutes the data is refreshed
     schedule_interval="*/10 * * * *",
 ) as dag:
