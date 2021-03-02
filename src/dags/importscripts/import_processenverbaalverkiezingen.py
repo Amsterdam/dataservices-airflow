@@ -1,4 +1,5 @@
 import csv
+from dataclasses import dataclass
 import ftplib
 from more_ds.network.url import URL
 from os import path as ospath
@@ -16,7 +17,15 @@ class Data(TypedDict):
     id: str
 
 
-class FTPListing:
+@dataclass
+class ListElement:
+    """Datastructure for listing elements providing more context"""
+
+    relative_path: str
+    files: str
+
+
+class ObjectStoreListing:
     """This class is used for traversing a given folder base on a FTP
     server (objectstore) using BFS (Breadth-First search) algorithm.
     """
@@ -104,19 +113,31 @@ def save_data(
     data_to_save: List = []
     connection = ftplib.FTP(host=host)
     connection.login(user=user, passwd=passwd)
-    get_listing = FTPListing(connection)
+    get_listing = ObjectStoreListing(connection)
 
     for data in get_listing.traverse_folder(startfolder):
-        for file in data[2]:
+        resultlist = ListElement(relative_path=data[0], files=data[2])
 
-            verkiezingsjaar = data[0].split("/")[1]
+        for file in resultlist.files:
+
             volgnummer = file.split(".")[0]
-            uri = URL(prefix_url) / data[0] / file
             documentnaam = file.split(".")[1]
             stemlocatie = file.split(".")[2]
+            uri = URL(prefix_url) / resultlist.relative_path / file
+            verkiezingsjaar = resultlist.relative_path.split("/")[1]
+
+            try:
+                verkiezingsjaar_int = int(verkiezingsjaar)
+            except ValueError as err:
+                raise ValueError(
+                    f"""Verkiezingsjaar is not a number. Check the folder
+                name where the files 'processenverbaal' are located: {resultlist.relative_path}
+                The folder name must be set as YYYY as year of election.
+                """
+                ) from err
 
             metadata = Data(
-                verkiezingsjaar=verkiezingsjaar,
+                verkiezingsjaar=verkiezingsjaar_int,
                 volgnummer=volgnummer,
                 uri=uri,
                 documentnaam=documentnaam,
