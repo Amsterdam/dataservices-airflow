@@ -27,7 +27,7 @@ class ListElement:
 
 class ObjectStoreListing:
     """This class is used for traversing a given folder base on a FTP
-    server (objectstore) using BFS (Breadth-First search) algorithm.
+    server (objectstore) using DFS (Depth-First search) algorithm.
     """
 
     def __init__(self, connection: ftplib.FTP) -> None:
