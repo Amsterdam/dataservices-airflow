@@ -4,6 +4,7 @@ import pathlib
 import re
 import subprocess
 import dateutil.parser
+import operator
 import shapefile
 from airflow import DAG
 from airflow.exceptions import AirflowException
@@ -14,6 +15,11 @@ from airflow.operators.python_operator import PythonOperator
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
 from common import default_args, SHARED_DIR
+from postgres_check_operator import (
+    PostgresMultiCheckOperator,
+    COUNT_CHECK,
+)
+
 
 dag_id = "parkeervakken"
 postgres_conn_id = "parkeervakken_postgres"
@@ -285,6 +291,16 @@ with DAG(
         task_id="run_import_task", python_callable=run_imports, dag=dag,
     )
 
+    count_check = PostgresMultiCheckOperator(
+        task_id="count_check",
+        checks=[COUNT_CHECK.make_check(
+            check_id="non_zero_check",
+            pass_value=10,
+            params=dict(table_name=f"{dag_id}_{dag_id}_temp"),
+            result_checker=operator.ge,
+        )]
+    )
+
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLES,
@@ -297,6 +313,7 @@ with DAG(
     >> download_and_extract_nietfiscaal_zip
     >> create_temp_tables
     >> run_import_task
+    >> count_check
     >> rename_temp_tables
 )
 
