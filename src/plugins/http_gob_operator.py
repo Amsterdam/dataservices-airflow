@@ -1,23 +1,25 @@
 from datetime import datetime
 import json
-import shutil
 from pathlib import Path
+import shutil
 import time
+from typing import Any, Dict, Optional
 from environs import Env
 from tempfile import TemporaryDirectory
-from typing import Optional
 from urllib3.exceptions import ProtocolError
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from airflow.models import Variable
+from airflow.models import Variable, XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.hooks.http_hook import HttpHook
 from airflow.exceptions import AirflowException
+from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import schema_def_from_url, toCamelCase
+from schematools.utils import toCamelCase
+
 
 from http_params_hook import HttpParamsHook
 
@@ -38,14 +40,12 @@ class HttpGobOperator(BaseOperator):
     #     "headers",
     # ]
 
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         endpoint: str,
-        dataset: str,
-        table_name: str,
-        *args,
-        geojson_field: str = None,
+        *args: Any,
+        geojson_field: Optional[str] = None,
         lowercase: bool = False,
         flatten: bool = False,
         graphql_query_path: Path,
@@ -53,12 +53,12 @@ class HttpGobOperator(BaseOperator):
         max_records: Optional[int] = None,
         protected: bool = False,
         copy_bufsize: int = 16 * 1024 * 1024,
-        http_conn_id="http_default",
-        token_expires_margin=5,
-        **kwargs,
+        http_conn_id: str = "http_default",
+        token_expires_margin: int = 5,
+        xcom_table_info_task_ids: Optional[str] = None,
+        xcom_table_info_key: str = XCOM_RETURN_KEY,
+        **kwargs: Any,
     ) -> None:
-        self.dataset = dataset
-        self.table_name = table_name
         self.geojson = geojson_field
         self.graphql_query_path = graphql_query_path
         self.http_conn_id = http_conn_id
@@ -69,21 +69,22 @@ class HttpGobOperator(BaseOperator):
         self.protected = protected
         self.copy_bufsize = copy_bufsize
         self.token_expires_margin = token_expires_margin
-        self.db_table_name = f"{self.dataset}_{self.table_name}"
-        self.token_expires_time = None
-        self.access_token = None
+        self.xcom_table_info_task_ids = xcom_table_info_task_ids
+        self.xcom_table_info_key = xcom_table_info_key
+        self.token_expires_time: float = time.time()
+        self.access_token: Optional[str] = None
         super().__init__(*args, **kwargs)
 
-    def _fetch_params(self):
+    def _fetch_params(self, dataset_table_id: str) -> Dict[str, str]:
         params = {
             "condens": "node,edges,id",
-            "schema": self.db_table_name,
+            "schema": dataset_table_id,
         }
         if self.geojson is not None:
             params["geojson"] = self.geojson
         return params
 
-    def _fetch_headers(self, force_refresh=False):
+    def _fetch_headers(self, force_refresh: bool = False) -> Dict[str, str]:
         headers = {"Content-Type": "application/x-ndjson"}
         if not self.protected:
             return headers
@@ -115,7 +116,7 @@ class HttpGobOperator(BaseOperator):
         headers["Authorization"] = f"Bearer {self.access_token}"
         return headers
 
-    def add_batch_params_to_query(self, query, cursor_pos, batch_size):
+    def add_batch_params_to_query(self, query: str, cursor_pos: int, batch_size: int) -> str:
         # Simple approach, just string replacement
         # alternative would be to parse query with graphql-core lib, alter AST
         # and render query, seems overkill for now
@@ -124,10 +125,16 @@ class HttpGobOperator(BaseOperator):
             f"active: false, first: {batch_size}, after: {cursor_pos}",
         )
 
-    def execute(self, context):  # NoQA
+    def execute(self, context: Dict[str, Any]) -> None:  # NoQA
         # When doing 'airflow test' there is a context['params']
         # For full dag runs, there is dag_run["conf"]
         from common import SHARED_DIR
+
+        # Fetch the datset info, provided by the first operator
+        dataset_info = context["task_instance"].xcom_pull(
+            task_ids=self.xcom_table_info_task_ids, key=self.xcom_table_info_key
+        )
+        dataset_table_id = dataset_info.dataset_table_id
         dag_run = context["dag_run"]
         if dag_run is None:
             params = context["params"]
@@ -135,7 +142,9 @@ class HttpGobOperator(BaseOperator):
             params = dag_run.conf or {}
         self.log.debug("PARAMS: %s", params)
         max_records = params.get("max_records", self.max_records)
-        cursor_pos = params.get("cursor_pos", Variable.get(f"{self.db_table_name}.cursor_pos", 0))
+        cursor_pos = int(
+            params.get("cursor_pos", Variable.get(f"{dataset_table_id}.cursor_pos", 0))
+        )
         batch_size = params.get("batch_size", self.batch_size)
         with TemporaryDirectory(dir=SHARED_DIR) as temp_dir:
             tmp_file = Path(temp_dir) / "out.ndjson"
@@ -146,14 +155,15 @@ class HttpGobOperator(BaseOperator):
             # we know the schema, can be an input param (schema_def_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresHook()
-            schema_def = schema_def_from_url(SCHEMA_URL, self.dataset)
-            importer = NDJSONImporter(schema_def, pg_hook.get_sqlalchemy_engine(), logger=self.log)
+            importer = NDJSONImporter(
+                dataset_info.dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log
+            )
 
             # Here we enter the schema-world, so table_name needs to be camelized
             # Or, should this be done later in the chain?
             importer.generate_db_objects(
-                table_name=toCamelCase(self.table_name),
-                db_table_name=f"{self.db_table_name}_new",
+                table_name=toCamelCase(dataset_info.table_id),
+                db_table_name=f"{dataset_info.db_table_name}{TMP_TABLE_POSTFIX}",
                 ind_tables=True,
                 ind_extra_index=False,
             )
@@ -176,7 +186,7 @@ class HttpGobOperator(BaseOperator):
                         headers = self._fetch_headers(force_refresh=force_refresh_token)
                         response = http.run(
                             self.endpoint,
-                            self._fetch_params(),
+                            self._fetch_params(dataset_table_id),
                             json.dumps(
                                 dict(
                                     query=self.add_batch_params_to_query(
@@ -195,7 +205,7 @@ class HttpGobOperator(BaseOperator):
                         break
                 else:
                     # Save cursor_pos in a variable
-                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
+                    Variable.set(f"{dataset_table_id}.cursor_pos", cursor_pos)
                     raise AirflowException("All retries on GOB-API have failed.")
 
                 records_loaded += batch_size
@@ -220,9 +230,9 @@ class HttpGobOperator(BaseOperator):
                     # Save last imported file for further inspection
                     shutil.copy(
                         tmp_file,
-                        f"{SHARED_DIR}/{self.db_table_name}-{datetime.now().isoformat()}.ndjson",
+                        f"{SHARED_DIR}/{dataset_table_id}-{datetime.now().isoformat()}.ndjson",
                     )
-                    Variable.set(f"{self.db_table_name}.cursor_pos", cursor_pos)
+                    Variable.set(f"{dataset_table_id}.cursor_pos", cursor_pos)
                     raise AirflowException("A database error has occurred.") from e
 
                 self.log.info(
@@ -236,4 +246,4 @@ class HttpGobOperator(BaseOperator):
                 cursor_pos = last_record["cursor"]
 
         # On successfull completion, remove cursor_pos variable
-        Variable.delete(f"{self.db_table_name}.cursor_pos")
+        Variable.delete(f"{dataset_table_id}.cursor_pos")

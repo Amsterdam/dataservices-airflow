@@ -2,12 +2,13 @@ import itertools
 import operator
 from contextlib import closing
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import BaseOperator
+from airflow.models import BaseOperator, XCOM_RETURN_KEY
 from airflow.utils.decorators import apply_defaults
+from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 from psycopg2 import sql
 
 
@@ -27,7 +28,7 @@ class Statement:
     log_msg: str
 
 
-class PostgresTableCopyOperator(BaseOperator):
+class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
     """Copy table to another table, create target table structure if needed from source.
 
     The premise here is that the source table is a temporary table and the target table is the
@@ -46,8 +47,8 @@ class PostgresTableCopyOperator(BaseOperator):
     @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
-        source_table_name: str,
-        target_table_name: str,
+        source_table_name: Optional[str] = None,
+        target_table_name: Optional[str] = None,
         truncate_target: bool = True,
         copy_data: bool = True,
         drop_source: bool = True,
@@ -55,6 +56,9 @@ class PostgresTableCopyOperator(BaseOperator):
         postgres_conn_id: str = "postgres_default",
         database: Optional[str] = None,
         autocommit: bool = False,
+        xcom_task_ids: Optional[str] = None,
+        xcom_attr_assigner: Callable[[Any, Any], None] = lambda o, x: None,
+        xcom_key: str = XCOM_RETURN_KEY,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -70,6 +74,11 @@ class PostgresTableCopyOperator(BaseOperator):
             postgres_conn_id: The PostgreSQL connection id.
             database: Name of the databas to use (if different from database from connection id)
             autocommit: What to set the connection's autocommit setting to.
+            xcom_task_ids: The id of the task that is providing the xcom info.
+            xcom_attr_assigner: Callable tha can be provided to assign new values
+                to object attributes.
+            xcom_key: Key use to grab the xcom info, defaults to the airflow
+                default `return_value`.
             *args:
             **kwargs:
         """
@@ -83,6 +92,20 @@ class PostgresTableCopyOperator(BaseOperator):
         self.database = database
         self.autocommit = autocommit
 
+        self.xcom_task_ids = xcom_task_ids
+        self.xcom_attr_assigner = xcom_attr_assigner
+        self.xcom_key = xcom_key
+
+        # Some checks for valid values
+        assert (source_table_name is None) is (
+            target_table_name is None
+        ), "Source and target should be both None or both provided."
+
+        # Here we build on the previous assertion
+        assert bool(source_table_name) ^ (
+            xcom_task_ids is not None
+        ), "Either table names or xcom_task_ids should be provided."
+
         if not copy_data and drop_source:
             raise AirflowFailException(
                 "Configuration error: source data will not be copied, "
@@ -91,15 +114,20 @@ class PostgresTableCopyOperator(BaseOperator):
 
     def execute(self, context: Dict[str, Any]) -> None:  # noqa: C901
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
+
+        # Use the mixin class _assign to assign new values, if provided.
+        self._assign(context)
+
         with closing(hook.get_conn()) as conn:
             if hook.supports_autocommit:
                 self.log.debug("Setting autocommit to '%s'.", self.autocommit)
                 hook.set_autocommit(conn, self.autocommit)
 
-            # Start a list to hold copy information
-            table_copies: List[TableMapping] = [
-                TableMapping(source=self.source_table_name, target=self.target_table_name),
-            ]
+            if self.source_table_name is not None and self.target_table_name is not None:
+                # Start a list to hold copy information
+                table_copies: List[TableMapping] = [
+                    TableMapping(source=self.source_table_name, target=self.target_table_name),
+                ]
 
             # Find the cross-tables for n-m relations, we assume they have
             # a name that start with f"{source_table_name}_"

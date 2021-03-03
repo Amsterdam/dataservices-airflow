@@ -1,0 +1,35 @@
+{
+  hrMaatschappelijkeactiviteiten(active: false) {
+    edges {
+      node {
+        kvknummer
+        cursor
+        datumAanvangMaatschappelijkeActiviteit
+        datumEindeMaatschappelijkeActiviteit
+        registratieTijdstipMaatschappelijkeActiviteit
+        naam
+        heeftBezoekadres
+        heeftPostadres
+        communicatienummer
+        domeinnaam
+        emailAdres
+        nonMailing
+        incidenteelUitlenenArbeidskrachten
+        heeftHoofdvestiging
+        heeftSbiActiviteitenVoorMaatschappelijkeActiviteit
+        registratieTijdstipOnderneming
+        datumAanvangOnderneming
+        datumEindeOnderneming
+        isOverdrachtVoortzettingOnderneming
+        datumOverdrachtVoortzettingOnderneming
+        totaalWerkzamePersonen
+        voltijdWerkzamePersonen
+        deeltijdWerkzamePersonen
+        heeftSbiActiviteitenVoorOnderneming
+        wordtUitgeoefendInCommercieleVestiging
+        wordtUitgeoefendInNietCommercieleVestiging
+        handeltOnderHandelsnamen
+      }
+    }
+  }
+}
