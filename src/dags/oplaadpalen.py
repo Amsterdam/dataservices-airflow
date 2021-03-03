@@ -74,7 +74,7 @@ with DAG(
     )
 
     branch_task = BranchPythonOperator(
-        task_id="branch_task", provide_context=True, python_callable=choose_branch
+        task_id="branch_task", python_callable=choose_branch
     )
 
     update_oplaadpalen = PostgresOperator(

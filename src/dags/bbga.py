@@ -322,7 +322,6 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
     transform_csv_files = PythonOperator(
         task_id="transform_csv_files",
         python_callable=_transform_csv_files,
-        provide_context=True,  # Ensure we can use XCom to retrieve the previously created tmp dir
     )
 
     data = tuple(

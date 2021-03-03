@@ -8,7 +8,7 @@ from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
-from airflow.operators.check_operator import CheckOperator, ValueCheckOperator
+from airflow.operators.sql import SQLCheckOperator, SQLValueCheckOperator
 
 from check_helpers import check_safe_name, make_params
 
@@ -142,7 +142,7 @@ class PostgresMultiCheckOperator(BaseOperator):
         return PostgresHook(postgres_conn_id=self.postgres_conn_id)
 
 
-class PostgresCheckOperator(CheckOperator):
+class PostgresCheckOperator(SQLCheckOperator):
     """The output of a single query is compased against a row."""
 
     template_fields = ("sql",)
@@ -228,7 +228,7 @@ class PostgresGeometryTypeCheckOperator(PostgresCheckOperator):
         )
 
 
-class PostgresValueCheckOperator(ValueCheckOperator):
+class PostgresValueCheckOperator(SQLValueCheckOperator):
     """Performs a simple value check using sql code.
 
     :param sql: the sql to be executed

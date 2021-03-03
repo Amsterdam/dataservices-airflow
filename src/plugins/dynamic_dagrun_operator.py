@@ -12,14 +12,12 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
     def __init__(
         self,
         dag_id_prefix="",
-        python_callable=None,
         execution_date=None,
         *args,
         **kwargs,
     ):
         super().__init__(
             trigger_dag_id=None,
-            python_callable=None,
             execution_date=None,
             *args,
             **kwargs,

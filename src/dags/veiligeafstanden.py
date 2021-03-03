@@ -90,7 +90,7 @@ with DAG(
             s_srs="EPSG:3857",
             t_srs="EPSG:28992",
             input_file_sep="SEMICOLON",
-            auto_dect_type="YES",
+            auto_detect_type="YES",
             geometry_name="geometrie",
             mode="PostgreSQL",
             db_conn=db_conn,

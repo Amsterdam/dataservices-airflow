@@ -28,7 +28,6 @@ TMP_PATH = f"{SHARED_DIR}/{dag_id}/"
 
 
 args = default_args.copy()
-args["provide_context"] = True
 
 SQL_CREATE_TEMP_TABLE = """    
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;

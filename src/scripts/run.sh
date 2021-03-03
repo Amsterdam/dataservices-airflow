@@ -1,7 +1,8 @@
 #!/bin/bash
 export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN:-`echo $AIRFLOW_CONN_POSTGRES_DEFAULT | cut -d'?' -f 1`}
 export AIRFLOW_CONN_POSTGRES_VSD={$AIRFLOW_CONN_POSTGRES_VSD:-$AIRFLOW__CORE__SQL_ALCHEMY_CONN}
-airflow initdb  # initdb is not destructive, so can be re-run at startup
+airflow db init  # db init is not destructive, so can be re-run at startup
+airflow db upgrade  # upgrade DB if needed
 python scripts/mkvars.py
 
 # creating an admin and regular users (nessacary when using RABC=True in the airflow.cnf)

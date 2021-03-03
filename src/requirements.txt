@@ -11,17 +11,25 @@ amsterdam-schema-tools==0.17.5
 apache-airflow-providers-ftp==1.0.1
     # via apache-airflow
 apache-airflow-providers-http==1.1.0
-    # via apache-airflow
+    # via
+    #   apache-airflow
+    #   apache-airflow-providers-slack
 apache-airflow-providers-imap==1.0.1
     # via apache-airflow
+apache-airflow-providers-oracle==1.0.1
+    # via -r requirements.in
 apache-airflow-providers-postgres==1.0.1
     # via apache-airflow
+apache-airflow-providers-slack[http]==2.0.0
+    # via -r requirements.in
 apache-airflow-providers-sqlite==1.0.1
     # via apache-airflow
 apache-airflow[crypto,postgres,sentry]==2.0.1
     # via
     #   -r requirements.in
+    #   apache-airflow-providers-oracle
     #   apache-airflow-providers-postgres
+    #   apache-airflow-providers-slack
 apispec[yaml]==3.3.2
     # via flask-appbuilder
 argcomplete==1.12.2
@@ -87,7 +95,9 @@ croniter==0.3.37
 cryptography==3.4.6
     # via apache-airflow
 cx-oracle==7.3.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   apache-airflow-providers-oracle
 datapunt-config-loader==1.1.2
     # via datapunt-objectstore
 datapunt-objectstore==2019.4.8
@@ -301,7 +311,7 @@ pbr==5.5.1
     #   oslo.utils
     #   python-keystoneclient
     #   stevedore
-pendulum==2.0.0
+pendulum==2.1.0
     # via
     #   -r requirements.in
     #   apache-airflow
@@ -445,6 +455,8 @@ six==1.15.0
     #   sqlalchemy-utils
     #   tenacity
     #   websocket-client
+slack-sdk==3.4.1
+    # via apache-airflow-providers-slack
 sqlalchemy-jsonfield==1.0.0
     # via apache-airflow
 sqlalchemy-utils==0.36.8
