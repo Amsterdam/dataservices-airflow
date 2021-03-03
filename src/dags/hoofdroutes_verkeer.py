@@ -55,13 +55,12 @@ ROUTES = [
         "routes-gevaarlijke-stoffen",
         "https://api.data.amsterdam.nl/dcatd/datasets/ZtMOaEZSOnXM9w/purls/1",
         geometry_type="MultiLineString",
-        columns=["id", "geometry", "title", "type"],
+        columns=["id", "geometry", "type", "title"],
         post_process=[
             """
             UPDATE hoofdroutes_routes_gevaarlijke_stoffen_new
                 SET geometry = ST_CollectionExtract(ST_MakeValid("geometry"), 2)
                 WHERE NOT ST_IsValid("geometry")""",
-            "ALTER TABLE hoofdroutes_routes_gevaarlijke_stoffen_new ADD COLUMN id SERIAL PRIMARY KEY",
             """ALTER TABLE hoofdroutes_routes_gevaarlijke_stoffen_new ALTER COLUMN geometry TYPE
                 geometry(MultiLineString, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)""",
         ],
