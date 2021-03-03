@@ -1,6 +1,9 @@
+from dataclasses import dataclass
 import json
 import pathlib
+from typing import Any
 from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_table_init_operator import PostgresTableInitOperator
@@ -14,11 +17,14 @@ from common import (
     env,
 )
 from schematools import TMP_TABLE_POSTFIX
+from schematools.types import DatasetSchema
+from schematools.utils import schema_def_from_url
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
 GOB_PUBLIC_ENDPOINT = env("GOB_PUBLIC_ENDPOINT")
 GOB_SECURE_ENDPOINT = env("GOB_SECURE_ENDPOINT")
 OAUTH_TOKEN_EXPIRES_MARGIN = env.int("OAUTH_TOKEN_EXPIRES_MARGIN", 5)
+SCHEMA_URL = env("SCHEMA_URL")
 
 dag_id = "gob"
 owner = "gob"
@@ -26,10 +32,21 @@ owner = "gob"
 graphql_path = pathlib.Path(__file__).resolve().parents[0] / "graphql"
 
 
-def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
+@dataclass
+class DatasetInfo:
+    """Dataclass to provide canned infomation about the dataset for
+    other operators to work with."""
 
-    gob_db_table_name = f"{gob_dataset_name}_{gob_table_name}"
-    graphql_dir_path = graphql_path / f"{gob_dataset_name}-{gob_table_name}"
+    dataset: DatasetSchema
+    table_id: str
+    dataset_table_id: str
+    db_table_name: str
+
+
+def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DAG:
+
+    dataset_table_id = f"{gob_dataset_id}_{gob_table_id}"
+    graphql_dir_path = graphql_path / f"{gob_dataset_id}-{gob_table_id}"
     graphql_params_path = graphql_dir_path / "args.json"
     extra_kwargs = {}
     schedule_start_hour = 6
@@ -42,63 +59,94 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
                 extra_kwargs["endpoint"] = GOB_SECURE_ENDPOINT
 
     dag = DAG(
-        f"{dag_id}_{gob_db_table_name}",
+        f"{dag_id}_{dataset_table_id}",
         default_args={"owner": owner, **default_args},
         schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
         tags=["gob"],
     )
 
     kwargs = dict(
-        task_id=f"load_{gob_db_table_name}",
+        task_id=f"load_{dataset_table_id}",
         endpoint=GOB_PUBLIC_ENDPOINT,
-        dataset=gob_dataset_name,
-        table_name=gob_table_name,
         retries=3,
         graphql_query_path=graphql_dir_path / "query.graphql",
         max_records=MAX_RECORDS,
         http_conn_id="gob_graphql",
         token_expires_margin=OAUTH_TOKEN_EXPIRES_MARGIN,
+        xcom_table_info_task_ids=f"mkinfo_{dataset_table_id}",
     )
 
     with dag:
 
         # 1. Post info message on slack
         slack_at_start = MessageOperator(
-            task_id=f"slack_at_start_{gob_db_table_name}",
+            task_id=f"slack_at_start_{dataset_table_id}",
             http_conn_id="slack",
             webhook_token=slack_webhook_token,
             message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
             username="admin",
         )
 
-        # 2. drop temp table if exists
+        def _create_dataset_info(dataset_id: str, table_id: str) -> DatasetInfo:
+            dataset = schema_def_from_url(SCHEMA_URL, dataset_id)
+            # Fetch the db_name for this dataset and table
+            db_table_name = dataset.get_table_by_id(table_id).db_name()
+            # provide full qualified name, for convenience
+            dataset_table_id = f"{dataset_id}_{table_id}"
+            return DatasetInfo(dataset, table_id, dataset_table_id, db_table_name)
+
+        # 2. Create Dataset info to put on the xcom channel for later use
+        # by operators
+        create_dataset_info = PythonOperator(
+            task_id=f"mkinfo_{dataset_table_id}",
+            python_callable=_create_dataset_info,
+            op_args=(gob_dataset_id, gob_table_id),
+        )
+
+        def init_assigner(o: Any, x: Any) -> None:
+            o.table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"
+
+        # 3. drop temp table if exists
         init_table = PostgresTableInitOperator(
-            task_id=f"init_{gob_db_table_name}",
-            table_name=f"{gob_db_table_name}{TMP_TABLE_POSTFIX}",
+            task_id=f"init_{dataset_table_id}",
+            table_name=None,
+            xcom_task_ids=f"mkinfo_{dataset_table_id}",
+            xcom_attr_assigner=init_assigner,
             drop_table=True,
         )
 
-        # 3. load data into temp table
+        # 4. load data into temp table
         load_data = HttpGobOperator(**{**kwargs, **extra_kwargs})
 
-        # 4. truncate target table and insert data from temp table
+        def copy_assigner(o: Any, x: Any) -> None:
+            o.source_table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"
+            o.target_table_name = x.db_table_name
+
+        # 5. truncate target table and insert data from temp table
         copy_table = PostgresTableCopyOperator(
-            task_id=f"copy_{gob_db_table_name}",
-            source_table_name=f"{gob_db_table_name}{TMP_TABLE_POSTFIX}",
-            target_table_name=gob_db_table_name,
+            task_id=f"copy_{dataset_table_id}",
+            source_table_name=None,
+            target_table_name=None,
+            xcom_task_ids=f"mkinfo_{dataset_table_id}",
+            xcom_attr_assigner=copy_assigner,
         )
 
-        # 5. create an index on the identifier fields (as specified in the JSON data schema)
+        def index_assigner(o: Any, x: Any) -> None:
+            o.data_table_name = x.db_table_name
+
+        # 6. create an index on the identifier fields (as specified in the JSON data schema)
         create_extra_index = SqlAlchemyCreateObjectOperator(
-            task_id=f"create_extra_index_{gob_db_table_name}",
-            data_schema_name=kwargs.get("dataset", None),
-            data_table_name=f"{gob_db_table_name}",
+            task_id=f"create_extra_index_{dataset_table_id}",
+            data_schema_name=gob_dataset_id,
+            data_table_name=None,
             # when set to false, it doesn't create the tables; only the index
             ind_table=False,
             ind_extra_index=True,
+            xcom_task_ids=f"mkinfo_{dataset_table_id}",
+            xcom_attr_assigner=index_assigner,
         )
 
-        # 6. trigger next DAG (estafette / relay run)
+        # 7. trigger next DAG (estafette / relay run)
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag",
             dag_id_prefix="gob_",
@@ -108,6 +156,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
         # FLOW
         (
             slack_at_start
+            >> create_dataset_info
             >> init_table
             >> load_data
             >> copy_table
@@ -119,7 +168,7 @@ def create_gob_dag(is_first, gob_dataset_name, gob_table_name):
 
 
 for i, gob_gql_dir in enumerate(sorted(graphql_path.glob("*"))):
-    gob_dataset_name, gob_table_name = gob_gql_dir.parts[-1].split("-")
-    globals()[f"gob_{gob_dataset_name}_{gob_table_name}"] = create_gob_dag(
-        i == 0, gob_dataset_name, gob_table_name
+    gob_dataset_id, gob_table_id = gob_gql_dir.parts[-1].split("-")
+    globals()[f"gob_{gob_dataset_id}_{gob_table_id}"] = create_gob_dag(
+        i == 0, gob_dataset_id, gob_table_id
     )
