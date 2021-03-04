@@ -9,9 +9,18 @@ sql_checks = [
     (
         "columns",
         """
-    select count(column_name) from information_schema.columns where
-    table_schema = 'public' and table_name = 'corona_handhaving_new'
-    and column_name in ('id', 'organisatie', 'type_interventie', 'aantal', 'week_nummer')
+    select count(column_name)
+    from information_schema.columns
+    where table_schema = 'public'
+    and table_name = 'corona_handhaving_new'
+    and column_name in (
+        'id',
+        'organisatie',
+        'type_interventie',
+        'aantal',
+        'week_nummer',
+        'ois_week_nummer'
+    )
     """,
         assert_count_minimum(5),
     ),

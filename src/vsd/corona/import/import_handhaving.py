@@ -1,32 +1,54 @@
 import argparse
 import os
 import pandas as pd
+import sqlalchemy
 from sqlalchemy import Integer
 
 from common.db import get_engine
 import logging
 
-LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+LOGLEVEL: str = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
-log = logging.getLogger(__name__)
+log: logging.Logger = logging.getLogger(__name__)
 
 
-def strip(text):
-    """ removes leading and trailing whitespaces in data """
+def strip(text: str) -> str:
+    """removes leading and trailing whitespaces in data
+
+    Args:
+        text: Data cell value from csv file to strip
+
+    Returns:
+        whitespaces stripped value
+
+    """
     try:
         return text.strip()
     except AttributeError:
         return text
 
 
-def main():
-    parser = argparse.ArgumentParser()
+def main() -> None:
+    """Reads, converts and import csv data to table database
+
+    Executes:
+        SQL insert statement
+
+    """
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("input_csv", type=str, help="CSV file to process")
-    args = parser.parse_args()
-    df = pd.read_csv(
+    args: argparse.Namespace = parser.parse_args()
+    df: pd.DataFrame = pd.read_csv(
         args.input_csv,
         sep=";",
-        names=["organisatie", "type_interventie", "aantal", "week_nummer", "jaar"],
+        names=[
+            "organisatie",
+            "type_interventie",
+            "aantal",
+            "week_nummer",
+            "jaar",
+            "ois_week_nummer",
+        ],
         converters={
             "organisatie": strip,
             "type_interventie": strip,
@@ -34,11 +56,17 @@ def main():
         header=0,
     )
     df.index.name = "id"
-    engine = get_engine()
+    engine: sqlalchemy.engine.Engine = get_engine()
     df.to_sql(
         "corona_handhaving_new",
         engine,
-        dtype={"id": Integer(), "aantal": Integer(), "week_nummer": Integer(), "jaar": Integer()},
+        dtype={
+            "id": Integer(),
+            "aantal": Integer(),
+            "week_nummer": Integer(),
+            "jaar": Integer(),
+            "ois_week_nummer": Integer(),
+        },
     )
 
 
