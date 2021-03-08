@@ -27,7 +27,7 @@ from postgres_check_operator import (
 
 dag_id = "parkeerzones"
 variables = Variable.get(dag_id, deserialize_json=True)
-files_to_download = variables["files_to_download"]
+file_to_download = variables["files_to_download"]
 files_to_proces = variables["files_to_proces"]
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
@@ -85,23 +85,21 @@ with DAG(
     # 3. Download data
     download_data = [
         SwiftOperator(
-            task_id=f"download_file_{filename}",
+            task_id=f"download_file_{file_to_download}",
             # Default swift = Various Small Datasets objectstore
             # swift_conn_id="SWIFT_DEFAULT",
             container=f"{dag_id}",
-            object_id=f"{filename}",
-            output_path=f"{tmp_dir}/{filename}",
+            object_id=f"{file_to_download}",
+            output_path=f"{tmp_dir}/{file_to_download}",
         )
-        for filename in files_to_download
     ]
 
     # 3. Unzip
     extract_zip = [
         BashOperator(
             task_id="extract_zip_file",
-            bash_command=f'unzip -o "{tmp_dir}/{filename}" -d {tmp_dir}',
+            bash_command=f'unzip -o "{tmp_dir}/{file_to_download}" -d {tmp_dir}',
         )
-        for filename in files_to_download
     ]
 
     # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes

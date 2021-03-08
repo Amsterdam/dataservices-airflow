@@ -6,8 +6,7 @@ huishoudelijkafval:
     - afval_container
     - afval_cluster
 parkeerzones:
-  files_to_download:
-    - parkeerzones.zip
+  files_to_download: parkeerzones.zip
   files_to_proces:
     parkeerzones: act_RDW_3EXP_VERGUNNINGGEBIED.shp
     parkeerzones_uitzondering: act_RDW_3EXP_UITZ_VERGUNNINGGEBIED.shp
