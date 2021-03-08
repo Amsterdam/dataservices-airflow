@@ -85,22 +85,23 @@ with DAG(
     # 3. Download data
     download_data = [
         SwiftOperator(
-            task_id=f"download_file_{files_to_download}",
+            task_id=f"download_file_{filename}",
             # Default swift = Various Small Datasets objectstore
             # swift_conn_id="SWIFT_DEFAULT",
             container=f"{dag_id}",
-            object_id=f"{files_to_download}",
-            output_path=f"{tmp_dir}/{files_to_download}",
+            object_id=f"{filename}",
+            output_path=f"{tmp_dir}/{filename}",
         )
+        for filename in files_to_download
     ]
 
     # 3. Unzip
     extract_zip = [
         BashOperator(
             task_id="extract_zip_file",
-            bash_command=f'unzip -o "{tmp_dir}/{file}" -d {tmp_dir}',
+            bash_command=f'unzip -o "{tmp_dir}/{filename}" -d {tmp_dir}',
         )
-        for file in files_to_download
+        for filename in files_to_download
     ]
 
     # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
