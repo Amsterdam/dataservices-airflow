@@ -39,6 +39,8 @@ class PgComparatorCDCOperator(BaseOperator):
         key_column: Optional[str] = None,
         use_key: bool = False,
         db_conn_id: Optional[str] = None,
+        no_deletes: bool = False,
+        database_password: str = "DSO_DB_POSTGRES_PASSWORD",
         *args: Any,
         **kwargs: Any,
     ):
@@ -54,6 +56,11 @@ class PgComparatorCDCOperator(BaseOperator):
             use_key: Don't calculate a hash of the the primary key or alternate key, but use it
                 as-is (because it already is an integer)
             db_conn_id: Database URL (hence, not an Airflow connection_id, why?)
+            no_deletes: Skip deletes when set to True (only insert en update)
+            database_password: Name of environment variabele where the database password is stored.
+                It is used in the --env-pass and not in the db_connection attribute to
+                prevent displaying the password in plain sight in case of status and/or
+                error information when executing.
             *args:
             **kwargs:
         """
@@ -64,11 +71,15 @@ class PgComparatorCDCOperator(BaseOperator):
         self.key_column = key_column
         self.use_key = use_key
         self.db_conn_id = db_conn_id if db_conn_id else "AIRFLOW_CONN_POSTGRES_DEFAULT"
+        self.no_deletes = no_deletes
+        self.database_password = database_password
 
     def execute(self, context: Dict[str, Any]) -> None:
         env = Env()
         db_connection, _ = env(self.db_conn_id).split("?")
-        db_url = re.sub(r".*?(?=://)", "pgsql", db_connection, count=1)
+        db_pass = db_connection.split("@")[0].split(":")[2]
+        db_connection_remove_pass = db_connection.replace(":" + db_pass, "")
+        db_url = re.sub(r".*?(?=://)", "pgsql", db_connection_remove_pass, count=1)
 
         source_url = f"{db_url}/{self.source_table}"
         if self.key_column is not None:
@@ -88,12 +99,15 @@ class PgComparatorCDCOperator(BaseOperator):
             "--do-it",
             "--synchronize",
             "--max-ratio=2.0",
+            f"--env-pass={self.database_password}",
             f"--prefix={self.target_table}_cmp",
         ]
         if self.use_pg_copy:
             arguments.extend(["--pg-copy=128", "--no-async"])
         if self.use_key:
             arguments.append("--use-key")
+        if self.no_deletes:
+            arguments.append("--skip-deletes")
         arguments.extend([source_url, target_url])
         self.log.info("Executing: '%s'.", " ".join(arguments))
         result = subprocess.run(
