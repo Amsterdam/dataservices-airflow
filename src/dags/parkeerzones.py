@@ -85,14 +85,13 @@ with DAG(
     # 3. Download data
     download_data = [
         SwiftOperator(
-            task_id=f"download_file_{file}",
+            task_id=f"download_file_{files_to_download}",
             # Default swift = Various Small Datasets objectstore
             # swift_conn_id="SWIFT_DEFAULT",
             container=f"{dag_id}",
             object_id=f"{files_to_download}",
-            output_path=f"{tmp_dir}/{file}",
+            output_path=f"{tmp_dir}/{files_to_download}",
         )
-        for file in files_to_download
     ]
 
     # 3. Unzip
