@@ -5,7 +5,7 @@ MAINTAINER datapunt@amsterdam.nl
 # RUN apt-get update && apt-get install -y postgresql-comparator
 RUN apt-get update \
  && apt-get install --no-install-recommends -y rsync libaio1 supervisor \
- curl libcurl4 libdbd-pg-perl postgresql-server-dev-all postgresql-common
+ curl libcurl4 libdbd-pg-perl postgresql-server-dev-all postgresql-common libterm-readpassword-perl
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
