@@ -116,7 +116,7 @@ with DAG(
         input_file=f"{tmp_dir}/{dag_id}.geojson",
         s_srs="EPSG:28992",
         t_srs="EPSG:28992",
-        auto_dect_type="YES",
+        auto_detect_type="YES",
         geometry_name="geometry",
         fid="fid",
         mode="PostgreSQL",

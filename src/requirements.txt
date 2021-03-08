@@ -4,13 +4,33 @@
 #
 #    pip-compile --output-file=requirements.txt requirements.in
 #
-alembic==1.4.3
+alembic==1.5.5
     # via apache-airflow
 amsterdam-schema-tools==0.17.5
     # via -r requirements.in
-apache-airflow[crypto,postgres,sentry]==1.10.14
+apache-airflow-providers-ftp==1.0.1
+    # via apache-airflow
+apache-airflow-providers-http==1.1.0
+    # via
+    #   apache-airflow
+    #   apache-airflow-providers-slack
+apache-airflow-providers-imap==1.0.1
+    # via apache-airflow
+apache-airflow-providers-oracle==1.0.1
     # via -r requirements.in
-apispec[yaml]==1.3.3
+apache-airflow-providers-postgres==1.0.1
+    # via apache-airflow
+apache-airflow-providers-slack[http]==2.0.0
+    # via -r requirements.in
+apache-airflow-providers-sqlite==1.0.1
+    # via apache-airflow
+apache-airflow[crypto,postgres,sentry]==2.0.1
+    # via
+    #   -r requirements.in
+    #   apache-airflow-providers-oracle
+    #   apache-airflow-providers-postgres
+    #   apache-airflow-providers-slack
+apispec[yaml]==3.3.2
     # via flask-appbuilder
 argcomplete==1.12.2
     # via apache-airflow
@@ -30,7 +50,7 @@ blinker==1.4
     # via apache-airflow
 cached-property==1.5.2
     # via apache-airflow
-cachetools==4.2.0
+cachetools==4.2.1
     # via amsterdam-schema-tools
 cattrs==1.1.2
     # via
@@ -40,11 +60,11 @@ certifi==2020.12.5
     # via
     #   requests
     #   sentry-sdk
-cffi==1.14.4
+cffi==1.14.5
     # via
     #   bcrypt
     #   cryptography
-chardet==3.0.4
+chardet==4.0.0
     # via
     #   clevercsv
     #   requests
@@ -53,22 +73,31 @@ clevercsv==0.1.4
 click==7.1.2
     # via
     #   amsterdam-schema-tools
+    #   clickclick
     #   flask
     #   flask-appbuilder
     #   mappyfile
     #   yamlip
+clickclick==20.10.2
+    # via connexion
 colorama==0.4.4
-    # via flask-appbuilder
-colorlog==4.0.2
+    # via
+    #   flask-appbuilder
+    #   rich
+colorlog==4.7.2
     # via apache-airflow
-configparser==3.5.3
+commonmark==0.9.1
+    # via rich
+connexion[flask,swagger-ui]==2.7.0
     # via apache-airflow
 croniter==0.3.37
     # via apache-airflow
-cryptography==3.3.2
+cryptography==3.4.6
     # via apache-airflow
 cx-oracle==7.3.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   apache-airflow-providers-oracle
 datapunt-config-loader==1.1.2
     # via datapunt-objectstore
 datapunt-objectstore==2019.4.8
@@ -80,7 +109,7 @@ debtcollector==2.2.0
     #   python-keystoneclient
 decorator==4.4.2
     # via jsonpath-rw
-deepdiff==5.2.2
+deepdiff==5.2.3
     # via amsterdam-schema-tools
 defusedxml==0.6.0
     # via python3-openid
@@ -95,24 +124,20 @@ docutils==0.16
 dsnparse==0.1.15
     # via -r requirements.in
 email-validator==1.1.2
-    # via
-    #   apache-airflow
-    #   flask-appbuilder
+    # via flask-appbuilder
 entrypoints==0.3
     # via flake8
 environs==7.3.1
     # via -r requirements.in
 flake8==3.7.9
     # via -r requirements.in
-flask-admin==1.5.4
-    # via apache-airflow
-flask-appbuilder==2.3.4
+flask-appbuilder==3.1.1
     # via apache-airflow
 flask-babel==1.0.0
     # via flask-appbuilder
-flask-caching==1.3.3
+flask-caching==1.9.0
     # via apache-airflow
-flask-jwt-extended==3.25.0
+flask-jwt-extended==3.25.1
     # via flask-appbuilder
 flask-login==0.4.1
     # via
@@ -122,8 +147,6 @@ flask-openid==1.2.5
     # via flask-appbuilder
 flask-sqlalchemy==2.4.4
     # via flask-appbuilder
-flask-swagger==0.2.14
-    # via apache-airflow
 flask-wtf==0.14.3
     # via
     #   apache-airflow
@@ -131,7 +154,7 @@ flask-wtf==0.14.3
 flask==1.1.2
     # via
     #   apache-airflow
-    #   flask-admin
+    #   connexion
     #   flask-appbuilder
     #   flask-babel
     #   flask-bcrypt
@@ -140,14 +163,9 @@ flask==1.1.2
     #   flask-login
     #   flask-openid
     #   flask-sqlalchemy
-    #   flask-swagger
     #   flask-wtf
 flask_bcrypt==0.7.1
     # via -r requirements.in
-funcsigs==1.0.2
-    # via apache-airflow
-future==0.18.2
-    # via apache-airflow
 geoalchemy2==0.7.0
     # via
     #   -r requirements.in
@@ -156,7 +174,7 @@ geojson==2.5.0
     # via -r requirements.in
 graphviz==0.16
     # via apache-airflow
-gunicorn==20.0.4
+gunicorn==19.10.0
     # via apache-airflow
 idna==2.10
     # via
@@ -164,24 +182,28 @@ idna==2.10
     #   requests
 importlib-resources==1.5.0
     # via apache-airflow
-iso8601==0.1.13
+inflection==0.5.1
+    # via connexion
+iso8601==0.1.14
     # via
     #   apache-airflow
     #   keystoneauth1
     #   oslo.utils
+isodate==0.6.0
+    # via openapi-schema-validator
 itsdangerous==1.1.0
     # via
+    #   apache-airflow
     #   flask
     #   flask-wtf
-jinja2==2.11.2
+jinja2==2.11.3
     # via
     #   amsterdam-schema-tools
     #   apache-airflow
     #   flask
     #   flask-babel
     #   python-nvd3
-json-merge-patch==0.2
-    # via apache-airflow
+    #   swagger-ui-bundle
 jsonpath-rw==1.4.0
     # via amsterdam-schema-tools
 jsonpointer==2.0
@@ -192,40 +214,47 @@ jsonschema==3.2.0
     # via
     #   amsterdam-schema-tools
     #   apache-airflow
+    #   connexion
     #   datapunt-config-loader
     #   flask-appbuilder
     #   mappyfile
+    #   openapi-schema-validator
+    #   openapi-spec-validator
     #   validator-collection
-keystoneauth1==4.3.0
+keystoneauth1==4.3.1
     # via python-keystoneclient
-lark-parser==0.11.1
+lark-parser==0.11.2
     # via mappyfile
-lazy-object-proxy==1.4.3
+lazy-object-proxy==1.5.2
     # via apache-airflow
 lockfile==0.12.2
-    # via python-daemon
+    # via
+    #   apache-airflow
+    #   python-daemon
 mako==1.1.4
     # via alembic
 mappyfile==0.9.1
     # via amsterdam-schema-tools
-markdown==2.6.11
+markdown==3.3.4
     # via apache-airflow
 markupsafe==1.1.1
     # via
+    #   apache-airflow
     #   jinja2
     #   mako
     #   wtforms
 marshmallow-enum==1.5.1
     # via flask-appbuilder
+marshmallow-oneofschema==2.1.0
+    # via apache-airflow
 marshmallow-sqlalchemy==0.23.1
-    # via
-    #   apache-airflow
-    #   flask-appbuilder
-marshmallow==2.21.0
+    # via flask-appbuilder
+marshmallow==3.10.0
     # via
     #   environs
     #   flask-appbuilder
     #   marshmallow-enum
+    #   marshmallow-oneofschema
     #   marshmallow-sqlalchemy
 mccabe==0.6.1
     # via flake8
@@ -233,7 +262,7 @@ more-ds==0.0.3
     # via -r requirements.in
 msgpack==1.0.2
     # via oslo.serialization
-natsort==7.1.0
+natsort==7.1.1
     # via croniter
 ndjson==0.3.1
     # via amsterdam-schema-tools
@@ -243,8 +272,12 @@ netaddr==0.8.0
     #   oslo.utils
 netifaces==0.10.9
     # via oslo.utils
-numpy==1.19.5
+numpy==1.20.1
     # via pandas
+openapi-schema-validator==0.1.4
+    # via openapi-spec-validator
+openapi-spec-validator==0.3.0
+    # via connexion
 ordered-set==4.0.2
     # via deepdiff
 os-service-types==1.7.0
@@ -256,17 +289,15 @@ oslo.i18n==5.0.1
     #   oslo.config
     #   oslo.utils
     #   python-keystoneclient
-oslo.serialization==4.0.1
+oslo.serialization==4.1.0
     # via python-keystoneclient
-oslo.utils==4.7.0
+oslo.utils==4.8.0
     # via
     #   oslo.serialization
     #   python-keystoneclient
-packaging==20.8
-    # via
-    #   apache-airflow
-    #   oslo.utils
-pandas==1.2.0
+packaging==20.9
+    # via oslo.utils
+pandas==1.2.2
     # via
     #   apache-airflow
     #   clevercsv
@@ -280,7 +311,7 @@ pbr==5.5.1
     #   oslo.utils
     #   python-keystoneclient
     #   stevedore
-pendulum==1.4.4
+pendulum==2.1.0
     # via
     #   -r requirements.in
     #   apache-airflow
@@ -293,7 +324,9 @@ prison==0.1.3
 psutil==5.8.0
     # via apache-airflow
 psycopg2-binary==2.8.6
-    # via apache-airflow
+    # via
+    #   apache-airflow
+    #   apache-airflow-providers-postgres
 psycopg2==2.8.6
     # via amsterdam-schema-tools
 pycodestyle==2.5.0
@@ -302,10 +335,13 @@ pycparser==2.20
     # via cffi
 pyflakes==2.1.1
     # via flake8
-pygments==2.7.4
-    # via apache-airflow
+pygments==2.8.0
+    # via
+    #   apache-airflow
+    #   rich
 pyjwt==1.7.1
     # via
+    #   apache-airflow
     #   flask-appbuilder
     #   flask-jwt-extended
 pyparsing==2.4.7
@@ -316,7 +352,7 @@ pyrsistent==0.17.3
     # via jsonschema
 pyshp==2.1.0
     # via -r requirements.in
-python-daemon==2.2.4
+python-daemon==2.3.0
     # via apache-airflow
 python-dateutil==2.8.1
     # via
@@ -350,30 +386,34 @@ python-swiftclient==3.9.0
     #   -r requirements.in
     #   datapunt-objectstore
 python3-openid==3.2.0
-    # via flask-openid
-pytz==2020.5
+    # via
+    #   apache-airflow
+    #   flask-openid
+pytz==2021.1
     # via
     #   babel
     #   flask-babel
     #   oslo.serialization
     #   oslo.utils
     #   pandas
-    #   tzlocal
 pytzdata==2020.1
     # via pendulum
-pyyaml==5.3.1
+pyyaml==5.4.1
     # via
     #   apispec
+    #   clickclick
+    #   connexion
     #   datapunt-config-loader
-    #   flask-swagger
+    #   openapi-spec-validator
     #   oslo.config
     #   yamlip
 regex==2020.11.13
     # via clevercsv
-requests==2.23.0
+requests==2.25.1
     # via
     #   amsterdam-schema-tools
     #   apache-airflow
+    #   connexion
     #   docker
     #   keystoneauth1
     #   oslo.config
@@ -381,9 +421,11 @@ requests==2.23.0
     #   python-swiftclient
 rfc3986==1.4.0
     # via oslo.config
-sentry-sdk==0.19.5
+rich==9.2.0
     # via apache-airflow
-setproctitle==1.2.1
+sentry-sdk==0.20.3
+    # via apache-airflow
+setproctitle==1.2.2
     # via apache-airflow
 shapely==1.7.0
     # via
@@ -397,28 +439,29 @@ six==1.15.0
     # via
     #   attrdict
     #   bcrypt
-    #   cryptography
     #   debtcollector
     #   docker
     #   flask-jwt-extended
     #   jsonpath-rw
     #   jsonschema
     #   keystoneauth1
+    #   openapi-schema-validator
+    #   openapi-spec-validator
     #   oslo.i18n
-    #   oslo.utils
     #   prison
     #   python-dateutil
     #   python-keystoneclient
     #   python-swiftclient
     #   sqlalchemy-utils
     #   tenacity
-    #   thrift
     #   websocket-client
-sqlalchemy-jsonfield==0.9.0
+slack-sdk==3.4.1
+    # via apache-airflow-providers-slack
+sqlalchemy-jsonfield==1.0.0
     # via apache-airflow
 sqlalchemy-utils==0.36.8
     # via flask-appbuilder
-sqlalchemy==1.3.22
+sqlalchemy==1.3.23
     # via
     #   alembic
     #   apache-airflow
@@ -434,23 +477,23 @@ stevedore==3.3.0
     #   python-keystoneclient
 supervisor==4.1.0
     # via -r requirements.in
-tabulate==0.8.7
+swagger-ui-bundle==0.0.8
+    # via connexion
+tabulate==0.8.9
     # via apache-airflow
 tabview==1.4.4
     # via clevercsv
-tenacity==4.12.0
+tenacity==6.2.0
+    # via apache-airflow
+termcolor==1.1.0
     # via apache-airflow
 text-unidecode==1.3
     # via python-slugify
-thrift==0.13.0
-    # via apache-airflow
-tzlocal==1.5.1
-    # via
-    #   apache-airflow
-    #   pendulum
+typing-extensions==3.7.4.3
+    # via rich
 unicodecsv==0.14.1
     # via apache-airflow
-urllib3==1.25.11
+urllib3==1.26.3
     # via
     #   requests
     #   sentry-sdk
@@ -458,24 +501,19 @@ validator-collection==1.4.1
     # via -r requirements.in
 websocket-client==0.57.0
     # via docker
-werkzeug==0.16.1
+werkzeug==1.0.1
     # via
     #   apache-airflow
     #   flask
-    #   flask-caching
     #   flask-jwt-extended
 wrapt==1.12.1
     # via debtcollector
 wtforms==2.3.3
-    # via
-    #   flask-admin
-    #   flask-wtf
+    # via flask-wtf
 xlrd==1.2.0
     # via -r requirements.in
 yamlip==0.0.2
     # via -r requirements.in
-zope.deprecation==4.4.0
-    # via apache-airflow
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

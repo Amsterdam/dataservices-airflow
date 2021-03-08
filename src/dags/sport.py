@@ -160,7 +160,7 @@ with DAG(
             s_srs="EPSG:4326",
             t_srs="EPSG:28992",
             input_file_sep="SEMICOLON",
-            auto_dect_type="YES",
+            auto_detect_type="YES",
             geometry_name="geometry",
             mode="PostgreSQL",
             fid="id",

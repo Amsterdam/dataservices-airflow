@@ -145,7 +145,6 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
 
 
 args = default_args.copy()
-args["provide_context"] = True
 
 with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
     create_temp_tables = PostgresOperator(

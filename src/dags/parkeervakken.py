@@ -249,7 +249,6 @@ def run_imports(*args, **kwargs):
 
 
 args = default_args.copy()
-args["provide_context"] = True
 
 with DAG(
     dag_id,

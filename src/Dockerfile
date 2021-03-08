@@ -51,7 +51,6 @@ COPY --from=builder /usr/lib/postgresql/11/bin/pg_comparator /usr/bin/pg_compara
 # A working pip is needed to switch to a development version of the schematools package.
 RUN rm /usr/bin/lsb_release
 
-
 # Disable an expired root certificate (temporary solution)
 RUN sed -i '/^mozilla\/AddTrust_External_Root.crt/c\!mozilla\/AddTrust_External_Root.crt' /etc/ca-certificates.conf
 RUN update-ca-certificates
@@ -61,7 +60,6 @@ ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
 # Fix problem with env vars that prevents useage of 'airflow shell'
 # COPY patches/cli.py.patch /tmp/cli.py.patch
-# RUN patch -d/ -p0 < /tmp/cli.py.patch
 
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 COPY scripts/run.sh /run.sh
