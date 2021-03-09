@@ -139,6 +139,8 @@ overlastgebieden:
     barbecueverbod: BBQ
     rondleidingverbod: RLV
     algemeenoverlast: AOG
+    messenverbod: MVG
+    groepsfietsverbod: GFG
 milieuzones:
   files_to_download: [milieuzones.json]
   tables_to_create:
