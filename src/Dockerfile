@@ -10,7 +10,7 @@ COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
 WORKDIR /tmp
-RUN wget https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
+RUN wget -nv https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN unzip instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN cp -r  instantclient_19_6/* /usr/local/lib
 
