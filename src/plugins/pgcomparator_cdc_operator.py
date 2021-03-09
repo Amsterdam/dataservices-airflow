@@ -40,7 +40,6 @@ class PgComparatorCDCOperator(BaseOperator):
         use_key: bool = False,
         db_conn_id: Optional[str] = None,
         no_deletes: bool = False,
-        db_pass_env_var: str = "DSO_DB_POSTGRES_PASSWORD",
         *args: Any,
         **kwargs: Any,
     ):
@@ -57,11 +56,6 @@ class PgComparatorCDCOperator(BaseOperator):
                 as-is (because it already is an integer)
             db_conn_id: Database URL (hence, not an Airflow connection_id, why?)
             no_deletes: Skip deletes when set to True (only insert en update)
-            database_password: Name of environment variabele where the database password is stored.
-                It is used in the --env-pass and not in the db_connection attribute to prevent
-                displaying the password in plain sight in case of status and/or error information
-                when executing.
-                The pg_comparator demands an env var and no execution mode variable.
             *args:
             **kwargs:
         """
@@ -73,13 +67,13 @@ class PgComparatorCDCOperator(BaseOperator):
         self.use_key = use_key
         self.db_conn_id = db_conn_id if db_conn_id else "AIRFLOW_CONN_POSTGRES_DEFAULT"
         self.no_deletes = no_deletes
-        self.db_pass_env_var = db_pass_env_var
 
     def execute(self, context: Dict[str, Any]) -> None:
         env = Env()
         db_connection, _ = env(self.db_conn_id).split("?")
         scheme = dsnparse.parse(db_connection).scheme.replace("postgresql", "pgsql")
         username = dsnparse.parse(db_connection).username
+        password = dsnparse.parse(db_connection).password
         paths = "/".join(dsnparse.parse(db_connection).paths)
         hostloc = dsnparse.parse(db_connection).hostloc
         db_url = "".join([scheme, "://", username, "@", hostloc, "/", paths])
@@ -102,7 +96,7 @@ class PgComparatorCDCOperator(BaseOperator):
             "--do-it",
             "--synchronize",
             "--max-ratio=2.0",
-            f"--env-pass={self.db_pass_env_var}",
+            "--env-pass=db_pass_env_var",
             f"--prefix={self.target_table}_cmp",
         ]
         if self.use_pg_copy:
@@ -111,11 +105,8 @@ class PgComparatorCDCOperator(BaseOperator):
             arguments.append("--use-key")
         if self.no_deletes:
             arguments.append("--skip-deletes")
+        db_pass_env_var = {"db_pass_env_var": password}
         arguments.extend([source_url, target_url])
         self.log.info("Executing: '%s'.", " ".join(arguments))
-        result = subprocess.run(
-            arguments,
-            capture_output=True,
-            check=True,
-        )
+        result = subprocess.run(arguments, capture_output=True, check=True, env=db_pass_env_var)
         self.log.debug(result.stdout)
