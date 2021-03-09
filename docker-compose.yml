@@ -92,7 +92,6 @@ services:
       OIDC_CLIENT_SECRET: ${DATASERVICES_GOB_EXPORT_CLIENT_SECRET}
       AIRFLOW_LOG_CLEANUP__MAX_LOG_AGE_IN_DAYS: 90
       AIRFLOW_LOG_CLEANUP__ENABLE_DELETE_CHILD_LOG: "true"
-      DSO_DB_POSTGRES_PASSWORD: insecure
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins
