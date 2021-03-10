@@ -114,7 +114,16 @@ class HttpFetchOperator(BaseOperator):
         http = HttpHook(http_conn_id=self.http_conn_id, method="GET")
 
         self.log.info("Calling HTTP GET method on endpoint: '%s'.", self.endpoint)
-        response = http.run(self.endpoint, self.data, self.headers, extra_options={"stream": True})
+        extra_options = {"stream": True}
+
+        # Part of :fire: fix related to CA certificate usage.
+        #  Use correct certificatesm, because airflow HttpHook ignores them.
+        if "CURL_CA_BUNDLE" in os.environ:
+            extra_options["verify"] = os.environ.get("CURL_CA_BUNDLE")
+        if "REQUESTS_CA_BUNDLE" in os.environ:
+            extra_options["verify"] = os.environ.get("REQUESTS_CA_BUNDLE")
+
+        response = http.run(self.endpoint, self.data, self.headers, extra_options=extra_options)
         # set encoding schema explicitly if given
         if self.encoding_schema:
             response.encoding = self.encoding_schema
