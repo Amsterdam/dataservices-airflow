@@ -18,8 +18,7 @@ sql_checks = [
         'organisatie',
         'type_interventie',
         'aantal',
-        'week_nummer',
-        'ois_week_nummer'
+        'week_nummer'
     )
     """,
         assert_count_minimum(5),

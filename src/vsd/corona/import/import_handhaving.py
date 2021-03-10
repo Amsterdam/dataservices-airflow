@@ -34,6 +34,12 @@ def main() -> None:
     Executes:
         SQL insert statement
 
+    Notes:
+        Handhaving numbers for week 53, year 2021 must be
+        assigned to year 2021.
+        The column ois_week_number is not needed anymore
+        so it's dropped before proces.
+
     """
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("input_csv", type=str, help="CSV file to process")
@@ -56,6 +62,24 @@ def main() -> None:
         header=0,
     )
     df.index.name = "id"
+
+    df = df.drop(['ois_week_nummer'], axis = 1)
+
+    # list of conditions
+    conditions = [
+    (df['jaar'] == 2021) & (df['week_nummer'] == 53),
+    (1 == 1)
+    ]
+
+    # list of the values we want to assign for each condition
+    values = ['2020', df['jaar']]
+
+    # apply outcome to column 'jaar'
+    df['jaar'] = np.select(conditions, values)
+
+    # group by the dimension columns and sum up the numbers
+    df = df.groupby(['organisatie', 'type_interventie', 'week_nummer', 'jaar']).sum()
+
     engine: sqlalchemy.engine.Engine = get_engine()
     df.to_sql(
         "corona_handhaving_new",
@@ -64,8 +88,7 @@ def main() -> None:
             "id": Integer(),
             "aantal": Integer(),
             "week_nummer": Integer(),
-            "jaar": Integer(),
-            "ois_week_nummer": Integer(),
+            "jaar": Integer()
         },
     )
 
