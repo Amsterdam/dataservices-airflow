@@ -1,16 +1,35 @@
 import argparse
+import datetime
 import os
 import numpy as np
 import pandas as pd
 import sqlalchemy
 from sqlalchemy import Integer
-
 from common.db import get_engine
+from typing import Iterable
 import logging
 
 LOGLEVEL: str = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
 log: logging.Logger = logging.getLogger(__name__)
+
+
+def iter_valid_weeks(year: int) -> Iterable[int]:
+    """gives valid week in a year
+    Can be used to get max week number in a year
+
+    Args:
+        year: the year to use to test if week number exists
+
+    Yields:
+        a valid week number if found for that year
+    """
+    for week in range(55):
+        try:
+            datetime.date.fromisocalendar(year, week, 1)
+            yield week
+        except ValueError:
+            pass
 
 
 def strip(text: str) -> str:
@@ -64,33 +83,36 @@ def main() -> None:
     )
     df.index.name = "id"
 
-    df = df.drop(['ois_week_nummer'], axis = 1)
+    # loop trough all rows and calculate it's max iso week
+    for index, row in df.iterrows():
+        df.at[index, "max_week"] = max(iter_valid_weeks(row["jaar"]))
 
-    # list of conditions
-    conditions = [
-    (df['jaar'] == 2021) & (df['week_nummer'] == 53),
-    (1 == 1)
-    ]
-
-    # list of the values we want to assign for each condition
-    values = ['2020', df['jaar']]
+    # use max iso week to test if week_numer exceeds it
+    # in that case, the week belongs to the previous year
+    # according to iso weeks
+    conditions = [df["week_nummer"] > df["max_week"]]
+    # values for condition (== previous year)
+    values = [df["jaar"] - 1]
 
     # apply outcome to column 'jaar'
-    df['jaar'] = np.select(conditions, values)
+    df["jaar"] = np.select(conditions, values, default=df["jaar"])
+
+    # Remove unnecessary cols
+    # TODO: ask OOV to remove ois_week_nummer
+    # and ask OOV to set the correct year in the source
+    df = df.drop(["ois_week_nummer"], axis=1)
+    df = df.drop(["max_week"], axis=1)
 
     # group by the dimension columns and sum up the numbers
-    df = df.groupby(['organisatie', 'type_interventie', 'week_nummer', 'jaar']).sum()
+    df = df.groupby(
+        ["organisatie", "type_interventie", "week_nummer", "jaar"], as_index=False
+    ).sum()
 
     engine: sqlalchemy.engine.Engine = get_engine()
     df.to_sql(
         "corona_handhaving_new",
         engine,
-        dtype={
-            "id": Integer(),
-            "aantal": Integer(),
-            "week_nummer": Integer(),
-            "jaar": Integer()
-        },
+        dtype={"id": Integer(), "aantal": Integer(), "week_nummer": Integer(), "jaar": Integer()},
     )
 
 
