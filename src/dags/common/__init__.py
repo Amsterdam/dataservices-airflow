@@ -1,8 +1,10 @@
 import logging
 from inspect import cleandoc
+import os
 import pendulum
 import re
 import traceback
+from typing import Dict, Any, Optional, Union
 
 from datetime import timedelta, datetime
 from environs import Env
@@ -12,7 +14,8 @@ from airflow.exceptions import AirflowException
 from requests.exceptions import ConnectionError
 
 
-from airflow.contrib.operators.slack_webhook_operator import SlackWebhookOperator
+from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from log_message_operator import LogMessageOperator
 from airflow.hooks.base_hook import BaseHook
 
@@ -27,10 +30,47 @@ DATAPUNT_ENVIRONMENT = env("DATAPUNT_ENVIRONMENT", "acceptance")
 SHARED_DIR = env("SHARED_DIR", "/tmp")
 
 
+class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
+    """
+    THIS IS TEMPORARY PATCH. IF YOU SEE THIS AFTER MARCH 21 2021 PLEASE POKE NICK.
+
+    Patching default SlackWebhookHook in order to set correct Verify option,
+    needed for production use.
+    """
+    def run(
+        self,
+        endpoint: Optional[str],
+        data: Optional[Union[Dict[str, Any], str]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+        extra_options: Optional[Dict[str, Any]] = None,
+        **request_kwargs: Any,
+    ) -> Any:
+        if "verify" not in extra_options:
+            if "CURL_CA_BUNDLE" in os.environ:
+                extra_options["verify"] = os.environ.get("CURL_CA_BUNDLE")
+            if "REQUESTS_CA_BUNDLE" in os.environ:
+                extra_options["verify"] = os.environ.get("REQUESTS_CA_BUNDLE")
+
+        super().run(endpoint, data, headers, extra_options, **request_kwargs)
+
+
 class SlackFailsafeWebhookOperator(SlackWebhookOperator):
     def execute(self, context):
+        self.hook = MonkeyPatchedSlackWebhookHook(
+            self.http_conn_id,
+            self.webhook_token,
+            self.message,
+            self.attachments,
+            self.blocks,
+            self.channel,
+            self.username,
+            self.icon_emoji,
+            self.icon_url,
+            self.link_names,
+            self.proxy,
+        )
         try:
-            super().execute(context)
+            self.hook.execute()
         except (AirflowException, ConnectionError):
             self.log.warning("Unable to reach Slack!! Falling back to logger.")
             self.log.info(self.message)
