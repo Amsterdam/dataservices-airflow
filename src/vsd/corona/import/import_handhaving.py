@@ -81,8 +81,7 @@ def main() -> None:
         },
         header=0,
     )
-    df.index.name = "id"
-
+    
     # loop trough all rows and calculate it's max iso week
     for index, row in df.iterrows():
         df.at[index, "max_week"] = max(iter_valid_weeks(row["jaar"]))
@@ -107,6 +106,8 @@ def main() -> None:
     df = df.groupby(
         ["organisatie", "type_interventie", "week_nummer", "jaar"], as_index=False
     ).sum()
+    
+    df.index.name = "id"
 
     engine: sqlalchemy.engine.Engine = get_engine()
     df.to_sql(
