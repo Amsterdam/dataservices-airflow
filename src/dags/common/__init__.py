@@ -1,11 +1,10 @@
 import logging
 from inspect import cleandoc
 import pendulum
-from pendulum import Timezone
 import re
 import traceback
 
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from environs import Env
 from airflow.utils.dates import days_ago
 from airflow.exceptions import AirflowException
@@ -94,7 +93,7 @@ def slack_failed_task(context: Dict) -> Any:
 
 # set the local time zone, so the start_date DAG param can use it in its context
 # as stated in the Airflow docs, pendulum must be used to set the timezone
-amsterdam: Timezone = pendulum.timezone("Europe/Amsterdam")
+amsterdam: timezone = pendulum.timezone("Europe/Amsterdam")
 
 # set start_date to 'yesterday', and get the year, month and day as seperate integer values
 start_date_dag: str = str(days_ago(1))
