@@ -61,12 +61,20 @@ services:
       AIRFLOW_CONN_WIOR_PASSWD: ${dataservices_wior_passwd}
       AIRFLOW_CONN_WIOR_USER: ${dataservices_wior_user}
       AIRFLOW_CONN_WIOR_BASE_URL: "https://data-wior-amsterdam-acceptatie.webgis.nl"
+      AIRFLOW_CONN_FLEYX_BASE_URL: "https://data.felyx.com"
+      AIRFLOW_CONN_FLEYX_API_KEY: ${dataservices_fleyx_api_key}
+      AIRFLOW_CONN_RIDECHECK_BASE_URL: "https://api.ridecheck.app"
+      AIRFLOW_CONN_RIDECHECK_TOKEN_URL: "https://accounts.ridecheck.app/oauth2/token"
+      AIRFLOW_CONN_RIDECHECK_CLIENT_ID: ${dataservices_ridecheck_client_id}
+      AIRFLOW_CONN_RIDECHECK_CLIENT_SECRET: ${dataservices_ridecheck_client_secret}
+      AIRFLOW_CONN_MYWHEELS_BASE_URL: "https://mywheels.nl"
+      AIRFLOW_CONN_MYWHEELS_API_KEY: ${dataservices_mywheels_api_key}
       GOB_PUBLIC_ENDPOINT: "gob/public/graphql/streaming/"
       GOB_SECURE_ENDPOINT: "gob/graphql/streaming/"
       OAUTH_TOKEN_EXPIRES_MARGIN: 20
       FERNET_KEY: ${FERNET_KEY:-"YlCImzjge_TeZc7jPJ7Jz2pgOtb4yTssA1pVyqIADWg="}
       SECRET_KEY: ${SECRET_KEY:-"105398791e3fbc571de0f053f1e577ad92e257d321242405d31294594312"}
-      AIRFLOW_LOGGING_LEVEL: ${AIRFLOW_LOGGING_LEVEL:-WARN}
+      AIRFLOW_LOGGING_LEVEL: ${AIRFLOW_LOGGING_LEVEL:-INFO}
       AIRFLOW__WEBSERVER__BASE_URL: http://localhost:8080/
       DATAPUNT_ENVIRONMENT: development
       SLACK_WEBHOOK_HOST: https://hooks.slack.com/services

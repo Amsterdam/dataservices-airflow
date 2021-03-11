@@ -329,3 +329,11 @@ bbga:
 wior:
   data_endpoints:
     wfs: /ows?service=wfs&version=2.0.0&request=GetFeature&TYPENAMES=WIOR_AMS:sta_alg_ww_projecten&outputFormat=application/json
+deelmobiliteit:
+  scooters:
+    data_endpoints:
+      ridecheck: /scooters
+      fleyx: /gbfs/free_bike_status.json
+  autos:
+    data_endpoints:
+      mywheels: /api/
