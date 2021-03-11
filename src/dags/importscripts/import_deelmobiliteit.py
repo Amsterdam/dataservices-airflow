@@ -140,7 +140,6 @@ def get_data_ridecheck(
             f"{token_endpoint} something went wrong: {token_request.status_code}", e
         ) from e
     else:
-        print("*****************", token_request)
         token = token_request["access_token"]
 
     data_headers["Authorization"] = f"Bearer {token}"
