@@ -16,10 +16,10 @@ sql_checks = [
     and column_name in (
         'id',
         'organisatie',
-        'type_interventie',
-        'aantal',
+        'type_interventie',       
         'week_nummer',
-        'ois_week_nummer'
+        'jaar',
+        'aantal'
     )
     """,
         assert_count_minimum(5),

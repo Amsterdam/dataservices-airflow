@@ -10,6 +10,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from typing import Dict, List
 
 from common import (
     default_args,
@@ -25,35 +26,35 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-dag_id = "parkeerzones"
-variables = Variable.get(dag_id, deserialize_json=True)
-file_to_download = variables["files_to_download"]
-files_to_proces = variables["files_to_proces"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
+dag_id:str = "parkeerzones"
+variables:Dict = Variable.get(dag_id, deserialize_json=True)
+file_to_download:Dict = variables["files_to_download"]
+files_to_proces:Dict = variables["files_to_proces"]
+tmp_dir:str = f"{SHARED_DIR}/{dag_id}"
+sql_path:str = pathlib.Path(__file__).resolve().parents[0] / "sql"
+total_checks:List = []
+count_checks:List = []
+geo_checks:List = []
+check_name:Dict = {}
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
+def quote(instr: str) -> str:
     return f"'{instr}'"
 
 
 SQL_MAKE_VALID_GEOM = """
-    UPDATE {{ params.tablename }} SET geometry = st_makevalid(geometry) WHERE 1=1 AND ST_IsValid(geometry) is false; 
+    UPDATE {{ params.tablename }} SET geometry = st_makevalid(geometry) WHERE ST_IsValid(geometry) is false;
     COMMIT;
 """
 
 SQL_ADD_COLOR = """
-    ALTER TABLE parkeerzones_parkeerzones_new ADD COLUMN gebiedskleurcode VARCHAR(7);    
+    ALTER TABLE parkeerzones_parkeerzones_new ADD COLUMN gebiedskleurcode VARCHAR(7);
 """
 
 SQL_UPDATE_COLORS = """
     UPDATE parkeerzones_parkeerzones_new p SET gebiedskleurcode = pmc.color
     FROM parkeerzones_map_color pmc WHERE p.id = pmc.ogc_fid
-      AND p.gebiedscode = pmc.gebied_code;
+    AND p.gebiedscode = pmc.gebied_code;
     COMMIT;
     DROP TABLE parkeerzones_map_color;
 """
@@ -65,7 +66,7 @@ SQL_DELETE_UNUSED = """
 
 with DAG(
     dag_id,
-    description="parkeerzones met en zonder uitzonderingen",
+    description="parkeerzones met en zonder uitzonderingen.",
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
 ) as dag:
@@ -83,28 +84,21 @@ with DAG(
     mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {tmp_dir}")
 
     # 3. Download data
-    download_data = [
-        SwiftOperator(
-            task_id=f"download_file_{file_to_download}",
+    download_data = SwiftOperator(
+            task_id="download_file",
             # Default swift = Various Small Datasets objectstore
             # swift_conn_id="SWIFT_DEFAULT",
             container=f"{dag_id}",
             object_id=f"{file_to_download}",
             output_path=f"{tmp_dir}/{file_to_download}",
         )
-    ]
 
     # 3. Unzip
-    extract_zip = [
-        BashOperator(
+    extract_zip = BashOperator(
             task_id="extract_zip_file",
             bash_command=f'unzip -o "{tmp_dir}/{file_to_download}" -d {tmp_dir}',
         )
-    ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
 
     # 4.create the SQL for creating the table using ORG2OGR PGDump
     SHP_to_SQL = [
@@ -231,42 +225,37 @@ with DAG(
         for subject in files_to_proces.keys()
     ]
 
-    # FLOW. define flow with parallel executing of serial tasks for each file
-    for (
-        data,
-        extract_zip,
-        SHP_to_SQL,
-        convert_to_UTF8,
-        load_table,
-        revalidate_geometry_record,
-        multi_check,
-        delete_unused,
-        rename_table,
-    ) in zip(
-        download_data,
-        extract_zip,
-        SHP_to_SQL,
-        convert_to_UTF8,
-        load_tables,
-        revalidate_geometry_records,
-        multi_checks,
-        delete_unused,
-        rename_tables,
-    ):
+# FLOW. define flow with parallel executing of serial tasks for each file
+for (
+    shape_to_sql,
+    convert_to_UTF8,
+    load_table,
+    revalidate_geometry_record,
+    multi_check,
+    delete_unused,
+    rename_table,
+) in zip(
+    SHP_to_SQL,
+    convert_to_UTF8,
+    load_tables,
+    revalidate_geometry_records,
+    multi_checks,
+    delete_unused,
+    rename_tables,
+):
 
-        [data >> extract_zip] >> Interface >> SHP_to_SQL
 
-        [
-            SHP_to_SQL
-            >> convert_to_UTF8
-            >> load_table
-            >> revalidate_geometry_record
-            >> multi_check
-        ] >> provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unused
+    [
+        shape_to_sql
+        >> convert_to_UTF8
+        >> load_table
+        >> revalidate_geometry_record
+        >> multi_check
+    ]   >> provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unused
 
-        [delete_unused >> rename_table]
+    [delete_unused >> rename_table]
 
-    slack_at_start >> mk_tmp_dir >> download_data
+slack_at_start >> mk_tmp_dir >> download_data >> extract_zip >> SHP_to_SQL
 
 
 dag.doc_md = """
@@ -283,7 +272,7 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/parkeerzones.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/parkeerzones.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=parkeerzones/parkeerzones&x=111153&y=483288&radius=10
     https://api.data.amsterdam.nl/geosearch?datasets=parkeerzones/parkeerzones_uitzondering&x=111153&y=483288&radius=10
 """
