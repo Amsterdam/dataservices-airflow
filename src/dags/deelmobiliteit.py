@@ -17,6 +17,7 @@ from common import (
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
+    quote_string,
 )
 
 from postgres_check_operator import (
@@ -55,16 +56,11 @@ geo_checks: list = []
 check_name: dict = {}
 
 
-def quote(instr: str) -> str:
-    """needed to put quotes on elements in geotypes for SQL_CHECK_GEO"""
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     description=description,
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters=dict(quote=quote_string),
 ) as dag:
 
     # 1. Post message on slack

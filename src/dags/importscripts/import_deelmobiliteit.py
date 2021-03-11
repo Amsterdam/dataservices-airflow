@@ -6,6 +6,7 @@ from datetime import datetime, timezone, timedelta
 from dateutil import tz
 from geoalchemy2 import Geometry, WKTElement
 from hashlib import blake2s
+from itertools import chain
 from more_ds.network.url import URL
 from typing import Dict, Optional, List, Iterator
 from common.db import get_engine
@@ -63,7 +64,7 @@ class Scooter:
 
 
 def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scooter]:
-    """Retreives the data from resource FLEYX
+    """Retrieves the data from resource FLEYX
     Because each resource has it's own quirks when calling the API
     each resource has it's own get_data_* method.
 
@@ -84,7 +85,6 @@ def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
         ) from e
     else:
         data = json.loads(request.text)["data"]["bikes"]
-        rows = []
         for row in data:
             current_time = (
                 datetime.now(timezone.utc).astimezone(to_zone).strftime("%Y-%m-%d %H:%M:%S")
@@ -98,9 +98,7 @@ def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
                 status_beschikbaar=row["is_reserved"],
                 exploitant="fleyx",
             )
-            rows.append(scooter_object)
-
-        yield from rows
+            yield scooter_object
 
 
 def get_data_ridecheck(
@@ -110,7 +108,7 @@ def get_data_ridecheck(
     data_endpoint: str,
     data_headers: Dict,
 ) -> Iterator[Scooter]:
-    """Retreives the data from resource RIDECHECK
+    """Retrieves the data from resource RIDECHECK
     Because each resource has it's own quirks when calling the API
     each resource has it's own get_data_* method.
 
@@ -154,7 +152,6 @@ def get_data_ridecheck(
         ) from e
     else:
         data_object = json.loads(data_request.text)
-        rows = []
         for row in data_object:
             if row["city_name"] == "Amsterdam":
                 current_time = (
@@ -177,9 +174,7 @@ def get_data_ridecheck(
                     tarief_gebruik=row["driving_fee"],
                     tarief_parkeren=row["parking_fee"],
                 )
-                rows.append(scooter_object)
-
-        yield from rows
+                yield scooter_object
 
 
 def import_scooter_data(
@@ -220,7 +215,7 @@ def import_scooter_data(
         ridecheck_data_header,
     )
     fleyx = get_data_scooter_fleyx(fleyx_api_endpoint, fleyx_api_header)
-    scooter_dataset = [row for row in ridecheck] + [row for row in fleyx]
+    scooter_dataset = chain([row for row in ridecheck], [row for row in fleyx])
 
     df = pd.DataFrame([vars(row) for row in scooter_dataset])
     df["geometrie"] = df["geometrie"].apply(lambda g: WKTElement(g.wkt, srid=4326))
@@ -273,7 +268,7 @@ class Auto:
 
 
 def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -> Iterator[Auto]:
-    """Retreives the data from resource MYWHEELS
+    """Retrieves the data from resource MYWHEELS
     Because each resource has it's own quirks when calling the API
     each resource has it's own get_data_* method.
 
@@ -311,7 +306,6 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
         ) from e
     else:
         data = json.loads(request.text)["result"]["results"]
-        rows = []
         for row in data:
             availability = row["availability"]
             row = row["resource"]
@@ -337,7 +331,7 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
                     merk=row["brand"],
                     model=row["model"],
                     kleur=row["color"],
-                    opmerking=row["advertisement"],
+                    opmerking=json.loads(row["advertisement"]).get("info", None),
                     brandstof_type=row["fuelType"],
                     brandstof_niveau=row["fuelLevel"],
                     bereik=row["fuelRange"],
@@ -349,11 +343,11 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
                     tarief_gebruik_kilometer=row["price"]["kilometerRate"],
                     tarief_gebruik_dag=row["price"]["dayRateTotal"],
                     afbeelding=URL(api_endpoint.split("api")[0])
-                    / row.get("pictures", [{}])[0].get("large", None),
+                    / row.get("pictures")[0].get("large", None)
+                    if row.get("pictures")
+                    else None,
                 )
-                rows.append(auto_object)
-
-        yield from rows
+                yield auto_object
 
 
 def import_auto_data(
