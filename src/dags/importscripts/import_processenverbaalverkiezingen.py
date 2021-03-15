@@ -76,43 +76,44 @@ def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) 
     data_to_save: List = []
     get_listing = ObjectStoreListing(conn_id)
     for file in get_listing.list_files(start_folder):
+        if 'pdf' in file:
 
-        volgnummer = file.split(".")[0]
-        documentnaam = file.split(".")[1]
-        stemlocatie = file.split(".")[2]
-        uri = URL(base_url) / start_folder / file
-        verkiezingsjaar = file.split("/")[0]
+            volgnummer = file.split(".")[0]
+            documentnaam = file.split(".")[1]
+            stemlocatie = file.split(".")[2]
+            uri = URL(base_url) / start_folder / file
+            verkiezingsjaar = file.split("/")[0]
 
-        try:
-            verkiezingsjaar_int = int(verkiezingsjaar)
-        except ValueError as err:
-            raise ValueError(
-                """Verkiezingsjaar is not a number. Check the folder
-                name where the files 'processenverbaal' are located.
-                The folder name must be set as YYYY as year of election.
-                """
-            ) from err
+            try:
+                verkiezingsjaar_int = int(verkiezingsjaar)
+            except ValueError as err:
+                raise ValueError(
+                    """Verkiezingsjaar is not a number. Check the folder
+                    name where the files 'processenverbaal' are located.
+                    The folder name must be set as YYYY as year of election.
+                    """
+                ) from err
 
-        try:
-            volgnummer_split = volgnummer.rsplit("/", 1)[1]
-        except IndexError:
-            # no subdirectories, just get orignal content
-            volgnummer_split = volgnummer
-            pass
+            try:
+                volgnummer_split = volgnummer.rsplit("/", 1)[1]
+            except IndexError:
+                # no subdirectories, just get orignal content
+                volgnummer_split = volgnummer
+                pass
 
-        metadata = Data(
-            verkiezingsjaar=verkiezingsjaar_int,
-            volgnummer=volgnummer_split,
-            uri=uri,
-            documentnaam=documentnaam,
-            stemlocatie=stemlocatie,
-            id="".join([verkiezingsjaar, volgnummer_split]),
-        )
-        data_to_save.append(metadata)
+            metadata = Data(
+                verkiezingsjaar=verkiezingsjaar_int,
+                volgnummer=volgnummer_split,
+                uri=uri,
+                documentnaam=documentnaam,
+                stemlocatie=stemlocatie,
+                id="".join([verkiezingsjaar, volgnummer_split]),
+            )
+            data_to_save.append(metadata)
 
-    fieldnames = Data.__annotations__.keys()
+        fieldnames = Data.__annotations__.keys()
 
-    with open(output_file, "w") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, dialect=csv.unix_dialect)
-        writer.writeheader()
-        writer.writerows(data_to_save)
+        with open(output_file, "w") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, dialect=csv.unix_dialect)
+            writer.writeheader()
+            writer.writerows(data_to_save)
