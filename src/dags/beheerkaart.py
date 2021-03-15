@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
+from airflow.operators.bash import BashOperator
 
 from bash_env_operator import BashEnvOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
@@ -44,7 +44,8 @@ with DAG(
         username="admin",
     )
 
-    # 2. Drop tables in target schema PTE (schema which orginates from the DB dump file, see next step)
+    # 2. Drop tables in target schema PTE
+    # (schema which orginates from the DB dump file, see next step)
     #    based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
         task_id="drop_tables",
@@ -96,11 +97,11 @@ with DAG(
     # 9. Upload geopackage to datacatalog
     upload_data = DCATSwiftOperator(
         environment=DATAPUNT_ENVIRONMENT,
-        task_id=f"upload_data",
+        task_id="upload_data",
         input_path=f"{gpkg_path}.zip",
         dataset_title="Beheerkaart basis",
         distribution_id="1",
     )
 
 # FLOW
-slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data
+slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data  # noqa

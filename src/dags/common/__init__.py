@@ -17,7 +17,7 @@ from requests.exceptions import ConnectionError
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from log_message_operator import LogMessageOperator
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 
 env = Env()
 

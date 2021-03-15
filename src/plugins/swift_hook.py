@@ -1,6 +1,7 @@
+import ntpath
 from contextlib import contextmanager
 from pathlib import Path
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 from airflow.exceptions import AirflowException
 from swiftclient.service import SwiftService, SwiftError, SwiftUploadObject
 
@@ -36,10 +37,9 @@ class SwiftHook(BaseHook):
                             yield item
             except SwiftError as e:
                 self.log.error(e.value)
-                raise AirflowException(f"Failed to fetch container listing: {e.value}")
+                raise AirflowException("Failed to fetch container listing") from e
 
     def download(self, container, object_id, output_path):
-
         Path(output_path).parents[0].mkdir(parents=True, exist_ok=True)
         download_options = {
             "out_file": output_path,
@@ -59,13 +59,23 @@ class SwiftHook(BaseHook):
 
             except SwiftError as e:
                 self.log.error(e.value)
-                raise AirflowException(f"Failed to fetch file: {e.value}")
+                raise AirflowException("Failed to fetch file") from e
 
-    def upload(self, container, local_file, object_id):
+    def upload(self, container, local_path, object_id):  # noqa C901
+        filename = ntpath.basename(local_path)
         with self.connection() as swift:
             try:
                 for r in swift.upload(
-                    container, [SwiftUploadObject(local_file, object_name=object_id)]
+                    container,
+                    [
+                        SwiftUploadObject(
+                            local_path,
+                            object_name=object_id,
+                            options={
+                                'header':[f'content-disposition: attachment; filename="{filename}"']  # noqa
+                            }
+                        )
+                    ],
                 ):
                     if r["success"]:
                         if "object" in r:
@@ -89,4 +99,4 @@ class SwiftHook(BaseHook):
 
             except SwiftError as e:
                 self.log.error(e.value)
-                raise AirflowException(f"Failed to upload file: {e.value}")
+                raise AirflowException("Failed to upload file") from e

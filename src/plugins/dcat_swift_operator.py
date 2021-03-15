@@ -44,7 +44,7 @@ class DCATSwiftOperator(BaseOperator):
             raise AirflowException(f"Failed to find dataset with title: {self.dataset_title}")
         identifier = json1["dcat:dataset"][0]["dct:identifier"]
         # The use persistent URL to retrieve the objectstore ID for the resource
-        purl = f"https://{acc}api.data.amsterdam.nl/dcatd/datasets/{identifier}/purls/{self.distribution_id}"
+        purl = f"https://{acc}api.data.amsterdam.nl/dcatd/datasets/{identifier}/purls/{self.distribution_id}"  # noqa
         r = requests.head(purl)
         if r.status_code != 307:
             raise AirflowException(
@@ -53,6 +53,8 @@ class DCATSwiftOperator(BaseOperator):
         location = r.headers["Location"]
         o = urlparse(location)
         (_, container, object_id) = o.path.split("/", 2)
+        if not (o.hostname and o.hostname.endswith("objectstore.eu")):
+            f"Invalid location {location} for distribution {self.distribution_id} for dataset {identifier}"  # noqa
         self.log.info("Uploading: %s to %s-%s", self.input_path, container, object_id)
         self.hook = SwiftHook(swift_conn_id=self.swift_conn_id)
         # Upload the file to the specified object_id
