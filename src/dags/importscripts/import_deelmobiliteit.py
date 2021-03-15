@@ -331,7 +331,7 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
                     merk=row["brand"],
                     model=row["model"],
                     kleur=row["color"],
-                    opmerking=json.loads(row["advertisement"]).get("info", None),
+                    opmerking=json.loads(row["advertisement"]).get("info", None) if row["advertisement"] else None,
                     brandstof_type=row["fuelType"],
                     brandstof_niveau=row["fuelLevel"],
                     bereik=row["fuelRange"],
