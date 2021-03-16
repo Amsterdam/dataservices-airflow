@@ -1,4 +1,5 @@
 import csv
+from common import make_hash
 from more_ds.network.url import URL
 from typing import List, TypedDict, Iterable
 from swift_hook import SwiftHook
@@ -12,7 +13,7 @@ class Data(TypedDict):
     uri: str
     documentnaam: str
     stemlocatie: str
-    id: str
+    id: int
 
 
 class ObjectStoreListing:
@@ -76,7 +77,7 @@ def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) 
     data_to_save: List = []
     get_listing = ObjectStoreListing(conn_id)
     for file in get_listing.list_files(start_folder):
-        if 'pdf' in file:
+        if "pdf" in file:
 
             volgnummer = file.split(".")[0]
             documentnaam = file.split(".")[1]
@@ -107,7 +108,7 @@ def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) 
                 uri=uri,
                 documentnaam=documentnaam,
                 stemlocatie=stemlocatie,
-                id="".join([verkiezingsjaar, volgnummer_split]),
+                id=make_hash([uri], 6),
             )
             data_to_save.append(metadata)
 
