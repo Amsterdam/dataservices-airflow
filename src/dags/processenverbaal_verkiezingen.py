@@ -26,7 +26,7 @@ from postgres_check_operator import (
 )
 
 from importscripts.import_processenverbaalverkiezingen import save_data
-from sql.processenverbaalverkiezingen import SQL_DROP_TMP_TABLE
+from sql.processenverbaalverkiezingen import SQL_REDEFINE_PK, SQL_DROP_TMP_TABLE
 
 
 dag_id: str = "processenverbaalverkiezingen"
@@ -83,11 +83,18 @@ with DAG(
         s_srs=None,
         auto_detect_type="YES",
         mode="PostgreSQL",
-        fid="id",
+        fid="fid",
         db_conn=db_conn,
     )
 
-    # 6. RENAME columns based on PROVENANCE
+    # 6. Redefine PK
+    set_pk = PostgresOperator(
+        task_id="set_pk",
+        sql=SQL_REDEFINE_PK,
+        params=dict(tablename=f"{schema_name}_{table_name}_new"),
+    )
+
+    # 7. RENAME columns based on PROVENANCE
     provenance_trans = ProvenanceRenameOperator(
         task_id="provenance_rename",
         dataset_name=schema_name,
@@ -111,10 +118,10 @@ with DAG(
 
     check_name[dag_id] = count_checks
 
-    # 7. Execute bundled checks on database (in this case just a count check)
+    # 8. Execute bundled checks on database (in this case just a count check)
     count_check = PostgresMultiCheckOperator(task_id="count_check", checks=check_name[dag_id])
 
-    # 8. Create the DB target table (as specified in the JSON data schema)
+    # 9. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_target_table = SqlAlchemyCreateObjectOperator(
         task_id="create_target_table_based_upon_schema",
@@ -125,14 +132,14 @@ with DAG(
         ind_extra_index=True,
     )
 
-    # 9. Check for changes to merge in target table
+    # 10. Check for changes to merge in target table
     change_data_capture = PgComparatorCDCOperator(
         task_id="change_data_capture",
         source_table=f"{schema_name}_{table_name}_new",
         target_table=f"{schema_name}_{table_name}",
     )
 
-    # 10. Clean up (remove temp table _new)
+    # 11. Clean up (remove temp table _new)
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
@@ -145,6 +152,7 @@ with DAG(
     >> mkdir
     >> get_file_listing
     >> import_data
+    >> set_pk
     >> provenance_trans
     >> count_check
     >> create_target_table

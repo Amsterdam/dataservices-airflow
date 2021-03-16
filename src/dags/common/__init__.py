@@ -4,13 +4,12 @@ import os
 import pendulum
 import re
 import traceback
-from typing import Dict, Any, Optional, Union
-
+from hashlib import blake2s
 from datetime import timedelta, datetime, timezone
 from environs import Env
 from airflow.utils.dates import days_ago
 from airflow.exceptions import AirflowException
-from typing import Dict, Optional, Any, Match, Iterable
+from typing import Dict, Optional, Any, Match, Iterable, Union, List
 from requests.exceptions import ConnectionError
 
 
@@ -37,6 +36,7 @@ class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
     Patching default SlackWebhookHook in order to set correct Verify option,
     needed for production use.
     """
+
     def run(
         self,
         endpoint: Optional[str],
@@ -187,3 +187,28 @@ def addloopvariables(iterable: Iterable) -> Iterable:
 def quote_string(instr: str) -> str:
     """needed to put quotes on elements in geotypes for SQL_CHECK_GEO"""
     return f"'{instr}'"
+
+
+def make_hash(composite_values: List[str], digest_size: int = 5) -> int:
+    """The blake2s algorithm is used to generate a single hased value for source
+    composite values that uniquely identify a row.
+    In case the source itself doesn't provide a single solid identification as key.
+
+    Args:
+        composite_values: a list of record values based on
+                        which columns uniquely identifiy a record
+        digest_size: size to set the max bytes to use for the hash
+
+    Returns:
+        a hased value of the composite values in int
+
+    Note:
+        The default digest size is for now set to 5 bytes, which is equivalent
+        to ~ 10 karakters long.
+        Because the id column is preferably of type int, the hased value is converted
+        from hex to int.
+    """
+    return int.from_bytes(
+        blake2s("|".join(composite_values).encode(), digest_size=digest_size).digest(),
+        byteorder="little",
+    )
