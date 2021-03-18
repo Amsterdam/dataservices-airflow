@@ -74,12 +74,7 @@ class Ogr2OgrOperator(BaseOperator):
 
             # mandatory
             ogr2ogr_cmd.append(
-                f"""
-                PG:'host={self.db_conn.host}
-                dbname={self.db_conn.db}
-                user={self.db_conn.user}
-                password={self.db_conn.password}
-                port={self.db_conn.port}' """
+                f"PG:'host={self.db_conn.host} dbname={self.db_conn.db} user={self.db_conn.user} password={self.db_conn.password} port={self.db_conn.port}'"
             )
             ogr2ogr_cmd.append(f"{self.input_file} ")
             ogr2ogr_cmd.append(f"-nln {self.target_table_name} -overwrite ")
@@ -95,8 +90,8 @@ class Ogr2OgrOperator(BaseOperator):
             subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)
         except subprocess.CalledProcessError as err:
             logger.error(
-                """Something went wrong, cannot execute subproces.
-                    Please check the ogr2ogr cmd %s
-                    """,
-                err.output,
-            )
+            """Something went wrong, cannot execute subproces.
+              Please check the ogr2ogr cmd %s
+            """,
+            err.output,
+        )
