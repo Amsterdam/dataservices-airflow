@@ -49,6 +49,7 @@ with DAG(
     description="Processenverbaal publicaties verkiezingen (pdf's in objectstore).",
     # every ten minutes the data is refreshed
     schedule_interval="*/10 * * * *",
+    catchup=False,
 ) as dag:
 
     # 1. Post info message on slack
