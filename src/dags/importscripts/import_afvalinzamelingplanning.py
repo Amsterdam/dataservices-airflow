@@ -29,12 +29,14 @@ def load_from_dwh(table_name: str) -> None:
             , WERKZAAMHEDEN_CODE
             , WERKZAAMHEDEN_OMSCHRIJVING
             , WERKZAAMHEDEN_DATUM
+            , WERKZAAMHEDEN_DATUM_REF_ID
             , WERKZAAMHEDEN_STARTTIJD
             , WERKZAAMHEDEN_EINDTIJD
             , WERKZAAMHEDEN_UREN_GEPLAND
             , PAUZE_STARTTIJD
             , PAUZE_EINDTIJD
             , PAUZE_UREN_GEPLAND
+            , INHUUR
             , FASE
             , MEMO
             , TEAM
@@ -69,12 +71,14 @@ def load_from_dwh(table_name: str) -> None:
             "WERKZAAMHEDEN_CODE": Text(),
             "WERKZAAMHEDEN_OMSCHRIJVING": Text(),
             "WERKZAAMHEDEN_DATUM": Date(),
+            "WERKZAAMHEDEN_DATUM_REF_ID": Integer(),
             "WERKZAAMHEDEN_STARTTIJD": Text(),
             "WERKZAAMHEDEN_EINDTIJD": Text(),
             "WERKZAAMHEDEN_UREN_GEPLAND": Numeric(),
             "PAUZE_STARTTIJD": Text(),
             "PAUZE_EINDTIJD": Text(),
             "PAUZE_UREN_GEPLAND": Text(),
+            "INHUUR": Text(),
             "FASE": Text(),
             "MEMO": Text(),
             "TEAM": Text(),
