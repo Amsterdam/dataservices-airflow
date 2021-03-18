@@ -1,6 +1,10 @@
+import logging
 import subprocess
 from airflow.models.baseoperator import BaseOperator
 from common.db import DatabaseEngine
+from typing import Optional, Any, List, Dict
+
+logger = logging.getLogger(__name__)
 
 
 class Ogr2OgrOperator(BaseOperator):
@@ -9,21 +13,21 @@ class Ogr2OgrOperator(BaseOperator):
     def __init__(
         self,
         *,
-        target_table_name,
-        input_file,
-        conn_id="postgres_default",
-        s_srs="EPSG:4326",
-        t_srs="EPSG:28992",
-        fid="id",
-        geometry_name="geometry",
-        sql_output_file=None,
-        sql_statement=None,
-        input_file_sep=None,
-        auto_detect_type=None,
-        mode="PGDump",
-        db_conn: DatabaseEngine = None,
-        **kwargs,
-    ):
+        target_table_name: str,
+        input_file: str,
+        conn_id: str = "postgres_default",
+        s_srs: str = "EPSG:4326",
+        t_srs: str = "EPSG:28992",
+        fid: str = "id",
+        geometry_name: str = "geometry",
+        sql_output_file: Optional[str] = None,
+        sql_statement: Optional[str] = None,
+        input_file_sep: Optional[str] = None,
+        auto_detect_type: Optional[str] = None,
+        mode: str = "PGDump",
+        db_conn: Optional[DatabaseEngine] = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.conn_id = conn_id
         self.s_srs = s_srs
@@ -39,16 +43,19 @@ class Ogr2OgrOperator(BaseOperator):
         self.mode = mode
         self.db_conn = db_conn
 
-    def execute(self, context=None):
+    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:
         """proces the input file with OGR2OGR to SQL output
 
         ARGS:
         mode: 'PGDump' will generate a sql file (the default)
               'PostgreSQL' will load data directly into database
+
+        Executes:
+                A batch ogr2ogr cmd
         """
 
         # setup the cmd to execute
-        ogr2ogr_cmd = []
+        ogr2ogr_cmd: List = []
         ogr2ogr_cmd.append(f"ogr2ogr -f '{self.mode}' ")
 
         # Option 1 SQL (default): create sql file
@@ -67,7 +74,12 @@ class Ogr2OgrOperator(BaseOperator):
 
             # mandatory
             ogr2ogr_cmd.append(
-                f"PG:'host={self.db_conn.host} dbname={self.db_conn.db} user={self.db_conn.user} password={self.db_conn.password} port={self.db_conn.port}' "
+                f"""
+                PG:'host={self.db_conn.host}
+                dbname={self.db_conn.db}
+                user={self.db_conn.user}
+                password={self.db_conn.password}
+                port={self.db_conn.port}' """
             )
             ogr2ogr_cmd.append(f"{self.input_file} ")
             ogr2ogr_cmd.append(f"-nln {self.target_table_name} -overwrite ")
@@ -79,4 +91,12 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
 
         # execute cmd string
-        subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)
+        try:
+            subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)
+        except subprocess.CalledProcessError as err:
+            logger.error(
+                """Something went wrong, cannot execute subproces.
+                    Please check the ogr2ogr cmd %s
+                    """,
+                err.output,
+            )

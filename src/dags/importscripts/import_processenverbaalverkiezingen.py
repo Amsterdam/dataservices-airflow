@@ -12,7 +12,6 @@ class Data(TypedDict):
     volgnummer: str
     uri: str
     documentnaam: str
-    stemlocatie: str
     id: int
 
 
@@ -81,7 +80,6 @@ def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) 
 
             volgnummer = file.split(".")[0]
             documentnaam = file.split(".")[1]
-            stemlocatie = file.split(".")[2]
             uri = URL(base_url) / start_folder / file
             verkiezingsjaar = file.split("/")[0]
 
@@ -107,7 +105,6 @@ def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) 
                 volgnummer=volgnummer_split,
                 uri=uri,
                 documentnaam=documentnaam,
-                stemlocatie=stemlocatie,
                 id=make_hash([uri], 6),
             )
             data_to_save.append(metadata)
