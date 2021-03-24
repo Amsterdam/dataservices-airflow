@@ -32,6 +32,7 @@ services:
         /dataservices?cursor=dictcursor&"
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
       AIRFLOW_CONN_ORACLE_DWH_STADSDELEN: "oracle://oracle_user:insecure@localhost:1521/SID001?encoding=UTF-8&nencoding=UTF-8"
+      AIRFLOW_CONN_OBJECTSTORE_DATACATALOGUS: "s3://catalogus:${datacatalogus_objectstore_key_safe}@e85bcf2124fb4437b1bc6eb75dfc3abf"
       AIRFLOW_CONN_OBJECTSTORE_DATASERVICES:
         "s3://dataservices:${DATASERVICES_PASSWD}@\
         356c76835e424b968ed6d654c51204f0"
@@ -60,7 +61,7 @@ services:
       AIRFLOW_CONN_RIVM_BASE_URL: "https://data.rivm.nl/covid-19/"
       AIRFLOW_CONN_WIOR_PASSWD: ${dataservices_wior_passwd}
       AIRFLOW_CONN_WIOR_USER: ${dataservices_wior_user}
-      AIRFLOW_CONN_WIOR_BASE_URL: "https://data-wior-amsterdam-acceptatie.webgis.nl"
+      AIRFLOW_CONN_WIOR_BASE_URL: "https://data-wior-amsterdam.webgis.nl"
       AIRFLOW_CONN_FLEYX_BASE_URL: "https://data.felyx.com"
       AIRFLOW_CONN_FLEYX_API_KEY: ${dataservices_fleyx_api_key}
       AIRFLOW_CONN_RIDECHECK_BASE_URL: "https://api.ridecheck.app"

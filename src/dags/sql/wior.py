@@ -20,10 +20,10 @@ SQL_DROP_TMP_TABLE = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 """
 
-# Convert polygon to multiploygon
-SQL_GEOM_CONVERT = """
-ALTER TABLE {{ params.tablename }} ALTER COLUMN GEOMETRY TYPE geometry(MULTIPOLYGON, 28992)
-    using ST_MakeValid(ST_Multi(GEOMETRY));
+# Validate geometry
+SQL_GEOM_VALIDATION = """
+UPDATE {{ params.tablename }} SET geometry = ST_MakeValid(geometry);
+COMMIT;
 """
 
 # Add PK, because its needed for CDC
