@@ -38,6 +38,7 @@ DAG_DATASET = {
     "beschermde_": "beschermdestadsdorpsgezichten",
     "hoofdroutes_": "hoofdroutes",
     "reclamebelasting": "belastingen",
+    "processenverbaalverkiezingen": "verkiezingen",
 }
 
 
