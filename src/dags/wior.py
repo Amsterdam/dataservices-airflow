@@ -37,7 +37,7 @@ from postgres_check_operator import (
 from sql.wior import (
     DROP_COLS,
     SQL_DROP_TMP_TABLE,
-    SQL_GEOM_CONVERT,
+    SQL_GEOM_VALIDATION,
     SQL_ADD_PK,
     SQL_SET_DATE_DATA_TYPES,
 )
@@ -54,7 +54,6 @@ base_url = URL(env("AIRFLOW_CONN_WIOR_BASE_URL"))
 total_checks = []
 count_checks = []
 geo_checks = []
-
 
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
@@ -78,7 +77,7 @@ def get_data() -> None:
             data = data_request.json()
         except json.decoder.JSONDecodeError as jde:
             logger.exception(f"Failed to convert request output to json for url {data_url}")
-            raise JSONDecodeError from jde
+            raise json.decoder.JSONDecodeError from jde
         with open(f"{data_file}", "w") as file:
             file.write(json.dumps(data))
     else:
@@ -130,10 +129,10 @@ with DAG(
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    # 6. Convert geometry to multipolygon
-    geom_type_conv = PostgresOperator(
-        task_id="geom_type_conv",
-        sql=SQL_GEOM_CONVERT,
+    # 6. geometry validation
+    geom_validation = PostgresOperator(
+        task_id="geom_validation",
+        sql=SQL_GEOM_VALIDATION,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
@@ -176,7 +175,7 @@ with DAG(
             check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
-                geotype=["MULTIPOLYGON"],
+                geotype=["MULTIPOLYGON", "POLYGON", "POINT", "MULTILINESTRING", "LINESTRING"],
                 geo_column="geometrie",
             ),
             pass_value=1,
@@ -219,7 +218,7 @@ with DAG(
     >> download_data
     >> import_data
     >> drop_cols
-    >> geom_type_conv
+    >> geom_validation
     >> provenance_translation
     >> add_pk
     >> set_dates
