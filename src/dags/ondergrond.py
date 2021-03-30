@@ -10,6 +10,7 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from airflow.operators.dummy_operator import DummyOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 
 from common.db import DatabaseEngine
@@ -216,32 +217,40 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # FLOW
-    for (download_file, create_table, import_data) in zip(
-        download_data, create_tables, GEOJSON_to_DB
-    ):
-
-        [download_file >> create_table >> import_data] >> provenance_translation >> multi_checks
-
-    for check_data in zip(multi_checks):
-
-        check_data >> Interface >> drop_unnecessary_cols
-
-    for drop_cols in zip(drop_unnecessary_cols):
-
-        drop_cols >> Interface2 >> change_data_capture
-
-    for (check_changes, clean_tmp) in zip(change_data_capture, clean_up):
-
-        [check_changes >> clean_tmp]
+    # 13. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
 slack_at_start >> mkdir >> download_data
+
+# FLOW
+for (download_file, create_table, import_data) in zip(
+    download_data, create_tables, GEOJSON_to_DB
+):
+
+    [download_file >> create_table >> import_data] >> provenance_translation >> multi_checks
+
+for check_data in zip(multi_checks):
+
+    check_data >> Interface >> drop_unnecessary_cols
+
+for drop_cols in zip(drop_unnecessary_cols):
+
+    drop_cols >> Interface2 >> change_data_capture
+
+for (check_changes, clean_tmp) in zip(change_data_capture, clean_up):
+
+    [check_changes >> clean_tmp]
+
+clean_up >> grant_db_permissions
 
 
 # Mark down
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts info about conducted research on a specific location.
+    #### DAG summary
+    This DAG contains info about conducted research on a specific location.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

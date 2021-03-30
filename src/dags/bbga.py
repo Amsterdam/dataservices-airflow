@@ -26,6 +26,7 @@ from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_insert_csv_operator import FileTable, PostgresInsertCsvOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 FileStem = str
 UrlPath = str
@@ -356,6 +357,12 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
         provide_context=True,  # Ensure we can use XCom to retrieve the previously created tmp dir.
     )
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=DAG_ID
+    )
+
     (
         slack_at_start
         >> mk_tmp_dir
@@ -371,4 +378,5 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
         >> change_data_capture
         >> rm_tmp_tables_post
         >> rm_tmp_dir
+        >> grant_db_permissions
     )

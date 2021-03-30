@@ -10,6 +10,7 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 
 from common.db import DatabaseEngine
@@ -305,8 +306,16 @@ with DAG(
         for table_name in files_to_download.keys()
     ]
 
+    # 21. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 
 # FLOW. define flow with parallel executing of serial tasks for each file
+slack_at_start >> mk_tmp_dir >> download_data
+
 for download in zip(download_data):
 
     download >> Interface >> merge_data
@@ -339,12 +348,12 @@ for data_check, detect_changes, del_tmp_table in zip(multi_checks, change_data_c
 
     [data_check >> detect_changes >> del_tmp_table]
 
-slack_at_start >> mk_tmp_dir >> download_data
+clean_up >> grant_db_permissions
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about risk area's due to potential hazards objects in that area.
+    #### DAG summary
+    This DAG contains data about risk area's due to potential hazards objects in that area.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

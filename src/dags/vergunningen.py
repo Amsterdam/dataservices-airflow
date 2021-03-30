@@ -6,6 +6,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
 from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_operator import SwiftOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
@@ -195,7 +196,15 @@ with DAG(
         for _, _, target_name in table_renames
     ]
 
+    # 11. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 # FLOW
+slack_at_start >> download_data
+
 for (download,
     remove,
     replace,
@@ -215,12 +224,12 @@ for (download,
     >> detection_modifications
     >> drop_tmp_table]
 
-slack_at_start >> download_data
+drop_tmp_tables >> grant_db_permissions
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about Bed & Breakfast and Conversion permit availability
+    #### DAG summary
+    This DAG contains data about Bed & Breakfast and Conversion permit availability
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

@@ -13,6 +13,7 @@ from postgres_files_operator import PostgresFilesOperator
 from swift_operator import SwiftOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -133,6 +134,12 @@ with DAG(
     # 10. Rename temp named tables to final names
     rename_tables = PostgresOperator(task_id="rename_tables", sql=SQL_TABLE_RENAMES)
 
+    # 11. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 
 (
     slack_at_start
@@ -145,12 +152,13 @@ with DAG(
     >> fill_markering
     >> provenance_translation
     >> rename_tables
+    >> grant_db_permissions
 )
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts crowd monitoring sensor data,
+    #### DAG summary
+    This DAG contains crowd monitoring sensor data,
     the source is the CMSA (Crowd Monitoring Systeem Amsterdam)
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])

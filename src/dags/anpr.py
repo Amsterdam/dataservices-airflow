@@ -6,6 +6,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from http_fetch_operator import HttpFetchOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -111,4 +112,11 @@ with DAG(dag_id, default_args=args, description="aantal geidentificeerde taxiken
         params=dict(base_table=table_id),
     )
 
-(slack_at_start >> mk_tmp_dir >> download_data >> create_temp_table >> import_data >> rename_temp_table)
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+
+(slack_at_start >> mk_tmp_dir >> download_data >> create_temp_table >> import_data >> rename_temp_table >> grant_db_permissions)

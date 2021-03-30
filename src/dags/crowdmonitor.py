@@ -7,6 +7,7 @@ from airflow.operators.python_operator import PythonOperator
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from common import env, default_args
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
@@ -177,4 +178,10 @@ with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
         params=dict(base_table=table_id),
     )
 
-    create_temp_tables >> copy_data >> add_aggregates_day >> add_aggregates_week >> rename_temp_tables
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+    create_temp_tables >> copy_data >> add_aggregates_day >> add_aggregates_week >> rename_temp_tables >> grant_db_permissions

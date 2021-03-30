@@ -8,6 +8,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 
 from common import (
@@ -141,6 +142,12 @@ with DAG(
         task_id="multi_check", checks=total_checks
     )
 
+    # 11. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 (
     slack_at_start
     >> mkdir
@@ -152,11 +159,12 @@ with DAG(
     >> rename_table
     >> add_category
     >> multi_checks
+    >> grant_db_permissions
 )
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts shopping area's (winkelgebieden)
+    #### DAG summary
+    This DAG contains shopping area's (winkelgebieden)
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

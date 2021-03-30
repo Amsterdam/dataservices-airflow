@@ -4,6 +4,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     vsd_default_args,
@@ -139,6 +140,13 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         params=dict(tablenames=["trm_metro", "trm_tram"]),
     )
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> mkdir >> extract_zips
 
 for extract_zip, extract_shp, convert_shp, remove_drop in zip(
     extract_zips, extract_shps, convert_shps, remove_drops
@@ -148,6 +156,6 @@ for extract_zip, extract_shp, convert_shp, remove_drop in zip(
 for check_count, check_colname in zip(check_counts, check_colnames):
     check_count >> check_colname
 
-slack_at_start >> mkdir >> extract_zips
+
 remove_drops >> remove_entities >> drop_tables >> load_dumps >> check_counts
-check_colnames >> rename_tables
+check_colnames >> rename_tables >> grant_db_permissions

@@ -19,6 +19,7 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from schematools.importer.geojson import GeoJSONImporter
 from schematools.introspect.geojson import introspect_geojson_files
 from schematools.types import DatasetSchema
@@ -211,5 +212,11 @@ with DAG(dag_id, default_args=default_args) as dag:
         for route in ROUTES
     ]
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
-drop_old_tables >> import_geojson >> multi_check >> renames
+
+drop_old_tables >> import_geojson >> multi_check >> renames >> grant_db_permissions

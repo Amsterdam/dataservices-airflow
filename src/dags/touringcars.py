@@ -10,6 +10,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from http_fetch_operator import HttpFetchOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 
 from common import (
@@ -191,43 +192,51 @@ with DAG(
         for file_name in data_endpoints.keys()
     ]
 
-    # FLOW. define flow with parallel executing of serial tasks for each file
-    for (
-        data,
-        clean_data,
-        json_to_geojson,
-        extract_geo,
-        load_table,
-        multi_check,
-        drop_table,
-        rename_table,
-    ) in zip(
-        download_data,
-        clean_data,
-        translate_json_to_geojson,
-        extract_geojsons,
-        load_tables,
-        multi_checks,
-        drop_tables,
-        rename_tables,
-    ):
+    # 12. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
-        [
-            data
-            >> clean_data
-            >> json_to_geojson
-            >> extract_geo
-            >> load_table
-            >> multi_check
-        ] >> provenance_translation >> drop_table
+# FLOW. define flow with parallel executing of serial tasks for each file
+slack_at_start >> mk_tmp_dir >> download_data
 
-        [drop_table >> rename_table]
+for (
+    data,
+    clean_data,
+    json_to_geojson,
+    extract_geo,
+    load_table,
+    multi_check,
+    drop_table,
+    rename_table,
+) in zip(
+    download_data,
+    clean_data,
+    translate_json_to_geojson,
+    extract_geojsons,
+    load_tables,
+    multi_checks,
+    drop_tables,
+    rename_tables,
+):
 
-    slack_at_start >> mk_tmp_dir >> download_data
+    [
+        data
+        >> clean_data
+        >> json_to_geojson
+        >> extract_geo
+        >> load_table
+        >> multi_check
+    ] >> provenance_translation >> drop_table
 
-    dag.doc_md = """
-    #### DAG summery
-    This DAG containts touringcars data
+    [drop_table >> rename_table]
+
+rename_tables >> grant_db_permissions
+
+dag.doc_md = """
+    #### DAG summary
+    This DAG contains touringcars data
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

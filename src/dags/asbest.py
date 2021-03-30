@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 # from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
@@ -88,8 +89,14 @@ with DAG(dag_id, default_args=default_args,) as dag:
 
     rename_col = PostgresOperator(task_id="rename_col", sql=SQL_RENAME_COL)
 
-load_dumps[0] >> rename_col >> rename_tables
-load_dumps[1] >> rename_tables
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+load_dumps[0] >> rename_col >> rename_tables >> grant_db_permissions
+load_dumps[1] >> rename_tables >> grant_db_permissions
 
 for extract_shp, convert_shp, load_dump in zip(extract_shps, convert_shps, load_dumps):
     extract_shp >> convert_shp >> load_dump

@@ -9,6 +9,7 @@ from environs import Env
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_operator import SwiftOperator
 
 from common import (
@@ -192,6 +193,13 @@ with DAG(
         for key in files_to_download.keys()
     ]
 
+    # 14. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> mkdir >> download_data 
 
 for data in zip(download_data):
 
@@ -219,11 +227,11 @@ for (
     [multi_check >> drop_table >> rename_table]
 
 
-slack_at_start >> mkdir >> download_data
+rename_tables >> grant_db_permissions
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts explosives related topics
+    #### DAG summary
+    This DAG contains explosives related topics
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

@@ -10,6 +10,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from typing import Dict, List
 
 from common import (
@@ -224,8 +225,16 @@ with DAG(
         )
         for subject in files_to_proces.keys()
     ]
+    
+    # 14. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
 # FLOW. define flow with parallel executing of serial tasks for each file
+slack_at_start >> mk_tmp_dir >> download_data >> extract_zip >> SHP_to_SQL
+
 for (
     shape_to_sql,
     convert_to_UTF8,
@@ -255,12 +264,12 @@ for (
 
     [delete_unused >> rename_table]
 
-slack_at_start >> mk_tmp_dir >> download_data >> extract_zip >> SHP_to_SQL
+rename_tables >> grant_db_permissions
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts auto park zones (parkeerzones) with and without restrictions (parkeerzones met uitzonderingen)
+    #### DAG summary
+    This DAG contains auto park zones (parkeerzones) with and without restrictions (parkeerzones met uitzonderingen)
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

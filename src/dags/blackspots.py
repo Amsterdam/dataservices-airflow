@@ -1,6 +1,7 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -83,4 +84,9 @@ with DAG(dag_id, default_args=default_args,) as dag:
     rename_columns = PostgresOperator(task_id=f"rename_columns", sql=RENAME_COLUMNS,)
     rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL)
 
-slack_at_start >> drop_tables >> swift_load_task >> rename_columns >> rename_tables
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> drop_tables >> swift_load_task >> rename_columns >> rename_tables >> grant_db_permissions

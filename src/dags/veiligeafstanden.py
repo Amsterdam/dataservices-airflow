@@ -7,6 +7,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from ogr2ogr_operator import Ogr2OgrOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
@@ -202,7 +203,7 @@ with DAG(
     ]
 
     # 12. Clean up (remove temp table _new)
-    clean_up = [
+    clean_ups = [
         PostgresOperator(
             task_id="clean_up",
             sql=SQL_DROP_TMP_TABLE,
@@ -231,7 +232,15 @@ with DAG(
         ],
     )
 
+    # 15. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 # FLOW
+slack_at_start >> mkdir >> download_data
+
 for (data, change_seperator, import_data) in zip(download_data, change_seperators, CSV_to_DB):
 
     [data >> change_seperator >> import_data] >> provenance_translation >> redefine_geoms
@@ -251,7 +260,7 @@ for (
     create_tables,
     drop_cols,
     change_data_capture,
-    clean_up,
+    clean_ups,
 ):
 
     [
@@ -262,15 +271,15 @@ for (
         >> drop_cols
         >> change_data_capture
         >> clean_up
-    ] >> drop_parent_table
+    ]
 
 
-slack_at_start >> mkdir >> download_data
+clean_ups >> drop_parent_table >> grant_db_permissions
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts safety distance objects.
+    #### DAG summary
+    This DAG contains safety distance objects.
     Source files are located @objectstore.eu, container: Milieuthemas
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])

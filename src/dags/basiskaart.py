@@ -13,6 +13,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     env,
@@ -182,14 +183,20 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
         # 8. Trigger next DAG to run (estafette)
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag", dag_id_prefix=f"{dag_id}_", trigger_rule="all_done",
+        )
+
+        # 9. Grant database permissions
+        grant_db_permissions = PostgresPermissionsOperator(
+            task_id="grants",
+            dag_name=dag_id
         )       
 
     # Flow
-    slack_at_start >> create_tables >> copy_data >> change_data_capture >> create_mviews >> provenance_translation >> clean_up >> trigger_next_dag
+    slack_at_start >> create_tables >> copy_data >> change_data_capture >> create_mviews >> provenance_translation >> clean_up >> trigger_next_dag >> grant_db_permissions
 
     dag.doc_md = """
-    #### DAG summery
-    This DAG containts BGT (basisregistratie grootschalige topografie) and KBK10 (kleinschalige basiskaart 10) and KBK50 (kleinschalige basiskaart 50) data
+    #### DAG summary
+    This DAG contains BGT (basisregistratie grootschalige topografie) and KBK10 (kleinschalige basiskaart 10) and KBK50 (kleinschalige basiskaart 50) data
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
