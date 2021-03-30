@@ -27,7 +27,7 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-from sql.deelmobiliteit import SQL_SET_GEOM, SQL_DROP_TMP_TABLE
+from sql.deelmobiliteit import SQL_SET_GEOM, SQL_FLAG_RECENT_DATA, SQL_DROP_TMP_TABLE
 from importscripts.import_deelmobiliteit import import_scooter_data, import_auto_data
 
 
@@ -208,7 +208,17 @@ with DAG(
         for resource in variables
     ]
 
-    # 11. Clean up; delete temp table
+    # 11. Flag recent data version
+    flag_recent = [
+        PostgresOperator(
+            task_id=f"flag_recent_data_{resource}",
+            sql=SQL_FLAG_RECENT_DATA,
+            params=dict(tablename=f"{dag_id}_{resource}"),
+        )
+        for resource in variables
+    ]
+
+    # 12. Clean up; delete temp table
     clean_up = [
         PostgresOperator(
             task_id=f"clean_up_{resource}",
@@ -218,7 +228,7 @@ with DAG(
         for resource in variables
     ]
 
-    # 12. Set HISTORY window (keep data from now till one month ago)
+    # 13. Set HISTORY window (keep data from now till one month ago)
     history_window = [
         PostgresOperator(
             task_id=f"history_window_{resource}",
@@ -244,11 +254,11 @@ for (set_geom, multi_checks) in zip(set_geom, multi_checks):
 
     [set_geom >> multi_checks] >> provenance >> create_table >> change_data_capture  # type: ignore
 
-for (change_data_capture, clean_up, history_window) in zip(
-    change_data_capture, clean_up, history_window
+for (change_data_capture, flag_recent_data, clean_up, history_window) in zip(
+    change_data_capture, flag_recent, clean_up, history_window
 ):
 
-    [change_data_capture >> clean_up >> history_window >> grant_db_permissions]  # type: ignore
+    [change_data_capture >> flag_recent_data >> clean_up >> history_window >> grant_db_permissions]  # type: ignore
 
 
 dag.doc_md = """

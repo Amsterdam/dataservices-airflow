@@ -5,7 +5,7 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
-
+from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -13,12 +13,16 @@ from swift_operator import SwiftOperator
 
 from common import (
     default_args,
-    pg_params,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    quote_string,
 )
+
+from common.db import DatabaseEngine
+
+from sql.milieuzones import DEL_ROWS, DROP_COLS
 
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
@@ -28,27 +32,23 @@ from postgres_check_operator import (
 
 from importscripts.import_milieuzones import import_milieuzones
 
-dag_id = "milieuzones"
-
-variables_milieuzones = Variable.get("milieuzones", deserialize_json=True)
-files_to_download = variables_milieuzones["files_to_download"]
-tables_to_create = variables_milieuzones["tables_to_create"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
-
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
+dag_id: str = "milieuzones"
+variables_milieuzones: dict = Variable.get("milieuzones", deserialize_json=True)
+files_to_download: dict = variables_milieuzones["files_to_download"]
+tables_to_create: dict = variables_milieuzones["tables_to_create"]
+tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
+total_checks: list = []
+count_checks: list = []
+geo_checks: list = []
+check_name: dict = {}
+db_conn: object = DatabaseEngine()
 
 
 with DAG(
     dag_id,
     description="touringcars, taxis, brom- en snorfietsen, vrachtwagens en bestelbussen",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters=dict(quote=quote_string),
     template_searchpath=["/"],
 ) as dag:
 
@@ -82,40 +82,55 @@ with DAG(
         PythonOperator(
             task_id=f"convert_{file}_to_geojson",
             python_callable=import_milieuzones,
-            op_args=[f"{tmp_dir}/{file}", f"{tmp_dir}/geojson_{file}",],
+            op_args=[
+                f"{tmp_dir}/{file}",
+                f"{tmp_dir}/geojson_{file}",
+            ],
         )
         for file in files_to_download
     ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 4. Dummy operator acts as an interface between parallel tasks to
+    # another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
     # 5. Create SQL
-    SHP_to_SQL = [
-        BashOperator(
-            task_id=f"create_SQL_{key}",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-t_srs EPSG:28992 "
-            f"-nln {dag_id}_{key}_new "
-            f"{tmp_dir}/{dag_id}_{key}_new.sql {tmp_dir}/geojson_milieuzones.json "
-            f"-lco GEOMETRY_NAME=geometry "
-            f"-lco FID=id "
-            f"-sql \"SELECT * FROM geojson_milieuzones WHERE 1=1 AND VERKEERSTYPE = '{code}'\" ",
+    import_data = [
+        Ogr2OgrOperator(
+            task_id=f"import_data_{key}",
+            target_table_name=f"{dag_id}_{key}_new",
+            input_file=f"{tmp_dir}/geojson_milieuzones.json",
+            s_srs=None,
+            auto_detect_type="YES",
+            mode="PostgreSQL",
+            fid="fid",
+            db_conn=db_conn,
         )
         for key, code in tables_to_create.items()
     ]
 
-    # 6. Create TABLE
-    create_tables = [
-        BashOperator(
-            task_id=f"create_table_{key}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}_{key}_new.sql",
+    # 6. Drop unnecessary cols
+    drop_cols = [
+        PostgresOperator(
+            task_id=f"drop_cols_{key}",
+            sql=DROP_COLS,
+            params=dict(tablename=f"{dag_id}_{key}_new"),
         )
-        for key in tables_to_create.keys()
+        for key in tables_to_create
     ]
 
-    # 7. Rename COLUMNS based on Provenance
+    # 7. Drop unnecessary cols
+    del_rows = [
+        PostgresOperator(
+            task_id=f"del_rows_{key}",
+            sql=DEL_ROWS,
+            params=dict(tablename=f"{dag_id}_{key}_new"),
+        )
+        for key in tables_to_create
+    ]
+
+    # 8. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=f"{dag_id}",
@@ -125,14 +140,17 @@ with DAG(
         pg_schema="public",
     )
 
-    # 8. Revalidate invalid geometry records
+    # 9. Revalidate invalid geometry records
     # the source has some invalid records
     # to do: inform the source maintainer
     revalidate_geometry_records = [
         PostgresOperator(
             task_id=f"revalidate_geometry_{key}",
             sql=[
-                f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract((st_makevalid(geometry)),3) WHERE 1=1 AND ST_IsValid(geometry) is false; COMMIT;",
+                f"""UPDATE {dag_id}_{key}_new
+                SET geometry = ST_CollectionExtract((st_makevalid(geometry)),3)
+                WHERE 1=1 AND ST_IsValid(geometry) is false;
+                COMMIT;""",
             ],
         )
         for key in tables_to_create.keys()
@@ -158,7 +176,8 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
                 params=dict(
-                    table_name=f"{dag_id}_{key}_new", geotype=["MULTIPOLYGON"],
+                    table_name=f"{dag_id}_{key}_new",
+                    geotype=["MULTIPOLYGON"],
                 ),
                 pass_value=1,
             )
@@ -167,15 +186,13 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[f"{key}"] = total_checks
 
-    # 9. Execute bundled checks on database
+    # 10. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
         for key in tables_to_create.keys()
     ]
 
-    # 10. Rename TABLE
+    # 11. Rename TABLE
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
@@ -195,19 +212,27 @@ slack_at_start >> mkdir >> download_data
 
 for data, convert in zip(download_data, convert_to_geojson):
 
-    data >> convert >> Interface >> SHP_to_SQL
+    data >> convert >> Interface >> import_data
 
 for (
-    create_SQL,
-    create_table,
+    import_data_file,
+    drop_cols,
+    del_rows,
     revalidate_geometry_record,
     multi_check,
     rename_table,
 ) in zip(
-    SHP_to_SQL, create_tables, revalidate_geometry_records, multi_checks, rename_tables,
+    import_data,
+    drop_cols,
+    del_rows,
+    revalidate_geometry_records,
+    multi_checks,
+    rename_tables,
 ):
 
-    [create_SQL >> create_table] >> provenance_translation >> revalidate_geometry_record
+    [
+        import_data_file >> drop_cols >> del_rows
+    ] >> provenance_translation >> revalidate_geometry_record
 
     [revalidate_geometry_record >> multi_check >> rename_table]
 
@@ -215,7 +240,8 @@ rename_tables >> grant_db_permissions
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains data about environmental omission zones (milieuzones) i.e. touringcars, taxi's, brom- en snorfietsen, vrachtwagens en bestelbussen.
+    This DAG contains data about environmental omission zones (milieuzones) i.e.
+    touringcars, taxi's, brom- en snorfietsen, vrachtwagens en bestelbussen.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
@@ -227,6 +253,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/milieuzones.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/milieuzones.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=milieuzones/taxi&x=106434&y=488995&radius=10
 """

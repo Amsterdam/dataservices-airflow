@@ -48,6 +48,7 @@ class Scooter:
     id: int
     scooter_id: str
     datumtijd_ontvangen: datetime
+    indicatie_actueel: bool
     geometrie: Point
     exploitant: str
     status_motor: bool
@@ -93,6 +94,7 @@ def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
                 id=make_hash([row["bike_id"], str(current_time)]),
                 scooter_id=row["bike_id"],
                 datumtijd_ontvangen=datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S"),
+                indicatie_actueel=True,
                 geometrie=Point(row["lon"], row["lat"]),
                 status_motor=row["is_disabled"],
                 status_beschikbaar=row["is_reserved"],
@@ -161,6 +163,7 @@ def get_data_ridecheck(
                     id=make_hash([row["id"], str(current_time)]),
                     scooter_id=row["id"],
                     datumtijd_ontvangen=datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S"),
+                    indicatie_actueel=True,
                     geometrie=Point(row["location"]["longitude"], row["location"]["latitude"]),
                     status_motor=True if row["state"] == "on" else False,
                     exploitant="ridecheck",
@@ -241,6 +244,7 @@ class Auto:
     id: int
     auto_id: str
     datumtijd_ontvangen: datetime
+    indicatie_actueel: bool
     geometrie: Point
     exploitant: str
     status_beschikbaar: bool
@@ -317,6 +321,7 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
                     id=make_hash([str(row["id"]), str(current_time)]),
                     auto_id=row["id"],
                     datumtijd_ontvangen=datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S"),
+                    indicatie_actueel=True,
                     geometrie=Point(row["longitude"], row["latitude"]),
                     exploitant="mywheels",
                     status_beschikbaar=False if availability["status"] == "unavailable" else True,
@@ -331,7 +336,9 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
                     merk=row["brand"],
                     model=row["model"],
                     kleur=row["color"],
-                    opmerking=json.loads(row["advertisement"]).get("info", None) if row["advertisement"] else None,
+                    opmerking=json.loads(row["advertisement"]).get("info", None)
+                    if row["advertisement"]
+                    else None,
                     brandstof_type=row["fuelType"],
                     brandstof_niveau=row["fuelLevel"],
                     bereik=row["fuelRange"],
