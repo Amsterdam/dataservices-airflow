@@ -157,7 +157,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         # 9. Grant database permissions
         grant_db_permissions = PostgresPermissionsOperator(
             task_id="grants",
-            dag_name=dag_id
+            dag_name=f"{dag_id}_{dataset_table_id}"
         )
 
         # FLOW

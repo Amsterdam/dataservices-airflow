@@ -107,7 +107,7 @@ with DAG(
      # 10. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(
         task_id="grants",
-        dag_name=dag_id
+        dag_name=dataset_name
     )
 
 # FLOW
