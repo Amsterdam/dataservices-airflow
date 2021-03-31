@@ -71,7 +71,7 @@ class HttpFetchOperator(BaseOperator):
 
         super().__init__(*args, **kwargs)
 
-    def execute(self, context: Dict) -> None:
+    def execute(self, context: Dict) -> None:  # noqa: C901
         if self.xcom_tmp_dir_task_ids is None and self.xcom_tmp_dir_key != XCOM_RETURN_KEY:
             raise AirflowFailException(
                 "Parameter `xcom_tmp_dir_key` was set without setting parameter "
@@ -114,7 +114,7 @@ class HttpFetchOperator(BaseOperator):
         http = HttpHook(http_conn_id=self.http_conn_id, method="GET")
 
         self.log.info("Calling HTTP GET method on endpoint: '%s'.", self.endpoint)
-        extra_options = {"stream": True}
+        extra_options: dict = {"stream": True}
 
         # Part of :fire: fix related to CA certificate usage.
         #  Use correct certificatesm, because airflow HttpHook ignores them.
@@ -122,6 +122,13 @@ class HttpFetchOperator(BaseOperator):
             extra_options["verify"] = os.environ.get("CURL_CA_BUNDLE")
         if "REQUESTS_CA_BUNDLE" in os.environ:
             extra_options["verify"] = os.environ.get("REQUESTS_CA_BUNDLE")
+
+        # Temporary workarround to cope with unvalid SSL for maps.amsterdam.nl
+        # It prevents Airflow to load the data (invalid SSL certificate)
+        # TODO: check with maintainer maps.amsterdam.nl when SSL certificate is
+        # valid again then remove this workarround
+        if "maps.amsterdam.nl" in http.get_connection(self.http_conn_id).host:
+            extra_options["verify"] = False
 
         response = http.run(self.endpoint, self.data, self.headers, extra_options=extra_options)
         # set encoding schema explicitly if given

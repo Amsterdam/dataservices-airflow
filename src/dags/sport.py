@@ -22,6 +22,7 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
     SHARED_DIR,
+    quote_string,
 )
 
 from postgres_check_operator import (
@@ -35,7 +36,7 @@ from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_ge
 
 
 # business / source keys
-COMPOSITE_KEYS = {
+COMPOSITE_KEYS: dict = {
     "csv": "add_unique_id_to_csv",
     "resources_csv": {
         "zwembad": ("Naam", "Type"),
@@ -82,16 +83,31 @@ for resource_type, resources in data_endpoints.items():
         files_to_import[resource_type].append(resource)
 
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
+def clean_data(file_name: str) -> None:
+    """The unicode replacement karakter is translated to the EM DASH sign
+
+    Args:
+        file_name: Name of file to clean up
+
+    Executes:
+        Writes the cleaned data back into the file
+
+    TODO: contact data maintainer to ask for encoding schema for
+    sportvelden specificly, other datasets can be correctly encoded.
+    """
+    data = open(file_name, "r").read()
+    remove_returns = re.sub(r"[\n\r]", "", data)
+    remove_double_spaces = re.sub(r"[ ]{2,}", " ", remove_returns)
+    remove_unkown_karakter = re.sub("\uFFFD", "\u2014", remove_double_spaces)
+    with open(file_name, "w") as output:
+        output.write(remove_unkown_karakter)
 
 
 with DAG(
     dag_id,
     description="sportfaciliteiten, -objecten en -aanbieders",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters=dict(quote=quote_string),
 ) as dag:
 
     # 1. Post message on slack
@@ -152,7 +168,24 @@ with DAG(
         for resource in resources
     ]
 
-    # 7. convert geojson to csv
+    # 7. Dummy operator acts as an Interface between parallel tasks
+    # to another parallel tasks (i.e. lists or tuples) with different number
+    # of lanes (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
+    # 8. Clean data
+    cleanse_data = [
+        PythonOperator(
+            task_id=f"cleanse_{resource}",
+            python_callable=clean_data,
+            op_args=[
+                f"{tmp_dir}/{resource}.geojson",
+            ],
+        )
+        for resource in files_to_download["geojson"].keys()
+    ]
+
+    # 9. convert geojson to csv
     load_data = [
         Ogr2OgrOperator(
             task_id=f"import_{resource}",
@@ -171,12 +204,12 @@ with DAG(
         for resource in resources
     ]
 
-    # 8. Dummy operator acts as an Interface between parallel tasks
+    # 10. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different number
     # of lanes (without this intermediar, Airflow will give an error)
-    Interface2 = DummyOperator(task_id="interface2")
+    Interface3 = DummyOperator(task_id="interface3")
 
-    # 9. Add geometry column for tables
+    # 11. Add geometry column for tables
     # where source file (like the .csv files) has no geometry field, only x and y fields
     add_geom_col = [
         PostgresOperator(
@@ -187,7 +220,7 @@ with DAG(
         for resource in files_to_download["csv"].keys()
     ]
 
-    # 10. RENAME columns based on PROVENANCE
+    # 12. RENAME columns based on PROVENANCE
     provenance_trans = ProvenanceRenameOperator(
         task_id="provenance_rename",
         dataset_name=f"{dag_id}",
@@ -197,7 +230,7 @@ with DAG(
         pg_schema="public",
     )
 
-    # 11. Look up geometry based on non-geometry data (i.e. address)
+    # 13. Look up geometry based on non-geometry data (i.e. address)
     lookup_geometry_typeahead = [
         TypeAHeadLocationOperator(
             task_id=f"lookup_geometry_if_not_exists_{resource}",
@@ -209,7 +242,7 @@ with DAG(
         for resource in files_to_download["csv"].keys()
     ]
 
-    # 12. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
+    # 14. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
     del_dupl_rows = PostgresOperator(
         task_id="del_duplicate_rows",
         sql=DEL_ROWS,
@@ -252,7 +285,7 @@ with DAG(
             total_checks = count_checks + geo_checks
             check_name[f"{resource}"] = total_checks
 
-    # 13. Execute bundled checks on database
+    # 15. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{resource}", checks=check_name[f"{resource}"]
@@ -261,7 +294,7 @@ with DAG(
         for resource in resources
     ]
 
-    # 14. Create the DB target table (as specified in the JSON data schema)
+    # 16. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_tables = [
         SqlAlchemyCreateObjectOperator(
@@ -276,7 +309,7 @@ with DAG(
         for resource in resources
     ]
 
-    # 15. Check for changes to merge in target table
+    # 17. Check for changes to merge in target table
     change_data_capture = [
         PgComparatorCDCOperator(
             task_id=f"change_data_capture_{resource}",
@@ -287,7 +320,7 @@ with DAG(
         for resource in resources
     ]
 
-    # 16. Clean up (remove temp table _new)
+    # 18. Clean up (remove temp table _new)
     clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{resource}",
@@ -298,26 +331,28 @@ with DAG(
         for resource in resources
     ]
 
-    # 17. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    # 19. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+
 
 # FLOW. define flow with parallel executing of serial tasks for each file
 slack_at_start >> mk_tmp_dir >> (download_data_obs + download_data_maps)
 
 for data in download_data_obs:
 
-    data >> Interface >> unique_id
+    data >> Interface >> cleanse_data
 
 for data_maps in download_data_maps:
 
-    data_maps >> Interface >> unique_id
+    data_maps >> Interface >> cleanse_data
+
+for cleanse in cleanse_data:
+
+    cleanse >> Interface2 >> unique_id
 
 for (create_id, import_data) in zip(unique_id, load_data):
 
-    [create_id >> import_data] >> Interface2 >> add_geom_col
+    [create_id >> import_data] >> Interface3 >> add_geom_col
 
 for (add_geom, lookup_geom) in zip(add_geom_col, lookup_geometry_typeahead):
 
