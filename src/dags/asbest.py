@@ -95,10 +95,10 @@ with DAG(dag_id, default_args=default_args,) as dag:
         dag_name=dag_id
     )
 
-load_dumps[0] >> rename_col >> rename_tables >> grant_db_permissions
-load_dumps[1] >> rename_tables >> grant_db_permissions
+slack_at_start >> fetch_zip >> extract_zip >> extract_shps
 
 for extract_shp, convert_shp, load_dump in zip(extract_shps, convert_shps, load_dumps):
     extract_shp >> convert_shp >> load_dump
 
-slack_at_start >> fetch_zip >> extract_zip >> extract_shps
+load_dumps[0] >> rename_col >> rename_tables >> grant_db_permissions
+load_dumps[1] >> rename_tables >> grant_db_permissions
