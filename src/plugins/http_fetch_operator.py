@@ -71,7 +71,7 @@ class HttpFetchOperator(BaseOperator):
 
         super().__init__(*args, **kwargs)
 
-    def execute(self, context: Dict) -> None:  # noqa
+    def execute(self, context: Dict) -> None:  # noqa: C901
         if self.xcom_tmp_dir_task_ids is None and self.xcom_tmp_dir_key != XCOM_RETURN_KEY:
             raise AirflowFailException(
                 "Parameter `xcom_tmp_dir_key` was set without setting parameter "
