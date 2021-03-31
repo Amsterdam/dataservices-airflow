@@ -334,6 +334,7 @@ with DAG(
     # 19. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
+
 # FLOW. define flow with parallel executing of serial tasks for each file
 slack_at_start >> mk_tmp_dir >> (download_data_obs + download_data_maps)
 

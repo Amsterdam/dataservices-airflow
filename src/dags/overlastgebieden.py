@@ -7,6 +7,7 @@ from airflow.operators.dummy_operator import DummyOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_operator import SwiftOperator
 
 from common import (
@@ -179,6 +180,14 @@ with DAG(
         for key in tables_to_create.keys()
     ]
 
+    # 12. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> mkdir >> download_data
+
 for data in zip(download_data):
 
     data >> Interface >> SHP_to_SQL
@@ -197,11 +206,11 @@ for (
         create_SQL >> create_table >> remove_null_geometry_record
     ] >> provenance_translation >> multi_checks >> Interface2 >> rename_tables
 
-slack_at_start >> mkdir >> download_data
+rename_tables >> grant_db_permissions
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about nuisance areas (overlastgebieden) i.e. vuurwerkvrijezones, dealeroverlastgebieden, barbecueverbodgebiedeb, etc.
+    #### DAG summary
+    This DAG contains data about nuisance areas (overlastgebieden) i.e. vuurwerkvrijezones, dealeroverlastgebieden, barbecueverbodgebiedeb, etc.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

@@ -14,6 +14,7 @@ from environs import Env
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -171,6 +172,12 @@ with DAG(
         task_id=f"multi_check", checks=total_checks
     )
 
+     # 11. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 
 (
     slack_at_start
@@ -183,11 +190,12 @@ with DAG(
     >> rename_table
     >> redefine_pk   
     >> multi_checks
+    >> grant_db_permissions
 )
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts power stations data
+    #### DAG summary
+    This DAG contains power stations data
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

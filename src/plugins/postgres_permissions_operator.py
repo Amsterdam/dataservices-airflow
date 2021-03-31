@@ -186,6 +186,14 @@ class PostgresPermissionsOperator(BaseOperator):
         # Option TWO: grant on single dataset (can be used as a final step within a dag run)
         elif self.dataset_name and not self.batch_ind:
 
+            # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
+            for key in DAG_DATASET.keys():
+                if key in self.dataset_name:
+                    self.dataset_name = DAG_DATASET[key]
+                    break
+
+            logger.info("set grants for %s", self.dataset_name)
+
             try:
                 ams_schema = schema_defs_from_url(
                     schemas_url=self.schema_url, dataset_name=self.dataset_name

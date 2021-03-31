@@ -8,6 +8,8 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.python_operator import BranchPythonOperator
 from postgres_xcom_operator import PostgresXcomOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+
 
 from common import (
     vsd_default_args,
@@ -108,10 +110,16 @@ with DAG(
         sql=SQL_CHECK_GEO,
         params=dict(tablename=f"{dag_id}_new", geotype="ST_Point"),
     )
+    
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME,)
 
 slack_at_start >> check_table_exists >> branch_task
 branch_task >> update_oplaadpalen >> import_allego
 branch_task >> create_oplaadpalen >> import_allego
-import_allego >> [check_count, check_geo] >> rename_table
+import_allego >> [check_count, check_geo] >> rename_table >> grant_db_permissions

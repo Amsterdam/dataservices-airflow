@@ -8,6 +8,7 @@ from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from ogr2ogr_operator import Ogr2OgrOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -147,6 +148,12 @@ with DAG(
         params=dict(tablename=f"{schema_name}_{table_name}_new"),
     )
 
+    # 12. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 # FLOW
 (
     slack_at_start
@@ -159,11 +166,12 @@ with DAG(
     >> create_target_table
     >> change_data_capture
     >> clean_up
+    >> grant_db_permissions
 )
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts URI's (and metadata) of 'processenverbaal verkiezingen'
+    #### DAG summary
+    This DAG contains URI's (and metadata) of 'processenverbaal verkiezingen'
     document publications. This DAG supposed to run for a short period after
     the elections. When all documents (processenverbaal) have been uploaded to
     the objectstore, this dag can be set inactive. When active, it wil run

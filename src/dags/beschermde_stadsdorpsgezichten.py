@@ -9,6 +9,8 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
+from postgres_permissions_operator import PostgresPermissionsOperator
+
 from common import (
     default_args,
     MessageOperator,
@@ -104,6 +106,12 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
 
     rename_table = PostgresOperator(task_id=f"rename_table", sql=RENAME_TABLES_SQL,)
 
+     # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 (
     slack_at_start
     >> drop_imported_table
@@ -111,4 +119,5 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     >> correct_geo
     >> multi_check
     >> rename_table
+    >> grant_db_permissions
 )

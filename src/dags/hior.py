@@ -4,6 +4,7 @@ from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     pg_params,
@@ -102,6 +103,13 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+
 (
     slack_at_start
     >> fetch_xls
@@ -109,6 +117,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     >> create_table
     >> import_tables[1:]
     >> rename_table
+    >> grant_db_permissions
 )
 
 create_table >> import_tables[0] >> import_linked_tables >> rename_table

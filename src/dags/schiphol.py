@@ -8,6 +8,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from ogr2ogr_operator import Ogr2OgrOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
@@ -211,7 +212,7 @@ with DAG(
     ]
 
     # 14. Clean up; delete temp table
-    clean_up = [
+    clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{key}",
             sql=SQL_DROP_TMP_TABLE,
@@ -228,8 +229,16 @@ with DAG(
         ],
     )
 
+    # 16. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 
 # FLOW
+slack_at_start >> mk_tmp_dir >> download_data
+
 for (download, change_seperator, import_data) in zip(download_data, change_seperator, to_sql):
 
     [download >> change_seperator >> import_data] >> Interface >> add_thema_contexts
@@ -239,19 +248,17 @@ for add_thema_context in zip(add_thema_contexts):
     add_thema_context >> provenance_translation >> drop_cols
 
 for (drop_column, set_geom, multi_check, create_table, change_data_capture, clean_up) in zip(
-    drop_cols, redefine_geoms, multi_checks, create_tables, change_data_capture, clean_up
+    drop_cols, redefine_geoms, multi_checks, create_tables, change_data_capture, clean_ups
 ):
 
-    [
-        drop_column >> set_geom >> multi_check >> create_table >> change_data_capture >> clean_up
-    ] >> drop_parent_table
+    drop_column >> set_geom >> multi_check >> create_table >> change_data_capture >> clean_up
 
-slack_at_start >> mk_tmp_dir >> download_data
+clean_ups >> drop_parent_table >> grant_db_permissions
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about Schiphol related topics like 'geluidzones,
+    #### DAG summary
+    This DAG contains data about Schiphol related topics like 'geluidzones,
     hoogtebeperkingradar, maatgevendetoetshoogtes en vogelvrijwaringsgebieden'.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])

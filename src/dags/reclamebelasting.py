@@ -9,6 +9,7 @@ from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from ogr2ogr_operator import Ogr2OgrOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -169,6 +170,12 @@ with DAG(
         params=dict(tablename=f"{schema_name}_{table_name}_new"),
     )
 
+    # 11. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 # FLOW
 (
     slack_at_start
@@ -181,11 +188,12 @@ with DAG(
     >> create_table
     >> change_data_capture
     >> clean_up
+    >> grant_db_permissions
 )
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts advertising tax areas and rates.
+    #### DAG summary
+    This DAG contains advertising tax areas and rates.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

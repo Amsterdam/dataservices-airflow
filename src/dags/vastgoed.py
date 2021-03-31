@@ -5,6 +5,7 @@ from airflow.operators.bash_operator import BashOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_operator import SwiftOperator
 
 from common import (
@@ -122,13 +123,31 @@ with DAG(
             task_id=f"rename_table_{dag_id}",
             old_table_name=f"{dag_id}_{dag_id}_new",
             new_table_name=f"{dag_id}_{dag_id}",
-        )    
+        )
+    
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
-slack_at_start >> mkdir >> download_data >> convert_to_UTF8 >> CSV_to_SQL >> insert_data >> provenance_translation >> multi_checks >> rename_tables
+[
+    slack_at_start 
+    >> mkdir 
+    >> download_data 
+    >> convert_to_UTF8 
+    >> CSV_to_SQL 
+    >> insert_data 
+    >> provenance_translation 
+    >> multi_checks 
+    >> rename_tables 
+    >> grant_db_permissions
+]
+
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data of real estate objects of the city of Amsterdam
+    #### DAG summary
+    This DAG contains data of real estate objects of the city of Amsterdam
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

@@ -5,6 +5,7 @@ from importscripts.import_afvalinzamelingplanning import load_from_dwh
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from schematools.utils import to_snake_case
@@ -156,9 +157,23 @@ with DAG(
         params=dict(tablename=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"),
     )
 
+    # 12. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 
 # FLOW
-[drop_tables >> load_file >> provenance_file_data >> swap_schema]
+slack_at_start >> [drop_tables, load_dwh]
+# Path 1
+[
+    drop_tables 
+    >> load_file 
+    >> provenance_file_data 
+    >> swap_schema
+]
+# Path 2
 [
     load_dwh
     >> check_count
@@ -168,11 +183,10 @@ with DAG(
     >> clean_up
 ]
 
-slack_at_start >> drop_tables
-slack_at_start >> load_dwh
+[swap_schema, clean_up] >> grant_db_permissions
 
 dag.doc_md = """
-    #### DAG summery
+    #### DAG summary
     This DAG processes data about waste objects and related context execution planning
     of waste collection.
     A part of the data orginates from team Ruimte by means of a dump file

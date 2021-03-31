@@ -4,6 +4,7 @@ from swift_load_sql_operator import SwiftLoadSqlOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from swap_schema_operator import SwapSchemaOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -98,6 +99,12 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     # 6. Extra manual renaming for the nm-tables
     nm_tables_rename = PostgresOperator(task_id="nm_tables_rename", sql=NM_RENAMES_SQL,)
 
+    # 7. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 # FLOW
 (
     slack_at_start
@@ -106,4 +113,5 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     >> provenance_renames
     >> swap_schema
     >> nm_tables_rename
+    >> grant_db_permissions
 )

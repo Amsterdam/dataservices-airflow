@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
@@ -131,6 +132,21 @@ with DAG(dag_id,
     )
 
     rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL,)
+    
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
 
-slack_at_start >> drop_tables >> swift_load_task >> multi_check >> rename_columns >> rename_tables
+[
+    slack_at_start 
+    >> drop_tables 
+    >> swift_load_task 
+    >> multi_check 
+    >> rename_columns 
+    >> rename_tables 
+    >> grant_db_permissions
+]
+

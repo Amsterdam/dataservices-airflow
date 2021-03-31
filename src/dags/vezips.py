@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from http_fetch_operator import HttpFetchOperator
 from postgres_files_operator import PostgresFilesOperator
 
@@ -109,6 +110,12 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
     )
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 (
     slack_at_start
     >> fetch_json
@@ -118,4 +125,5 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
     >> alter_table
     >> [check_count, check_colnames, check_geo]
     >> rename_table
+    >> grant_db_permissions
 )

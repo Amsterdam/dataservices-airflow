@@ -4,6 +4,7 @@ from airflow.operators.python_operator import PythonOperator
 from importscripts.import_referentiekalender import load_from_dwh
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from sql.referentiekalender import SQL_DROP_TMP_TABLE
@@ -95,21 +96,27 @@ with DAG(
         params=dict(tablename=f"{dag_id}_datum_new"),
     )
 
+    # 8. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 
 # FLOW
 [
-    load_dwh
+    slack_at_start 
+    >> load_dwh
     >> check_count
     >> provenance_dwh_data
     >> create_tables
     >> change_data_capture
     >> clean_up
+    >> grant_db_permissions
 ]
 
-slack_at_start >> load_dwh
-
 dag.doc_md = """
-    #### DAG summery
+    #### DAG summary
     This DAG processes a generic date hierarchy data.
     Orginates from DWH stadsdelen by means of a database connection.
     #### Mission Critical
