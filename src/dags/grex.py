@@ -14,6 +14,7 @@ from common import default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from common.db import get_engine, get_ora_engine
 from postgres_check_operator import PostgresCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "grex"
 
@@ -124,5 +125,11 @@ with DAG(
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
-load_data >> check_count >> check_geo >> rename_table
+
+load_data >> check_count >> check_geo >> rename_table >> grant_db_permissions

@@ -10,6 +10,7 @@ from environs import Env
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from swift_operator import SwiftOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -180,6 +181,12 @@ with DAG(
         for key in files_to_download.keys()
     ]
 
+     # 12. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 for (
     data,
     change_seperator,
@@ -204,13 +211,13 @@ for (
         data >> change_seperator >> create_SQL >> create_table >> redefine_geom
     ] >> provenance_translation >> multi_check
 
-    [multi_check >> drop_table >> rename_table]
+    [multi_check >> drop_table >> rename_table] >> grant_db_permissions
 
 (slack_at_start >> mkdir >> download_data)
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts soil (bodem) analyses data
+    #### DAG summary
+    This DAG contains soil (bodem) analyses data
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

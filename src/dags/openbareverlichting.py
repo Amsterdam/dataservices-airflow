@@ -8,6 +8,7 @@ from airflow.operators.python_operator import PythonOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from http_fetch_operator import HttpFetchOperator
 
 
@@ -145,16 +146,23 @@ with DAG(
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> mkdir >> download_data
 
 for data in zip(download_data):
 
     data >> convert_to_geojson >> geojson_to_SQL >> create_table >> provenance_translation >> multi_checks >> rename_table
 
-slack_at_start >> mkdir >> download_data
+rename_table >> grant_db_permissions
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts location, status and type of public lighting
+    #### DAG summary
+    This DAG contains location, status and type of public lighting
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

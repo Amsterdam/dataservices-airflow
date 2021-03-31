@@ -19,6 +19,7 @@ from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
 )
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 
 dag_id = "parkeervakken"
@@ -306,6 +307,12 @@ with DAG(
         params=dict(base_table=f"{dag_id}_{dag_id}"),
     )
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 (
     mk_tmp_dir
     >> download_and_extract_zip
@@ -314,6 +321,7 @@ with DAG(
     >> run_import_task
     >> count_check
     >> rename_temp_tables
+    >> grant_db_permissions
 )
 
 

@@ -9,6 +9,7 @@ from environs import Env
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_operator import SwiftOperator
 
 from common import (
@@ -229,6 +230,14 @@ with DAG(
         task_id=f"drop_parent_table", sql=[f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",],
     )
 
+    # 16. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> mkdir >> download_data
+
 for (data, change_seperator) in zip(download_data, change_seperators):
 
     [data >> change_seperator] >> Interface >> csv_to_SQL
@@ -249,11 +258,11 @@ for drop_col in zip(drop_cols):
     drop_col >> drop_parent_table
 
 
-slack_at_start >> mkdir >> download_data
+drop_parent_table >> grant_db_permissions
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts sound zones related to metro, spoorwegen, industrie and schiphol.
+    #### DAG summary
+    This DAG contains sound zones related to metro, spoorwegen, industrie and schiphol.
     Source files are located @objectstore.eu, container: Milieuthemas
     Metro, spoorwegen and industrie are in source in one file
     Schipol is separated in its own file

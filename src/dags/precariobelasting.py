@@ -10,6 +10,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from http_fetch_operator import HttpFetchOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -201,7 +202,7 @@ with DAG(
     ]
 
     # 16. rename values in column gebied for terrassen en passagiersvaartuigen (woonschepen en bedrijfsvaartuigen are added in the previous step)
-    rename_value_gebied = [
+    rename_value_gebieden = [
         PostgresOperator(
             task_id=f"rename_value_{file_name}",
             sql=RENAME_DATAVALUE_GEBIED,
@@ -210,7 +211,15 @@ with DAG(
         for file_name in ["terrassen", "passagiersvaartuigen"]
     ]
 
+    # 17. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
     # FLOW. define flow with parallel executing of serial tasks for each file
+    slack_at_start >> mk_tmp_dir >> download_data
+
     for (
         data,
         clean_data,
@@ -240,15 +249,15 @@ with DAG(
         ] >> Interface >> add_gebied_columns
 
     for add_gebied_column, rename_value_gebied in zip(
-        add_gebied_columns, rename_value_gebied
+        add_gebied_columns, rename_value_gebieden
     ):
         add_gebied_column >> rename_value_gebied
 
-    slack_at_start >> mk_tmp_dir >> download_data
+    rename_value_gebieden >> grant_db_permissions
 
     dag.doc_md = """
-    #### DAG summery
-    This DAG containts precariobelasting data
+    #### DAG summary
+    This DAG contains precariobelasting data
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

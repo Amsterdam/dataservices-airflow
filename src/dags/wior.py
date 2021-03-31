@@ -15,6 +15,7 @@ from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from more_ds.network.url import URL
 
@@ -212,6 +213,12 @@ with DAG(
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
+    # 13. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 (
     slack_at_start
     >> mkdir
@@ -226,11 +233,12 @@ with DAG(
     >> create_table
     >> change_data_capture
     >> clean_up
+    >> grant_db_permissions
 )
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts public construction sites / projects
+    #### DAG summary
+    This DAG contains public construction sites / projects
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

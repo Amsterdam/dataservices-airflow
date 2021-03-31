@@ -14,6 +14,7 @@ from common.sql import (
 )
 from importscripts.import_hoofdroutes import import_hoofdroutes
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 
 dag_id = "hoofdroutes"
@@ -65,8 +66,14 @@ with DAG(dag_id, default_args=default_args,) as dag:
         task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
     )
 
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 import_routes >> extract_geojson >> load_table >> [
     check_count,
     check_geo,
     check_colnames,
-] >> rename_table
+] >> rename_table >> grant_db_permissions

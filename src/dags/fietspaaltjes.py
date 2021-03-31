@@ -4,6 +4,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from http_fetch_operator import HttpFetchOperator
 from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -56,4 +57,10 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         params=dict(tablename=f"{dag_id}_{dag_id}", pk="pkey"),
     )
 
-slack_at_start >> fetch_json >> create_sql >> create_and_fill_table >> rename_table
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+slack_at_start >> fetch_json >> create_sql >> create_and_fill_table >> rename_table >> grant_db_permissions

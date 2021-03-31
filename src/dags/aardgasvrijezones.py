@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.dummy_operator import DummyOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from environs import Env
 
@@ -162,6 +163,14 @@ with DAG(
         for key in files_to_download.keys()
     ]
 
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
+
+slack_at_start >> mkdir >> download_data
 
 for data in zip(download_data):
 
@@ -175,11 +184,11 @@ for (create_SQL, create_table, multi_check, rename_table,) in zip(
 
     [multi_check >> rename_table]
 
-slack_at_start >> mkdir >> download_data
+rename_tables >> grant_db_permissions
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data of natural gas free districts (aardgasvrije buurten) and local initiatives 
+    #### DAG summary
+    This DAG contains data of natural gas free districts (aardgasvrije buurten) and local initiatives 
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

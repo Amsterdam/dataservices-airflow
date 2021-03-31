@@ -8,6 +8,7 @@ from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_table_init_operator import PostgresTableInitOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from http_gob_operator import HttpGobOperator
 from common import (
     default_args,
@@ -153,6 +154,12 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
             trigger_rule="all_done",
         )
 
+        # 9. Grant database permissions
+        grant_db_permissions = PostgresPermissionsOperator(
+            task_id="grants",
+            dag_name=dag_id
+        )
+
         # FLOW
         (
             slack_at_start
@@ -162,6 +169,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
             >> copy_table
             >> create_extra_index
             >> trigger_next_dag
+            >> grant_db_permissions
         )
 
     return dag

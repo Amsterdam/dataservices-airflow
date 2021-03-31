@@ -9,6 +9,7 @@ from http_fetch_operator import HttpFetchOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -135,6 +136,12 @@ with DAG(
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 (
     slack_at_start
     >> mkdir
@@ -145,6 +152,7 @@ with DAG(
     >> provenance_translation
     >> multi_checks
     >> rename_table
+    >> grant_db_permissions
 )
 
 dag.doc_md = """

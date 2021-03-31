@@ -32,6 +32,8 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
+from postgres_permissions_operator import PostgresPermissionsOperator
+
 dag_id = "bedrijveninvesteringszones"
 variables = Variable.get(dag_id, deserialize_json=True)
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -182,17 +184,35 @@ with DAG(
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
-
-for data in zip(download_data):
-
-    data >> Interface >> SHP_to_SQL >> SQL_convert_UTF8 >> SQL_update_data >> create_table >> import_data >> update_table >> provenance_translation >> multi_checks >> rename_table
+    # 14. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
 
 slack_at_start >> mkdir >> download_data
 
+for data in download_data:
+    data >> Interface
+
+(
+    Interface 
+    >> SHP_to_SQL 
+    >> SQL_convert_UTF8 
+    >> SQL_update_data 
+    >> create_table 
+    >> import_data 
+    >> update_table 
+    >> provenance_translation 
+    >> multi_checks 
+    >> rename_table 
+    >> grant_db_permissions
+)
+
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about business investment zones
+    #### DAG summary
+    This DAG contains data about business investment zones
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

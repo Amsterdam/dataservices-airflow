@@ -10,6 +10,7 @@ from more_ds.network.url import URL
 from provenance_rename_operator import ProvenanceRenameOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from typing import Dict
 
 from common import (
@@ -237,6 +238,12 @@ with DAG(
         for resource in variables
     ]
 
+    # 13. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
+
 # FLOW
 
 slack_at_start >> import_auto_data >> Interface
@@ -251,12 +258,12 @@ for (change_data_capture, flag_recent_data, clean_up, history_window) in zip(
     change_data_capture, flag_recent, clean_up, history_window
 ):
 
-    [change_data_capture >> flag_recent_data >> clean_up >> history_window]  # type: ignore
+    [change_data_capture >> flag_recent_data >> clean_up >> history_window >> grant_db_permissions]  # type: ignore
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about rentalcars, -bikes and -scooters
+    #### DAG summary
+    This DAG contains data about rentalcars, -bikes and -scooters
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

@@ -14,6 +14,7 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from typeahead_location_operator import TypeAHeadLocationOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -287,7 +288,7 @@ with DAG(
     ]
 
     # 16. Clean up (remove temp table _new)
-    clean_up = [
+    clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{resource}",
             sql=SQL_DROP_TMP_TABLE,
@@ -297,36 +298,43 @@ with DAG(
         for resource in resources
     ]
 
-    # FLOW. define flow with parallel executing of serial tasks for each file
-    for data in download_data_obs:
+    # 17. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants",
+        dag_name=dag_id
+    )
 
-        data >> Interface >> unique_id
+# FLOW. define flow with parallel executing of serial tasks for each file
+slack_at_start >> mk_tmp_dir >> (download_data_obs + download_data_maps)
 
-    for data_maps in download_data_maps:
+for data in download_data_obs:
 
-        data_maps >> Interface >> unique_id
+    data >> Interface >> unique_id
 
-    for (create_id, import_data) in zip(unique_id, load_data):
+for data_maps in download_data_maps:
 
-        [create_id >> import_data] >> Interface2 >> add_geom_col
+    data_maps >> Interface >> unique_id
 
-    for (add_geom, lookup_geom) in zip(add_geom_col, lookup_geometry_typeahead):
+for (create_id, import_data) in zip(unique_id, load_data):
 
-        add_geom >> provenance_trans >> lookup_geom >> del_dupl_rows >> multi_checks
+    [create_id >> import_data] >> Interface2 >> add_geom_col
 
-    for (multi_check, create_table, check_changes, clean_up) in zip(
-        multi_checks, create_tables, change_data_capture, clean_up
-    ):
+for (add_geom, lookup_geom) in zip(add_geom_col, lookup_geometry_typeahead):
 
-        [multi_check >> create_table >> check_changes >> clean_up]
+    add_geom >> provenance_trans >> lookup_geom >> del_dupl_rows >> multi_checks
 
-    slack_at_start >> mk_tmp_dir >> download_data_obs
-    slack_at_start >> mk_tmp_dir >> download_data_maps
+for (multi_check, create_table, check_changes, clean_up) in zip(
+    multi_checks, create_tables, change_data_capture, clean_ups
+):
+
+    [multi_check >> create_table >> check_changes >> clean_up]
+
+clean_ups >> grant_db_permissions
 
 
 dag.doc_md = """
-    #### DAG summery
-    This DAG containts data about sport related facilities, objects and providers
+    #### DAG summary
+    This DAG contains data about sport related facilities, objects and providers
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
