@@ -176,7 +176,7 @@ with DAG(
             check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
-                geotype=["MULTIPOLYGON", "POLYGON", "POINT", "MULTILINESTRING", "LINESTRING"],
+                geotype=["MULTIPOLYGON", "POLYGON", "POINT", "MULTILINESTRING", "LINESTRING", "GEOMETRYCOLLECTION"],
                 geo_column="geometrie",
             ),
             pass_value=1,
