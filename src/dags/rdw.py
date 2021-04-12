@@ -151,7 +151,10 @@ dag.doc_md = """
     #### On Failure Actions
     Fix issues and rerun dag on working days
     #### Point of Contact
-    Inform the businessowner at [businessowner]@amsterdam.nl
+    Inform the businessowner at n.papilaya@amsterdam.nl
+    Naomy Papilaya
+    Product Owner Online formulieren
+    Dienstverlening
     #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing
