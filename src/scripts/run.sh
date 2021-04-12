@@ -68,6 +68,11 @@ airflow connections add taxi_waarnemingen_acc_conn_id \
     --conn-host https://acc.waarnemingen.amsterdam.nl \
     --conn-type http
 
+airflow connections delete rdw_conn_id
+airflow connections add rdw_conn_id \
+    --conn-host https://opendata.rdw.nl/resource \
+    --conn-type http
+
 # airflow connections delete gob_graphql
 # airflow connections add gob_graphql \
 #     --conn_host https://acc.api.data.amsterdam.nl \

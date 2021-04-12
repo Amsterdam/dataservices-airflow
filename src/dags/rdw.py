@@ -2,10 +2,9 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
 from common.db import DatabaseEngine
-from common.http import download_file
 from environs import Env
+from http_fetch_operator import HttpFetchOperator
 from more_ds.network.url import URL
 from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -75,16 +74,13 @@ with DAG(
 
     # 3. Download csv
     download_data = [
-        PythonOperator(
+        HttpFetchOperator(
             task_id=f"download_{resource}",
-            python_callable=download_file,
-            op_kwargs=dict(
-                url=rdw_base_url
-                / endpoint
-                // {"$select": ",".join(DATA_SELECTIONS[resource]), "$LIMIT": DATA_LIMIT},
-                destination=f"{tmp_dir}/{resource}.csv",
-                http_conn_id=None,
-            ),
+            endpoint=f"{endpoint}?$select={','.join(DATA_SELECTIONS[resource])}&$LIMIT={DATA_LIMIT}",
+            http_conn_id="rdw_conn_id",
+            tmp_file=f"{tmp_dir}/{resource}.csv",
+            output_type="text",
+            verify=False,
         )
         for resource, endpoint in endpoints.items()
     ]

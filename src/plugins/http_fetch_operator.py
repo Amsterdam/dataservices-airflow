@@ -35,6 +35,7 @@ class HttpFetchOperator(BaseOperator):
         output_type: Optional[str] = None,
         xcom_tmp_dir_task_ids: Optional[str] = None,
         xcom_tmp_dir_key: str = XCOM_RETURN_KEY,
+        verify: bool = True,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -68,6 +69,7 @@ class HttpFetchOperator(BaseOperator):
         self.output_type = output_type  # default is raw, else specify text i.e.
         self.xcom_tmp_dir_task_ids = xcom_tmp_dir_task_ids
         self.xcom_tmp_dir_key = xcom_tmp_dir_key
+        self.verify = verify
 
         super().__init__(*args, **kwargs)
 
@@ -128,6 +130,8 @@ class HttpFetchOperator(BaseOperator):
         # TODO: check with maintainer maps.amsterdam.nl when SSL certificate is
         # valid again then remove this workarround
         if "maps.amsterdam.nl" in http.get_connection(self.http_conn_id).host:
+            extra_options["verify"] = False
+        if not self.verify:
             extra_options["verify"] = False
 
         response = http.run(self.endpoint, self.data, self.headers, extra_options=extra_options)
