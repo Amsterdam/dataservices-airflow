@@ -64,8 +64,8 @@ class Scooter:
     tarief_parkeren: Optional[int] = None
 
 
-def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scooter]:
-    """Retrieves the data from resource FLEYX
+def get_data_scooter_felyx(api_endpoint: str, api_header: Dict) -> Iterator[Scooter]:
+    """Retrieves the data from resource felyx
     Because each resource has it's own quirks when calling the API
     each resource has it's own get_data_* method.
 
@@ -75,14 +75,14 @@ def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
             the data endpoint
 
     Yields:
-        A list of Scooter type instances containing FLEYX data
+        A list of Scooter type instances containing felyx data
 
     """
     try:
         request = requests.get(api_endpoint, headers=api_header, verify=True)
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(
-            f"{api_endpoint} something went wrong: {request.status_code}", e
+            f"{api_endpoint} something went wrong:", e
         ) from e
     else:
         data = json.loads(request.text)["data"]["bikes"]
@@ -98,7 +98,7 @@ def get_data_scooter_fleyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
                 geometrie=Point(row["lon"], row["lat"]),
                 status_motor=row["is_disabled"],
                 status_beschikbaar=row["is_reserved"],
-                exploitant="fleyx",
+                exploitant="felyx",
             )
             yield scooter_object
 
@@ -134,12 +134,10 @@ def get_data_ridecheck(
             token_endpoint, params=token_payload, headers=token_header, verify=True
         ).json()
     except ValueError as e:
-        raise ValueError(
-            f"{token_request} cannot retrieve data in JSON: {token_request.status_code}", e
-        ) from e
+        raise ValueError(f"{token_endpoint} cannot retrieve data in JSON:", e) from e
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(
-            f"{token_endpoint} something went wrong: {token_request.status_code}", e
+            f"{token_endpoint} something went wrong:", e
         ) from e
     else:
         token = token_request["access_token"]
@@ -150,7 +148,7 @@ def get_data_ridecheck(
         data_request = requests.get(data_endpoint, headers=data_headers, verify=True)
     except requests.exceptions.RequestException as e:
         raise requests.exceptions.RequestException(
-            f"{data_endpoint} something went wrong: {data_request.status_code}", e
+            f"{data_endpoint} something went wrong:", e
         ) from e
     else:
         data_object = json.loads(data_request.text)
@@ -182,19 +180,19 @@ def get_data_ridecheck(
 
 def import_scooter_data(
     table_name: str,
-    fleyx_api_endpoint: str,
-    fleyx_api_header: Dict,
+    felyx_api_endpoint: str,
+    felyx_api_header: Dict,
     ridecheck_token_endpoint: str,
     ridecheck_token_payload: Dict,
     ridecheck_token_header: Dict,
     ridecheck_data_endpoint: str,
     ridecheck_data_header: Dict,
 ) -> None:
-    """Union resources FLEYX and RIDECHECK and imports data into database table
+    """Union resources felyx and RIDECHECK and imports data into database table
 
     Args:
-        fleyx_api_endpoint: an URL specification for the data service to call
-        fleyx_api_header: a dictionary of headers key value pairs used when calling
+        felyx_api_endpoint: an URL specification for the data service to call
+        felyx_api_header: a dictionary of headers key value pairs used when calling
             the data endpoint
         ridecheck_token_endpoint: an URL specification for the token service to retreive a
             (time limited) access key
@@ -217,8 +215,8 @@ def import_scooter_data(
         ridecheck_data_endpoint,
         ridecheck_data_header,
     )
-    fleyx = get_data_scooter_fleyx(fleyx_api_endpoint, fleyx_api_header)
-    scooter_dataset = chain([row for row in ridecheck], [row for row in fleyx])
+    felyx = get_data_scooter_felyx(felyx_api_endpoint, felyx_api_header)
+    scooter_dataset = chain([row for row in ridecheck], [row for row in felyx])
 
     df = pd.DataFrame([vars(row) for row in scooter_dataset])
     df["geometrie"] = df["geometrie"].apply(lambda g: WKTElement(g.wkt, srid=4326))
