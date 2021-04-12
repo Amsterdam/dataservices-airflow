@@ -46,12 +46,12 @@ dag_id: str = "rdw"
 description: str = (
     "Contextuele informatie over een RDW geregistreerd voertuig op basis van het kenteken."
 )
-variables: Dict = Variable.get(dag_id, deserialize_json=True)
-endpoints: Dict = variables["data_endpoints"]
+variables: dict = Variable.get(dag_id, deserialize_json=True)
+endpoints: dict = variables["data_endpoints"]
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
-db_conn: object = DatabaseEngine()
+db_conn: DatabaseEngine = DatabaseEngine()
 env: Env = Env()
-rdw_base_url: str = URL(env("AIRFLOW_CONN_RDW_BASE_URL"))
+rdw_base_url: URL = URL(env("AIRFLOW_CONN_RDW_BASE_URL"))
 
 
 with DAG(
@@ -79,7 +79,7 @@ with DAG(
             task_id=f"download_{resource}",
             python_callable=download_file,
             op_kwargs=dict(
-                url=URL(rdw_base_url)
+                url=rdw_base_url
                 / endpoint
                 // {"$select": ",".join(DATA_SELECTIONS[resource]), "$LIMIT": DATA_LIMIT},
                 destination=f"{tmp_dir}/{resource}.csv",
