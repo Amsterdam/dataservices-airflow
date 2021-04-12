@@ -79,7 +79,9 @@ with DAG(
             task_id=f"download_{resource}",
             python_callable=download_file,
             op_kwargs=dict(
-                url=f"{URL(rdw_base_url) / endpoint // {'$select': {','.join(DATA_SELECTIONS[resource])}} // {'$LIMIT': {DATA_LIMIT}}}",  # noqa E501
+                url=URL(rdw_base_url)
+                / endpoint
+                // {"$select": ",".join(DATA_SELECTIONS[resource]), "$LIMIT": DATA_LIMIT},
                 destination=f"{tmp_dir}/{resource}.csv",
                 http_conn_id=None,
             ),
