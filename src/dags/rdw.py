@@ -4,12 +4,14 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from common.db import DatabaseEngine
+from common.http import download_file
 from environs import Env
 from more_ds.network.url import URL
 from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from typing import Dict, Iterable
+
 
 from common import (
     default_args,
@@ -20,7 +22,6 @@ from common import (
     quote_string,
 )
 
-from importscripts.import_rdw import download_data
 from sql.rdw import SQL_CREATE_TMP_TABLE, SQL_SWAP_TABLE
 
 # Source defaults to 1000 records per request.
@@ -76,10 +77,11 @@ with DAG(
     download_data = [
         PythonOperator(
             task_id=f"download_{resource}",
-            python_callable=download_data,
+            python_callable=download_file,
             op_kwargs=dict(
-                endpoint=f"{URL(rdw_base_url) / endpoint // dict({'$select': {','.join(DATA_SELECTIONS[resource])}}) // dict({'$LIMIT': {DATA_LIMIT}})}",  # noqa E501
-                output_file=f"{tmp_dir}/{resource}.csv",
+                url=f"{URL(rdw_base_url) / endpoint // {'$select': {','.join(DATA_SELECTIONS[resource])}} // {'$LIMIT': {DATA_LIMIT}}}",  # noqa E501
+                destination=f"{tmp_dir}/{resource}.csv",
+                http_conn_id=None,
             ),
         )
         for resource, endpoint in endpoints.items()
