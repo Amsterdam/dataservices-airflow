@@ -121,6 +121,7 @@ with DAG(
         fid="fid",
         mode="PostgreSQL",
         db_conn=db_conn,
+        sql_statement=f"\"SELECT * FROM {dag_id} WHERE hoofdstatus NOT ILIKE '%intake%'\"",
     )
 
     # 5. Drop unnecessary cols
@@ -176,7 +177,14 @@ with DAG(
             check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
-                geotype=["MULTIPOLYGON", "POLYGON", "POINT", "MULTILINESTRING", "LINESTRING", "GEOMETRYCOLLECTION"],
+                geotype=[
+                    "MULTIPOLYGON",
+                    "POLYGON",
+                    "POINT",
+                    "MULTILINESTRING",
+                    "LINESTRING",
+                    "GEOMETRYCOLLECTION",
+                ],
                 geo_column="geometrie",
             ),
             pass_value=1,
@@ -214,10 +222,7 @@ with DAG(
     )
 
     # 13. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     slack_at_start
