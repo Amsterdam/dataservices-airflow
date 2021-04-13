@@ -1,30 +1,57 @@
+from __future__ import annotations
+from datetime import datetime
 from sqlalchemy import not_
+from typing import Optional, Any
 from airflow.settings import Session
-from airflow.models.dag import DagModel
-from airflow.utils.decorators import apply_defaults
+from airflow.models.dag import DagModel, DagRun
 from airflow.operators.dagrun_operator import TriggerDagRunOperator
+from airflow.utils.decorators import apply_defaults
+from airflow.utils.state import State
 
 
 class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
-    pass
+    """Trigger the next dag in a series of DAGs with the same dag_id prefix.
 
-    @apply_defaults
+    This operator makes it possible to trigger a series of DAGs with the same
+    prefix in a serial fashion, head to tail. It is some kind of estafette run.
+
+    Add this operator as the last one in the DAGs that are part of this estafette run.
+    Usually these are dynamically generated dags.
+
+    Make sure that the DAGs are not scheduled automatically. Only the first DAG in
+    the series needs to be scheduled, it will trigger the next DAG in the series (the estafette).
+
+    This trigger individual DAGs in the series manually, a configuration key `no_next_dag`
+    with a truthy value can be provided that prevents the start of the estafette run.
+
+    When the next DAGs in the chain is still running, it will not be triggered!
+    """
+
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
-        dag_id_prefix="",
-        execution_date=None,
-        *args,
-        **kwargs,
+        dag_id_prefix: str = "",
+        execution_date: Optional[datetime] = None,
+        *args: Any,
+        **kwargs: Any,
     ):
+        """Initialize the TriggerDynamicDagRunOperator.
+
+        Args:
+            dag_id_prefix: Prefix that bundles a series of DAGs that need to run
+                in a serialized (estafette) fashion.
+            execution_date: execution date for the dag (templated)
+        """
         super().__init__(
             trigger_dag_id=None,
             execution_date=None,
             *args,
             **kwargs,
         )
+        assert len(dag_id_prefix) > 0, "A dag_id_prefix is mandatory to use this Operator."
         self.dag_id_prefix = dag_id_prefix
 
-    def execute(self, context):
+    def execute(self, context: dict[str, Any]) -> None:
         # Do not trigger next dag when param no_next_dag is available
         # Due to bug in Airflow, dagrun misses 'conf' attribute
         # when DAG is triggered from another DAG
@@ -54,6 +81,11 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
             self.log.info("Next dag to trigger %s", self.trigger_dag_id)
         except IndexError:
             self.log.info("Current dag %s is the last dag.", current_dag_id)
+            return
+
+        # If the next Dag is currently running, we do not trigger it
+        if DagRun.find(dag_id=self.trigger_dag_id, state=State.RUNNING):
+            self.log.info("Not starting next dag %s, it is still running.", self.trigger_dag_id)
             return
 
         super().execute(context)
