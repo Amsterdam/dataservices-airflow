@@ -333,7 +333,7 @@ deelmobiliteit:
   scooters:
     data_endpoints:
       ridecheck: /scooters
-      fleyx: /gbfs/free_bike_status.json
+      felyx: /gbfs/free_bike_status.json
   autos:
     data_endpoints:
       mywheels: /api/

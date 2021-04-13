@@ -27,7 +27,7 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-from sql.deelmobiliteit import SQL_SET_GEOM, SQL_FLAG_RECENT_DATA, SQL_DROP_TMP_TABLE
+from sql.deelmobiliteit import SQL_SET_GEOM, SQL_FLAG_NOT_RECENT_DATA, SQL_DROP_TMP_TABLE
 from importscripts.import_deelmobiliteit import import_scooter_data, import_auto_data
 
 
@@ -39,8 +39,8 @@ variables: Dict = Variable.get(dag_id, deserialize_json=True)
 env: Env = Env()
 
 endpoint_scooters: Dict = variables["scooters"]["data_endpoints"]
-fleyx_base_url: str = URL(env("AIRFLOW_CONN_FLEYX_BASE_URL"))
-fleyx_api_key: str = env("AIRFLOW_CONN_FLEYX_API_KEY")
+felyx_base_url: str = URL(env("AIRFLOW_CONN_FELYX_BASE_URL"))
+felyx_api_key: str = env("AIRFLOW_CONN_FELYX_API_KEY")
 ridecheck_base_url: str = URL(env("AIRFLOW_CONN_RIDECHECK_BASE_URL"))
 ridecheck_token_url: str = URL(env("AIRFLOW_CONN_RIDECHECK_TOKEN_URL"))
 ridecheck_token_client_id: str = env("AIRFLOW_CONN_RIDECHECK_CLIENT_ID")
@@ -73,16 +73,41 @@ with DAG(
         username="admin",
     )
 
-    # 2. Load scooter data into DB
+    # 2. Create the DB target table (as specified in the JSON data schema)
+    # if table not exists yet
+    create_table = SqlAlchemyCreateObjectOperator(
+        task_id="create_table",
+        data_schema_name=dag_id,
+        ind_table=True,
+        # when set to false, it doesn't create indexes; only tables
+        ind_extra_index=True,
+    )
+
+    # 3. Flag recent data version
+    flag_not_recent = [
+        PostgresOperator(
+            task_id=f"flag_not_recent_{resource}",
+            sql=SQL_FLAG_NOT_RECENT_DATA,
+            params=dict(tablename=f"{dag_id}_{resource}"),
+        )
+        for resource in variables
+    ]
+
+    # 4. Dummy operator acts as an Interface between parallel tasks
+    # to another parallel tasks (i.e. lists or tuples) with different number
+    # of lanes (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 5. Load scooter data into DB
     import_scooter_data = PythonOperator(
         task_id="import_scooter_data",
         python_callable=import_scooter_data,
         op_kwargs=dict(
             table_name=f"{dag_id}_scooters_new",
-            fleyx_api_endpoint=f"{fleyx_base_url}{endpoint_scooters['fleyx']}",
-            fleyx_api_header={
+            felyx_api_endpoint=f"{felyx_base_url}{endpoint_scooters['felyx']}",
+            felyx_api_header={
                 "content-type": "application/json",
-                "x-api-key": fleyx_api_key,
+                "x-api-key": felyx_api_key,
             },
             ridecheck_token_endpoint=f"{ridecheck_token_url}",
             ridecheck_token_payload={
@@ -99,7 +124,7 @@ with DAG(
         ),
     )
 
-    # 3. Load auto data into DB
+    # 6. Load auto data into DB
     import_auto_data = PythonOperator(
         task_id="import_auto_data",
         python_callable=import_auto_data,
@@ -127,12 +152,12 @@ with DAG(
         ),
     )
 
-    # 4. Dummy operator acts as an Interface between parallel tasks
+    # 7. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different number
     # of lanes (without this intermediar, Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
+    Interface2 = DummyOperator(task_id="interface2")
 
-    # 5. Check minimum number of records
+    # 8. Check minimum number of records
     # PREPARE CHECKS
     for resource in variables:
         count_checks.append(
@@ -158,13 +183,13 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 6. RUN bundled CHECKS
+    # 9. RUN bundled CHECKS
     multi_checks = [
         PostgresMultiCheckOperator(task_id=f"multi_check_{resource}", checks=total_checks)
         for resource in variables
     ]
 
-    # 7. Rename COLUMNS based on provenance (if specified)
+    # 10. Rename COLUMNS based on provenance (if specified)
     provenance = ProvenanceRenameOperator(
         task_id="provenance_col_rename",
         dataset_name=dag_id,
@@ -174,7 +199,7 @@ with DAG(
         pg_schema="public",
     )
 
-    # 8. Set GEO type
+    # 11. Set GEO type
     set_geom = [
         PostgresOperator(
             task_id=f"set_geom_{resource}",
@@ -184,17 +209,7 @@ with DAG(
         for resource in variables
     ]
 
-    # 9. Create the DB target table (as specified in the JSON data schema)
-    # if table not exists yet
-    create_table = SqlAlchemyCreateObjectOperator(
-        task_id="create_table",
-        data_schema_name=dag_id,
-        ind_table=True,
-        # when set to false, it doesn't create indexes; only tables
-        ind_extra_index=True,
-    )
-
-    # 10. Check for changes to merge in target table by using CDC
+    # 12. Check for changes to merge in target table by using CDC
     change_data_capture = [
         PgComparatorCDCOperator(
             task_id=f"change_data_capture_{resource}",
@@ -208,17 +223,7 @@ with DAG(
         for resource in variables
     ]
 
-    # 11. Flag recent data version
-    flag_recent = [
-        PostgresOperator(
-            task_id=f"flag_recent_data_{resource}",
-            sql=SQL_FLAG_RECENT_DATA,
-            params=dict(tablename=f"{dag_id}_{resource}"),
-        )
-        for resource in variables
-    ]
-
-    # 12. Clean up; delete temp table
+    # 13. Clean up; delete temp table
     clean_up = [
         PostgresOperator(
             task_id=f"clean_up_{resource}",
@@ -228,7 +233,7 @@ with DAG(
         for resource in variables
     ]
 
-    # 13. Set HISTORY window (keep data from now till one month ago)
+    # 14. Set HISTORY window (keep data from now till one month ago)
     history_window = [
         PostgresOperator(
             task_id=f"history_window_{resource}",
@@ -238,27 +243,25 @@ with DAG(
         for resource in variables
     ]
 
-    # 13. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    # 15. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
 
-slack_at_start >> import_auto_data >> Interface
-slack_at_start >> import_scooter_data >> Interface
-Interface >> set_geom
+slack_at_start >> create_table >> flag_not_recent >> Interface
+Interface >> import_auto_data >> Interface2
+Interface >> import_scooter_data >> Interface2
+Interface2 >> set_geom
 
 for (set_geom, multi_checks) in zip(set_geom, multi_checks):
 
-    [set_geom >> multi_checks] >> provenance >> create_table >> change_data_capture  # type: ignore
+    [set_geom >> multi_checks] >> provenance >> change_data_capture  # type: ignore
 
-for (change_data_capture, flag_recent_data, clean_up, history_window) in zip(
-    change_data_capture, flag_recent, clean_up, history_window
+for (change_data_capture, clean_up, history_window) in zip(
+    change_data_capture, clean_up, history_window
 ):
 
-    [change_data_capture >> flag_recent_data >> clean_up >> history_window >> grant_db_permissions]  # type: ignore
+    [change_data_capture >> clean_up >> history_window >> grant_db_permissions]  # type: ignore
 
 
 dag.doc_md = """
