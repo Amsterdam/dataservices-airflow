@@ -52,7 +52,7 @@ SQL_RENAME_TEMP_TABLE = """
 SQL_ADD_AGGREGATES = """
 SET TIME ZONE 'Europe/Amsterdam';
 DELETE FROM {{ params.table }} WHERE periode = '{{ params.periode }}';
-INSERT into {{ params.table }}(sensor, naam_locatie, periode, datum_uur, aantal_passanten) 
+INSERT into {{ params.table }}(sensor, naam_locatie, periode, datum_uur, aantal_passanten)
 SELECT sensor
      , naam_locatie
 	 , '{{ params.periode }}'
@@ -85,15 +85,15 @@ def copy_data_from_dbwaarnemingen_to_masterdb(*args, **kwargs):
         cursor = waarnemingen_connection.execute(
             f"""
 SET TIME ZONE 'Europe/Amsterdam';
-WITH cmsa_1h_v6 AS (
+WITH cmsa AS (
   SELECT sensor
        , date_trunc('hour'::text, timestamp_rounded) AS datum_uur
        , SUM(total_count) AS aantal_passanten
-  FROM cmsa_15min_view_v7_materialized
+  FROM cmsa_15min_view_v8_materialized
   WHERE timestamp_rounded > to_date('2019-01-01'::text, 'YYYY-MM-DD'::text)
   GROUP BY sensor, (date_trunc('hour'::text,timestamp_rounded)))
 SELECT v.sensor, s.location_name, v.datum_uur, v.aantal_passanten, s.gebied, s.geom as geometrie
-FROM cmsa_1h_v6 v
+FROM cmsa v
 JOIN peoplemeasurement_sensors s ON s.objectnummer::text = v.sensor::text;
 """
         )
