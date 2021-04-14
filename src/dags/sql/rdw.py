@@ -1,16 +1,14 @@
-# merging into one table.
-# the data is about 30 million rows
-# fastest way to merge three resources
-
+# Setting up temp table
+# the main table rdw_voertuig has two
+# child tables (assen en brandstof) that
+# refer to rdw_voertuig and are used as
+# an object (array) within the schema definition.
 SQL_CREATE_TMP_TABLE = """
-DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
-CREATE TABLE IF NOT EXISTS {{ params.tablename }} AS (
-    SELECT encode(
-            md5(
-                b.kenteken || coalesce(a.as_nummer, 0) || coalesce(br.brandstof_omschrijving, 'NA')
-            )::text::bytea,
-            'hex'
-        ) as id,
+DROP TABLE IF EXISTS rdw_voertuig_new CASCADE;
+DROP TABLE IF EXISTS rdw_assen_new CASCADE;
+DROP TABLE IF EXISTS rdw_brandstof_new CASCADE;
+CREATE TABLE IF NOT EXISTS rdw_voertuig_new AS (
+    SELECT b.id,
         b.kenteken,
         TO_DATE(b.datum_eerste_toelating::text, 'YYYYMMDD') as datum_eerste_toelating,
         b.inrichting,
@@ -18,32 +16,56 @@ CREATE TABLE IF NOT EXISTS {{ params.tablename }} AS (
         b.massa_rijklaar,
         b.maximum_massa_samenstelling,
         b.toegestane_maximum_massa_voertuig,
-        b.voertuigsoort,
+        b.voertuigsoort
+    FROM rdw_basis_download b
+);
+CREATE TABLE IF NOT EXISTS rdw_voertuig_assen_new AS (
+    SELECT a.id,
+        a.kenteken,
         a.aantal_assen,
         a.as_nummer,
         a.technisch_toegestane_maximum_aslast,
-        br.brandstof_omschrijving,
-        br.emissiecode_omschrijving
-    FROM rdw_basis_new b
-        LEFT JOIN rdw_assen_new a ON b.kenteken = a.kenteken
-        LEFT JOIN rdw_brandstof_new br ON b.kenteken = br.kenteken
+        b.id as parent_id
+    FROM rdw_assen_download a
+        inner join rdw_voertuig_new b on b.kenteken = a.kenteken
 );
-CREATE INDEX {{ params.tablename }}_idx ON {{ params.tablename }} (kenteken);
-ALTER TABLE {{ params.tablename }}
-ADD CONSTRAINT {{ params.tablename }}_pk PRIMARY KEY (id);
-DROP TABLE rdw_assen_new;
-DROP TABLE rdw_brandstof_new;
-DROP TABLE rdw_basis_new;
+CREATE TABLE IF NOT EXISTS rdw_voertuig_brandstof_new AS (
+    SELECT br.id,
+        br.kenteken,
+        br.brandstof_omschrijving,
+        br.emissiecode_omschrijving,
+        b.id as parent_id
+    FROM rdw_brandstof_download br
+        inner join rdw_voertuig_new b on b.kenteken = br.kenteken
+);
+CREATE INDEX rdw_voertuig_brandstof_new_idx ON rdw_voertuig_brandstof_new (kenteken);
+CREATE INDEX rdw_voertuig_assen_new_fk_idx ON rdw_voertuig_assen_new (parent_id);
+CREATE INDEX rdw_voertuig_brandstof_new_fk_idx ON rdw_voertuig_brandstof_new (parent_id);
+ALTER TABLE rdw_voertuig_new
+ADD CONSTRAINT rdw_voertuig_new_pk PRIMARY KEY (id);
+DROP TABLE rdw_assen_download;
+DROP TABLE rdw_brandstof_download;
+DROP TABLE rdw_basis_download;
 """
 
 # swap tmp to target
 SQL_SWAP_TABLE = """
-DROP TABLE IF EXISTS {{ params.tablename }};
+DROP TABLE IF EXISTS rdw_voertuig;
+DROP TABLE IF EXISTS rdw_voertuig_brandstof;
+DROP TABLE IF EXISTS rdw_voertuig_assen;
 ALTER TABLE
-IF EXISTS {{ params.tablename }}_new RENAME TO {{ params.tablename }};
+IF EXISTS rdw_voertuig_new RENAME TO rdw_voertuig;
+ALTER TABLE
+IF EXISTS rdw_voertuig_brandstof_new RENAME TO rdw_voertuig_brandstof;
+ALTER TABLE
+IF EXISTS rdw_voertuig_assen_new RENAME TO rdw_voertuig_assen;
 ALTER INDEX
-IF EXISTS {{ params.tablename }}_new_idx RENAME TO {{ params.tablename }}_idx;
+IF EXISTS rdw_voertuig_new_idx RENAME TO rdw_voertuig_idx;
+ALTER INDEX
+IF EXISTS rdw_voertuig_assen_new_fk_idx RENAME TO rdw_voertuig_assen_fk_idx;
+ALTER INDEX
+IF EXISTS rdw_voertuig_brandstof_new_fk_idx RENAME TO rdw_voertuig_brandstof_fk_idx;
 ALTER TABLE
-IF EXISTS {{ params.tablename }} RENAME CONSTRAINT {{ params.tablename }}_new_pk
-    TO {{ params.tablename }}_pk;
+IF EXISTS rdw_voertuig RENAME CONSTRAINT rdw_voertuig_new_pk
+    TO rdw_voertuig_pk;
 """
