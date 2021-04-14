@@ -11,8 +11,9 @@ DROP_COLS = """
     DROP COLUMN IF EXISTS calamiteitverbergenininhoudscherm,
     DROP COLUMN IF EXISTS wkb_geometry,
     DROP COLUMN IF EXISTS status,
-    DROP COLUMN IF EXISTS hoofdstatus,
-    DROP COLUMN IF EXISTS bbox;
+    DROP COLUMN IF EXISTS bbox,
+    DROP COLUMN IF EXISTS kleinwerk,
+    DROP COLUMN IF EXISTS gepubliceerd
 """
 
 # Removing temp table that was used for CDC (change data capture)

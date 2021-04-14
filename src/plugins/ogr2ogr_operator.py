@@ -26,6 +26,7 @@ class Ogr2OgrOperator(BaseOperator):
         auto_detect_type: Optional[str] = None,
         mode: str = "PGDump",
         db_conn: Optional[DatabaseEngine] = None,
+        encoding_schema: str = "UTF-8",
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
@@ -42,6 +43,7 @@ class Ogr2OgrOperator(BaseOperator):
         self.sql_statement = sql_statement
         self.mode = mode
         self.db_conn = db_conn
+        self.encoding_schema = encoding_schema
 
     def execute(self, context: Optional[Dict[str, Any]] = None) -> None:
         """proces the input file with OGR2OGR to SQL output
@@ -66,15 +68,19 @@ class Ogr2OgrOperator(BaseOperator):
             ogr2ogr_cmd.append(f"{self.sql_output_file} {self.input_file} ")
 
             # optionals
-            self.input_file_sep and ogr2ogr_cmd.append(f"-lco SEPARATOR={self.input_file_sep} ")
-            self.sql_statement and ogr2ogr_cmd.append(f"-sql {self.sql_statement}")
+            if self.input_file_sep:
+                ogr2ogr_cmd.append(f"-lco SEPARATOR={self.input_file_sep} ")
 
         # Option 2 DIRECT LOAD: load data directly into DB; no file created in between
         else:
 
             # mandatory
             ogr2ogr_cmd.append(
-                f"PG:'host={self.db_conn.host} dbname={self.db_conn.db} user={self.db_conn.user} password={self.db_conn.password} port={self.db_conn.port}' "
+                f"PG:'host={getattr(self.db_conn, 'host')} "
+                f"dbname={getattr(self.db_conn, 'db')} "
+                f"user={getattr(self.db_conn, 'user')} "
+                f"password={getattr(self.db_conn, 'password')} "
+                f"port={getattr(self.db_conn, 'port')}' "
             )
             ogr2ogr_cmd.append(f"{self.input_file} ")
             ogr2ogr_cmd.append(f"-nln {self.target_table_name} -overwrite ")
@@ -84,14 +90,17 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"-lco FID={self.fid} ")
         ogr2ogr_cmd.append(f"-oo AUTODETECT_TYPE={self.auto_detect_type} ")
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
+        ogr2ogr_cmd.append(f"-lco ENCODING={self.encoding_schema} ")
+        if self.sql_statement:
+            ogr2ogr_cmd.append(f"-sql {self.sql_statement}")
 
         # execute cmd string
         try:
             subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)
         except subprocess.CalledProcessError as err:
             logger.error(
-            """Something went wrong, cannot execute subproces.
+                """Something went wrong, cannot execute subproces.
               Please check the ogr2ogr cmd %s
             """,
-            err.output,
-        )
+                err.output,
+            )
