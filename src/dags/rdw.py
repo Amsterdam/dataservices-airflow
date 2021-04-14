@@ -76,7 +76,7 @@ with DAG(
     download_data = [
         HttpFetchOperator(
             task_id=f"download_{resource}",
-            endpoint=f"{endpoint}?$select={','.join(DATA_SELECTIONS[resource])}&$LIMIT={DATA_LIMIT}",
+            endpoint=f"{endpoint}?$select={','.join(DATA_SELECTIONS[resource])}&$LIMIT={DATA_LIMIT}",  # noqa E501
             http_conn_id="rdw_conn_id",
             tmp_file=f"{tmp_dir}/{resource}.csv",
             output_type="text",
@@ -89,7 +89,7 @@ with DAG(
     import_data = [
         Ogr2OgrOperator(
             task_id=f"import_{resource}",
-            target_table_name=f"{dag_id}_{resource}_new",
+            target_table_name=f"{dag_id}_{resource}_download",
             input_file=f"{tmp_dir}/{resource}.csv",
             s_srs=None,
             auto_detect_type="YES",
@@ -104,7 +104,6 @@ with DAG(
     create_tmp_table = PostgresOperator(
         task_id="create_tmp_table",
         sql=SQL_CREATE_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
     # 6. Rename COLUMNS based on provenance (if specified)
