@@ -52,7 +52,7 @@ class Scooter:
     geometrie: Point
     exploitant: str
     status_motor: bool
-    status_beschikbaar: Optional[str] = None
+    status_beschikbaar: Optional[bool] = None
     naam: Optional[str] = None
     max_snelheid: Optional[int] = None
     huidige_locatie: Optional[str] = None
@@ -97,7 +97,7 @@ def get_data_scooter_felyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
                 indicatie_actueel=True,
                 geometrie=Point(row["lon"], row["lat"]),
                 status_motor=row["is_disabled"],
-                status_beschikbaar=row["is_reserved"],
+                status_beschikbaar=False if row["is_reserved"] else True,
                 exploitant="felyx",
             )
             yield scooter_object
@@ -329,7 +329,7 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
                     naam=row["alias"],
                     huidige_locatie=" ".join(
                         [row.get("location", "onbekend"), row.get("streetnumber", "")]
-                    ),
+                    ).strip(),
                     kenteken=row["registrationPlate"],
                     merk=row["brand"],
                     model=row["model"],
