@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS rdw_voertuig_brandstof_new AS (
     FROM rdw_brandstof_download br
         inner join rdw_voertuig_new b on b.kenteken = br.kenteken
 );
-CREATE INDEX rdw_voertuig_brandstof_new_idx ON rdw_voertuig_brandstof_new (kenteken);
+CREATE INDEX rdw_voertuig_new_idx ON rdw_voertuig_new (kenteken);
 CREATE INDEX rdw_voertuig_assen_new_fk_idx ON rdw_voertuig_assen_new (parent_id);
 CREATE INDEX rdw_voertuig_brandstof_new_fk_idx ON rdw_voertuig_brandstof_new (parent_id);
 ALTER TABLE rdw_voertuig_new
