@@ -39,6 +39,7 @@ DATA_SELECTIONS: Dict[str, Iterable[str]] = {
     ],
     "brandstof": ["kenteken", "brandstof_omschrijving", "emissiecode_omschrijving"],
     "assen": ["kenteken", "aantal_assen", "as_nummer", "technisch_toegestane_maximum_aslast"],
+    "carrosserie": ["kenteken", "type_carrosserie_europese_omschrijving"],
 }
 
 dag_id: str = "rdw"

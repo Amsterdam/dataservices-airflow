@@ -38,14 +38,24 @@ CREATE TABLE IF NOT EXISTS rdw_voertuig_brandstof_new AS (
     FROM rdw_brandstof_download br
         inner join rdw_voertuig_new b on b.kenteken = br.kenteken
 );
+CREATE TABLE IF NOT EXISTS rdw_voertuig_carrosserie_new AS (
+    SELECT cs.id,
+        cs.kenteken,
+        cs.type_carrosserie_europese_omschrijving,
+        b.id as parent_id
+    FROM rdw_carrosserie_download cs
+        inner join rdw_voertuig_new b on b.kenteken = cs.kenteken
+);
 CREATE INDEX rdw_voertuig_new_idx ON rdw_voertuig_new (kenteken);
 CREATE INDEX rdw_voertuig_assen_new_fk_idx ON rdw_voertuig_assen_new (parent_id);
 CREATE INDEX rdw_voertuig_brandstof_new_fk_idx ON rdw_voertuig_brandstof_new (parent_id);
+CREATE INDEX rdw_voertuig_carrosserie_new_fk_idx ON rdw_voertuig_carrosserie_new (parent_id);
 ALTER TABLE rdw_voertuig_new
 ADD CONSTRAINT rdw_voertuig_new_pk PRIMARY KEY (id);
 DROP TABLE rdw_assen_download;
 DROP TABLE rdw_brandstof_download;
 DROP TABLE rdw_basis_download;
+DROP TABLE rdw_carrosserie_download;
 """
 
 # swap tmp to target
@@ -53,6 +63,7 @@ SQL_SWAP_TABLE = """
 DROP TABLE IF EXISTS rdw_voertuig;
 DROP TABLE IF EXISTS rdw_voertuig_brandstof;
 DROP TABLE IF EXISTS rdw_voertuig_assen;
+DROP TABLE IF EXISTS rdw_voertuig_carrosserie;
 ALTER TABLE
 IF EXISTS rdw_voertuig_new RENAME TO rdw_voertuig;
 ALTER TABLE
@@ -60,11 +71,15 @@ IF EXISTS rdw_voertuig_brandstof_new RENAME TO rdw_voertuig_brandstof;
 ALTER TABLE
 IF EXISTS rdw_voertuig_assen_new RENAME TO rdw_voertuig_assen;
 ALTER INDEX
+IF EXISTS rdw_voertuig_carrosserie_new RENAME TO rdw_voertuig_carrosserie;
+ALTER INDEX
 IF EXISTS rdw_voertuig_new_idx RENAME TO rdw_voertuig_idx;
 ALTER INDEX
 IF EXISTS rdw_voertuig_assen_new_fk_idx RENAME TO rdw_voertuig_assen_fk_idx;
 ALTER INDEX
 IF EXISTS rdw_voertuig_brandstof_new_fk_idx RENAME TO rdw_voertuig_brandstof_fk_idx;
+ALTER INDEX
+IF EXISTS rdw_voertuig_carrosserie_new_fk_idx RENAME TO rdw_voertuig_carrosserie_fk_idx;
 ALTER TABLE
 IF EXISTS rdw_voertuig RENAME CONSTRAINT rdw_voertuig_new_pk
     TO rdw_voertuig_pk;
