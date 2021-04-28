@@ -18,7 +18,7 @@ from airflow.hooks.http_hook import HttpHook
 from airflow.exceptions import AirflowException
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import toCamelCase
+from schematools.utils import toCamelCase, schema_def_from_url
 
 
 from http_params_hook import HttpParamsHook
@@ -155,9 +155,10 @@ class HttpGobOperator(BaseOperator):
             # we know the schema, can be an input param (schema_def_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresHook()
-            importer = NDJSONImporter(
-                dataset_info.dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log
+            dataset = schema_def_from_url(
+                dataset_info.schema_url, dataset_info.dataset_id, prefetch_related=True
             )
+            importer = NDJSONImporter(dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log)
 
             # Here we enter the schema-world, so table_name needs to be camelized
             # Or, should this be done later in the chain?
