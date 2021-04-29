@@ -143,7 +143,9 @@ with DAG(
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{key}",
-            sql=[f"DROP TABLE IF EXISTS {dag_id}_{key} CASCADE",],
+            sql=[
+                f"DROP TABLE IF EXISTS {dag_id}_{key} CASCADE",
+            ],
         )
         for key in files_to_download.keys()
     ]
@@ -177,7 +179,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(table_name=f"{key}", geotype=["POINT", "MULTIPOLYGON"],),
+                params=dict(
+                    table_name=f"{key}",
+                    geotype=["POINT", "MULTIPOLYGON"],
+                ),
                 pass_value=1,
             )
         )
@@ -187,38 +192,29 @@ with DAG(
 
     # 13. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
         for key in files_to_download.keys()
     ]
 
     # 14. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-slack_at_start >> mkdir >> download_data 
+slack_at_start >> mkdir >> download_data
 
 for data in zip(download_data):
 
     data >> Interface >> SHP_to_SQL
 
-for (
-    create_SQL,
-    create_table,
-    remove_col,
-    multi_check,
-    drop_table,
-    rename_table,
-) in zip(
-    SHP_to_SQL, create_tables, remove_cols, multi_checks, drop_tables, rename_tables,
+for (create_SQL, create_table, remove_col, multi_check, drop_table, rename_table,) in zip(
+    SHP_to_SQL,
+    create_tables,
+    remove_cols,
+    multi_checks,
+    drop_tables,
+    rename_tables,
 ):
 
-    [
-        create_SQL >> create_table >> remove_col
-    ] >> provenance_translation >> add_hyperlink_pdf
+    [create_SQL >> create_table >> remove_col] >> provenance_translation >> add_hyperlink_pdf
 
     for hyperlink in zip(add_hyperlink_pdf):
 
@@ -243,6 +239,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/explosieven/bominslag/
     https://api.data.amsterdam.nl/v1/explosieven/gevrijwaardgebied/
-    https://api.data.amsterdam.nl/v1/explosieven/verdachtgebied/ 
+    https://api.data.amsterdam.nl/v1/explosieven/verdachtgebied/
     https://api.data.amsterdam.nl/v1/explosieven/uitgevoerdonderzoek/
 """

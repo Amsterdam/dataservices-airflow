@@ -138,7 +138,9 @@ with DAG(
         PostgresOperator(
             task_id=f"add_context_{splitted_tablename}",
             sql=ADD_THEMA_CONTEXT,
-            params=dict(tablename=f"{dag_id}_{splitted_tablename}_new", parent_table=f"{dag_id}_themas_new"),
+            params=dict(
+                tablename=f"{dag_id}_{splitted_tablename}_new", parent_table=f"{dag_id}_themas_new"
+            ),
         )
         for key in files_to_download.keys()
         for splitted_tablename in key.split("-")
@@ -227,14 +229,14 @@ with DAG(
 
     # 15. Drop parent table THEMAS, not needed anymore
     drop_parent_table = PostgresOperator(
-        task_id=f"drop_parent_table", sql=[f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",],
+        task_id=f"drop_parent_table",
+        sql=[
+            f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",
+        ],
     )
 
     # 16. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
@@ -246,13 +248,14 @@ for create_SQL, create_table in zip(csv_to_SQL, create_tables):
 
     [create_SQL >> create_table] >> provenance_translation >> redefine_geoms
 
-for (redefine_geom, add_thema_context, multi_check, rename_table,) in zip(
-    redefine_geoms, add_thema_contexts, multi_checks, rename_tables
-):
+for (
+    redefine_geom,
+    add_thema_context,
+    multi_check,
+    rename_table,
+) in zip(redefine_geoms, add_thema_contexts, multi_checks, rename_tables):
 
-    [
-        redefine_geom >> add_thema_context >> multi_check >> rename_table
-    ] >> Interface2 >> drop_cols
+    [redefine_geom >> add_thema_context >> multi_check >> rename_table] >> Interface2 >> drop_cols
 
 for drop_col in zip(drop_cols):
     drop_col >> drop_parent_table
@@ -277,6 +280,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/geluidszones.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/geluidszones.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=geluidszones/schiphol&x=111153&y=483288&radius=10
 """

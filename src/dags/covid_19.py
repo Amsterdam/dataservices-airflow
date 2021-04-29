@@ -34,7 +34,7 @@ files_to_download = variables_covid19["files_to_download"]
 # Note: Gebiedsverbod is absolete since "nieuwe tijdelijke wetgeving Corona maatregelen 01-12-2020"
 # TODO: remove Gebiedsverbod from var.yml, if DSO-API endpoint and Amsterdam Schema definition can be removed
 tables_to_create = variables_covid19["tables_to_create"]
-tables_to_check = { k:v for k, v in tables_to_create.items() if k != 'gebiedsverbod' }
+tables_to_check = {k: v for k, v in tables_to_create.items() if k != "gebiedsverbod"}
 
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
@@ -137,7 +137,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(table_name=f"{key}", geotype=["MULTIPOLYGON"],),
+                params=dict(
+                    table_name=f"{key}",
+                    geotype=["MULTIPOLYGON"],
+                ),
                 pass_value=1,
             )
         )
@@ -147,9 +150,7 @@ with DAG(
 
     # 8. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
         for key in tables_to_check.keys()
     ]
 
@@ -168,10 +169,7 @@ with DAG(
     ]
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
@@ -180,10 +178,14 @@ for data in zip(download_data):
     data >> Interface >> SHP_to_SQL
 
 for (create_SQL, create_table, rename_table,) in zip(
-    SHP_to_SQL, create_tables, rename_tables,
+    SHP_to_SQL,
+    create_tables,
+    rename_tables,
 ):
 
-    [create_SQL >> create_table] >> provenance_translation >> multi_checks >> Interface2 >> rename_table
+    [
+        create_SQL >> create_table
+    ] >> provenance_translation >> multi_checks >> Interface2 >> rename_table
 
 rename_tables >> grant_db_permissions
 

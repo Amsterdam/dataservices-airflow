@@ -90,8 +90,7 @@ with DAG(
     SHP_to_SQL = [
         BashOperator(
             task_id="SHP_to_SQL",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{file}",
+            bash_command=f"ogr2ogr -f 'PGDump' " f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{file}",
         )
         for files in files_to_download.values()
         for file in files
@@ -165,7 +164,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}_{dag_id}_new", geotype=["POLYGON"],),
+            params=dict(
+                table_name=f"{dag_id}_{dag_id}_new",
+                geotype=["POLYGON"],
+            ),
             pass_value=1,
         )
     )
@@ -173,9 +175,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 12. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(
-        task_id="multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
     # 13. Rename TABLE
     rename_table = PostgresTableRenameOperator(
@@ -185,10 +185,7 @@ with DAG(
     )
 
     # 14. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 slack_at_start >> mkdir >> download_data
@@ -197,16 +194,16 @@ for data in download_data:
     data >> Interface
 
 (
-    Interface 
-    >> SHP_to_SQL 
-    >> SQL_convert_UTF8 
-    >> SQL_update_data 
-    >> create_table 
-    >> import_data 
-    >> update_table 
-    >> provenance_translation 
-    >> multi_checks 
-    >> rename_table 
+    Interface
+    >> SHP_to_SQL
+    >> SQL_convert_UTF8
+    >> SQL_update_data
+    >> create_table
+    >> import_data
+    >> update_table
+    >> provenance_translation
+    >> multi_checks
+    >> rename_table
     >> grant_db_permissions
 )
 
@@ -222,9 +219,9 @@ dag.doc_md = """
     https://data.amsterdam.nl/datasets/bl6Wf85K8CfnwA/bedrijfsinvesteringszones-biz/
     #### Business Use Case / process / origin
     Na
-    #### Prerequisites/Dependencies/Resourcing  
+    #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/bedrijveninvesteringszones.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/bedrijveninvesteringszones.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=bedrijveninvesteringszones/bedrijveninvesteringszones&x=106434&y=488995&radius=10
 """

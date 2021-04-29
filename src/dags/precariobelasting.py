@@ -58,7 +58,9 @@ def clean_data(file_name):
 
 
 with DAG(
-    dag_id, default_args=default_args, user_defined_filters=dict(quote=quote),
+    dag_id,
+    default_args=default_args,
+    user_defined_filters=dict(quote=quote),
 ) as dag:
 
     # 1. Post message on slack
@@ -137,7 +139,8 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{file_name}",
                 params=dict(
-                    table_name=f"{file_name}", geotype=["POLYGON", "MULTIPOLYGON"],
+                    table_name=f"{file_name}",
+                    geotype=["POLYGON", "MULTIPOLYGON"],
                 ),
                 pass_value=1,
             )
@@ -163,7 +166,9 @@ with DAG(
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{file_name}",
-            sql=[f"DROP TABLE IF EXISTS {dag_id}_{file_name} CASCADE",],
+            sql=[
+                f"DROP TABLE IF EXISTS {dag_id}_{file_name} CASCADE",
+            ],
         )
         for file_name in data_endpoints.keys()
     ]
@@ -212,10 +217,7 @@ with DAG(
     ]
 
     # 17. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
     # FLOW. define flow with parallel executing of serial tasks for each file
     slack_at_start >> mk_tmp_dir >> download_data
@@ -244,13 +246,9 @@ with DAG(
             data >> clean_data >> extract_geojson >> load_table >> multi_check
         ] >> provenance_translation >> drop_table
 
-        [
-            drop_table >> rename_table >> add_title_column
-        ] >> Interface >> add_gebied_columns
+        [drop_table >> rename_table >> add_title_column] >> Interface >> add_gebied_columns
 
-    for add_gebied_column, rename_value_gebied in zip(
-        add_gebied_columns, rename_value_gebieden
-    ):
+    for add_gebied_column, rename_value_gebied in zip(add_gebied_columns, rename_value_gebieden):
         add_gebied_column >> rename_value_gebied
 
     rename_value_gebieden >> grant_db_permissions

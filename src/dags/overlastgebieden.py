@@ -31,7 +31,7 @@ variables_overlastgebieden = Variable.get("overlastgebieden", deserialize_json=T
 files_to_download = variables_overlastgebieden["files_to_download"]
 tables_to_create = variables_overlastgebieden["tables_to_create"]
 # Note: Vuurwerkvrijezones (VVZ) data is temporaly! not processed due to covid19 national measures
-tables_to_check = { k:v for k, v in tables_to_create.items() if k != 'vuurwerkvrij' }
+tables_to_check = {k: v for k, v in tables_to_create.items() if k != "vuurwerkvrij"}
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
@@ -149,7 +149,8 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
                 params=dict(
-                    table_name=f"{dag_id}_{key}_new", geotype=["MULTIPOLYGON"],
+                    table_name=f"{dag_id}_{key}_new",
+                    geotype=["MULTIPOLYGON"],
                 ),
                 pass_value=1,
             )
@@ -160,9 +161,7 @@ with DAG(
 
     # 9. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
         for key in tables_to_check.keys()
     ]
 
@@ -181,10 +180,7 @@ with DAG(
     ]
 
     # 12. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
@@ -192,11 +188,7 @@ for data in zip(download_data):
 
     data >> Interface >> SHP_to_SQL
 
-for (
-    create_SQL,
-    create_table,
-    remove_null_geometry_record,
-) in zip(
+for (create_SQL, create_table, remove_null_geometry_record,) in zip(
     SHP_to_SQL,
     create_tables,
     remove_null_geometry_records,
