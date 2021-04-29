@@ -206,7 +206,7 @@ with DAG(
     update_colors = PostgresOperator(task_id="update_colors", sql=SQL_UPDATE_COLORS)
 
     # 12. Remove records which are marked as SHOW = False
-    delete_unused = [
+    delete_unuseds = [
         PostgresOperator(
             task_id=f"delete_show_false_{subject}",
             sql=SQL_DELETE_UNUSED,
@@ -231,29 +231,26 @@ with DAG(
 # FLOW. define flow with parallel executing of serial tasks for each file
 slack_at_start >> mk_tmp_dir >> download_data >> extract_zip >> SHP_to_SQL
 
-for (
-    shape_to_sql,
-    convert_to_UTF8,
-    load_table,
-    revalidate_geometry_record,
-    multi_check,
-    delete_unused,
-    rename_table,
-) in zip(
+for (shape_to_sql, convert_to_UTF8, load_table, revalidate_geometry_record, multi_check,) in zip(
     SHP_to_SQL,
     convert_to_UTF8,
     load_tables,
     revalidate_geometry_records,
     multi_checks,
-    delete_unused,
-    rename_tables,
 ):
 
     [
         shape_to_sql >> convert_to_UTF8 >> load_table >> revalidate_geometry_record >> multi_check
-    ] >> provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unused
+    ] >> provenance_translation
 
-    [delete_unused >> rename_table]
+
+provenance_translation >> load_map_colors >> add_color >> update_colors
+
+for (delete_unused, rename_table) in zip(
+    delete_unuseds,
+    rename_tables,
+):
+    update_colors >> [delete_unused >> rename_table]
 
 rename_tables >> grant_db_permissions
 

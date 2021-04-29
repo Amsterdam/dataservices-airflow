@@ -209,9 +209,14 @@ for (
 
     [
         data >> change_seperator >> create_SQL >> create_table >> redefine_geom
-    ] >> provenance_translation >> multi_check
+    ] >> provenance_translation
 
-    [multi_check >> drop_table >> rename_table] >> grant_db_permissions
+    [multi_check >> drop_table >> rename_table]
+
+
+provenance_translation >> multi_checks
+
+rename_tables >> grant_db_permissions
 
 (slack_at_start >> mkdir >> download_data)
 
