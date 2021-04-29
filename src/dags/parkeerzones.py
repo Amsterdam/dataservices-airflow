@@ -27,16 +27,16 @@ from postgres_check_operator import (
     GEO_CHECK,
 )
 
-dag_id:str = "parkeerzones"
-variables:Dict = Variable.get(dag_id, deserialize_json=True)
-file_to_download:Dict = variables["files_to_download"]
-files_to_proces:Dict = variables["files_to_proces"]
-tmp_dir:str = f"{SHARED_DIR}/{dag_id}"
-sql_path:str = pathlib.Path(__file__).resolve().parents[0] / "sql"
-total_checks:List = []
-count_checks:List = []
-geo_checks:List = []
-check_name:Dict = {}
+dag_id: str = "parkeerzones"
+variables: Dict = Variable.get(dag_id, deserialize_json=True)
+file_to_download: Dict = variables["files_to_download"]
+files_to_proces: Dict = variables["files_to_proces"]
+tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
+sql_path: str = pathlib.Path(__file__).resolve().parents[0] / "sql"
+total_checks: List = []
+count_checks: List = []
+geo_checks: List = []
+check_name: Dict = {}
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
 def quote(instr: str) -> str:
@@ -86,20 +86,19 @@ with DAG(
 
     # 3. Download data
     download_data = SwiftOperator(
-            task_id="download_file",
-            # Default swift = Various Small Datasets objectstore
-            # swift_conn_id="SWIFT_DEFAULT",
-            container=f"{dag_id}",
-            object_id=f"{file_to_download}",
-            output_path=f"{tmp_dir}/{file_to_download}",
-        )
+        task_id="download_file",
+        # Default swift = Various Small Datasets objectstore
+        # swift_conn_id="SWIFT_DEFAULT",
+        container=f"{dag_id}",
+        object_id=f"{file_to_download}",
+        output_path=f"{tmp_dir}/{file_to_download}",
+    )
 
     # 3. Unzip
     extract_zip = BashOperator(
-            task_id="extract_zip_file",
-            bash_command=f'unzip -o "{tmp_dir}/{file_to_download}" -d {tmp_dir}',
-        )
-
+        task_id="extract_zip_file",
+        bash_command=f'unzip -o "{tmp_dir}/{file_to_download}" -d {tmp_dir}',
+    )
 
     # 4.create the SQL for creating the table using ORG2OGR PGDump
     SHP_to_SQL = [
@@ -225,12 +224,9 @@ with DAG(
         )
         for subject in files_to_proces.keys()
     ]
-    
+
     # 14. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW. define flow with parallel executing of serial tasks for each file
 slack_at_start >> mk_tmp_dir >> download_data >> extract_zip >> SHP_to_SQL
@@ -253,14 +249,9 @@ for (
     rename_tables,
 ):
 
-
     [
-        shape_to_sql
-        >> convert_to_UTF8
-        >> load_table
-        >> revalidate_geometry_record
-        >> multi_check
-    ]   >> provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unused
+        shape_to_sql >> convert_to_UTF8 >> load_table >> revalidate_geometry_record >> multi_check
+    ] >> provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unused
 
     [delete_unused >> rename_table]
 
