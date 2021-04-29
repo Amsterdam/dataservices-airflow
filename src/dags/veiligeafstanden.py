@@ -233,17 +233,16 @@ with DAG(
     )
 
     # 15. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
 slack_at_start >> mkdir >> download_data
 
 for (data, change_seperator, import_data) in zip(download_data, change_seperators, CSV_to_DB):
 
-    [data >> change_seperator >> import_data] >> provenance_translation >> redefine_geoms
+    [data >> change_seperator >> import_data] >> provenance_translation
+
+provenance_translation >> redefine_geoms
 
 for (
     redefine_geom,

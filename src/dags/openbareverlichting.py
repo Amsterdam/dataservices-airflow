@@ -152,11 +152,18 @@ with DAG(
 
 slack_at_start >> mkdir >> download_data
 
-for data in zip(download_data):
+# for data in zip(download_data):
 
-    data >> convert_to_geojson >> geojson_to_SQL >> create_table >> provenance_translation >> multi_checks >> rename_table
-
-rename_table >> grant_db_permissions
+(
+    download_data
+    >> convert_to_geojson
+    >> geojson_to_SQL
+    >> create_table
+    >> provenance_translation
+    >> multi_checks
+    >> rename_table
+    >> grant_db_permissions
+)
 
 dag.doc_md = """
     #### DAG summary

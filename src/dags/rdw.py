@@ -136,9 +136,9 @@ slack_at_start >> mkdir >> download_data
 
 for (get_data, load_data) in zip(download_data, import_data):
 
-    [
-        get_data >> load_data
-    ] >> create_tmp_table >> provenance >> swap_table >> clean_up_files >> grant_db_permissions
+    [get_data >> load_data] >> create_tmp_table
+
+create_tmp_table >> provenance >> swap_table >> clean_up_files >> grant_db_permissions
 
 
 dag.doc_md = """
