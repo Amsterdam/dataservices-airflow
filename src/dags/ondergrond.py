@@ -218,17 +218,12 @@ with DAG(
     ]
 
     # 13. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
 # FLOW
-for (download_file, create_table, import_data) in zip(
-    download_data, create_tables, GEOJSON_to_DB
-):
+for (download_file, create_table, import_data) in zip(download_data, create_tables, GEOJSON_to_DB):
 
     [download_file >> create_table >> import_data] >> provenance_translation >> multi_checks
 

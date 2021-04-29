@@ -107,14 +107,15 @@ with DAG(
     # 7. Revalidate or Remove invalid geometry records
     # the source has some invalid records where the geometry is not present (NULL)
     # or the geometry in itself is not valid (revalidate)
-    # the removal of these records (less then 5) prevents errorness behaviour 
-    # to do: inform the source maintainer 
+    # the removal of these records (less then 5) prevents errorness behaviour
+    # to do: inform the source maintainer
     revalidate_remove_null_geometry_records = [
         PostgresOperator(
             task_id=f"revalidate_remove_geom_{key}",
-            sql=[f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract(st_makevalid(geometry),2) WHERE 1=1 AND ST_IsValid(geometry) is false; COMMIT;",
-                 f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND geometry IS NULL; COMMIT;" 
-                ],
+            sql=[
+                f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract(st_makevalid(geometry),2) WHERE 1=1 AND ST_IsValid(geometry) is false; COMMIT;",
+                f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND geometry IS NULL; COMMIT;",
+            ],
         )
         for key in files_to_download.keys()
     ]
@@ -148,7 +149,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(table_name=f"{dag_id}_{key}_new", geotype=["MULTILINESTRING"],),
+                params=dict(
+                    table_name=f"{dag_id}_{key}_new",
+                    geotype=["MULTILINESTRING"],
+                ),
                 pass_value=1,
             )
         )
@@ -158,9 +162,7 @@ with DAG(
 
     # 9. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
         for key in files_to_download.keys()
     ]
 
@@ -175,10 +177,7 @@ with DAG(
     ]
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
@@ -186,14 +185,12 @@ for data in zip(download_data):
 
     data >> Interface >> SHP_to_SQL
 
-for (
-    create_SQL,
-    create_table,
-    revalidate_remove_geom_record,
-    multi_check,
-    rename_table,
-) in zip(
-    SHP_to_SQL, create_tables, revalidate_remove_null_geometry_records, multi_checks, rename_tables,
+for (create_SQL, create_table, revalidate_remove_geom_record, multi_check, rename_table,) in zip(
+    SHP_to_SQL,
+    create_tables,
+    revalidate_remove_null_geometry_records,
+    multi_checks,
+    rename_tables,
 ):
 
     [
@@ -216,9 +213,9 @@ dag.doc_md = """
     Inform the businessowner at [businessowner]@amsterdam.nl
     #### Business Use Case / process / origin
     Na
-    #### Prerequisites/Dependencies/Resourcing  
+    #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/spoorlijnen.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/spoorlijnen.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=spoorlijnen/metro&x=106434&y=488995&radius=10
 """

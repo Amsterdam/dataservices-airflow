@@ -307,10 +307,7 @@ with DAG(
     ]
 
     # 21. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 # FLOW. define flow with parallel executing of serial tasks for each file
