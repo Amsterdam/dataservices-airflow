@@ -186,7 +186,9 @@ slack_at_start >> mkdir >> download_data
 
 for data in zip(download_data):
 
-    data >> Interface >> SHP_to_SQL
+    data >> Interface
+
+Interface >> SHP_to_SQL
 
 for (create_SQL, create_table, remove_null_geometry_record,) in zip(
     SHP_to_SQL,
@@ -194,9 +196,9 @@ for (create_SQL, create_table, remove_null_geometry_record,) in zip(
     remove_null_geometry_records,
 ):
 
-    [
-        create_SQL >> create_table >> remove_null_geometry_record
-    ] >> provenance_translation >> multi_checks >> Interface2 >> rename_tables
+    [create_SQL >> create_table >> remove_null_geometry_record] >> provenance_translation
+
+provenance_translation >> multi_checks >> Interface2 >> rename_tables
 
 rename_tables >> grant_db_permissions
 

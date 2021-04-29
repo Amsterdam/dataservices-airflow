@@ -244,9 +244,12 @@ with DAG(
 
         [
             data >> clean_data >> extract_geojson >> load_table >> multi_check
-        ] >> provenance_translation >> drop_table
+        ] >> provenance_translation
 
-        [drop_table >> rename_table >> add_title_column] >> Interface >> add_gebied_columns
+        [drop_table >> rename_table >> add_title_column] >> Interface
+
+    provenance_translation >> drop_tables
+    Interface >> add_gebied_columns
 
     for add_gebied_column, rename_value_gebied in zip(add_gebied_columns, rename_value_gebieden):
         add_gebied_column >> rename_value_gebied

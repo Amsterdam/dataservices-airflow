@@ -255,7 +255,9 @@ Interface2 >> set_geom
 
 for (set_geom, multi_checks) in zip(set_geom, multi_checks):
 
-    [set_geom >> multi_checks] >> provenance >> change_data_capture  # type: ignore
+    [set_geom >> multi_checks] >> provenance
+
+provenance >> change_data_capture  # type: ignore
 
 for (change_data_capture, clean_up, history_window) in zip(
     change_data_capture, clean_up, history_window

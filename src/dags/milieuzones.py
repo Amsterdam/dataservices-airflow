@@ -209,7 +209,9 @@ slack_at_start >> mkdir >> download_data
 
 for data, convert in zip(download_data, convert_to_geojson):
 
-    data >> convert >> Interface >> import_data
+    data >> convert >> Interface
+
+Interface >> import_data
 
 for (
     import_data_file,

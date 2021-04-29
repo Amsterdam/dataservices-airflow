@@ -242,11 +242,15 @@ slack_at_start >> mkdir >> download_data
 
 for (data, change_seperator) in zip(download_data, change_seperators):
 
-    [data >> change_seperator] >> Interface >> csv_to_SQL
+    [data >> change_seperator] >> Interface
+
+Interface >> csv_to_SQL
 
 for create_SQL, create_table in zip(csv_to_SQL, create_tables):
 
-    [create_SQL >> create_table] >> provenance_translation >> redefine_geoms
+    [create_SQL >> create_table] >> provenance_translation
+
+provenance_translation >> redefine_geoms
 
 for (
     redefine_geom,
@@ -255,7 +259,9 @@ for (
     rename_table,
 ) in zip(redefine_geoms, add_thema_contexts, multi_checks, rename_tables):
 
-    [redefine_geom >> add_thema_context >> multi_check >> rename_table] >> Interface2 >> drop_cols
+    [redefine_geom >> add_thema_context >> multi_check >> rename_table] >> Interface2
+
+Interface2 >> drop_cols
 
 for drop_col in zip(drop_cols):
     drop_col >> drop_parent_table

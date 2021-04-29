@@ -339,24 +339,19 @@ with DAG(
 slack_at_start >> mk_tmp_dir >> (download_data_obs + download_data_maps)
 
 for data in download_data_obs:
-
-    data >> Interface >> cleanse_data
+    data >> Interface
 
 for data_maps in download_data_maps:
+    data_maps >> Interface
 
-    data_maps >> Interface >> cleanse_data
-
-for cleanse in cleanse_data:
-
-    cleanse >> Interface2 >> unique_id
+Interface >> cleanse_data >> Interface2 >> unique_id
 
 for (create_id, import_data) in zip(unique_id, load_data):
+    [create_id >> import_data] >> Interface3
 
-    [create_id >> import_data] >> Interface3 >> add_geom_col
+Interface3 >> add_geom_col
 
-for (add_geom, lookup_geom) in zip(add_geom_col, lookup_geometry_typeahead):
-
-    add_geom >> provenance_trans >> lookup_geom >> del_dupl_rows >> multi_checks
+add_geom_col >> provenance_trans >> lookup_geometry_typeahead >> del_dupl_rows >> multi_checks
 
 for (multi_check, create_table, check_changes, clean_up) in zip(
     multi_checks, create_tables, change_data_capture, clean_ups
