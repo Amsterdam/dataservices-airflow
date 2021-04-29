@@ -183,7 +183,9 @@ slack_at_start >> mkdir >> download_data
 
 for data in zip(download_data):
 
-    data >> Interface >> SHP_to_SQL
+    data >> Interface
+
+Interface >> SHP_to_SQL
 
 for (create_SQL, create_table, revalidate_remove_geom_record, multi_check, rename_table,) in zip(
     SHP_to_SQL,
@@ -193,12 +195,11 @@ for (create_SQL, create_table, revalidate_remove_geom_record, multi_check, renam
     rename_tables,
 ):
 
-    [
-        create_SQL >> create_table >> revalidate_remove_geom_record
-    ] >> provenance_translation >> multi_check
+    [create_SQL >> create_table >> revalidate_remove_geom_record] >> provenance_translation
 
     [multi_check >> rename_table]
 
+provenance_translation >> multi_checks
 
 rename_tables >> grant_db_permissions
 

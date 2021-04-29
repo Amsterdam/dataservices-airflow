@@ -203,7 +203,9 @@ slack_at_start >> mkdir >> download_data
 
 for data in zip(download_data):
 
-    data >> Interface >> SHP_to_SQL
+    data >> Interface
+
+Interface >> SHP_to_SQL
 
 for (create_SQL, create_table, remove_col, multi_check, drop_table, rename_table,) in zip(
     SHP_to_SQL,
@@ -214,14 +216,11 @@ for (create_SQL, create_table, remove_col, multi_check, drop_table, rename_table
     rename_tables,
 ):
 
-    [create_SQL >> create_table >> remove_col] >> provenance_translation >> add_hyperlink_pdf
-
-    for hyperlink in zip(add_hyperlink_pdf):
-
-        hyperlink >> Interface2 >> multi_check
+    [create_SQL >> create_table >> remove_col] >> provenance_translation
 
     [multi_check >> drop_table >> rename_table]
 
+provenance_translation >> add_hyperlink_pdf >> Interface2 >> multi_checks
 
 rename_tables >> grant_db_permissions
 

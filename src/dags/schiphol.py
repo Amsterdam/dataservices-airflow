@@ -238,11 +238,15 @@ slack_at_start >> mk_tmp_dir >> download_data
 
 for (download, change_seperator, import_data) in zip(download_data, change_seperator, to_sql):
 
-    [download >> change_seperator >> import_data] >> Interface >> add_thema_contexts
+    [download >> change_seperator >> import_data] >> Interface
+
+Interface >> add_thema_contexts
 
 for add_thema_context in zip(add_thema_contexts):
 
-    add_thema_context >> provenance_translation >> drop_cols
+    add_thema_context >> provenance_translation
+
+provenance_translation >> drop_cols
 
 for (drop_column, set_geom, multi_check, create_table, change_data_capture, clean_up) in zip(
     drop_cols, redefine_geoms, multi_checks, create_tables, change_data_capture, clean_ups

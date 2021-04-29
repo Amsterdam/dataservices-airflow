@@ -315,31 +315,41 @@ slack_at_start >> mk_tmp_dir >> download_data
 
 for download in zip(download_data):
 
-    download >> Interface >> merge_data
+    download >> Interface
+
+Interface >> merge_data
 
 for merge_data in zip(merge_data):
 
-    merge_data >> Interface2 >> union_data
+    merge_data >> Interface2
+
+Interface2 >> union_data
 
 for stack_data in zip(union_data):
 
-    stack_data >> Interface3 >> cleanse_data
+    stack_data >> Interface3
+
+Interface3 >> cleanse_data
 
 for cleanse_file in zip(cleanse_data):
 
-    cleanse_file >> Interface4 >> fix_geometry
+    cleanse_file >> Interface4
+
+Interface4 >> fix_geometry
 
 for fix_geom in zip(fix_geometry):
 
-    fix_geom >> Interface5 >> change_seperator
+    fix_geom >> Interface5
+
+Interface5 >> change_seperator
 
 for change_seperator, to_sql, set_geom, create_table in zip(
     change_seperator, to_sql, redefine_geoms, create_tables
 ):
 
-    [
-        change_seperator >> to_sql >> set_geom >> create_table
-    ] >> provenance_translation >> multi_checks
+    [change_seperator >> to_sql >> set_geom >> create_table] >> provenance_translation
+
+provenance_translation >> multi_checks
 
 for data_check, detect_changes, del_tmp_table in zip(multi_checks, change_data_capture, clean_up):
 
