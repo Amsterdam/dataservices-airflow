@@ -128,7 +128,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}_{dag_id}_new", geotype=["POINT"],),
+            params=dict(
+                table_name=f"{dag_id}_{dag_id}_new",
+                geotype=["POINT"],
+            ),
             pass_value=1,
         )
     )
@@ -136,9 +139,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 8. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(
-        task_id=f"multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
     # 9. Rename table
     rename_table = PostgresTableRenameOperator(
         task_id="rename_table",
@@ -147,10 +148,7 @@ with DAG(
     )
 
     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
@@ -174,7 +172,7 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/openbare_verlichting.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/openbare_verlichting.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=openbare_verlichting/openbare_verlichting&x=111153&y=483288&radius=10
     https://api.data.amsterdam.nl/geosearch?datasets=openbare_verlichting/openbare_verlichting&x=111153&y=483288&radius=10
 """

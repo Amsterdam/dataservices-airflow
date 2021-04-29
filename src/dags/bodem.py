@@ -131,7 +131,9 @@ with DAG(
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{key}",
-            sql=[f"DROP TABLE IF EXISTS {dag_id}_{key} CASCADE",],
+            sql=[
+                f"DROP TABLE IF EXISTS {dag_id}_{key} CASCADE",
+            ],
         )
         for key in files_to_download.keys()
     ]
@@ -165,7 +167,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(table_name=f"{key}", geotype=["POINT"],),
+                params=dict(
+                    table_name=f"{key}",
+                    geotype=["POINT"],
+                ),
                 pass_value=1,
             )
         )
@@ -175,17 +180,12 @@ with DAG(
 
     # 11. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{key}", checks=check_name[f"{key}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
         for key in files_to_download.keys()
     ]
 
-     # 12. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    # 12. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 for (
     data,
