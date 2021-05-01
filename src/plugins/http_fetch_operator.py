@@ -125,12 +125,6 @@ class HttpFetchOperator(BaseOperator):
         if "REQUESTS_CA_BUNDLE" in os.environ:
             extra_options["verify"] = os.environ.get("REQUESTS_CA_BUNDLE")
 
-        # Temporary workarround to cope with unvalid SSL for maps.amsterdam.nl
-        # It prevents Airflow to load the data (invalid SSL certificate)
-        # TODO: check with maintainer maps.amsterdam.nl when SSL certificate is
-        # valid again then remove this workarround
-        if "maps.amsterdam.nl" in http.get_connection(self.http_conn_id).host:
-            extra_options["verify"] = False
         if not self.verify:
             extra_options["verify"] = False
 
