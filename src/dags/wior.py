@@ -11,11 +11,19 @@ from airflow.operators.postgres_operator import PostgresOperator
 
 from common.db import DatabaseEngine
 
+from datetime import datetime, timezone, tzinfo
+
+from dateutil import tz
+
 from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from swift_operator import SwiftOperator
+
+from typing import Dict, Optional
+
 
 from more_ds.network.url import URL
 
@@ -27,6 +35,7 @@ from common import (
     MessageOperator,
     logger,
     env,
+    quote_string,
 )
 
 from postgres_check_operator import (
@@ -43,34 +52,31 @@ from sql.wior import (
     SQL_SET_DATE_DATA_TYPES,
 )
 
-dag_id = "wior"
-variables = Variable.get(dag_id, deserialize_json=True)
-data_endpoint = variables["data_endpoints"]["wfs"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-data_file = f"{tmp_dir}/{dag_id}.geojson"
-db_conn = DatabaseEngine()
-password = env("AIRFLOW_CONN_WIOR_PASSWD")
-user = env("AIRFLOW_CONN_WIOR_USER")
-base_url = URL(env("AIRFLOW_CONN_WIOR_BASE_URL"))
-total_checks = []
-count_checks = []
-geo_checks = []
-
-
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr: str) -> str:
-    return f"'{instr}'"
+dag_id: str = "wior"
+variables: Dict = Variable.get(dag_id, deserialize_json=True)
+data_endpoint: Dict = variables["data_endpoints"]["wfs"]
+tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
+data_file: str = f"{tmp_dir}/{dag_id}.geojson"
+db_conn: DatabaseEngine = DatabaseEngine()
+password: str = env("AIRFLOW_CONN_WIOR_PASSWD")
+user: str = env("AIRFLOW_CONN_WIOR_USER")
+base_url: str = URL(env("AIRFLOW_CONN_WIOR_BASE_URL"))
+total_checks: list = []
+count_checks: list = []
+geo_checks: list = []
+to_zone: Optional[tzinfo] = tz.gettz("Europe/Amsterdam")
 
 
 class DataSourceError(Exception):
+    """Custom exeception for not available data source"""
+
     pass
 
 
 # data connection
 def get_data() -> None:
     """calling the data endpoint"""
-    # get data
-    data_url = base_url / data_endpoint
+    data_url = base_url / data_endpoint  # type: ignore
     data_request = requests.get(data_url, auth=HTTPBasicAuth(user, password))
     # store data
     if data_request.status_code == 200:
@@ -90,7 +96,7 @@ with DAG(
     dag_id,
     default_args=default_args,
     template_searchpath=["/"],
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters=dict(quote=quote_string),
     description="Werken (projecten) in de openbare ruimte.",
 ) as dag:
 
@@ -109,7 +115,26 @@ with DAG(
     # 3. Download data
     download_data = PythonOperator(task_id="download_data", python_callable=get_data)
 
-    # 4. Import data
+    # 4. Upload data to objectstore
+    upload_to_obs = SwiftOperator(
+        task_id="upload_to_obs",
+        swift_conn_id="OBJECTSTORE_VICTOR",
+        action_type="upload",
+        container="WIOR",
+        output_path=f"{tmp_dir}/{dag_id}.geojson",
+        object_id=f"{datetime.now(timezone.utc).astimezone(to_zone).strftime('%Y-%m-%d')}_{dag_id}.geojson",  # noqa E501
+    )
+
+    # 5. Delete files from objectstore (that do not fit given time window)
+    delete_from_obs = SwiftOperator(
+        task_id="delete_from_obs",
+        swift_conn_id="OBJECTSTORE_VICTOR",
+        action_type="delete",
+        container="WIOR",
+        time_window_in_days=-1,
+    )
+
+    # 6. Import data
     import_data = Ogr2OgrOperator(
         task_id="import_data",
         target_table_name=f"{dag_id}_{dag_id}_new",
@@ -124,21 +149,21 @@ with DAG(
         sql_statement=f"\"SELECT * FROM {dag_id} WHERE hoofdstatus NOT ILIKE '%intake%'\"",
     )
 
-    # 5. Drop unnecessary cols
+    # 7. Drop unnecessary cols
     drop_cols = PostgresOperator(
         task_id="drop_unnecessary_cols",
         sql=DROP_COLS,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    # 6. geometry validation
+    # 8. geometry validation
     geom_validation = PostgresOperator(
         task_id="geom_validation",
         sql=SQL_GEOM_VALIDATION,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    # 6. Rename COLUMNS based on Provenance
+    # 9. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=f"{dag_id}",
@@ -148,14 +173,14 @@ with DAG(
         pg_schema="public",
     )
 
-    # 7. Add primary key to temp table (for cdc check)
+    # 10. Add primary key to temp table (for cdc check)
     add_pk = PostgresOperator(
         task_id="add_pk",
         sql=SQL_ADD_PK,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    # 8. Set date datatypes
+    # 11. Set date datatypes
     set_dates = PostgresOperator(
         task_id="set_dates",
         sql=SQL_SET_DATE_DATA_TYPES,
@@ -193,10 +218,10 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 9. RUN bundled CHECKS
+    # 12. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 10. Create the DB target table (as specified in the JSON data schema)
+    # 13. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_table = SqlAlchemyCreateObjectOperator(
         task_id="create_table_based_upon_schema",
@@ -207,27 +232,29 @@ with DAG(
         ind_extra_index=True,
     )
 
-    # 11. Check for changes to merge in target table
+    # 14. Check for changes to merge in target table
     change_data_capture = PgComparatorCDCOperator(
         task_id="change_data_capture",
         source_table=f"{dag_id}_{dag_id}_new",
         target_table=f"{dag_id}_{dag_id}",
     )
 
-    # 12. Clean up (remove temp table _new)
+    # 15. Clean up (remove temp table _new)
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    # 13. Grant database permissions
+    # 16. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     slack_at_start
     >> mkdir
     >> download_data
+    >> upload_to_obs
+    >> delete_from_obs
     >> import_data
     >> drop_cols
     >> geom_validation
@@ -243,7 +270,7 @@ with DAG(
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains public construction sites / projects
+    This DAG contains public construction sites / projects (WIOR)
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
