@@ -131,7 +131,7 @@ with DAG(
         swift_conn_id="OBJECTSTORE_VICTOR",
         action_type="delete",
         container="WIOR",
-        time_window_in_days=-1,
+        time_window_in_days=100,
     )
 
     # 6. Import data
