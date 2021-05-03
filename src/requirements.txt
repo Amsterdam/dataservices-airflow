@@ -313,7 +313,7 @@ pbr==5.5.1
     #   oslo.utils
     #   python-keystoneclient
     #   stevedore
-pendulum==2.1.0
+pendulum==2.1.2
     # via
     #   -r requirements.in
     #   apache-airflow
@@ -466,6 +466,7 @@ sqlalchemy-utils==0.36.8
 sqlalchemy==1.3.23
     # via
     #   alembic
+    #   amsterdam-schema-tools
     #   apache-airflow
     #   flask-sqlalchemy
     #   geoalchemy2
