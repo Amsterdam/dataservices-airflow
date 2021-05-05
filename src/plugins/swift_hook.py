@@ -27,7 +27,7 @@ class SwiftHook(BaseHook):
         """Setup the objectstore connection
 
         Yields:
-            Iterator[SwiftService]:: An objectstore connection
+            Iterator: An objectstore connection
 
         """
         options = None
@@ -43,13 +43,13 @@ class SwiftHook(BaseHook):
         """Returns the items in the objectstore folder (container)
 
         Args:
-            container (str): The objectstore folder to retreive the files
+            container: The objectstore folder to retreive the files
 
         Raises:
             AirflowException: Container cannot be listed
 
         Yields:
-            Iterator[str]: Iterator[str]: Found file in given objectstor folder (container)
+            Iterator: Found file in given objectstor folder (container)
 
         """
         with self.connection() as swift:
@@ -66,9 +66,9 @@ class SwiftHook(BaseHook):
         """Downloads a file from the given folder (container)
 
         Args:
-            container (str): Name of container of the objectstore to download to
-            object_id (str): File to download
-            output_path (str): Path to save to
+            container: Name of container of the objectstore to download to
+            object_id: File to download
+            output_path: Path to save to
 
         Raises:
             AirflowException: Download cannot be executed
@@ -98,9 +98,9 @@ class SwiftHook(BaseHook):
         """Upload file to given folder (container)
 
         Args:
-            container (str): Name of container of the objectstore to download to
-            local_path (str): Path to upload to
-            object_id (str): File to upload
+            container: Name of container of the objectstore to download to
+            local_path: Path to upload to
+            object_id: File to upload
 
         Raises:
             AirflowException: Upload cannot be executed
@@ -148,7 +148,18 @@ class SwiftHook(BaseHook):
 
     def identify_files_not_in_timewindow(
         self, container: str, time_window_in_days: int
-    ) -> Iterator[list]:
+    ) -> Iterator[str]:
+        """identifies files in given container that falls out of given time window
+
+        Args:
+            container: name of container that contains the files
+            time_window_in_days: Maximum retention
+            time specified in days. If set all files, older then current day
+            and retention span in days, will be deleted.
+
+        Yields:
+            Iterator: name of file that have a modification date that is older then given time window
+        """
 
         start_date: datetime = datetime.now(timezone.utc).astimezone(to_zone) - timedelta(
             days=time_window_in_days
@@ -170,9 +181,9 @@ class SwiftHook(BaseHook):
         - list of files to delete
 
         Args:
-            container (str): Name of objectstore container to execute delete
-            objects (list): Files to delete
-            time_window_in_days (Optional[int], optional): Maximum retention
+            container: Name of objectstore container to execute delete
+            objects: Files to delete
+            time_window_in_days: Maximum retention
             time specified in days. If set all files, older then current day
             and retention span in days, will be deleted. These files are
             added to the objects list (the parameter above). Defaults to None.
