@@ -54,6 +54,9 @@ services:
       AIRFLOW_CONN_OBJECTSTORE_VICTOR:
         "s3://Victor:${VICTOR_PASSWD}@\
         9c5404482acd43e488de31927f558201"
+      AIRFLOW_CONN_OBJECTSTORE_DATARUIMTE:
+        "s3://${DATARUIMTE_USER}:${DATARUIMTE_PASSWD}@\
+        e2e0feab4cd54f7cb0c8517586ac7bb1"
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
