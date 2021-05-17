@@ -87,9 +87,9 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{data_file}",
-            swift_conn_id="objectstore_dataservices",
-            container="Dataservices",
-            object_id=f"{dag_id}/{data_file}",
+            swift_conn_id="objectstore_dataruimte",
+            container="ondergrond",
+            object_id=f"historische_onderzoeken/{data_file}",
             output_path=f"{tmp_dir}/{data_file}",
         )
         for _, data_file in files_to_download.items()
