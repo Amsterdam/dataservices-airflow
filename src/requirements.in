@@ -25,4 +25,4 @@ cx-Oracle == 7.3.0
 validator-collection == 1.4.1
 clevercsv==0.1.4
 more-ds == 0.0.3
-pendulum == 2.1.0
+pendulum == 2.1.2

@@ -317,7 +317,7 @@ pbr==5.5.1
     #   oslo.utils
     #   python-keystoneclient
     #   stevedore
-pendulum==2.1.0
+pendulum==2.1.2
     # via
     #   -r requirements.in
     #   apache-airflow
