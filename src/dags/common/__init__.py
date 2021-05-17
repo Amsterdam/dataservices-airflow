@@ -1,22 +1,23 @@
 import logging
-from inspect import cleandoc
 import os
-import pendulum
 import re
 import traceback
-from hashlib import blake2s
 from datetime import timedelta, datetime, timezone
-from environs import Env
-from airflow.utils.dates import days_ago
-from airflow.exceptions import AirflowException
+from hashlib import blake2s
+from inspect import cleandoc
 from typing import Dict, Optional, Any, Match, Iterable, Union, List
+
+import pendulum
+from airflow.exceptions import AirflowException
+from airflow.hooks.base import BaseHook
+from airflow.models.taskinstance import Context
+from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
+from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.utils.dates import days_ago
+from environs import Env
 from requests.exceptions import ConnectionError
 
-
-from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
-from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from log_message_operator import LogMessageOperator
-from airflow.hooks.base import BaseHook
 
 env: Env = Env()
 
@@ -44,8 +45,8 @@ class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
         headers: Optional[Dict[str, Any]] = None,
         extra_options: Optional[Dict[str, Any]] = None,
         **request_kwargs: Any,
-    ) -> Any:
-        if "verify" not in extra_options:
+    ) -> None:
+        if extra_options and "verify" not in extra_options:
             if "CURL_CA_BUNDLE" in os.environ:
                 extra_options["verify"] = os.environ.get("CURL_CA_BUNDLE")
             if "REQUESTS_CA_BUNDLE" in os.environ:
@@ -55,7 +56,7 @@ class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
 
 
 class SlackFailsafeWebhookOperator(SlackWebhookOperator):
-    def execute(self, context):
+    def execute(self, context: Context) -> None:
         self.hook = MonkeyPatchedSlackWebhookHook(
             self.http_conn_id,
             self.webhook_token,
@@ -92,7 +93,7 @@ def pg_params(conn_id: str = "postgres_default") -> str:
     return f"{connection_uri} -X --set ON_ERROR_STOP=1"
 
 
-def slack_failed_task(context: Dict) -> Any:
+def slack_failed_task(context: Context) -> None:
     """
     Args:
         context: parameters in dict format
@@ -119,7 +120,7 @@ def slack_failed_task(context: Dict) -> Any:
         message=f"{cleandoc(message)}\n\n{formatted_exception}",
         username="admin",
     )
-    return failed_alert.execute(context=context)
+    failed_alert.execute(context=context)
 
 
 # set the local time zone, so the start_date DAG param can use it in its context
@@ -141,7 +142,7 @@ if get_YYYY_MM_DD_values:
     MM = int(get_YYYY_MM_DD_values.group(2))
     DD = int(get_YYYY_MM_DD_values.group(3))
 
-default_args: Dict = {
+default_args: Context = {
     "owner": "dataservices",
     "depends_on_past": False,
     "start_date": datetime(YYYY, MM, DD, tzinfo=amsterdam),
@@ -154,7 +155,7 @@ default_args: Dict = {
     "catchup": False,  # do not backfill
 }
 
-vsd_default_args: Dict = default_args.copy()
+vsd_default_args: Context = default_args.copy()
 vsd_default_args["postgres_conn_id"] = "postgres_default"
 
 
