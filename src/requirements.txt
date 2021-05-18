@@ -128,12 +128,14 @@ dsnparse==0.1.15
     # via -r requirements.in
 email-validator==1.1.2
     # via flask-appbuilder
-entrypoints==0.3
-    # via flake8
 environs==7.3.1
     # via -r requirements.in
-flake8==3.7.9
+flake8-colors==0.1.9
     # via -r requirements.in
+flake8==3.9.2
+    # via
+    #   -r requirements.in
+    #   flake8-colors
 flask-appbuilder==3.1.1
     # via apache-airflow
 flask-babel==1.0.0
@@ -338,11 +340,11 @@ psycopg2-binary==2.8.6
     #   apache-airflow-providers-postgres
 psycopg2==2.8.6
     # via amsterdam-schema-tools
-pycodestyle==2.5.0
+pycodestyle==2.7.0
     # via flake8
 pycparser==2.20
     # via cffi
-pyflakes==2.1.1
+pyflakes==2.3.1
     # via flake8
 pygments==2.8.0
     # via
