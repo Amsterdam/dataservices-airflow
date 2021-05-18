@@ -10,9 +10,7 @@ from common import (
     slack_webhook_token,
 )
 
-DATASTORE_TYPE = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
+DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
 DROP_IMPORT_TABLES = """
     DROP SEQUENCE IF EXISTS blackspots_spotexport_id_seq CASCADE;
@@ -63,7 +61,10 @@ RENAME_TABLES_SQL = """
 
 dag_id = "blackspots"
 
-with DAG(dag_id, default_args=default_args,) as dag:
+with DAG(
+    dag_id,
+    default_args=default_args,
+) as dag:
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
@@ -81,12 +82,12 @@ with DAG(dag_id, default_args=default_args,) as dag:
         object_id=f"{DATASTORE_TYPE}/spots.sql",
     )
 
-    rename_columns = PostgresOperator(task_id=f"rename_columns", sql=RENAME_COLUMNS,)
+    rename_columns = PostgresOperator(
+        task_id="rename_columns",
+        sql=RENAME_COLUMNS,
+    )
     rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL)
 
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> drop_tables >> swift_load_task >> rename_columns >> rename_tables >> grant_db_permissions

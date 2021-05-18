@@ -81,20 +81,20 @@ with DAG(
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
     # 3. Download data
-    download_data = PythonOperator(task_id=f"download_data", python_callable=get_data)
+    download_data = PythonOperator(task_id="download_data", python_callable=get_data)
 
     # 4. Create SQL
     # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
     # So FID=ID cannot be used.
     create_SQL = BashOperator(
-        task_id=f"create_SQL_based_on_geojson",
-        bash_command=f"ogr2ogr -f 'PGDump' "
-        f"-t_srs EPSG:28992 "
+        task_id="create_SQL_based_on_geojson",
+        bash_command="ogr2ogr -f 'PGDump' "
+        "-t_srs EPSG:28992 "
         f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {data_file} "
-        f"-lco GEOMETRY_NAME=geometry "
-        f"-oo DATE_AS_STRING=NO "
-        f"-lco FID=id",
+        "-lco GEOMETRY_NAME=geometry "
+        "-oo DATE_AS_STRING=NO "
+        "-lco FID=id",
     )
 
     # 5. Create TABLE
@@ -105,7 +105,7 @@ with DAG(
 
     # 6. Set datatype date for date columns that where not detected by ogr2ogr
     set_datatype_date = PostgresOperator(
-        task_id=f"set_datatype_date",
+        task_id="set_datatype_date",
         sql=SET_DATE_DATATYPE,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
@@ -123,7 +123,7 @@ with DAG(
     # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=25,
             params=dict(table_name=f"{dag_id}_{dag_id}_new"),
             result_checker=operator.ge,
@@ -132,7 +132,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id=f"geo_check",
+            check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
                 geotype=["POINT"],
@@ -144,11 +144,11 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 8. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
     # 9. Rename TABLE
     rename_table = PostgresTableRenameOperator(
-        task_id=f"rename_table",
+        task_id="rename_table",
         old_table_name=f"{dag_id}_{dag_id}_new",
         new_table_name=f"{dag_id}_{dag_id}",
     )

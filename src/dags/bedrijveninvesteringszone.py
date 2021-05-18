@@ -90,7 +90,7 @@ with DAG(
     SHP_to_SQL = [
         BashOperator(
             task_id="SHP_to_SQL",
-            bash_command=f"ogr2ogr -f 'PGDump' " f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{file}",
+            bash_command="ogr2ogr -f 'PGDump' " f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{file}",
         )
         for files in files_to_download.values()
         for file in files
@@ -123,7 +123,7 @@ with DAG(
 
     # 8. CREATE target TABLE (the ogr2ogr output is not used to create the table)
     create_table = PostgresOperator(
-        task_id=f"create_target_table",
+        task_id="create_target_table",
         sql=CREATE_TABLE,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
@@ -136,7 +136,7 @@ with DAG(
 
     # 10. UPDATE target TABLE (add display field content)
     update_table = PostgresOperator(
-        task_id=f"update_target_table",
+        task_id="update_target_table",
         sql=UPDATE_TABLE,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
@@ -154,7 +154,7 @@ with DAG(
     # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=50,
             params=dict(table_name=f"{dag_id}_{dag_id}_new "),
             result_checker=operator.ge,
@@ -163,7 +163,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id=f"geo_check",
+            check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
                 geotype=["POLYGON"],

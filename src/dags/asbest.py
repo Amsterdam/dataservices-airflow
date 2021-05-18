@@ -24,7 +24,10 @@ ALTER TABLE asbest_daken_new RENAME COLUMN identifica TO pandidentificatie
 dag_id = "asbest"
 dag_config = Variable.get(dag_id, deserialize_json=True)
 
-with DAG(dag_id, default_args=default_args,) as dag:
+with DAG(
+    dag_id,
+    default_args=default_args,
+) as dag:
 
     extract_shps = []
     convert_shps = []
@@ -59,7 +62,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
         extract_shps.append(
             BashOperator(
                 task_id=f"extract_{shp_filename}",
-                bash_command=f"ogr2ogr -f 'PGDump' -t_srs EPSG:28992 "
+                bash_command="ogr2ogr -f 'PGDump' -t_srs EPSG:28992 "
                 f"-nln {tablename} "
                 f"{tmp_dir}/{tablename}.sql {tmp_dir}/Shape/{shp_filename}",
             )
@@ -90,10 +93,7 @@ with DAG(dag_id, default_args=default_args,) as dag:
     rename_col = PostgresOperator(task_id="rename_col", sql=SQL_RENAME_COL)
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> fetch_zip >> extract_zip >> extract_shps
 

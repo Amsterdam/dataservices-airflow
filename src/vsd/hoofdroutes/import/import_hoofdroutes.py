@@ -65,10 +65,7 @@ def convert_to_geojson(data):
     # The relation with name 'Lijnbusbanen medegebruik Taxi uitgesloten (GOED)' is old and should be replaced
     # by the collection of ways with "taxi"="no"
     for relation_id, relation in list(relations.items()):
-        if (
-            relation["tags"]["name"]
-            == "Lijnbusbanen medegebruik Taxi uitgesloten (GOED)"
-        ):
+        if relation["tags"]["name"] == "Lijnbusbanen medegebruik Taxi uitgesloten (GOED)":
             del relations[relation_id]
 
     taxi_no_busbaan = {
@@ -101,10 +98,7 @@ def convert_to_geojson(data):
                 "geometry": {
                     "type": "MultiLineString",
                     "coordinates": [
-                        [
-                            [nodes[node]["lon"], nodes[node]["lat"]]
-                            for node in way["nodes"]
-                        ]
+                        [[nodes[node]["lon"], nodes[node]["lat"]] for node in way["nodes"]]
                         for way_id, way in relation["ways"].items()
                     ],
                 },
@@ -115,12 +109,9 @@ def convert_to_geojson(data):
 
 
 def get_static_data():
-    datafile = f"/tmp/hoofdroutes.dat"
+    datafile = "/tmp/hoofdroutes.dat"
 
-    if (
-        os.path.isfile(datafile)
-        and time.time() - os.path.getmtime(datafile) < 24 * 60 * 60
-    ):
+    if os.path.isfile(datafile) and time.time() - os.path.getmtime(datafile) < 24 * 60 * 60:
         fd = open(datafile, "rb")
         result = pickle.load(fd)
         fd.close()

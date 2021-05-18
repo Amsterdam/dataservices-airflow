@@ -73,12 +73,12 @@ with DAG(
     # 4. Create SQL
     JSON_to_SQL = BashOperator(
         task_id="JSON_to_SQL",
-        bash_command=f"ogr2ogr -f 'PGDump' "
-        f"-t_srs EPSG:28992 "
+        bash_command="ogr2ogr -f 'PGDump' "
+        "-t_srs EPSG:28992 "
         f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.json "
-        f"-lco GEOMETRY_NAME=geometry "
-        f"-lco FID=id",
+        "-lco GEOMETRY_NAME=geometry "
+        "-lco FID=id",
     )
 
     # 5. Create TABLE
@@ -107,7 +107,7 @@ with DAG(
     # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=50,
             params=dict(table_name=f"{dag_id}_{dag_id}_new "),
             result_checker=operator.ge,
@@ -116,7 +116,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id=f"geo_check",
+            check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
                 geotype=["POINT"],
@@ -128,7 +128,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 8. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
     # 9. Rename TABLE
     rename_table = PostgresTableRenameOperator(
