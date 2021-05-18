@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from shared.utils.check_imported_data import (
     run_sql_checks,
-    all_valid_url,
     assert_count_minimum,
     assert_count_zero,
 )
@@ -12,7 +11,7 @@ sql_checks = [
         "count",
         """
 select count(column_name) from information_schema.columns where
- table_schema = 'public' and table_name = 'bb_quotum_new' 
+ table_schema = 'public' and table_name = 'bb_quotum_new'
  and column_name in ('wijk', 'availability_color', 'geo')
     """,
         assert_count_minimum(3),

@@ -1,7 +1,5 @@
 import pandas as pd
 from airflow import DAG
-from airflow.models import Variable
-from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from geoalchemy2 import Geometry, WKTElement
@@ -11,8 +9,8 @@ from shapely.geometry.polygon import Polygon
 from sqlalchemy.types import Date, Float, Integer, Text
 
 from common import default_args
-from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from common.db import get_engine, get_ora_engine
+from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
@@ -72,9 +70,7 @@ def load_grex_from_dwh(table_name):
             "oppervlakte": Float(),
             "geometry": Geometry(geometry_type="GEOMETRY", srid=4326),
         }
-        df.to_sql(
-            table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype
-        )
+        df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
         with db_engine.connect() as connection:
             connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
             connection.execute(
@@ -101,7 +97,7 @@ with DAG(
     default_args=default_args,
     description="GrondExploitatie",
     schedule_interval="0 6 * * *",
-    ) as dag:
+) as dag:
 
     load_data = PythonOperator(
         task_id="load_data",
@@ -118,18 +114,13 @@ with DAG(
     check_geo = PostgresCheckOperator(
         task_id="check_geo",
         sql=SQL_CHECK_GEO,
-        params=dict(
-            tablename=table_name_new, geotype="ST_MultiPolygon", geo_column="geometry"
-        ),
+        params=dict(tablename=table_name_new, geotype="ST_MultiPolygon", geo_column="geometry"),
     )
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 load_data >> check_count >> check_geo >> rename_table >> grant_db_permissions

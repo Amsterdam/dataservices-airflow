@@ -1,17 +1,11 @@
-import operator, re
+import operator
+import re
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-
-from http_fetch_operator import HttpFetchOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 
 from common import (
     default_args,
@@ -21,14 +15,16 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
+from http_fetch_operator import HttpFetchOperator
+from importscripts.import_touringcars import import_touringcars
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
     GEO_CHECK,
 )
-
-from importscripts.import_touringcars import import_touringcars
-
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 
 dag_id = "touringcars"
 variables = Variable.get(dag_id, deserialize_json=True)

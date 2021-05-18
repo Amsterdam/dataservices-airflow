@@ -1,15 +1,9 @@
 import operator
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.dummy_operator import DummyOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
-from environs import Env
-
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from swift_operator import SwiftOperator
 
 from common import (
     default_args,
@@ -19,13 +13,15 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
-
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
     GEO_CHECK,
 )
-
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from swift_operator import SwiftOperator
 
 dag_id = "aardgasvrijezones"
 variables_aardgasvrijezones = Variable.get("aardgasvrijezones", deserialize_json=True)

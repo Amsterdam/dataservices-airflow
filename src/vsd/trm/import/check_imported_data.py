@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from shared.utils.check_imported_data import (
     run_sql_checks,
-    assert_count_minimum,
-    assert_count_zero,
 )
 
 sql_checks = [
@@ -13,8 +11,7 @@ sql_checks = [
         """
 select column_name from information_schema.columns where table_schema = 'public' and table_name = 'trm_tram_new'
                     """,
-        lambda x: {"ogc_fid", "wkb_geometry", "volgorde"}
-        <= set(map(lambda y: y[0], x)),
+        lambda x: {"ogc_fid", "wkb_geometry", "volgorde"} <= set(map(lambda y: y[0], x)),
     ),
     (
         "columns_metro",

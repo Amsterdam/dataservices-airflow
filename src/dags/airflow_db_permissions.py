@@ -1,8 +1,6 @@
 import logging
 
 from airflow import DAG
-from airflow.models import Variable
-from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -10,6 +8,7 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
 )
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "airflow_db_permissions"
 logger = logging.getLogger(__name__)

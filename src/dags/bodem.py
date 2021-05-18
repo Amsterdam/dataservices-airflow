@@ -1,16 +1,9 @@
 import operator
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from environs import Env
-
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from swift_operator import SwiftOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -20,14 +13,16 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
-
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
     GEO_CHECK,
 )
-
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.bodem_set_geo_datatype import SET_GEOM
+from swift_operator import SwiftOperator
 
 dag_id = "bodem"
 variables_bodem = Variable.get("bodem", deserialize_json=True)
