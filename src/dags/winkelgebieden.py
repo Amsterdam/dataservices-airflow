@@ -66,13 +66,13 @@ with DAG(
     # 3. EXTRACT data based on TAB definition
     extract_data = BashOperator(
         task_id="extract_data",
-        bash_command=f"ogr2ogr -f 'PGDump' "
+        bash_command="ogr2ogr -f 'PGDump' "
         f"-t_srs EPSG:28992 -nln {dag_id} "
         f"{tmp_dir}/{dag_id}.sql {data_path}/{dag_id}/winkgeb2018.TAB "
         # the option -lco is added to rename the automated creation of the primairy key column (ogc fid) - due to use of ogr2ogr
         # in the -sql a select statement is added to get column renames that is specified in the dataschema
         # f"-sql @{tmp_column_file} -lco FID=ID -lco GEOMETRY_NAME=geometry",
-        f"-lco FID=ID -lco GEOMETRY_NAME=geometry",
+        "-lco FID=ID -lco GEOMETRY_NAME=geometry",
     )
 
     # 4. CONVERT data to UTF8
@@ -128,7 +128,7 @@ with DAG(
     # Data shows that 17 / 132 polygonen are invalid, to avoid crashing the flow, temporaly turned off
     # geo_checks.append(
     #     GEO_CHECK.make_check(
-    #         check_id=f"geo_check",
+    #         check_id="geo_check",
     #         params=dict(
     #             table_name=f"{dag_id}_{dag_id}",
     #             geotype=["POLYGON", "MULTIPOLYGON"],

@@ -70,14 +70,14 @@ with DAG(
     # 5. Create TABLE from CSV
     # The source has no spatial data, but OGR2OGR is used to create the SQL insert statements.
     CSV_to_SQL = BashOperator(
-        task_id=f"CSV_to_SQL",
-        bash_command=f"ogr2ogr -f 'PGDump' "
-        f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
+        task_id="CSV_to_SQL",
+        bash_command="ogr2ogr -f 'PGDump' "
+        "-s_srs EPSG:28992 -t_srs EPSG:28992 "
         f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}_utf8.csv "
-        f"-lco SEPARATOR=SEMICOLON "
-        f"-oo AUTODETECT_TYPE=YES "
-        f"-lco FID=id "
+        "-lco SEPARATOR=SEMICOLON "
+        "-oo AUTODETECT_TYPE=YES "
+        "-lco FID=id "
         # remove empty records
         f"-sql 'SELECT * FROM {dag_id}_utf8 WHERE 1=1 AND \"bag pand id\" is not NULL '",
     )
@@ -104,7 +104,7 @@ with DAG(
 
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=20,
             params=dict(table_name=f"{dag_id}_{dag_id}_new"),
             result_checker=operator.ge,

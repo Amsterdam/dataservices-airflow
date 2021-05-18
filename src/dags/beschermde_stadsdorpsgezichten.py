@@ -18,9 +18,7 @@ from common import (
     slack_webhook_token,
 )
 
-DATASTORE_TYPE = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
+DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
 
 CORRECT_GEO = """
@@ -95,22 +93,26 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
         GEO_CHECK.make_check(
             check_id="geo_check",
             params=dict(
-                table_name="pte.beschermde_stadsdorpsgezichten", geotype="MULTIPOLYGON",
+                table_name="pte.beschermde_stadsdorpsgezichten",
+                geotype="MULTIPOLYGON",
             ),
             pass_value=1,
         )
     )
 
-    correct_geo = PostgresOperator(task_id="correct_geo", sql=CORRECT_GEO,)
+    correct_geo = PostgresOperator(
+        task_id="correct_geo",
+        sql=CORRECT_GEO,
+    )
     multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
-    rename_table = PostgresOperator(task_id=f"rename_table", sql=RENAME_TABLES_SQL,)
-
-     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
+    rename_table = PostgresOperator(
+        task_id="rename_table",
+        sql=RENAME_TABLES_SQL,
     )
+
+    # Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     slack_at_start

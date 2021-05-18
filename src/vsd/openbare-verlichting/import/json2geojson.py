@@ -9,16 +9,36 @@ logging.basicConfig(level=logging.DEBUG)
 
 # These types are checked against the data of the $OPENBARE_VERLICHTING_DATA_TYPES_SRC url.
 ID_TYPES_MAP = {
-    "1": {"external_name": "Klok", "internal_name": "Klok",},
-    "2": {"external_name": "Overspanning", "internal_name": "Overspanning",},
-    "3": {"external_name": "Gevel Armaturen", "internal_name": "Gevel_Armatuur",},
-    "4": {"external_name": "OVL Objecten", "internal_name": "Overig_lichtpunt",},
-    "5": {"external_name": "Grachtmast", "internal_name": "Grachtmast",},
-    "10": {"external_name": "Schijnwerpers", "internal_name": "Schijnwerpers",},
+    "1": {
+        "external_name": "Klok",
+        "internal_name": "Klok",
+    },
+    "2": {
+        "external_name": "Overspanning",
+        "internal_name": "Overspanning",
+    },
+    "3": {
+        "external_name": "Gevel Armaturen",
+        "internal_name": "Gevel_Armatuur",
+    },
+    "4": {
+        "external_name": "OVL Objecten",
+        "internal_name": "Overig_lichtpunt",
+    },
+    "5": {
+        "external_name": "Grachtmast",
+        "internal_name": "Grachtmast",
+    },
+    "10": {
+        "external_name": "Schijnwerpers",
+        "internal_name": "Schijnwerpers",
+    },
 }
 
 
-def json2geojson(data,):
+def json2geojson(
+    data,
+):
     features = []
     for element in data:
         objecttype_id = element.get("objecttype")
@@ -58,17 +78,13 @@ def check_types_as_expected(types: list):
     :param types: list, e.g. [{'code': '1', 'naam': 'Klok'}, ...]
     :return:
     """
-    actual_types = {
-        type["code"]: type["naam"] for type in types
-    }  # { '1': 'Klok', ... }
+    actual_types = {type["code"]: type["naam"] for type in types}  # { '1': 'Klok', ... }
 
     for code, mapping in ID_TYPES_MAP.items():
         actual_type = actual_types.get(code)
         assert actual_type is not None, f"new type definition does not have type {code}"
         expected_type = mapping["external_name"]
-        assert (
-            actual_type == expected_type
-        ), f"expected: {expected_type}, got: {actual_type}"
+        assert actual_type == expected_type, f"expected: {expected_type}, got: {actual_type}"
 
 
 if __name__ == "__main__":
@@ -79,9 +95,11 @@ if __name__ == "__main__":
 
     data = json.load(open(in_file))
 
-    geojson = json2geojson(data,)
+    geojson = json2geojson(
+        data,
+    )
     output = open(out_file, "w")
 
-    log.info(f"writing output...")
+    log.info("writing output...")
     json.dump(geojson, output)
-    log.info(f"done")
+    log.info("done")

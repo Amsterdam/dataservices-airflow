@@ -96,13 +96,13 @@ with DAG(
     csv_to_SQL = [
         BashOperator(
             task_id=f"generate_SQL_{splitted_tablename}",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-t_srs EPSG:28992 "
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-t_srs EPSG:28992 "
             f"-nln {dag_id}_{splitted_tablename}_new "
             f"{tmp_dir}/{splitted_tablename}.sql {tmp_dir}/utf_8_{key.replace('-','_')}.csv "
-            f"-lco SEPARATOR=SEMICOLON "
-            f"-oo AUTODETECT_TYPE=YES "
-            f"-lco FID=ID "
+            "-lco SEPARATOR=SEMICOLON "
+            "-oo AUTODETECT_TYPE=YES "
+            "-lco FID=ID "
             f"-sql \"SELECT * FROM utf_8_{key.replace('-','_')} WHERE TYPE LIKE '%{splitted_tablename}%' OR '{splitted_tablename}' IN ('themas', 'schiphol')\"",
         )
         for key in files_to_download.keys()
@@ -229,7 +229,7 @@ with DAG(
 
     # 15. Drop parent table THEMAS, not needed anymore
     drop_parent_table = PostgresOperator(
-        task_id=f"drop_parent_table",
+        task_id="drop_parent_table",
         sql=[
             f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",
         ],

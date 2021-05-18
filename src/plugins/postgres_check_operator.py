@@ -46,11 +46,9 @@ class CheckFactory:
         self.sql = sql
         self.result_fetcher = result_fetcher
 
-    def make_check(
-        self, check_id, pass_value, params=None, parameters=None, result_checker=None
-    ):
-        """ We use the string.Template interpolation here, because
-            that does not interfere with the jinja2 templating """
+    def make_check(self, check_id, pass_value, params=None, parameters=None, result_checker=None):
+        """We use the string.Template interpolation here, because
+        that does not interfere with the jinja2 templating"""
         return Check(
             check_id,
             Template(self.sql).safe_substitute(check_id=check_id),
@@ -97,14 +95,14 @@ GEO_CHECK = CheckFactory(
 
 
 class PostgresMultiCheckOperator(BaseOperator):
-    """ This operator can be used to fire a number of checks at once.
-        This is more efficient than firing up all checks separately.
-        There is one caveat. Because we want to use the efficient and
-        lazily evaluated jinja templating, the template parameters have
-        to be collected into one dict, because Airflow does the parameter
-        interpolation only once. So, when params are used, they have to
-        be collected with the 'make_params' function and fed into the
-        operator constructor.
+    """This operator can be used to fire a number of checks at once.
+    This is more efficient than firing up all checks separately.
+    There is one caveat. Because we want to use the efficient and
+    lazily evaluated jinja templating, the template parameters have
+    to be collected into one dict, because Airflow does the parameter
+    interpolation only once. So, when params are used, they have to
+    be collected with the 'make_params' function and fed into the
+    operator constructor.
     """
 
     # We use the possibilty to have nested template fields here
@@ -112,7 +110,11 @@ class PostgresMultiCheckOperator(BaseOperator):
 
     @apply_defaults
     def __init__(
-        self, postgres_conn_id="postgres_default", checks=[], *args, **kwargs,
+        self,
+        postgres_conn_id="postgres_default",
+        checks=[],
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
@@ -124,18 +126,14 @@ class PostgresMultiCheckOperator(BaseOperator):
         hook = self.get_db_hook()
 
         for checker in self.checks:
-            self.log.info(
-                "Executing SQL check: %s with %s", checker.sql, repr(checker.parameters)
-            )
+            self.log.info("Executing SQL check: %s with %s", checker.sql, repr(checker.parameters))
             records = hook.get_records(checker.sql, checker.parameters)
 
             if not records:
                 raise AirflowException("The query returned None")
 
             checker_function = checker.result_checker or operator.eq
-            if not checker_function(
-                checker.result_fetcher(records), checker.pass_value
-            ):
+            if not checker_function(checker.result_fetcher(records), checker.pass_value):
                 raise AirflowException(f"{records} != {checker.pass_value}")
 
     def get_db_hook(self):
@@ -154,9 +152,7 @@ class PostgresCheckOperator(SQLCheckOperator):
 
     def execute(self, context=None):
         """Overwritten to support SQL 'parameters' for safe SQL escaping."""
-        self.log.info(
-            "Executing SQL check: %s with %s", self.sql, repr(self.parameters)
-        )
+        self.log.info("Executing SQL check: %s with %s", self.sql, repr(self.parameters))
         records = self.get_db_hook().get_first(self.sql, self.parameters)
 
         if records != [1]:  # Avoid unneeded "SELECT 1" in logs
@@ -214,7 +210,7 @@ class PostgresGeometryTypeCheckOperator(PostgresCheckOperator):
         super().__init__(
             # using GeometryType() returns "POINT", ST_GeometryType() returns 'ST_Point'
             sql=(
-                f"SELECT 1 WHERE NOT EXISTS ("
+                "SELECT 1 WHERE NOT EXISTS ("
                 f'SELECT FROM "{table_name}" WHERE'
                 f' "{geometry_column}" IS null '
                 f' OR NOT ST_IsValid("{geometry_column}") '
@@ -255,9 +251,7 @@ class PostgresValueCheckOperator(SQLValueCheckOperator):
         self.result_checker = result_checker
 
     def execute(self, context=None):
-        self.log.info(
-            "Executing SQL value check: %s with %r", self.sql, self.parameters
-        )
+        self.log.info("Executing SQL value check: %s with %r", self.sql, self.parameters)
         records = self.get_db_hook().get_records(self.sql, self.parameters)
 
         if not records:
@@ -290,9 +284,7 @@ class PostgresColumnNamesCheckOperator(PostgresValueCheckOperator):
                 " ORDER BY column_name"
             ),
             parameters=(table_name,),  # params is jinja, parameters == sql!
-            pass_value=[
-                [col] for col in sorted(column_names)
-            ],  # each col is in a separate row
+            pass_value=[[col] for col in sorted(column_names)],  # each col is in a separate row
             conn_id=conn_id,
             task_id=task_id,
             **kwargs,

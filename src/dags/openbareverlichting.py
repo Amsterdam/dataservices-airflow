@@ -91,12 +91,12 @@ with DAG(
     # 5. Geojson to SQL
     geojson_to_SQL = BashOperator(
         task_id="geojson_to_SQL",
-        bash_command=f"ogr2ogr --config PG_USE_COPY YES -f 'PGDump' "
-        f"-t_srs EPSG:28992 "
+        bash_command="ogr2ogr --config PG_USE_COPY YES -f 'PGDump' "
+        "-t_srs EPSG:28992 "
         f"-nln {dag_id}_{dag_id}_new "
         f"{tmp_dir}/objects.sql {tmp_dir}/objects.geo.json "
-        f"-lco GEOMETRY_NAME=geometry "
-        f"-lco FID=ID",
+        "-lco GEOMETRY_NAME=geometry "
+        "-lco FID=ID",
     )
 
     # 6. Insert data into DB
@@ -118,7 +118,7 @@ with DAG(
     # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=25,
             params=dict(table_name=f"{dag_id}_{dag_id}_new"),
             result_checker=operator.ge,
@@ -127,7 +127,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id=f"geo_check",
+            check_id="geo_check",
             params=dict(
                 table_name=f"{dag_id}_{dag_id}_new",
                 geotype=["POINT"],
@@ -139,7 +139,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 8. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
     # 9. Rename table
     rename_table = PostgresTableRenameOperator(
         task_id="rename_table",

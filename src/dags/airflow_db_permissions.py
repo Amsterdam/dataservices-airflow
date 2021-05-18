@@ -19,7 +19,7 @@ with DAG(
     default_args=default_args,
     schedule_interval="*/15 * * * *",
     catchup=False,
-    description=f"set grants on database objects to database roles based upon schema auth definition, based upon successfully executed dags within specified time window.",
+    description="set grants on database objects to database roles based upon schema auth definition, based upon successfully executed dags within specified time window.",
 ) as dag:
 
     # 1. Post info message on slack

@@ -19,7 +19,10 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "hoofdroutes"
 
-with DAG(dag_id, default_args=default_args,) as dag:
+with DAG(
+    dag_id,
+    default_args=default_args,
+) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
     tmp_file_prefix = f"{tmp_dir}/{dag_id}"
@@ -33,14 +36,15 @@ with DAG(dag_id, default_args=default_args,) as dag:
 
     extract_geojson = BashOperator(
         task_id="extract_geojson",
-        bash_command=f"ogr2ogr -f 'PGDump' -nlt MULTILINESTRING "
+        bash_command="ogr2ogr -f 'PGDump' -nlt MULTILINESTRING "
         "-t_srs EPSG:28992 -s_srs EPSG:4326 "
         f"-nln {dag_id}_new "
         f"{tmp_file_prefix}.sql {tmp_file_prefix}.json",
     )
 
     load_table = BashOperator(
-        task_id="load_table", bash_command=f"psql {pg_params()} < {tmp_file_prefix}.sql",
+        task_id="load_table",
+        bash_command=f"psql {pg_params()} < {tmp_file_prefix}.sql",
     )
 
     check_count = PostgresCheckOperator(
@@ -63,14 +67,13 @@ with DAG(dag_id, default_args=default_args,) as dag:
     )
 
     rename_table = PostgresOperator(
-        task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
+        task_id="rename_table",
+        sql=SQL_TABLE_RENAME,
+        params=dict(tablename=dag_id),
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 import_routes >> extract_geojson >> load_table >> [
     check_count,

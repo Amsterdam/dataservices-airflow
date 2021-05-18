@@ -29,7 +29,11 @@ def checker(records, pass_value):
     return found_colnames >= set(pass_value)
 
 
-with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as dag:
+with DAG(
+    dag_id,
+    default_args=vsd_default_args,
+    template_searchpath=["/"],
+) as dag:
 
     extract_zips = []
     extract_shps = []
@@ -74,7 +78,7 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         extract_shps.append(
             BashOperator(
                 task_id=f"extract_shp_{name}",
-                bash_command=f"ogr2ogr -f 'PGDump' -nlt GEOMETRY -t_srs EPSG:28992 "
+                bash_command="ogr2ogr -f 'PGDump' -nlt GEOMETRY -t_srs EPSG:28992 "
                 f" -s_srs EPSG:28992 -nln {dag_id}_{name}_new "
                 f"{tmp_dir}/{dag_id}_{name}.sql "
                 f"'{tmp_dir}/{shp_name }'",
@@ -84,7 +88,7 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         convert_shps.append(
             BashOperator(
                 task_id=f"convert_shp_{name}",
-                bash_command=f"iconv -f iso-8859-1 -t utf-8 "
+                bash_command="iconv -f iso-8859-1 -t utf-8 "
                 f"{tmp_dir}/{dag_id}_{name}.sql > "
                 f"{tmp_dir}/{dag_id}_{name}.utf8.sql",
             )
@@ -117,7 +121,8 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         )
 
     drop_tables = PostgresOperator(
-        task_id="drop_tables", sql="DROP TABLE IF EXISTS trm_tram_new, trm_metro_new",
+        task_id="drop_tables",
+        sql="DROP TABLE IF EXISTS trm_tram_new, trm_metro_new",
     )
 
     load_dumps = PostgresFilesOperator(
@@ -141,10 +146,7 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> extract_zips
 

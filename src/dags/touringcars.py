@@ -113,10 +113,10 @@ with DAG(
         BashOperator(
             task_id=f"extract_geojson_{file_name}",
             bash_command=f"echo $PWD; cat {tmp_dir}/{file_name}.json; ogr2ogr -f 'PGDump' "
-            f"-s_srs EPSG:4326 -t_srs EPSG:28992 "
+            "-s_srs EPSG:4326 -t_srs EPSG:28992 "
             f"-nln {file_name} "
             f"{tmp_dir}/{file_name}.sql {tmp_dir}/{file_name}.geo.json "
-            f"-lco FID=ID -lco GEOMETRY_NAME=geometry ",
+            "-lco FID=ID -lco GEOMETRY_NAME=geometry ",
         )
         for file_name in data_endpoints.keys()
     ]

@@ -83,13 +83,13 @@ with DAG(
     SHP_to_SQL = [
         BashOperator(
             task_id=f"create_SQL_{key}",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-t_srs EPSG:28992 -s_srs EPSG:28992 "
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-t_srs EPSG:28992 -s_srs EPSG:28992 "
             f"-nln {dag_id}_{key}_new "
             f"{tmp_dir}/{key}.sql {tmp_dir}/{file} "
-            f"-lco GEOMETRY_NAME=geometry "
-            f"-nlt PROMOTE_TO_MULTI "
-            f"-lco FID=id",
+            "-lco GEOMETRY_NAME=geometry "
+            "-nlt PROMOTE_TO_MULTI "
+            "-lco FID=id",
         )
         for key, files in files_to_download.items()
         for file in files

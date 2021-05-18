@@ -57,13 +57,13 @@ ST_Union(ST_SnapToGrid(wkb_geometry, 0.0001)) as wkb_geometry, color::varchar(7)
         """
         )
 
-        curs.execute(f"SELECT id, is_group FROM parkeerzones_color WHERE color IS NULL")
+        curs.execute("SELECT id, is_group FROM parkeerzones_color WHERE color IS NULL")
         parkeerzones = curs.fetchall()
 
         for parkeerzone in parkeerzones:
             (id, is_group) = parkeerzone
             curs.execute(
-                f"""
+                """
 SELECT B.color FROM parkeerzones_color A JOIN parkeerzones_color B ON ST_Touches(A.wkb_geometry, B.wkb_geometry)
  WHERE A.id = %s AND B.color IS NOT NULL
             """,

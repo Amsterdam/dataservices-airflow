@@ -104,13 +104,13 @@ with DAG(
     SHP_to_SQL = [
         BashOperator(
             task_id=f"create_SQL_{subject}",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-t_srs EPSG:28992 -s_srs EPSG:4326 "
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-t_srs EPSG:28992 -s_srs EPSG:4326 "
             f"-nln {dag_id}_{subject}_new "
             f"{tmp_dir}/{dag_id}_{subject}.sql {tmp_dir}/20190606_Vergunninggebieden/{shp_file} "
-            f"-nlt PROMOTE_TO_MULTI "
-            f"-lco GEOMETRY_NAME=geometry "
-            f"-lco FID=id ",
+            "-nlt PROMOTE_TO_MULTI "
+            "-lco GEOMETRY_NAME=geometry "
+            "-lco FID=id ",
         )
         for subject, shp_file in files_to_proces.items()
     ]

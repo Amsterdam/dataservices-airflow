@@ -89,13 +89,13 @@ with DAG(
     csv_to_SQL = [
         BashOperator(
             task_id=f"create_SQL_{key}",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-t_srs EPSG:28992 "
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-t_srs EPSG:28992 "
             f"-nln {key} "
             f"{tmp_dir}/{dag_id}_{key}.sql {tmp_dir}/utf-8_{file} "
-            f"-lco SEPARATOR=SEMICOLON "
-            f"-oo AUTODETECT_TYPE=YES "
-            f"-lco FID=ID",
+            "-lco SEPARATOR=SEMICOLON "
+            "-oo AUTODETECT_TYPE=YES "
+            "-lco FID=ID",
         )
         for key, file in files_to_download.items()
     ]

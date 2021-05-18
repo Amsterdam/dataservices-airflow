@@ -88,14 +88,14 @@ with DAG(
     SHP_to_SQL = [
         BashOperator(
             task_id=f"create_SQL_{key}",
-            bash_command=f"ogr2ogr -f 'PGDump' "
-            f"-s_srs EPSG:28992 -t_srs EPSG:28992 "
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-s_srs EPSG:28992 -t_srs EPSG:28992 "
             f"-nln {key} "
             f"{tmp_dir}/{key}.sql {tmp_dir}/OOV_COVID19_totaal.shp "
-            f"-lco GEOMETRY_NAME=geometry "
-            f"-nlt PROMOTE_TO_MULTI "
-            f"-lco precision=NO "
-            f"-lco FID=id "
+            "-lco GEOMETRY_NAME=geometry "
+            "-nlt PROMOTE_TO_MULTI "
+            "-lco precision=NO "
+            "-lco FID=id "
             f"-sql \"SELECT * FROM OOV_COVID19_totaal WHERE 1=1 AND TYPE = '{code}'\"",
         )
         for key, code in tables_to_create.items()
