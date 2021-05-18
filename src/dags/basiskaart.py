@@ -1,19 +1,12 @@
-import re
 import logging
-
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import Variable
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
+from airflow.operators.python_operator import PythonOperator
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 
 from common import (
     env,
@@ -22,22 +15,12 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
 )
-
-from sql.basiskaart import CREATE_TABLES
+from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.basiskaart import CREATE_MVIEWS
-
-from sql.basiskaart import SELECT_GEBOUWVLAK_SQL as SELECT_GEBOUWVLAK_SQL
-from sql.basiskaart import SELECT_INRICHTINGSELEMENTLIJN_SQL as SELECT_INRICHTINGSELEMENTLIJN_SQL
-from sql.basiskaart import SELECT_INRICHTINGSELEMENTPUNT_SQL as SELECT_INRICHTINGSELEMENTPUNT_SQL
-from sql.basiskaart import SELECT_INRICHTINGSELEMENTVLAK_SQL as SELECT_INRICHTINGSELEMENTVLAK_SQL
-from sql.basiskaart import SELECT_SPOORLIJN_SQL as SELECT_SPOORLIJN_SQL
-from sql.basiskaart import SELECT_TERREINDEELVLAK_SQL as SELECT_TERREINDEELVLAK_SQL
-from sql.basiskaart import SELECT_WATERDEELLIJN_SQL as SELECT_WATERDEELLIJN_SQL
-from sql.basiskaart import SELECT_WATERDEELVLAK_SQL as SELECT_WATERDEELVLAK_SQL
-from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL
-from sql.basiskaart import SELECT_WEGDEELLIJN_SQL as SELECT_WEGDEELLIJN_SQL
-from sql.basiskaart import SELECT_LABELS_SQL as SELECT_LABELS_SQL
-
+from sql.basiskaart import CREATE_TABLES
 
 dag_id = "basiskaart"
 owner = "dataservices"

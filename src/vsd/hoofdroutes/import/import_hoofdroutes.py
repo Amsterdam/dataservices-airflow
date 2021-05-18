@@ -1,12 +1,10 @@
-import argparse
 import copy
+import json
 import os.path
 import pickle
-import sys
 import time
-import json
-import urllib.request
 import urllib.parse
+import urllib.request
 
 
 def convert_to_geojson(data):

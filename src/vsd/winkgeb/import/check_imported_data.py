@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from shared.utils.check_imported_data import (
     run_sql_checks,
-    all_valid_url,
     assert_count_minimum,
     assert_count_zero,
 )

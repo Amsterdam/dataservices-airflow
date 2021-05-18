@@ -1,20 +1,13 @@
-import operator
-import requests
 import json
+import operator
 
-from airflow.hooks.base_hook import BaseHook
-
+import requests
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
+from airflow.operators.python_operator import PythonOperator
 from environs import Env
-
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
     default_args,
@@ -24,13 +17,14 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
-
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
     GEO_CHECK,
 )
-
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.bouwstroompunten_pk import ADD_PK
 
 dag_id = "bouwstroompunten"

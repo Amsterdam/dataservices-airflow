@@ -6,11 +6,6 @@ from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
-
 from common import (
     default_args,
     pg_params,
@@ -19,14 +14,14 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
-
-from sql.winkelgebieden_add import ADD_CATEGORIE_CATEGORIENAAM
-
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
-    GEO_CHECK,
 )
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.winkelgebieden_add import ADD_CATEGORIE_CATEGORIENAAM
 
 dag_id = "winkelgebieden"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data"

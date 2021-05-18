@@ -1,17 +1,11 @@
-import operator, pathlib
+import operator
+import pathlib
+from typing import Dict, List
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-
-from swift_operator import SwiftOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from typing import Dict, List
 
 from common import (
     default_args,
@@ -26,6 +20,10 @@ from postgres_check_operator import (
     COUNT_CHECK,
     GEO_CHECK,
 )
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from swift_operator import SwiftOperator
 
 dag_id: str = "parkeerzones"
 variables: Dict = Variable.get(dag_id, deserialize_json=True)
