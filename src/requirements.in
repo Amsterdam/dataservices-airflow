@@ -5,7 +5,8 @@ apache-airflow-providers-slack[http]==2.0.0
 apache-airflow-providers-oracle==1.0.1
 datapunt-objectstore == 2019.4.8
 dsnparse == 0.1.15
-flake8 == 3.7.9
+flake8 == 3.9.2
+flake8-colors == 0.1.9
 python-keystoneclient == 4.0.0
 python-swiftclient == 3.9.0
 environs == 7.3.1
