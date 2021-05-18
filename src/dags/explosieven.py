@@ -69,7 +69,7 @@ with DAG(
             task_id=f"download_{file}",
             swift_conn_id="OBJECTSTORE_MILIEUTHEMAS",
             container="Bommenkaart",
-            object_id=f"{file}",
+            object_id=file,
             output_path=f"{tmp_dir}/{file}",
         )
         for files in files_to_download.values()
@@ -112,7 +112,7 @@ with DAG(
         PostgresOperator(
             task_id=f"remove_cols_{key}",
             sql=REMOVE_COLS,
-            params=dict(tablename=f"{key}"),
+            params=dict(tablename=key),
         )
         for key in files_to_download.keys()
     ]
@@ -120,7 +120,7 @@ with DAG(
     # 8. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         rename_indexes=False,
         pg_schema="public",
     )
@@ -130,7 +130,7 @@ with DAG(
         PostgresOperator(
             task_id=f"add_hyperlink_pdf_{table}",
             sql=ADD_HYPERLINK_PDF,
-            params=dict(tablename=f"{table}"),
+            params=dict(tablename=table),
         )
         for table in ("bominslag", "verdachtgebied")
     ]
@@ -154,7 +154,7 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
-            old_table_name=f"{key}",
+            old_table_name=key,
             new_table_name=f"{dag_id}_{key}",
         )
         for key in files_to_download.keys()
@@ -171,7 +171,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=2,
-                params=dict(table_name=f"{key}"),
+                params=dict(table_name=key),
                 result_checker=operator.ge,
             )
         )
@@ -180,7 +180,7 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
                 params=dict(
-                    table_name=f"{key}",
+                    table_name=key,
                     geotype=["POINT", "MULTIPOLYGON"],
                 ),
                 pass_value=1,
@@ -188,11 +188,11 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{key}"] = total_checks
+        check_name[key] = total_checks
 
     # 13. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[key])
         for key in files_to_download.keys()
     ]
 

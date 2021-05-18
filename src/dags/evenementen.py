@@ -52,11 +52,11 @@ def get_data():
     """ calling the data endpoint """
 
     # get data
-    data_url = f"{data_endpoint}"
+    data_url = data_endpoint
     data_data = requests.get(data_url)
 
     # store data
-    with open(f"{data_file}", "w") as file:
+    with open(data_file, "w") as file:
         file.write(data_data.text)
     file.close()
 
@@ -105,15 +105,15 @@ with DAG(
 
     # 6. Set datatype date for date columns that where not detected by ogr2ogr
     set_datatype_date = PostgresOperator(
-            task_id=f"set_datatype_date",
-            sql=SET_DATE_DATATYPE,
-            params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        task_id=f"set_datatype_date",
+        sql=SET_DATE_DATATYPE,
+        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -133,7 +133,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}_{dag_id}_new", geotype=["POINT"],),
+            params=dict(
+                table_name=f"{dag_id}_{dag_id}_new",
+                geotype=["POINT"],
+            ),
             pass_value=1,
         )
     )
@@ -141,9 +144,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 8. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(
-        task_id=f"multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
 
     # 9. Rename TABLE
     rename_table = PostgresTableRenameOperator(
@@ -153,10 +154,7 @@ with DAG(
     )
 
     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 (

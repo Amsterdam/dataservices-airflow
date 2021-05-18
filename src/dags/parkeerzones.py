@@ -89,8 +89,8 @@ with DAG(
         task_id="download_file",
         # Default swift = Various Small Datasets objectstore
         # swift_conn_id="SWIFT_DEFAULT",
-        container=f"{dag_id}",
-        object_id=f"{file_to_download}",
+        container=dag_id,
+        object_id=file_to_download,
         output_path=f"{tmp_dir}/{file_to_download}",
     )
 
@@ -174,20 +174,18 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{subject}"] = total_checks
+        check_name[subject] = total_checks
 
     # 9. Execute bundled checks (step 7) on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{subject}", checks=check_name[f"{subject}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{subject}", checks=check_name[subject])
         for subject in files_to_proces.keys()
     ]
 
     # 10. RENAME columns based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,

@@ -126,7 +126,7 @@ with DAG(
     download_data_obs = [
         HttpFetchOperator(
             task_id=f"download_obs_{resource}_{resource_type}",
-            endpoint=f"{url}",
+            endpoint=url,
             http_conn_id="api_data_amsterdam_conn_id",
             tmp_file=f"{tmp_dir}/{resource}.{re.sub('_.*', '', resource_type)}",
             output_type="text",
@@ -140,7 +140,7 @@ with DAG(
     download_data_maps = [
         HttpFetchOperator(
             task_id=f"download_maps_{resource}_{resource_type}",
-            endpoint=f"{url}",
+            endpoint=url,
             http_conn_id="ams_maps_conn_id",
             tmp_file=f"{tmp_dir}/{resource}.{re.sub('_.*', '', resource_type)}",
             output_type="text",
@@ -223,7 +223,7 @@ with DAG(
     # 12. RENAME columns based on PROVENANCE
     provenance_trans = ProvenanceRenameOperator(
         task_id="provenance_rename",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -283,13 +283,11 @@ with DAG(
             )
 
             total_checks = count_checks + geo_checks
-            check_name[f"{resource}"] = total_checks
+            check_name[resource] = total_checks
 
     # 15. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{resource}", checks=check_name[f"{resource}"]
-        )
+        PostgresMultiCheckOperator(task_id=f"multi_check_{resource}", checks=check_name[resource])
         for resources in files_to_import.values()
         for resource in resources
     ]
@@ -299,7 +297,7 @@ with DAG(
     create_tables = [
         SqlAlchemyCreateObjectOperator(
             task_id=f"create_{resource}_based_upon_schema",
-            data_schema_name=f"{dag_id}",
+            data_schema_name=dag_id,
             data_table_name=f"{dag_id}_{resource}",
             ind_table=True,
             # when set to false, it doesn't create indexes; only tables

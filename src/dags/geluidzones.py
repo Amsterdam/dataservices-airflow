@@ -69,7 +69,7 @@ with DAG(
             task_id=f"download_{key}",
             swift_conn_id="OBJECTSTORE_MILIEUTHEMAS",
             container="Milieuthemas",
-            object_id=f"{file}",
+            object_id=file,
             output_path=f"{tmp_dir}/{key}_{file}",
         )
         for key, file in files_to_download.items()
@@ -150,7 +150,7 @@ with DAG(
     # 10. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="provenance_rename",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -188,13 +188,13 @@ with DAG(
                 )
 
             total_checks = count_checks + geo_checks
-            check_name[f"{splitted_tablename}"] = total_checks
+            check_name[splitted_tablename] = total_checks
 
     # 11. Execute bundled checks on database (see checks definition here above)
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{splitted_tablename}",
-            checks=check_name[f"{splitted_tablename}"],
+            checks=check_name[splitted_tablename],
         )
         for key in files_to_download.keys()
         for splitted_tablename in key.split("-")

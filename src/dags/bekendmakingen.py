@@ -97,7 +97,7 @@ with DAG(
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -117,7 +117,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}_{dag_id}_new", geotype=["POINT"],),
+            params=dict(
+                table_name=f"{dag_id}_{dag_id}_new",
+                geotype=["POINT"],
+            ),
             pass_value=1,
         )
     )
@@ -125,9 +128,7 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 8. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(
-        task_id=f"multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
 
     # 9. Rename TABLE
     rename_table = PostgresTableRenameOperator(
@@ -137,10 +138,7 @@ with DAG(
     )
 
     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     slack_at_start
@@ -169,6 +167,6 @@ dag.doc_md = """
     #### Prerequisites/Dependencies/Resourcing
     https://api.data.amsterdam.nl/v1/docs/datasets/bekendmakingen.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/bekendmakingen.html
-    Example geosearch: 
+    Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=bekendmakingen/bekendmakingen&x=111153&y=483288&radius=10
 """

@@ -71,7 +71,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
     convert_data = PythonOperator(
         task_id="convert_data",
         python_callable=import_hior,
-        op_args=[f"{tmp_dir}/HIOR Amsterdam.xlsx", f"{tmp_dir}"],
+        op_args=[f"{tmp_dir}/HIOR Amsterdam.xlsx", tmp_dir],
     )
 
     create_table = BashOperator(
@@ -87,7 +87,8 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         name = pathlib.Path(path).stem
         import_tables.append(
             BashOperator(
-                task_id=f"create_{name}", bash_command=f"psql {pg_params()} < {path}",
+                task_id=f"create_{name}",
+                bash_command=f"psql {pg_params()} < {path}",
             )
         )
     for path in (
@@ -97,17 +98,15 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         name = pathlib.Path(path).stem
         import_linked_tables.append(
             BashOperator(
-                task_id=f"create_{name}", bash_command=f"psql {pg_params()} < {path}",
+                task_id=f"create_{name}",
+                bash_command=f"psql {pg_params()} < {path}",
             )
         )
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 (

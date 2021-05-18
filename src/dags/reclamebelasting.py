@@ -78,7 +78,7 @@ with DAG(
         # Default swift == Various Small Datasets objectstore
         # swift_conn_id="SWIFT_DEFAULT",
         container="reclame",
-        object_id=f"{zip_file}",
+        object_id=zip_file,
         output_path=f"{tmp_dir}/{zip_file}",
     )
 
@@ -149,7 +149,7 @@ with DAG(
     # if table not exists yet
     create_table = SqlAlchemyCreateObjectOperator(
         task_id="create_table_based_upon_schema",
-        data_schema_name=f"{schema_name}",
+        data_schema_name=schema_name,
         data_table_name=f"{schema_name}_{table_name}",
         ind_table=True,
         # when set to false, it doesn't create indexes; only tables
@@ -171,10 +171,7 @@ with DAG(
     )
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
 (

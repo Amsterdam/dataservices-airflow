@@ -70,7 +70,7 @@ with DAG(
     # 3. Download data
     fetch_json = HttpFetchOperator(
         task_id="fetch_json",
-        endpoint=f"{data_endpoints}",
+        endpoint=data_endpoints,
         http_conn_id="ams_maps_conn_id",
         tmp_file=f"{tmp_dir}/{dag_id}.geojson",
     )
@@ -92,7 +92,7 @@ with DAG(
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -133,10 +133,7 @@ with DAG(
     )
 
     # 9. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 (

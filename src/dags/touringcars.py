@@ -56,7 +56,9 @@ def clean_data(file_name):
 
 
 with DAG(
-    dag_id, default_args=default_args, user_defined_filters=dict(quote=quote),
+    dag_id,
+    default_args=default_args,
+    user_defined_filters=dict(quote=quote),
 ) as dag:
 
     # 1. Post message on slack
@@ -75,7 +77,7 @@ with DAG(
     download_data = [
         HttpFetchOperator(
             task_id=f"download_{file_name}",
-            endpoint=f"{url}",
+            endpoint=url,
             http_conn_id="api_data_amsterdam_conn_id",
             tmp_file=f"{tmp_dir}/{file_name}.json",
             output_type="text",
@@ -98,7 +100,10 @@ with DAG(
         PythonOperator(
             task_id=f"json_to_geojson_{file_name}",
             python_callable=import_touringcars,
-            op_args=[f"{tmp_dir}/{file_name}.json", f"{tmp_dir}/{file_name}.geo.json",],
+            op_args=[
+                f"{tmp_dir}/{file_name}.json",
+                f"{tmp_dir}/{file_name}.geo.json",
+            ],
         )
         for file_name in data_endpoints.keys()
     ]
@@ -136,7 +141,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{file_name}",
                 pass_value=2,
-                params=dict(table_name=f"{file_name}"),
+                params=dict(table_name=file_name),
                 result_checker=operator.ge,
             )
         )
@@ -145,7 +150,7 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{file_name}",
                 params=dict(
-                    table_name=f"{file_name}",
+                    table_name=file_name,
                     geotype=[
                         "POLYGON",
                         "MULTIPOLYGON",
@@ -158,26 +163,28 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{file_name}"] = total_checks
+        check_name[file_name] = total_checks
 
     # 8. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
-            task_id=f"multi_check_{file_name}", checks=check_name[f"{file_name}"]
+            task_id=f"multi_check_{file_name}", checks=check_name[file_name]
         )
         for file_name in data_endpoints.keys()
     ]
 
     # 9. RENAME columns based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+        task_id="rename_columns", dataset_name=dag_id, pg_schema="public"
     )
 
     # 10. DROP Exisiting TABLE
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{file_name}",
-            sql=[f"DROP TABLE IF EXISTS {dag_id}_{file_name} CASCADE",],
+            sql=[
+                f"DROP TABLE IF EXISTS {dag_id}_{file_name} CASCADE",
+            ],
         )
         for file_name in data_endpoints.keys()
     ]
@@ -186,17 +193,14 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{file_name}",
-            old_table_name=f"{file_name}",
+            old_table_name=file_name,
             new_table_name=f"{dag_id}_{file_name}",
         )
         for file_name in data_endpoints.keys()
     ]
 
     # 12. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW. define flow with parallel executing of serial tasks for each file
 slack_at_start >> mk_tmp_dir >> download_data
@@ -222,12 +226,7 @@ for (
 ):
 
     [
-        data
-        >> clean_data
-        >> json_to_geojson
-        >> extract_geo
-        >> load_table
-        >> multi_check
+        data >> clean_data >> json_to_geojson >> extract_geo >> load_table >> multi_check
     ] >> provenance_translation >> drop_table
 
     [drop_table >> rename_table]

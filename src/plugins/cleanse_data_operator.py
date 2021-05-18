@@ -36,6 +36,6 @@ class CleanseDataOperator(BaseOperator):
 
         # Translate data
         for character, translation in self.character_translation.items():
-            result = re.sub(r"{0}".format(character), f"{translation}", data)
+            result = re.sub(r"{0}".format(character), translation, data)
             with open(self.output_file or self.input_file, "w") as output:
                 output.write(result)
