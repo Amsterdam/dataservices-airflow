@@ -43,13 +43,14 @@ dag_id = "basiskaart"
 owner = "dataservices"
 variables = Variable.get(dag_id, deserialize_json=True)
 tables_to_create = variables["tables_to_create"]
-source_connection="AIRFLOW_CONN_POSTGRES_BASISKAART"
+source_connection = "AIRFLOW_CONN_POSTGRES_BASISKAART"
 import_step = 10000
 logger = logging.getLogger(__name__)
 
-  
 
-def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select_statement, target_base_table, *args, **kwargs):
+def create_tables_from_basiskaartdb_to_masterdb(
+    source_connection, source_select_statement, target_base_table, *args, **kwargs
+):
     """
     Source_connection contains the environment variable name (as defined in the docker-compose.yml) of the source connection i.e. AIRFLOW_CONN_POSTGRES_BASISKAART
     Source_select_statement contains the SQL select query that will be executed on the source DB.
@@ -58,16 +59,14 @@ def create_tables_from_basiskaartdb_to_masterdb(source_connection, source_select
 
     try:
         # setup the DB source connection
-        source_engine = create_engine(
-            env(source_connection).split("?")[0]
-        )
+        source_engine = create_engine(env(source_connection).split("?")[0])
     except SQLAlchemyError as e:
         raise Exception(str(e)) from e
 
     # fetch data from source DB
     with source_engine.connect() as source_connection:
-        count = 0        
-        cursor = source_connection.execute(source_select_statement)     
+        count = 0
+        cursor = source_connection.execute(source_select_statement)
         while True:
             fetch_iterator = cursor.fetchmany(size=import_step)
             batch_count = copy_data_in_batch(target_base_table, fetch_iterator)
@@ -84,27 +83,29 @@ def copy_data_in_batch(target_base_table, fetch_iterator):
 
     # setup SQL insert values the be executed
     for row in fetch_iterator:
-            items.append([column_value for column_value in row])
-       
+        items.append([column_value for column_value in row])
+
     result = len(items)
-        
+
     # execute SQL insert statement
     # the Airflow PostgresHook.insert_rows instance method is used to "executemany" SQL query
     # which also serializes the data to a save SQL format
-    if result:              
-        try:            
-            masterdb_hook.insert_rows(target_base_table, items, target_fields=None, commit_every=1000, replace=False)            
+    if result:
+        try:
+            masterdb_hook.insert_rows(
+                target_base_table, items, target_fields=None, commit_every=1000, replace=False
+            )
         except Exception as e:
-            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))      
-    
+            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
+
     return result
 
 
 def create_basiskaart_dag(is_first, table_name, select_statement):
-    """ 
+    """
     DAG generator: Generates a DAG for each table.
     The table_name is the target table in de masterDB where the data will be inserted.
-    The select_statement is one of the imported SQL query selects (see above) that will be executed on the source DB.    
+    The select_statement is one of the imported SQL query selects (see above) that will be executed on the source DB.
     """
     # start time first DAG
     # Note: the basiskaartimport task in Jenkins runs at an arbitrary but invariant time between 3 and 5 a.m.
@@ -117,11 +118,11 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
         # the first DAG will have the is_first boolean set to True
         # the other DAG's will be triggered to start when the previous DAG is finished (estafette run / relay run)
         schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
-        description="""basisregistratie grootschalige topologie (BGT) en kleinschalige basiskaart (KBK10 en 50). 
+        description="""basisregistratie grootschalige topologie (BGT) en kleinschalige basiskaart (KBK10 en 50).
         The basiskaart data is collected from basiskaart DB.""",
         tags=["basiskaart"],
     )
-    
+
     with dag:
 
         # 1. Post info message on slack
@@ -135,61 +136,63 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
 
         # 2. Create temp and target table
         create_tables = PostgresOperator(
-                task_id="create_tables",
-                sql=CREATE_TABLES,
-                params=dict(base_table=table_name, dag_id=dag_id),
+            task_id="create_tables",
+            sql=CREATE_TABLES,
+            params=dict(base_table=table_name, dag_id=dag_id),
         )
-        
+
         # 3. Copy data into temp table
         copy_data = PythonOperator(
-                task_id="insert_data",
-                python_callable=create_tables_from_basiskaartdb_to_masterdb,
-                op_kwargs={ "source_connection":source_connection,
-                            "source_select_statement":globals()[select_statement],
-                            "target_base_table":f"{dag_id}_{table_name}_temp",
-                            },
-                dag=dag,
-        )       
+            task_id="insert_data",
+            python_callable=create_tables_from_basiskaartdb_to_masterdb,
+            op_kwargs={
+                "source_connection": source_connection,
+                "source_select_statement": globals()[select_statement],
+                "target_base_table": f"{dag_id}_{table_name}_temp",
+            },
+            dag=dag,
+        )
 
         # 4. Check for changes in temp table to merge in target table
-        change_data_capture = PgComparatorCDCOperator (
-               task_id="change_data_capture", 
-               source_table=f"{dag_id}_{table_name}_temp",
-               target_table=f"{dag_id}_{table_name}"
+        change_data_capture = PgComparatorCDCOperator(
+            task_id="change_data_capture",
+            source_table=f"{dag_id}_{table_name}_temp",
+            target_table=f"{dag_id}_{table_name}",
         )
 
         # 5. Create mviews for T-REX tile server
         create_mviews = PostgresOperator(
-                task_id="create_mviews",
-                sql=CREATE_MVIEWS,
-                params=dict(base_table=table_name, dag_id=dag_id),
+            task_id="create_mviews",
+            sql=CREATE_MVIEWS,
+            params=dict(base_table=table_name, dag_id=dag_id),
         )
 
         # 6. Rename COLUMNS based on Provenance
         provenance_translation = ProvenanceRenameOperator(
-                task_id="rename_columns",
-                dataset_name=f"{dag_id}",
-                prefix_table_name=f"{dag_id}_",
-                rename_indexes=False,
-                pg_schema="public",
-            )
+            task_id="rename_columns",
+            dataset_name=dag_id,
+            prefix_table_name=f"{dag_id}_",
+            rename_indexes=False,
+            pg_schema="public",
+        )
 
         # 7. Drop temp table
         clean_up = PostgresOperator(
-                task_id="drop_temp_table",
-                sql=[f"DROP TABLE IF EXISTS {dag_id}_{table_name}_temp CASCADE",],
+            task_id="drop_temp_table",
+            sql=[
+                f"DROP TABLE IF EXISTS {dag_id}_{table_name}_temp CASCADE",
+            ],
         )
 
         # 8. Trigger next DAG to run (estafette)
         trigger_next_dag = TriggerDynamicDagRunOperator(
-            task_id="trigger_next_dag", dag_id_prefix=f"{dag_id}_", trigger_rule="all_done",
+            task_id="trigger_next_dag",
+            dag_id_prefix=f"{dag_id}_",
+            trigger_rule="all_done",
         )
 
         # 9. Grant database permissions
-        grant_db_permissions = PostgresPermissionsOperator(
-            task_id="grants",
-            dag_name=dag_id
-        )       
+        grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
     # Flow
     slack_at_start >> create_tables >> copy_data >> change_data_capture >> create_mviews >> provenance_translation >> clean_up >> trigger_next_dag >> grant_db_permissions
@@ -214,13 +217,4 @@ def create_basiskaart_dag(is_first, table_name, select_statement):
 
 
 for i, (table, select_statement) in enumerate(tables_to_create.items()):
-    globals()[f"{dag_id}_{table}"] = create_basiskaart_dag(
-        i == 0, table, select_statement
-    )
-
-
-
-
-
-
-
+    globals()[f"{dag_id}_{table}"] = create_basiskaart_dag(i == 0, table, select_statement)

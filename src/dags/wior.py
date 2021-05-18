@@ -85,7 +85,7 @@ def get_data() -> None:
         except json.decoder.JSONDecodeError as jde:
             logger.exception(f"Failed to convert request output to json for url {data_url}")
             raise json.decoder.JSONDecodeError from jde
-        with open(f"{data_file}", "w") as file:
+        with open(data_file, "w") as file:
             file.write(json.dumps(data))
     else:
         logger.exception(f"Failed to call {data_url}")
@@ -166,7 +166,7 @@ with DAG(
     # 9. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -225,7 +225,7 @@ with DAG(
     # if table not exists yet
     create_table = SqlAlchemyCreateObjectOperator(
         task_id="create_table_based_upon_schema",
-        data_schema_name=f"{dag_id}",
+        data_schema_name=dag_id,
         data_table_name=f"{dag_id}_{dag_id}",
         ind_table=True,
         # when set to false, it doesn't create indexes; only tables

@@ -96,7 +96,7 @@ with DAG(
             f"{tmp_dir}/cameras.xlsx",
             f"{tmp_dir}/beacons.csv",
             f"{tmp_dir}/sensors.geojson",
-            f"{tmp_dir}",
+            tmp_dir,
         ],
     )
 
@@ -124,7 +124,7 @@ with DAG(
     # 9. RENAME columns based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
         task_id="provenance_rename",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -135,10 +135,7 @@ with DAG(
     rename_tables = PostgresOperator(task_id="rename_tables", sql=SQL_TABLE_RENAMES)
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 (

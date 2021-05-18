@@ -79,7 +79,7 @@ with DAG(
     download_data = [
         HttpFetchOperator(
             task_id=f"download_{file_name}",
-            endpoint=f"{url}",
+            endpoint=url,
             http_conn_id="airflow_home_conn_id",
             tmp_file=f"{tmp_dir}/{file_name}.json",
             output_type="file",
@@ -130,7 +130,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{file_name}",
                 pass_value=2,
-                params=dict(table_name=f"{file_name}"),
+                params=dict(table_name=file_name),
                 result_checker=operator.ge,
             )
         )
@@ -139,7 +139,7 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{file_name}",
                 params=dict(
-                    table_name=f"{file_name}",
+                    table_name=file_name,
                     geotype=["POLYGON", "MULTIPOLYGON"],
                 ),
                 pass_value=1,
@@ -147,19 +147,19 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{file_name}"] = total_checks
+        check_name[file_name] = total_checks
 
     # 8. Execute bundled checks (step 7) on database
     multi_checks = [
         PostgresMultiCheckOperator(
-            task_id=f"multi_check_{file_name}", checks=check_name[f"{file_name}"]
+            task_id=f"multi_check_{file_name}", checks=check_name[file_name]
         )
         for file_name in data_endpoints.keys()
     ]
 
     # 10. RENAME columns based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+        task_id="rename_columns", dataset_name=dag_id, pg_schema="public"
     )
 
     # 11. DROP Exisiting TABLE
@@ -177,7 +177,7 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{file_name}",
-            old_table_name=f"{file_name}",
+            old_table_name=file_name,
             new_table_name=f"{dag_id}_{file_name}",
         )
         for file_name in data_endpoints.keys()

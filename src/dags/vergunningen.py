@@ -109,7 +109,7 @@ with DAG(
     create_tables = [
         SqlAlchemyCreateObjectOperator(
             task_id=f"create_{target_name}_based_upon_schema",
-            data_schema_name=f"{dag_id}",
+            data_schema_name=dag_id,
             data_table_name=f"{dag_id}_{target_name}",
             ind_table=True,
             # when set to false, it doesn't create indexes; only tables
@@ -167,12 +167,12 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{target_name}"] = total_checks
+        check_name[target_name] = total_checks
 
     # 8. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
-            task_id=f"multi_check_{target_name}", checks=check_name[f"{target_name}"]
+            task_id=f"multi_check_{target_name}", checks=check_name[target_name]
         )
         for _, _, target_name in table_renames
     ]
@@ -197,15 +197,13 @@ with DAG(
     ]
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
 slack_at_start >> download_data
 
-for (download,
+for (
+    download,
     remove,
     replace,
     create_table,
@@ -213,16 +211,30 @@ for (download,
     insert_data,
     multi_check,
     detection_modifications,
-    drop_tmp_table) in zip(download_data, remove_owner_alters, replace_tablename,
-    create_tables, recreate_tmp_tables, import_table, multi_checks, change_data_capture, drop_tmp_tables
+    drop_tmp_table,
+) in zip(
+    download_data,
+    remove_owner_alters,
+    replace_tablename,
+    create_tables,
+    recreate_tmp_tables,
+    import_table,
+    multi_checks,
+    change_data_capture,
+    drop_tmp_tables,
 ):
 
-    [download >> remove >>  replace >> create_table
-    >> recreate_tmp_table
-    >> insert_data
-    >> multi_check
-    >> detection_modifications
-    >> drop_tmp_table]
+    [
+        download
+        >> remove
+        >> replace
+        >> create_table
+        >> recreate_tmp_table
+        >> insert_data
+        >> multi_check
+        >> detection_modifications
+        >> drop_tmp_table
+    ]
 
 drop_tmp_tables >> grant_db_permissions
 

@@ -64,7 +64,7 @@ def get_data():
     token_request = requests.post(
         token_url, data=json.dumps(token_payload), headers=token_headers, verify=False
     )
-    token_load = json.loads(token_request.text)    
+    token_load = json.loads(token_request.text)
     token_get = token_load["jwt"]
 
     # get data
@@ -76,7 +76,7 @@ def get_data():
     data_data = requests.get(data_url, headers=data_headers, verify=False)
 
     # store data
-    with open(f"{data_file}", "w") as file:
+    with open(data_file, "w") as file:
         file.write(data_data.text)
     file.close()
 
@@ -125,27 +125,28 @@ with DAG(
     drop_tables = PostgresOperator(
         task_id="drop_existing_table",
         sql=[
-            f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",            
+            f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",
         ],
-
     )
 
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+        task_id="rename_columns", dataset_name=dag_id, pg_schema="public"
     )
 
     # 8. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id=f"rename_table",
-        old_table_name=f"{dag_id}",
+        old_table_name=dag_id,
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
     # 9. RE-define PK(see step 4 why)
     redefine_pk = PostgresOperator(
-        task_id=f"re-define_pk", sql=ADD_PK, params=dict(tablename=f"{dag_id}_{dag_id}"),
-    )       
+        task_id=f"re-define_pk",
+        sql=ADD_PK,
+        params=dict(tablename=f"{dag_id}_{dag_id}"),
+    )
 
     # PREPARE CHECKS
     count_checks.append(
@@ -160,7 +161,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id=f"geo_check",
-            params=dict(table_name=f"{dag_id}_{dag_id}", geotype=["POINT"],),
+            params=dict(
+                table_name=f"{dag_id}_{dag_id}",
+                geotype=["POINT"],
+            ),
             pass_value=1,
         )
     )
@@ -168,15 +172,10 @@ with DAG(
     total_checks = count_checks + geo_checks
 
     # 10. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(
-        task_id=f"multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
 
-     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    # 11. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 (
@@ -188,7 +187,7 @@ with DAG(
     >> drop_tables
     >> provenance_translation
     >> rename_table
-    >> redefine_pk   
+    >> redefine_pk
     >> multi_checks
     >> grant_db_permissions
 )

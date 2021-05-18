@@ -91,18 +91,20 @@ with DAG(
     # 6. DROP Exisiting TABLE
     drop_table = PostgresOperator(
         task_id="drop_existing_table",
-        sql=[f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",],
+        sql=[
+            f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",
+        ],
     )
 
     # 7. RENAME COLUMNS based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name=f"{dag_id}", pg_schema="public"
+        task_id="rename_columns", dataset_name=dag_id, pg_schema="public"
     )
 
     # 8. RENAME TABLE
     rename_table = PostgresTableRenameOperator(
         task_id="rename_table",
-        old_table_name=f"{dag_id}",
+        old_table_name=dag_id,
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
@@ -138,15 +140,10 @@ with DAG(
     total_checks = count_checks
 
     # 10. RUN bundled CHECKS (step 9)
-    multi_checks = PostgresMultiCheckOperator(
-        task_id="multi_check", checks=total_checks
-    )
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     slack_at_start

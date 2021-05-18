@@ -82,7 +82,7 @@ with DAG(
             task_id=f"download_{file.split('.')[0]}",
             swift_conn_id="OBJECTSTORE_MILIEUTHEMAS",
             container="Milieuthemas",
-            object_id=f"{file}",
+            object_id=file,
             output_path=f"{tmp_dir}/{file}",
         )
         for key, files in files_to_download.items()
@@ -226,7 +226,7 @@ with DAG(
     create_tables = [
         SqlAlchemyCreateObjectOperator(
             task_id=f"create_table_{key}",
-            data_schema_name=f"{dag_id}",
+            data_schema_name=dag_id,
             data_table_name=f"{dag_id}_{key}",
             ind_table=True,
             # when set to false, it doesn't create indexes; only tables
@@ -276,12 +276,12 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{table_name}"] = total_checks
+        check_name[table_name] = total_checks
 
     # 18. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
-            task_id=f"multi_check_{table_name}", checks=check_name[f"{table_name}"]
+            task_id=f"multi_check_{table_name}", checks=check_name[table_name]
         )
         for table_name in files_to_download.keys()
     ]

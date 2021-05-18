@@ -123,7 +123,7 @@ with DAG(
     # 8. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -158,11 +158,11 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{key}"] = total_checks
+        check_name[key] = total_checks
 
     # 9. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[key])
         for key in files_to_download.keys()
     ]
 

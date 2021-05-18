@@ -109,7 +109,7 @@ with DAG(
                 "content-type": "application/json",
                 "x-api-key": felyx_api_key,
             },
-            ridecheck_token_endpoint=f"{ridecheck_token_url}",
+            ridecheck_token_endpoint=ridecheck_token_url,
             ridecheck_token_payload={
                 "grant_type": "client_credentials",
                 "client_id": ridecheck_token_client_id,

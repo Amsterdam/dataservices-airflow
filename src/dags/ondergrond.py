@@ -31,7 +31,7 @@ from postgres_check_operator import (
 
 
 dag_id = "ondergrond"
-variables = Variable.get(f"{dag_id}", deserialize_json=True)
+variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
 db_conn = DatabaseEngine()
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -100,7 +100,7 @@ with DAG(
     create_tables = [
         SqlAlchemyCreateObjectOperator(
             task_id=f"create_{table_name}_based_upon_schema",
-            data_schema_name=f"{dag_id}",
+            data_schema_name=dag_id,
             data_table_name=f"{dag_id}_{table_name}",
             ind_table=True,
             # when set to false, it doesn't create indexes; only tables

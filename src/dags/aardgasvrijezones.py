@@ -68,7 +68,7 @@ with DAG(
             #  when swift_conn_id is ommitted then the default connection will be the VSD objectstore
             #  swift_conn_id="SWIFT_DEFAULT",
             container="aardgasvrij",
-            object_id=f"{file}",
+            object_id=file,
             output_path=f"{tmp_dir}/{file}",
         )
         for files in files_to_download.values()
@@ -108,7 +108,7 @@ with DAG(
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
@@ -143,11 +143,11 @@ with DAG(
         )
 
         total_checks = count_checks + geo_checks
-        check_name[f"{key}"] = total_checks
+        check_name[key] = total_checks
 
     # 8. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[f"{key}"])
+        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[key])
         for key in files_to_download.keys()
     ]
 

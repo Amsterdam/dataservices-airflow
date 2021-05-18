@@ -16,21 +16,23 @@ from common import (
     MessageOperator,
 )
 
-DATASTORE_TYPE = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
+DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
 
 dag_id = "anpr"
 table_id = "anpr_taxi"
-http_conn_id = "taxi_waarnemingen_conn_id" if DATASTORE_TYPE != 'acceptance' else "taxi_waarnemingen_acc_conn_id"
+http_conn_id = (
+    "taxi_waarnemingen_conn_id"
+    if DATASTORE_TYPE != "acceptance"
+    else "taxi_waarnemingen_acc_conn_id"
+)
 endpoint = "/v0/milieuzone/passage/export-taxi/"
 TMP_PATH = f"{SHARED_DIR}/{dag_id}/"
 
 
 args = default_args.copy()
 
-SQL_CREATE_TEMP_TABLE = """    
+SQL_CREATE_TEMP_TABLE = """
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;
     CREATE TABLE {{ params.base_table }}_temp (
         LIKE {{ params.base_table }} INCLUDING ALL);
@@ -73,9 +75,13 @@ def import_csv_data(*args, **kwargs):
             print("Created {} recods".format(len(items)))
 
 
-with DAG(dag_id, default_args=args, description="aantal geidentificeerde taxikentekenplaten per dag",) as dag:
-    
-     # 1. starting message on Slack
+with DAG(
+    dag_id,
+    default_args=args,
+    description="aantal geidentificeerde taxikentekenplaten per dag",
+) as dag:
+
+    # 1. starting message on Slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -90,8 +96,8 @@ with DAG(dag_id, default_args=args, description="aantal geidentificeerde taxiken
     # 3. download the data into temp directory
     download_data = HttpFetchOperator(
         task_id="download",
-        endpoint=f"{endpoint}",
-        http_conn_id=f"{http_conn_id}",
+        endpoint=endpoint,
+        http_conn_id=http_conn_id,
         tmp_file=f"{TMP_PATH}/taxi_passages.csv",
         output_type="text",
     )
@@ -103,7 +109,9 @@ with DAG(dag_id, default_args=args, description="aantal geidentificeerde taxiken
     )
 
     import_data = PythonOperator(
-        task_id="import_data", python_callable=import_csv_data, dag=dag,
+        task_id="import_data",
+        python_callable=import_csv_data,
+        dag=dag,
     )
 
     rename_temp_table = PostgresOperator(
@@ -113,10 +121,15 @@ with DAG(dag_id, default_args=args, description="aantal geidentificeerde taxiken
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
-(slack_at_start >> mk_tmp_dir >> download_data >> create_temp_table >> import_data >> rename_temp_table >> grant_db_permissions)
+(
+    slack_at_start
+    >> mk_tmp_dir
+    >> download_data
+    >> create_temp_table
+    >> import_data
+    >> rename_temp_table
+    >> grant_db_permissions
+)

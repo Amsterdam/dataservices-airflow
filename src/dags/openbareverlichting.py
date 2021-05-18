@@ -69,7 +69,7 @@ with DAG(
     download_data = [
         HttpFetchOperator(
             task_id=f"download_{dataset}",
-            endpoint=f"{endpoint}",
+            endpoint=endpoint,
             http_conn_id="verlichting_conn_id",
             output_type="text",
             tmp_file=f"{tmp_dir}/{dataset}.json",
@@ -108,7 +108,7 @@ with DAG(
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,

@@ -67,17 +67,13 @@ def import_row(id, series):
     item_properties = []
     for (name, keys) in PROPERTIES:
         values = [series[key] for key in keys]
-        for value in [
-            value for value in values if not (pd.isnull(value) or value == "")
-        ]:
+        for value in [value for value in values if not (pd.isnull(value) or value == "")]:
             item_properties.append({"item_id": id, "name": name, "value": value})
 
     item_attributes = []
     for (name, keys) in ATTRIBUTES:
         values = [series[key] for key in keys]
-        for value in [
-            value for value in values if not (pd.isnull(value) or value == "")
-        ]:
+        for value in [value for value in values if not (pd.isnull(value) or value == "")]:
             item_attributes.append({"item_id": id, "name": name, "value": value})
 
     # Post process
@@ -100,11 +96,7 @@ def import_row(id, series):
     # Check validity
     isValid = True
     for (name, _) in PROPERTIES:
-        props = [
-            property["value"]
-            for property in item_properties
-            if property["name"] == name
-        ]
+        props = [property["value"] for property in item_properties if property["name"] == name]
         isPropValid = len(props) > 0
         if not isPropValid:
             pp.pprint(f"Warning: line {id} - Missing property {name}")
@@ -139,19 +131,15 @@ def import_meta_row(id, series):
 
     if len(property) == 0:
         # Skip lines with empty TEXT field
-        pp.pprint(
-            f"Warning: line {id} - Missing property: {property} or value: {value}"
-        )
+        pp.pprint(f"Warning: line {id} - Missing property: {property} or value: {value}")
         return {}
 
-    return {"id": id, "property": property, "value": f"{value}"}
+    return {"id": id, "property": property, "value": value}
 
 
 def import_file(filename):
     # Import the HIOR Excel file
-    df = pd.read_excel(
-        filename, sheet_name=[SHEET_NAME, FAQ_SHEET_NAME, METADATA_SHEET_NAME]
-    )
+    df = pd.read_excel(filename, sheet_name=[SHEET_NAME, FAQ_SHEET_NAME, METADATA_SHEET_NAME])
 
     items = []
     properties = []
@@ -183,9 +171,7 @@ def import_file(filename):
 
     # Report summary; unique property values, #items and #properties
     for (name, _) in PROPERTIES:
-        values = set(
-            [property["value"] for property in properties if property["name"] == name]
-        )
+        values = set([property["value"] for property in properties if property["name"] == name])
         pp.pprint(f"{name} - {len(values)} values")
 
     pp.pprint(f"Total items {len(items)}")
