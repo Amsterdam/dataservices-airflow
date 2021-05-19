@@ -50,7 +50,7 @@ class SwapSchemaOperator(BaseOperator):
 
         if self.subset_tables:
             subset_tables = [to_snake_case(table) for table in self.subset_tables]
-            tables = [table for table in tables if table["id"] in subset_tables]
+            tables = [table for table in tables if to_snake_case(table["id"]) in subset_tables]
 
         for table in tables:
             table_id = to_snake_case(table.id)
