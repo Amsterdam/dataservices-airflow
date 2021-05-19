@@ -39,6 +39,7 @@ tables: Dict[str, Union[List[str], str]] = {
         "loopafstandCategorie",
         "bagObjectLoopafstand",
         "adresLoopafstand",
+        "bijplaatsingen"
     ],
     "dwh_stadsdelen": "planningVoertuigen",
 }
@@ -168,9 +169,9 @@ with DAG(
 slack_at_start >> [drop_tables, load_dwh]
 # Path 1
 [
-    drop_tables 
-    >> load_file 
-    >> provenance_file_data 
+    drop_tables
+    >> load_file
+    >> provenance_file_data
     >> swap_schema
 ]
 # Path 2
