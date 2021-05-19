@@ -159,6 +159,7 @@ class PostgresPermissionsOperator(BaseOperator):
                         ams_schema = schema_defs_from_url(
                             schemas_url=self.schema_url,
                             dataset_name=dataset_name,
+                            prefetch_related=True,
                         )
 
                         apply_schema_and_profile_permissions(
@@ -196,7 +197,9 @@ class PostgresPermissionsOperator(BaseOperator):
 
             try:
                 ams_schema = schema_defs_from_url(
-                    schemas_url=self.schema_url, dataset_name=self.dataset_name
+                    schemas_url=self.schema_url,
+                    dataset_name=self.dataset_name,
+                    prefetch_related=True,
                 )
 
                 apply_schema_and_profile_permissions(

@@ -9,8 +9,7 @@ from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
-from schematools.types import DatasetSchema, SchemaType
-from schematools.utils import schema_fetch_url_file
+from schematools.utils import schema_def_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
@@ -104,15 +103,15 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         else:
             self.data_table_name = self.data_table_name
 
-        data_schema_url = SCHEMA_URL / self.data_schema_name / self.data_schema_name
-        data = schema_fetch_url_file(data_schema_url)
         engine = _get_engine(self.db_conn)
-        parent_schema = SchemaType(data)
-        dataset_schema = DatasetSchema(parent_schema)
-        importer = BaseImporter(dataset_schema, engine)
+        dataset_schema = schema_def_from_url(
+            SCHEMA_URL, self.data_schema_name, prefetch_related=True
+        )
+
+        importer = BaseImporter(dataset_schema, engine, logger=self.log)
         self.log.info(
-            "data_schema_url='%s', engine='%s', ind_table='%s', ind_extra_index='%s'.",
-            data_schema_url,
+            "schema_name='%s', engine='%s', ind_table='%s', ind_extra_index='%s'.",
+            self.data_schema_name,
             engine,
             self.ind_table,
             self.ind_extra_index,
