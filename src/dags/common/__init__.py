@@ -27,6 +27,7 @@ slack_webhook_token: str = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
 SHARED_DIR: str = env("SHARED_DIR", "/tmp")
+SCHEMA_INDEX_FILE_OBJECTSTORE: str = "index.json"
 
 
 class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
