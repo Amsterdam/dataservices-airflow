@@ -21,7 +21,6 @@ SCHEMA_URL = URL(env("SCHEMA_URL"))
 
 class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
     """Create PostgreSQL objects based on an Amsterdam schema using SQLAlchemy
-
     This operator takes a JSON data schema definition and DB connection to create the specified
     tables and/or an index. The latter is based on the Identifier object in the data JSON schema
     i.e. "identifier": ["identificatie", "volgnummer"] which is common for temporal data. And on
@@ -41,6 +40,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         data_schema_name: str,
         data_table_name: Optional[Union[str, Pattern]] = re.compile(r".*"),
         db_conn: str = DEFAULT_DB_CONN,
+        pg_schema: Optional[str] = None,
+        db_table_name: Optional[str] = None,
         ind_table: bool = True,
         ind_extra_index: bool = True,
         xcom_task_ids: Optional[str] = None,
@@ -50,7 +51,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         **kwargs: Any,
     ):
         """Initialize SqlAlchemyCreateObjectOperator.
-
         Args:
             data_schema_name: Name of the schema to derive PostgreSQL objects from.
             data_table_name: Table(s) to create PostgreSQL objects for. This can either be a
@@ -60,6 +60,9 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
                 is mostly useful if you want to create PostgreSQL objects for all tables in a
                 given schema. This is also the default value (all tables).
             db_conn: DB connection URL.
+            pg_schema: Defines DB schema for the connection. If NONE it defaults to 'public'.
+            db_table_name: Defines the table name to create. This can be different from the table
+                name as defined in the data schema i.e. [table_name]_new
             ind_table: Whether to creates indices (as specified in the schema).
             ind_extra_index: Whether to created additional indices.
             xcom_task_ids: The id of the task that is providing the xcom info.
@@ -75,6 +78,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         self.data_table_name = data_table_name
 
         self.db_conn = db_conn
+        self.pg_schema = pg_schema
+        self.db_table_name = db_table_name
         self.ind_table = ind_table
         self.ind_extra_index = ind_extra_index
         self.xcom_task_ids = xcom_task_ids
@@ -86,7 +91,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
     def execute(self, context: Dict[str, Any]) -> None:
         """Executes the ``generate_db_object`` method from schema-tools.
-
         Which leads to the creation of tables and/or an index on the identifier (as specified in
         the data JSON schema). By default both tables and the identifier and 'many-to-many
         table' indexes are created. By setting the boolean indicators in the method parameters,
@@ -103,16 +107,27 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         else:
             self.data_table_name = self.data_table_name
 
-        engine = _get_engine(self.db_conn)
+        # setup the database schema for the database connection
+        if self.pg_schema is not None:
+            engine = _get_engine(
+                self.db_conn,
+                pg_schemas=[
+                    self.pg_schema,
+                ],
+            )
+        else:
+            engine = _get_engine(self.db_conn)
+
         dataset_schema = schema_def_from_url(
             SCHEMA_URL, self.data_schema_name, prefetch_related=True
         )
 
         importer = BaseImporter(dataset_schema, engine, logger=self.log)
         self.log.info(
-            "schema_name='%s', engine='%s', ind_table='%s', ind_extra_index='%s'.",
+            "schema_name='%s', engine='%s', db_schema='%s', ind_table='%s', ind_extra_index='%s'.",
             self.data_schema_name,
             engine,
+            self.pg_schema if self.pg_schema else "public",
             self.ind_table,
             self.ind_extra_index,
         )
@@ -125,9 +140,16 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
             cur_table = f"{self.data_schema_name}_{table.name}"
 
             if re.fullmatch(self.data_table_name, cur_table):
-                self.log.info("Generating PostgreSQL objects for table '%s'.", table.name)
+                self.log.info(
+                    "Generating PostgreSQL objects for table: '%s'",
+                    table.name,
+                    " in DB schema: '%s'",
+                    self.pg_schema if self.pg_schema else "public",
+                )
                 importer.generate_db_objects(
                     table.id,
+                    db_table_name=self.db_table_name,
+                    db_schema_name=self.pg_schema,
                     ind_tables=self.ind_table,
                     ind_extra_index=self.ind_extra_index,
                 )

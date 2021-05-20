@@ -9,6 +9,8 @@ from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperato
 from swap_schema_operator import SwapSchemaOperator
 from dcat_swift_operator import DCATSwiftOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+
 
 from common import (
     DATASTORE_TYPE,
@@ -23,7 +25,11 @@ from common.db import fetch_pg_env_vars
 
 dag_id = "beheerkaart"
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
-tables = "beheerkaart_basis_bgt,beheerkaart_basis_eigendomsrecht,beheerkaart_basis_kaart"
+tables = {
+    "beheerkaart_basis_bgt": "bkt_bgt",
+    "beheerkaart_basis_eigendomsrecht": "bkt_eigendomsrecht",
+    "beheerkaart_basis_kaart": "bkt_beheerkaart_basis",
+}
 
 dataset_name = f"{dag_id}_basis"
 gpkg_path = f"{tmp_dir}/{dataset_name}.gpkg"
@@ -55,6 +61,22 @@ with DAG(
         pg_schema="pte",
     )
 
+    # 3. Create tables in target schema PTE
+    # based upon presence in the Amsterdam schema definition
+    create_tables = [
+        SqlAlchemyCreateObjectOperator(
+            task_id=f"create_{db_table_name}",
+            data_schema_name=dataset_name,
+            pg_schema="pte",
+            data_table_name=data_table_name,
+            db_table_name=db_table_name,
+            ind_table=True,
+            # when set to false, it doesn't create indexes; only tables
+            ind_extra_index=True,
+        )
+        for data_table_name, db_table_name in tables.items()
+    ]
+
     # 3. load the dump file
     swift_load_task = SwiftLoadSqlOperator(
         task_id="swift_load_task",
@@ -71,6 +93,8 @@ with DAG(
         task_id="provenance_renames",
         dataset_name=dataset_name,
         pg_schema="pte",
+        prefix_table_name=f"{dataset_name}_",
+        postfix_table_name="_new",
         rename_indexes=True,
     )
 
@@ -85,7 +109,7 @@ with DAG(
         task_id="create_geopackage",
         env={},
         env_expander=fetch_pg_env_vars,
-        bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={tables}"',
+        bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
     )
 
     # 8. Zip geopackage
@@ -105,11 +129,13 @@ with DAG(
         distribution_id="1",
     )
 
-     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dataset_name
-    )
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_name)
 
 # FLOW
-slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data >> grant_db_permissions  # noqa
+slack_at_start >> drop_tables >> create_tables
+
+for table in create_tables:
+    table >> swift_load_task
+
+swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data >> grant_db_permissions  # noqa
