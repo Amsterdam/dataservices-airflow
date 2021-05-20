@@ -1,11 +1,10 @@
 import logging
 import os
-import re
 import traceback
-from datetime import timedelta, datetime, timezone
+from datetime import timedelta
 from hashlib import blake2s
 from inspect import cleandoc
-from typing import Dict, Optional, Any, Match, Iterable, Union, List
+from typing import Dict, Optional, Any, Iterable, Union, List
 
 import pendulum
 from airflow.exceptions import AirflowException
@@ -13,7 +12,6 @@ from airflow.hooks.base import BaseHook
 from airflow.models.taskinstance import Context
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
-from airflow.utils.dates import days_ago
 from environs import Env
 from requests.exceptions import ConnectionError
 
@@ -123,29 +121,10 @@ def slack_failed_task(context: Context) -> None:
     failed_alert.execute(context=context)
 
 
-# set the local time zone, so the start_date DAG param can use it in its context
-# as stated in the Airflow docs, pendulum must be used to set the timezone
-amsterdam: timezone = pendulum.timezone("Europe/Amsterdam")
-
-# set start_date to 'yesterday', and get the year, month and day as seperate integer values
-start_date_dag: str = str(days_ago(1))
-YYYY: int = 0
-MM: int = 0
-DD: int = 0
-
-# # extract the YYYY MM and DD values as integers
-get_YYYY_MM_DD_values: Optional[Match[str]] = re.search(
-    "([0-9]{4})-([0-9]{2})-([0-9]{2})", start_date_dag
-)
-if get_YYYY_MM_DD_values:
-    YYYY = int(get_YYYY_MM_DD_values.group(1))
-    MM = int(get_YYYY_MM_DD_values.group(2))
-    DD = int(get_YYYY_MM_DD_values.group(3))
-
 default_args: Context = {
     "owner": "dataservices",
     "depends_on_past": False,
-    "start_date": datetime(YYYY, MM, DD, tzinfo=amsterdam),
+    "start_date": pendulum.yesterday("Europe/Amsterdam"),
     "email": "example@airflow.com",
     "email_on_failure": False,
     "email_on_retry": False,
