@@ -1,7 +1,6 @@
 import re
 from re import Pattern
 from typing import Any, Callable, Dict, Optional, Union
-
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
@@ -9,6 +8,7 @@ from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
+from schematools.types import DatasetSchema, SchemaType
 from schematools.utils import schema_def_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
@@ -73,7 +73,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         super().__init__(*args, **kwargs)
         self.data_schema_name = data_schema_name
         self.data_table_name = data_table_name
-
         self.db_conn = db_conn
         self.ind_table = ind_table
         self.ind_extra_index = ind_extra_index
@@ -86,7 +85,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
     def execute(self, context: Dict[str, Any]) -> None:
         """Executes the ``generate_db_object`` method from schema-tools.
-
         Which leads to the creation of tables and/or an index on the identifier (as specified in
         the data JSON schema). By default both tables and the identifier and 'many-to-many
         table' indexes are created. By setting the boolean indicators in the method parameters,
@@ -103,14 +101,14 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         else:
             self.data_table_name = self.data_table_name
 
+        schema = schema_def_from_url(SCHEMA_URL, self.data_schema_name, prefetch_related=True)
         engine = _get_engine(self.db_conn)
-        dataset_schema = schema_def_from_url(
-            SCHEMA_URL, self.data_schema_name, prefetch_related=True
-        )
-
-        importer = BaseImporter(dataset_schema, engine, logger=self.log)
+        parent_schema = SchemaType(schema)
+        dataset_schema = DatasetSchema(parent_schema)
+        importer = BaseImporter(dataset_schema, engine)
         self.log.info(
-            "schema_name='%s', engine='%s', ind_table='%s', ind_extra_index='%s'.",
+            "schema_base_url=%s, schema_name=%s, engine=%s, ind_table=%s, ind_extra_index=%s.",
+            SCHEMA_URL,
             self.data_schema_name,
             engine,
             self.ind_table,
