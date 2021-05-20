@@ -109,7 +109,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         importer = BaseImporter(dataset_schema, engine)
         self.log.info(
             "schema_base_url=%s, schema_name=%s, engine=%s, ind_table=%s, ind_extra_index=%s.",
-            SCHEMA_URL,
+            SCHEMA_URL,     
             self.data_schema_name,
             engine,
             self.ind_table,

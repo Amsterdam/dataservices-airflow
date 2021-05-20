@@ -18,7 +18,6 @@ from common import (
     env,
 )
 from schematools import TMP_TABLE_POSTFIX
-from schematools.types import DatasetSchema
 from schematools.utils import schema_def_from_url
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
@@ -38,7 +37,8 @@ class DatasetInfo:
     """Dataclass to provide canned infomation about the dataset for
     other operators to work with."""
 
-    dataset: DatasetSchema
+    schema_url: str
+    dataset_id: str
     table_id: str
     dataset_table_id: str
     db_table_name: str
@@ -89,12 +89,16 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         )
 
         def _create_dataset_info(dataset_id: str, table_id: str) -> DatasetInfo:
-            dataset = schema_def_from_url(SCHEMA_URL, dataset_id)
+            dataset = schema_def_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
             # Fetch the db_name for this dataset and table
             db_table_name = dataset.get_table_by_id(table_id).db_name()
-            # provide full qualified name, for convenience
+
+            # We do not pass the dataset through xcom, but only the id.
+            # The methodtools.lru_cache decorator is not pickleable
+            # (Airflow uses pickle for (de)serialization).
+            # provide the dataset_table_id as fully qualified name, for convenience
             dataset_table_id = f"{dataset_id}_{table_id}"
-            return DatasetInfo(dataset, table_id, dataset_table_id, db_table_name)
+            return DatasetInfo(SCHEMA_URL, dataset_id, table_id, dataset_table_id, db_table_name)
 
         # 2. Create Dataset info to put on the xcom channel for later use
         # by operators
@@ -156,8 +160,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
 
         # 9. Grant database permissions
         grant_db_permissions = PostgresPermissionsOperator(
-            task_id="grants",
-            dag_name=f"{dag_id}_{dataset_table_id}"
+            task_id="grants", dag_name=f"{dag_id}_{dataset_table_id}"
         )
 
         # FLOW
