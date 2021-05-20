@@ -77,7 +77,7 @@ with DAG(
         for data_table_name, db_table_name in tables.items()
     ]
 
-    # 3. load the dump file
+    # 4. load the dump file
     swift_load_task = SwiftLoadSqlOperator(
         task_id="swift_load_task",
         container="Dataservices",
@@ -88,7 +88,7 @@ with DAG(
         db_target_schema="pte",
     )
 
-    # 4. Make the provenance translations
+    # 5. Make the provenance translations
     provenance_renames = ProvenanceRenameOperator(
         task_id="provenance_renames",
         dataset_name=dataset_name,
@@ -98,13 +98,13 @@ with DAG(
         rename_indexes=True,
     )
 
-    # 5. Swap tables to target schema public
+    # 6. Swap tables to target schema public
     swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=dataset_name)
 
-    # 6. Create temporary directory
+    # 7. Create temporary directory
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
-    # 7. Create geopackage
+    # 8. Create geopackage
     create_geopackage = BashEnvOperator(
         task_id="create_geopackage",
         env={},
@@ -112,7 +112,7 @@ with DAG(
         bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
     )
 
-    # 8. Zip geopackage
+    # 9. Zip geopackage
     zip_geopackage = BashEnvOperator(
         task_id="zip_geopackage",
         env={},
@@ -120,7 +120,7 @@ with DAG(
         bash_command=f"zip -j {gpkg_path}.zip {gpkg_path}",
     )
 
-    # 9. Upload geopackage to datacatalog
+    # 10. Upload geopackage to datacatalog
     upload_data = DCATSwiftOperator(
         environment=DATAPUNT_ENVIRONMENT,
         task_id="upload_data",
@@ -129,7 +129,7 @@ with DAG(
         distribution_id="1",
     )
 
-    # 10. Grant database permissions
+    # 11. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_name)
 
 # FLOW
