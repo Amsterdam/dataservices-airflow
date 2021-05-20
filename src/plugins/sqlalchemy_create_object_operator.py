@@ -1,18 +1,15 @@
-import json
 import re
-import urllib.request
 from re import Pattern
 from typing import Any, Callable, Dict, Optional, Union
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from common import SCHEMA_INDEX_FILE_OBJECTSTORE
 from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
 from schematools.types import DatasetSchema, SchemaType
-from schematools.utils import schema_fetch_url_file
+from schematools.utils import schema_def_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
@@ -43,7 +40,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         self,
         data_schema_name: str,
         data_table_name: Optional[Union[str, Pattern]] = re.compile(r".*"),
-        data_schema_version: Optional[str] = None,
         db_conn: str = DEFAULT_DB_CONN,
         ind_table: bool = True,
         ind_extra_index: bool = True,
@@ -77,8 +73,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         super().__init__(*args, **kwargs)
         self.data_schema_name = data_schema_name
         self.data_table_name = data_table_name
-
-        self.data_schema_version = data_schema_version
         self.db_conn = db_conn
         self.ind_table = ind_table
         self.ind_extra_index = ind_extra_index
@@ -88,34 +82,6 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         assert (data_table_name is not None) ^ (
             xcom_task_ids is not None
         ), "Either data_table_name or xcom_task_ids should be provided."
-
-    def get_schema(self, data_schema_version: Optional[str]) -> Any:
-        """If a schema version is specified, i.e. 2.1.0, the version number
-        is used to determine path to schema specification.
-        Else it defaults to current schema (latest)
-
-        Args:
-            data_schema_version: Name of a specific schema version
-        Raises KeyError:
-            When schema name cannot be located in the index.json
-                file in the schema objectstore.
-        Returns:
-            Path to schema
-        """
-        if data_schema_version:
-            return SCHEMA_URL / self.data_schema_version / self.data_schema_name
-
-        schema_index_file = SCHEMA_URL / SCHEMA_INDEX_FILE_OBJECTSTORE
-        request = urllib.request.Request(schema_index_file)
-        try:
-            with urllib.request.urlopen(request) as response:
-                schema_paths = json.loads(response.read().decode("utf-8"))
-                return SCHEMA_URL / schema_paths[self.data_schema_name]
-        except KeyError as ex:
-            raise KeyError(
-                f"""Failed to locate path for {str(ex)}.
-                Please check `index.json` in schema objectstore."""
-            ) from ex
 
     def execute(self, context: Dict[str, Any]) -> None:
         """Executes the ``generate_db_object`` method from schema-tools.
@@ -136,15 +102,15 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         else:
             self.data_table_name = self.data_table_name
 
-        data_schema_url = self.get_schema(self.data_schema_version)
-        data = schema_fetch_url_file(data_schema_url)
+        schema = schema_def_from_url(SCHEMA_URL, self.data_schema_name, prefetch_related=True)
         engine = _get_engine(self.db_conn)
-        parent_schema = SchemaType(data)
+        parent_schema = SchemaType(schema)
         dataset_schema = DatasetSchema(parent_schema)
         importer = BaseImporter(dataset_schema, engine)
         self.log.info(
-            "data_schema_url='%s', engine='%s', ind_table='%s', ind_extra_index='%s'.",
-            data_schema_url,
+            "schema_base_url=%s, schema_name=%s, engine=%s, ind_table=%s, ind_extra_index=%s.",
+            SCHEMA_URL,
+            self.data_schema_name,
             engine,
             self.ind_table,
             self.ind_extra_index,
