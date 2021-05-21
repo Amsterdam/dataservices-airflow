@@ -3,6 +3,7 @@ from airflow.operators.bash import BashOperator
 
 from bash_env_operator import BashEnvOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
+from airflow.operators.postgres_operator import PostgresOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from swap_schema_operator import SwapSchemaOperator
@@ -20,6 +21,7 @@ from common import (
 )
 
 from common.db import fetch_pg_env_vars
+from sql.beheerkaart_basis import RENAME_COLS
 
 DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
@@ -76,7 +78,13 @@ with DAG(
         for data_table_name, db_table_name in tables.items()
     ]
 
-    # 4. load the dump file
+    # 4. Rename COLUMNS to source name before insert data
+    rename_cols = PostgresOperator(
+        task_id="rename_cols",
+        sql=RENAME_COLS,
+    )
+
+    # 5. load the dump file
     swift_load_task = SwiftLoadSqlOperator(
         task_id="swift_load_task",
         container="Dataservices",
@@ -87,7 +95,7 @@ with DAG(
         db_target_schema="pte",
     )
 
-    # 5. Make the provenance translations
+    # 6. Make the provenance translations
     provenance_renames = ProvenanceRenameOperator(
         task_id="provenance_renames",
         dataset_name=dataset_name,
@@ -97,13 +105,13 @@ with DAG(
         rename_indexes=True,
     )
 
-    # 6. Swap tables to target schema public
+    # 7. Swap tables to target schema public
     swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=dataset_name)
 
-    # 7. Create temporary directory
+    # 8. Create temporary directory
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
-    # 8. Create geopackage
+    # 9. Create geopackage
     create_geopackage = BashEnvOperator(
         task_id="create_geopackage",
         env={},
@@ -111,7 +119,7 @@ with DAG(
         bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
     )
 
-    # 9. Zip geopackage
+    # 10. Zip geopackage
     zip_geopackage = BashEnvOperator(
         task_id="zip_geopackage",
         env={},
@@ -119,7 +127,7 @@ with DAG(
         bash_command=f"zip -j {gpkg_path}.zip {gpkg_path}",
     )
 
-    # 10. Upload geopackage to datacatalog
+    # 11. Upload geopackage to datacatalog
     upload_data = DCATSwiftOperator(
         environment=DATAPUNT_ENVIRONMENT,
         task_id="upload_data",
@@ -128,7 +136,7 @@ with DAG(
         distribution_id="1",
     )
 
-    # 11. Grant database permissions
+    # 12. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_name)
 
 # FLOW
@@ -137,4 +145,4 @@ slack_at_start >> drop_tables >> create_tables
 for table in create_tables:
     table >> swift_load_task
 
-swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data >> grant_db_permissions  # noqa
+rename_cols >> swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data >> grant_db_permissions  # noqa
