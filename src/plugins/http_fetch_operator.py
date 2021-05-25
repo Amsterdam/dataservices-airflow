@@ -137,8 +137,12 @@ class HttpFetchOperator(BaseOperator):
         # When content is encoded (gzip etc.) we need this
         # response.raw.read = functools.partial(response.raw.read, decode_content=True)
         if self.output_type == "text":
+            # The response is streaming,
+            # we take this into account by using the iter_lines method
+            # to decrease the memory footprint.
             with open(tmp_file, "wt") as tf:
-                tf.write(response.text)
+                for line in response.iter_lines(decode_unicode=True):
+                    tf.write(f"{line}\n")
         else:
             with open(tmp_file, "wb") as bf:
                 shutil.copyfileobj(response.raw, bf)
