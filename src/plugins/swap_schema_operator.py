@@ -57,8 +57,9 @@ class SwapSchemaOperator(BaseOperator):
             sqls.append(
                 f"""
                 DROP TABLE IF EXISTS {self.to_pg_schema}.{dataset_id}_{table_id};
-                ALTER TABLE {self.from_pg_schema}.{table_id} SET SCHEMA {self.to_pg_schema};
-                ALTER TABLE {table_id}
+                ALTER TABLE IF EXISTS {self.from_pg_schema}.{table_id}
+                    SET SCHEMA {self.to_pg_schema};
+                ALTER TABLE IF EXISTS {table_id}
                     RENAME TO {dataset_id}_{table_id}; """
             )
         pg_hook.run(sqls)
