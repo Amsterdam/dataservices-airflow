@@ -1,0 +1,32 @@
+{
+  wozWozobjecten(active: false) {
+    edges {
+      node {
+        wozobjectnummer
+        cursor
+        volgnummer
+        registratiedatum
+        gebruik
+        soortobject
+        beginGeldigheid
+        eindGeldigheid
+        bevatKadastraalobject {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        bestaatUitWozdeelobjecten {
+          edges {
+            node {
+              wozdeelobjectnummer
+              volgnummer
+            }
+          }
+        }
+      }
+    }
+  }
+}
