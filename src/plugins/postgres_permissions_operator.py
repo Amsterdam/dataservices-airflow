@@ -34,6 +34,8 @@ DAG_DATASET = {
     "bag_": "bag",
     "brk_": "brk",
     "gebieden_": "gebieden",
+    "nap_": "nap",
+    "meetbouten_": "meetbouten",
     "horeca_": "horeca",
     "beschermde_": "beschermdestadsdorpsgezichten",
     "hoofdroutes_": "hoofdroutes",
