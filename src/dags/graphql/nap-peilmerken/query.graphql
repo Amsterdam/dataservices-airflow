@@ -1,0 +1,30 @@
+{
+  napPeilmerken(active: false, publiceerbaar: true) {
+    edges {
+      node {
+        identificatie
+        cursor
+        hoogteTovNap
+        jaar
+        merk
+        omschrijving
+        windrichting
+        xCoordinaatMuurvlak
+        yCoordinaatMuurvlak
+        rwsNummer
+        geometrie
+        status
+        vervaldatum
+        ligtInBouwblok {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        publiceerbaar
+      }
+    }
+  }
+}
