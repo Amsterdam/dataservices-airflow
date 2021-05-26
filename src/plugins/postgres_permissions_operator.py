@@ -36,6 +36,7 @@ DAG_DATASET = {
     "gebieden_": "gebieden",
     "nap_": "nap",
     "meetbouten_": "meetbouten",
+    "woz_": "woz",
     "horeca_": "horeca",
     "beschermde_": "beschermdestadsdorpsgezichten",
     "hoofdroutes_": "hoofdroutes",
