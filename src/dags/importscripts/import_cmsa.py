@@ -1,11 +1,11 @@
-from pathlib import Path
-import pandas as pd
 import csv
-import math
-import re
 import json
-
+import math
 import pprint
+import re
+from pathlib import Path
+
+import pandas as pd
 
 pp = pprint.PrettyPrinter()
 
@@ -292,9 +292,9 @@ VALUES"""
             f.write(";")
 
 
-def import_cmsa(cameras, beacons, sensors, out_dir):
+def import_cmsa(cameras: Path, beacons: Path, sensors: Path, out_dir: Path) -> None:
 
-    for f in Path(out_dir).glob("*.sql"):
+    for f in out_dir.glob("*.sql"):
         # f.unlink(missing_ok=True)  # only for python 3.8, airflow now needs 3.7
         try:
             f.unlink()
@@ -302,7 +302,7 @@ def import_cmsa(cameras, beacons, sensors, out_dir):
             pass
 
     for arg, func in zip(
-        (cameras, beacons, sensors), (import_cameras, import_beacons, import_sensors)
+        map(str, (cameras, beacons, sensors)), (import_cameras, import_beacons, import_sensors)
     ):
         things, locations = func(arg)
         write_inserts(out_dir, things, locations)
