@@ -36,9 +36,7 @@ ID_TYPES_MAP = {
 }
 
 
-def json2geojson(
-    data,
-):
+def json2geojson(data):
     features = []
     for element in data:
         objecttype_id = element.get("objecttype")
