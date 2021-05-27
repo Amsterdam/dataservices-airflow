@@ -1,34 +1,29 @@
-import pathlib
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
-from http_fetch_operator import HttpFetchOperator
-
-from postgres_files_operator import PostgresFilesOperator
-
-from swift_operator import SwiftOperator
-
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    slack_webhook_token,
 )
+from http_fetch_operator import HttpFetchOperator
 from importscripts.import_cmsa import import_cmsa
+from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from swift_operator import SwiftOperator
 
 dag_id = "cmsa"
 variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
+tmp_dir = Path(SHARED_DIR) / dag_id
+sql_path = Path(__file__).resolve().parents[0] / "sql"
 fetch_jsons = []
 
 
@@ -72,7 +67,7 @@ with DAG(
         task_id="download_geojson",
         endpoint="open_geodata/geojson.php?KAARTLAAG=CROWDSENSOREN&THEMA=cmsa",
         http_conn_id="ams_maps_conn_id",
-        tmp_file=f"{tmp_dir}/sensors.geojson",
+        tmp_file=tmp_dir / "sensors.geojson",
     )
 
     # 4. Download additional data (beacons.csv, cameras.xlsx)
@@ -82,8 +77,8 @@ with DAG(
             # if conn is ommitted, it defaults to Objecstore Various Small Datasets
             # swift_conn_id="SWIFT_DEFAULT",
             container="cmsa",
-            object_id=str(file),
-            output_path=f"{tmp_dir}/{file}",
+            object_id=file,
+            output_path=tmp_dir / file,
         )
         for file in files_to_download
     ]
@@ -93,9 +88,9 @@ with DAG(
         task_id="proces_sensor_data",
         python_callable=import_cmsa,
         op_args=[
-            f"{tmp_dir}/cameras.xlsx",
-            f"{tmp_dir}/beacons.csv",
-            f"{tmp_dir}/sensors.geojson",
+            tmp_dir / "cameras.xlsx",
+            tmp_dir / "beacons.csv",
+            tmp_dir / "sensors.geojson",
             tmp_dir,
         ],
     )
@@ -110,8 +105,8 @@ with DAG(
     import_data = PostgresFilesOperator(
         task_id="import_data_into_DB",
         sql_files=[
-            f"{tmp_dir}/cmsa_sensor_new.sql",
-            f"{tmp_dir}/cmsa_locatie_new.sql",
+            tmp_dir / "cmsa_sensor_new.sql",
+            tmp_dir / "cmsa_locatie_new.sql",
         ],
     )
 
