@@ -93,9 +93,7 @@ if __name__ == "__main__":
 
     data = json.load(open(in_file))
 
-    geojson = json2geojson(
-        data,
-    )
+    geojson = json2geojson(data)
     output = open(out_file, "w")
 
     log.info("writing output...")
