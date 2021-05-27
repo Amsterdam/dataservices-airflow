@@ -11,7 +11,7 @@ sql_checks = [
         """
 select column_name from information_schema.columns where table_schema = 'public' and table_name = 'trm_tram_new'
                     """,
-        lambda x: {"ogc_fid", "wkb_geometry", "volgorde"} <= set(map(lambda y: y[0], x)),
+        lambda x: {"ogc_fid", "wkb_geometry", "volgorde"} <= set(elem[0] for elem in x)
     ),
     (
         "columns_metro",
