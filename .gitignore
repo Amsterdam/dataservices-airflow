@@ -144,4 +144,15 @@ dmypy.json
 # IntelliJ based IDEs
 .idea/
 
+# Visual Studio Code IDE
 .vscode/
+
+# Real config lives in src/config/airflow.cfg
+# ignored path is symlink to allow it run locally with
+# export AIRFLOW_HOME=$(pwd)/src
+src/airflow.cfg
+
+# When running locally a webserver_config
+# will be created with default values.
+# This too should not be checked in.
+src/webserver_config.py
