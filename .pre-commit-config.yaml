@@ -2,41 +2,57 @@
 # Supported hooks: https://pre-commit.com/hooks.html
 # Running "make format" fixes most issues for you
 repos:
+  - repo: https://github.com/pre-commit/mirrors-isort
+    rev: v5.8.0
+    hooks:
+      - id: isort
+        additional_dependencies: [toml]
   - repo: https://github.com/ambv/black
-    rev: 20.8b1
+    rev: 21.5b1
     hooks:
       - id: black
-        #language_version: python3.7
   - repo: https://gitlab.com/pycqa/flake8
-    rev: 3.8.4
+    rev: 3.9.2
     hooks:
       - id: flake8
         exclude: migrations/
         additional_dependencies:
-          - flake8-blind-except == 0.1.1
-          - flake8-debugger == 3.2.1
-          - flake8-colors == 0.1.6
-          - flake8-raise == 0.0.5
+          - flake8-colors  # ANSI colors highlight for Flake8
+          - flake8-raise  # Find improvements for raise statements
+          - flake8-bandit  # Security checks
+          - flake8-bugbear  # Assorted opinionated checks
+          - flake8-builtins  # Check for name collision with builtins
+          - flake8-comprehensions # Write better list/set/dict comprehensions.
+          - flake8-docstrings  # Uses pydocstyle to check docstrings
+          - flake8-implicit-str-concat  #
+          - flake8-print  # Check for Print statements in python files
+          - flake8-rst  # Allows run flake8 on code snippets in docstrings or rst files
+          - flake8-string-format  # str.format checker
+          - flake8-logging-format  # Validate logging format strings
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v4.0.1
     hooks:
-      - id: check-json
-      - id: check-merge-conflict
-      - id: check-toml
-      - id: check-yaml
-      - id: debug-statements
-      - id: detect-private-key
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
+      - id: check-json  # Checks json files for parseable syntax
+      - id: check-merge-conflict  # Check for files that contain merge conflict strings
+      - id: check-toml  # Checks toml files for parseable syntax
+      - id: check-yaml  # Checks yaml files for parseable syntax
+      - id: debug-statements  # Check for debugger imports and py37+ `breakpoint()` calls
+      - id: detect-private-key  # Detects the presence of private keys
+      - id: end-of-file-fixer  # Ensures that a file is either empty, or ends with one newline
+      - id: trailing-whitespace  # trims trailing whitespace
         args: [--markdown-linebreak-ext=md]
+      - id: check-docstring-first  # Checks a common error of defining a docstring after code
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v0.800
+    rev: v0.812
     hooks:
       - id: mypy
         language_version: python3
-
-#  - repo: https://github.com/prettier/prettier
-#    rev: "1.19.1"
-#    hooks:
-#      - id: prettier
-#        files: '\.(js|ts|jsx|tsx|scss|css|yml|yaml|json)$'
+  -   repo: https://github.com/pre-commit/pygrep-hooks
+      rev: v1.8.0  # Use the ref you want to point at
+      hooks:
+        - id: python-check-blanket-noqa  # Enforce that noqa annotations always occur with specific codes
+        - id: python-no-eval  # A quick check for the eval() built-in function
+        - id: python-no-log-warn  # A quick check for the deprecated .warn() method of python loggers
+        - id: rst-backticks  # Detect common mistake of using single backticks when writing rst
+        - id: rst-directive-colons  # Detect mistake of rst directive not ending with double colon
+        - id: rst-inline-touching-normal  # Detect mistake of inline code touching normal text in rst

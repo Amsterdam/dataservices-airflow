@@ -1,25 +1,53 @@
 [flake8]
-ignore=
-  # Black may add spaces in slice[func(v) : end] syntax
-  E203,
-  # Black leaves commas after combining lines
-  E231,
-  # Allow import * (for settings)
-  F403,
-  F405,
-  # Allow lambdas:
-  E731,
-  # line break before binary operator (incompatible with black):
-  W503,
-  # Allow raise Exception()
-  R102,
-exclude=.git,
-        **/migrations/*,
-        .env,
-        docs,
-        scripts,
-format = ${cyan}%(path)s${reset}:${yellow_bold}%(row)d${reset}:${green_bold}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
-max-complexity=8
+# A = builtins
+# B = bugbear
+# C4 = comprehensions
+# D = docstrings
+# E = pycodestyle errors, rst
+# F = flake8 pyflakes, rst
+# G = logging-format
+# P = str-format
+# RST = rst-docstrings
+# S = bandit
+# T = print
+# W = pycodestyle warnings
+# B9 = bugbear opinions
+# ISC = implicit-str-concat
+ban-relative-imports = True
 max-line-length = 99
-statistics=True
-jobs=1
+docstring-convention = google
+statistics = True
+select = A, B, C4, D, E, F, G, P, RST, S, T, W, B9, ISC
+doctests = True
+ignore =
+    # D100  Missing docstring in public module
+    D100,
+    # D104  Missing docstring in public package
+    D104,
+    # E203  Black may add spaces in slice[func(v) : end] syntax
+    E203,
+    # E231  Black leaves commas after combining lines
+    E231,
+    # F403  Allow import * (for settings)
+    F403,
+    # F405  Allow import * (for settings)
+    F405,
+    # E731  Allow lambdas:
+    E731,
+    # W503  line break before binary operator (incompatible with black):
+    W503,
+    # R102  Allow raise Exception()
+    R102
+exclude =
+    .git,
+    **/migrations/*,
+    docs,
+    scripts,
+    .cache,
+    .eggs,
+    __pycache__,
+    build,
+    dist,
+    .venv,
+    venv
+format = ${cyan}%(path)s${reset}:${yellow_bold}%(row)d${reset}:${green_bold}%(col)d${reset}: ${red_bold}%(code)s${reset} %(text)s
