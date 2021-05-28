@@ -1,6 +1,7 @@
 .PHONY: install
 install:
 	pip install -r requirements_dev.txt
+	pre-commit clean
 	pre-commit install
 
 .PHONY: sync
