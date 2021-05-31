@@ -83,17 +83,6 @@ class HttpFetchOperator(BaseOperator):
 
         tmp_file: Path = Path(self.tmp_file)
 
-        # ----- TEMPORARY IF REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----
-        if self.output_type == "file":
-            self.log.info("Output type: 'file'. Current working directory '%s'", os.getcwd())
-            with open(self.endpoint) as source:
-                data = source.read()
-
-            with open(tmp_file, "wt") as wf:
-                wf.write(data)
-            return
-        # ----- TEMPORARY IF REMOVE IT AFTER precariobelasting HAS DATA ON OBJECTSTORE PRD -----
-
         if self.xcom_tmp_dir_task_ids is not None:
             self.log.debug(
                 "Retrieving tmp dir from XCom: task_ids='%s', key='%s'.",
