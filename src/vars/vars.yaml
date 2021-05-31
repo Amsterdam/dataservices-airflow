@@ -166,7 +166,7 @@ sport:
   files_to_download:
     csv:
       zwembad: dcatd/datasets/o-HEFxsOggSf8A/purls/bjpABHIt0g6IyQ
-      sportaanbieder: dcatd/datasets/a6WW_Ay-oeY_dQ/purls/aT3gGdCZycJHjg
+      sportaanbieder: dcatd/datasets/a6WW_Ay-oeY_dQ/purls/2
       gymsportzaal: dcatd/datasets/XtEra6am2lDbHg/purls/gL_MLa12hbigZA
       sporthal: dcatd/datasets/o-HEFxsOggSf8A/purls/bjpABHIt0g6IyQ
     geojson:
