@@ -38,16 +38,17 @@ tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
 count_checks = []
 geo_checks = []
-check_name = {}
+
 
 # needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
+def quote(instr: str) -> str:
     return f"'{instr}'"
 
 
 with DAG(
     dag_id,
     description="locatie, status en type van een openbare verlichting.",
+    schedule_interval="*/15 * * * *",
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
     template_searchpath=["/"],
@@ -71,7 +72,6 @@ with DAG(
             task_id=f"download_{dataset}",
             endpoint=endpoint,
             http_conn_id="verlichting_conn_id",
-            output_type="text",
             tmp_file=f"{tmp_dir}/{dataset}.json",
         )
         for dataset, endpoint in data_endpoints.items()
@@ -82,9 +82,12 @@ with DAG(
         task_id="convert_to_geojson",
         python_callable=import_openbare_verlichting,
         op_args=[
-            f"{tmp_dir}/{dataset_objects}.json",  # input: openbare verlichting objects (main data)
-            f"{tmp_dir}/{dataset_objecttypes}.json",  # input: openbare verlichting objecttypes (reference data)
-            f"{tmp_dir}/objects.geo.json",  # output: geojson
+            # input: openbare verlichting objects (main data)
+            f"{tmp_dir}/{dataset_objects}.json",
+            # input: openbare verlichting objecttypes (reference data)
+            f"{tmp_dir}/{dataset_objecttypes}.json",
+            # output: geojson
+            f"{tmp_dir}/objects.geo.json",
         ],
     )
 
