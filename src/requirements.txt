@@ -136,7 +136,7 @@ flake8==3.9.2
     # via
     #   -r requirements.in
     #   flake8-colors
-flask-appbuilder==3.1.1
+flask-appbuilder==3.3.0
     # via apache-airflow
 flask-babel==1.0.0
     # via flask-appbuilder

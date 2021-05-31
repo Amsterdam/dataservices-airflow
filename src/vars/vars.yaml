@@ -77,12 +77,11 @@ precariobelasting:
     passagiersvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/4
     woonschepen: dcatd/datasets/aUBH75WzCsTcYQ/purls/2
     terrassen: dcatd/datasets/aUBH75WzCsTcYQ/purls/1
-  metadataschema_endpoint: datasets/precariobelasting/precariobelasting
   temp_data:
-    bedrijfsvaartuigen: data/precariobelasting/bedrijfsvaartuigen.geojson
-    passagiersvaartuigen: data/precariobelasting/passagiersvaartuigen.geojson
-    woonschepen: data/precariobelasting/woonschepen.geojson
-    terrassen: data/precariobelasting/terrassen.geojson
+    bedrijfsvaartuigen: precariobelasting/bedrijfsvaartuigen.geojson
+    passagiersvaartuigen: precariobelasting/passagiersvaartuigen.geojson
+    woonschepen: precariobelasting/woonschepen.geojson
+    terrassen: precariobelasting/terrassen.geojson
 touringcars:
   data_endpoints:
     aanbevolenroutes: dcatd/datasets/IuAYhr-__qZj9Q/purls/wFSs8bEzvW7S9w
