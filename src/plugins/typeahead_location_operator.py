@@ -144,7 +144,7 @@ class TypeAHeadLocationOperator(BaseOperator):
             try:
                 get_uri = urlparse(bag_url)
                 if not isinstance(get_uri, str):
-                    self.log.info(f"No BAG id found for {record_key}: {bag_id}")
+                    self.log.info(f"No BAG id found for {record}")
                     continue
                 else:
                     bag_id = get_uri.path.rsplit("/")[-2]                
