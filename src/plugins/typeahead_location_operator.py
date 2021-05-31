@@ -1,5 +1,5 @@
 import json
-from urllib.parse import urlparse
+from urllib.parse import urlparse, ParseResult
 
 from airflow.hooks.http_hook import HttpHook
 from airflow.models.baseoperator import BaseOperator
@@ -143,12 +143,12 @@ class TypeAHeadLocationOperator(BaseOperator):
             # series of numbers before the last forward-slash
             try:
                 get_uri = urlparse(bag_url)
-                if not isinstance(get_uri, str):
+                if not isinstance(get_uri, ParseResult):
                     self.log.info(f"No BAG id found for {record}")
                     continue
                 else:
                     bag_id = get_uri.path.rsplit("/")[-2]                
-                self.log.info(f"BAG id found for {record_key}: {bag_id}")
+                    self.log.info(f"BAG id found for {record_key}: {bag_id}")
 
             except AttributeError:
                 self.log.error(
