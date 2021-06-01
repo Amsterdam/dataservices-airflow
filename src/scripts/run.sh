@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e # stop on errors
+
 export AIRFLOW__CORE__SQL_ALCHEMY_CONN=${AIRFLOW__CORE__SQL_ALCHEMY_CONN:-`echo $AIRFLOW_CONN_POSTGRES_DEFAULT | cut -d'?' -f 1`}
 export AIRFLOW_CONN_POSTGRES_VSD={$AIRFLOW_CONN_POSTGRES_VSD:-$AIRFLOW__CORE__SQL_ALCHEMY_CONN}
 airflow db init  # db init is not destructive, so can be re-run at startup
@@ -82,5 +85,16 @@ airflow connections add rdw_conn_id \
 # airflow scheduler &
 # airflow webserver
 airflow variables import vars/vars.json
+
+# Check all dags by running them as python modules.
+# This is whait the Airflow dagbag is also doing.
+# If one of the DAGs fails, the check script exits
+# with a non-zero exit state.
+# A fully configured Airflow instance is needed to be able
+# to run the checkscript.
+# Make sure that the the containing shell script (run.sh)
+# stops on errors (set -e).
+python scripts/checkdags.py
+
 # sleep infinity
 /usr/local/bin/supervisord --config /usr/local/airflow/etc/supervisord.conf
