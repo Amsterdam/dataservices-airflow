@@ -92,8 +92,7 @@ airflow variables import vars/vars.json
 # to run the checkscript.
 # Make sure that the the containing shell script (run.sh)
 # stops on errors (set -e).
-set -e
-python scripts/checkdags.py
+python scripts/checkdags.py || exit
 
 # sleep infinity
 /usr/local/bin/supervisord --config /usr/local/airflow/etc/supervisord.conf
