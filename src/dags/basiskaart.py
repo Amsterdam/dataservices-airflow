@@ -11,6 +11,9 @@ from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+
+# These seemingly unused imports are actually used, albeit indirectly. See the code with
+# `globals()[select_statement]`. Hence the `noqa: F401` comments.
 from sql.basiskaart import CREATE_MVIEWS, CREATE_TABLES
 from sql.basiskaart import SELECT_GEBOUWVLAK_SQL as SELECT_GEBOUWVLAK_SQL  # noqa: F401
 from sql.basiskaart import (  # noqa: F401
