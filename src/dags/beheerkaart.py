@@ -144,6 +144,15 @@ with DAG(
 slack_at_start >> drop_tables >> create_tables
 
 for table in create_tables:
-    table >> swift_load_task
+    table >> rename_cols
 
-rename_cols >> swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data >> grant_db_permissions  # noqa
+(   rename_cols
+    >> swift_load_task
+    >> provenance_renames
+    >> swap_schema
+    >> mkdir
+    >> create_geopackage
+    >> zip_geopackage
+    >> upload_data
+    >> grant_db_permissions
+    )
