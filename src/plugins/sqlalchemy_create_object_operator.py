@@ -108,15 +108,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
             self.data_table_name = self.data_table_name
 
         # setup the database schema for the database connection
-        if self.pg_schema is not None:
-            engine = _get_engine(
-                self.db_conn,
-                pg_schemas=[
-                    self.pg_schema,
-                ],
-            )
-        else:
-            engine = _get_engine(self.db_conn)
+        kwargs = {"pg_schemas": [self.pg_schema]} if self.pg_schema is not None else {}
+        engine = _get_engine(self.db_conn, **kwargs)
 
         dataset_schema = schema_def_from_url(
             SCHEMA_URL, self.data_schema_name, prefetch_related=True
