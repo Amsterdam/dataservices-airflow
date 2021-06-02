@@ -66,21 +66,22 @@ if (BRANCH == "master") {
         }
     }
 
-    node {
-        stage("Deploy to ACC") {
-            tryStep "deployment", {
-                build job: 'Subtask_Openstack_Playbook',
-                    parameters: [
-                        [$class: 'StringParameterValue', name: 'INVENTORY', value: 'acceptance'],
-                        [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy.yml'],
-                        [$class: 'StringParameterValue', name: 'PLAYBOOKPARAMS', value: "-e cmdb_id=app_airflow_v1"]
-                    ]
-            }
-        }
-    }
+    // remove this after this change has succesfully run on Jenkins.
+    // node {
+    //     stage("Deploy to ACC") {
+    //         tryStep "deployment", {
+    //             build job: 'Subtask_Openstack_Playbook',
+    //                 parameters: [
+    //                     [$class: 'StringParameterValue', name: 'INVENTORY', value: 'acceptance'],
+    //                     [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy.yml'],
+    //                     [$class: 'StringParameterValue', name: 'PLAYBOOKPARAMS', value: "-e cmdb_id=app_airflow_v1"]
+    //                 ]
+    //         }
+    //     }
+    // }
 
     node {
-        stage("Deploy to ACC V2") {
+        stage("Deploy to ACC") {
             tryStep "deployment", {
                 build job: 'Subtask_Openstack_Playbook',
                     parameters: [
@@ -111,21 +112,22 @@ if (BRANCH == "master") {
         }
     }
 
-    node {
-        stage("Deploy") {
-            tryStep "deployment", {
-                build job: 'Subtask_Openstack_Playbook',
-                    parameters: [
-                        [$class: 'StringParameterValue', name: 'INVENTORY', value: 'production'],
-                        [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy.yml'],
-                        [$class: 'StringParameterValue', name: 'PLAYBOOKPARAMS', value: "-e cmdb_id=app_airflow_v1"]
-                    ]
-            }
-        }
-    }
+    // remove this after this change has succesfully run on Jenkins.
+    // node {
+    //     stage("Deploy") {
+    //         tryStep "deployment", {
+    //             build job: 'Subtask_Openstack_Playbook',
+    //                 parameters: [
+    //                     [$class: 'StringParameterValue', name: 'INVENTORY', value: 'production'],
+    //                     [$class: 'StringParameterValue', name: 'PLAYBOOK', value: 'deploy.yml'],
+    //                     [$class: 'StringParameterValue', name: 'PLAYBOOKPARAMS', value: "-e cmdb_id=app_airflow_v1"]
+    //                 ]
+    //         }
+    //     }
+    // }
 
     node {
-        stage("Deploy to V2") {
+        stage("Deploy to PRD") {
             tryStep "deployment", {
                 build job: 'Subtask_Openstack_Playbook',
                     parameters: [
