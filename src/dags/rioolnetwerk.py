@@ -1,6 +1,8 @@
 import operator
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -40,10 +42,12 @@ def quote(instr):
 dag_id = "rioolnetwerk"
 owner = "team_ruimte"
 
-with DAG(dag_id, 
-        default_args={**default_args, **{"owner": owner}},
-        user_defined_filters=dict(quote=quote),
-        ) as dag:
+with DAG(
+     dag_id,
+     default_args={**default_args, **{"owner": owner}},
+     user_defined_filters=dict(quote=quote),
+     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+) as dag:
 
     checks = []
 
@@ -132,7 +136,7 @@ with DAG(dag_id,
     )
 
     rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL,)
-    
+
     # Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(
         task_id="grants",
@@ -141,12 +145,12 @@ with DAG(dag_id,
 
 
 [
-    slack_at_start 
-    >> drop_tables 
-    >> swift_load_task 
-    >> multi_check 
-    >> rename_columns 
-    >> rename_tables 
+    slack_at_start
+    >> drop_tables
+    >> swift_load_task
+    >> multi_check
+    >> rename_columns
+    >> rename_tables
     >> grant_db_permissions
 ]
 

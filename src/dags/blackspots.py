@@ -1,5 +1,7 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
@@ -64,6 +66,7 @@ dag_id = "blackspots"
 with DAG(
     dag_id,
     default_args=default_args,
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     slack_at_start = MessageOperator(

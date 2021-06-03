@@ -1,7 +1,7 @@
 import pathlib
 from airflow import DAG
 
-
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import PostgresCheckOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.postgres_hook import PostgresHook
@@ -59,6 +59,7 @@ with DAG(
     default_args=vsd_default_args,
     template_searchpath=["/"],
     schedule_interval="@hourly",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -110,7 +111,7 @@ with DAG(
         sql=SQL_CHECK_GEO,
         params=dict(tablename=f"{dag_id}_new", geotype="ST_Point"),
     )
-    
+
     # 10. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(
         task_id="grants",

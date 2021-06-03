@@ -12,6 +12,7 @@ from common import (
     default_args,
     slack_webhook_token,
 )
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_cmsa import import_cmsa
 from postgres_files_operator import PostgresFilesOperator
@@ -48,6 +49,7 @@ with DAG(
                 3D sensoren, wifi sensoren, (tel)camera's en beacons""",
     default_args=default_args,
     template_searchpath=["/"],
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post info message on slack

@@ -4,6 +4,8 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from more_ds.network.url import URL
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -51,6 +53,7 @@ with DAG(
     # every ten minutes the data is refreshed
     schedule_interval="*/10 * * * *",
     catchup=False,
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="verkiezingen")
 ) as dag:
 
     # 1. Post info message on slack

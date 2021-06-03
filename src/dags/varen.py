@@ -1,4 +1,6 @@
 from airflow import DAG
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
@@ -20,7 +22,11 @@ dag_id = "varen"
 
 
 owner = "team_ruimte"
-with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
+with DAG(
+     dag_id,
+     default_args={**default_args, **{"owner": owner}},
+     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+) as dag:
 
     # 1. Post message on slack
     slack_at_start = MessageOperator(

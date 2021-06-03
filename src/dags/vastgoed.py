@@ -3,6 +3,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -36,6 +37,7 @@ with DAG(
     description="verhuurbare eenheden van gemeentelijke vastgoed objecten",
     default_args=default_args,
     template_searchpath=["/"],
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post info message on slack

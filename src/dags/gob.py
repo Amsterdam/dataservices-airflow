@@ -4,6 +4,8 @@ import pathlib
 from typing import Any
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_table_init_operator import PostgresTableInitOperator
@@ -64,6 +66,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         default_args={"owner": owner, **default_args},
         schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
         tags=["gob"],
+        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
     )
 
     kwargs = dict(

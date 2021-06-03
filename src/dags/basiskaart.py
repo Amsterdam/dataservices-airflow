@@ -7,6 +7,7 @@ from airflow.models import Variable
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -123,6 +124,7 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
         basisregistratie grootschalige topologie (BGT) en kleinschalige basiskaart (KBK10 en 50).
         The basiskaart data is collected from basiskaart DB.""",
         tags=["basiskaart"],
+        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
     )
 
     with dag:

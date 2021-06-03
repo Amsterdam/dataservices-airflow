@@ -12,6 +12,7 @@ from common.sql import (
     SQL_CHECK_COLNAMES,
     SQL_CHECK_GEO,
 )
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_hoofdroutes import import_hoofdroutes
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -22,6 +23,7 @@ dag_id = "hoofdroutes"
 with DAG(
     dag_id,
     default_args=default_args,
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"

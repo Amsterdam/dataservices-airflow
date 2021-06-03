@@ -1,6 +1,8 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_afvalinzamelingplanning import load_from_dwh
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
@@ -49,6 +51,7 @@ with DAG(
     dag_id,
     default_args={**default_args, **{"owner": owner}},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post message on slack

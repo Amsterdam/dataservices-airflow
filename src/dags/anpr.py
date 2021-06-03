@@ -5,6 +5,8 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
@@ -79,6 +81,7 @@ with DAG(
     dag_id,
     default_args=args,
     description="aantal geidentificeerde taxikentekenplaten per dag",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. starting message on Slack

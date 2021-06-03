@@ -12,6 +12,7 @@ from airflow.hooks.postgres_hook import PostgresHook
 from common import default_args, SHARED_DIR
 from common.db import get_engine
 from common.http import download_file
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
@@ -149,7 +150,11 @@ def _load_geojson(postgres_conn_id):
             hook.run(route.post_process)
 
 
-with DAG(dag_id, default_args=default_args) as dag:
+with DAG(
+     dag_id,
+     default_args=default_args,
+     on_failure_callback=get_contact_point_on_failure_callback(dataset_id="hoofdroutes")
+) as dag:
 
     count_checks = []
     colname_checks = []

@@ -15,6 +15,7 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_touringcars import import_touringcars
 from postgres_check_operator import (
@@ -55,6 +56,7 @@ with DAG(
     dag_id,
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post message on slack

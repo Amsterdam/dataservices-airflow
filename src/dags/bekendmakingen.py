@@ -5,6 +5,7 @@ from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -46,6 +47,7 @@ with DAG(
     default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters=dict(quote=quote),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post info message on slack

@@ -15,6 +15,7 @@ from datetime import datetime, timezone, tzinfo
 
 from dateutil import tz
 
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
@@ -98,6 +99,7 @@ with DAG(
     template_searchpath=["/"],
     user_defined_filters=dict(quote=quote_string),
     description="Werken (projecten) in de openbare ruimte.",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post info message on slack
