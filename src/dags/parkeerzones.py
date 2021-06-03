@@ -14,6 +14,7 @@ from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    quote_string,
 )
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
@@ -30,19 +31,16 @@ variables: Dict = Variable.get(dag_id, deserialize_json=True)
 file_to_download: Dict = variables["files_to_download"]
 files_to_proces: Dict = variables["files_to_proces"]
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
-sql_path: str = pathlib.Path(__file__).resolve().parents[0] / "sql"
+sql_path: pathlib.Path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 total_checks: List = []
 count_checks: List = []
 geo_checks: List = []
 check_name: Dict = {}
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr: str) -> str:
-    return f"'{instr}'"
-
 
 SQL_MAKE_VALID_GEOM = """
-    UPDATE {{ params.tablename }} SET geometry = st_makevalid(geometry) WHERE ST_IsValid(geometry) is false;
+    UPDATE {{ params.tablename }} SET geometry = st_makevalid(geometry)
+    WHERE ST_IsValid(geometry) is false;
     COMMIT;
 """
 
@@ -67,7 +65,7 @@ with DAG(
     dag_id,
     description="parkeerzones met en zonder uitzonderingen.",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters=dict(quote=quote_string),
 ) as dag:
 
     # 1. Post message on slack
@@ -191,9 +189,9 @@ with DAG(
     )
 
     # 11. Insert color codes to table parkeerzones only
-    ## first create temp table with updated color codes
-    ## second add the color codes to parkeerzones
-    ## update color codes based on temp table
+    # first create temp table with updated color codes
+    # second add the color codes to parkeerzones
+    # update color codes based on temp table
     load_map_colors = BashOperator(
         task_id="load_map_colors",
         bash_command=f"psql {pg_params()} < {sql_path}/parkeerzones_map_color.sql",
@@ -240,20 +238,21 @@ for (shape_to_sql, convert_to_UTF8, load_table, revalidate_geometry_record, mult
     ] >> provenance_translation
 
 
-provenance_translation >> load_map_colors >> add_color >> update_colors
+provenance_translation >> load_map_colors >> add_color >> update_colors >> delete_unuseds
 
 for (delete_unused, rename_table) in zip(
     delete_unuseds,
     rename_tables,
 ):
-    update_colors >> [delete_unused >> rename_table]
+    [delete_unused >> rename_table] >> grant_db_permissions
 
-rename_tables >> grant_db_permissions
+grant_db_permissions
 
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains auto park zones (parkeerzones) with and without restrictions (parkeerzones met uitzonderingen)
+    This DAG contains auto park zones (parkeerzones) with
+    and without restrictions (parkeerzones met uitzonderingen)
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
