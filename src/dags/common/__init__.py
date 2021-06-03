@@ -4,7 +4,7 @@ import traceback
 from datetime import timedelta
 from hashlib import blake2s
 from inspect import cleandoc
-from typing import Dict, Optional, Any, Iterable, Union, List
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import pendulum
 from airflow.exceptions import AirflowException
@@ -13,9 +13,8 @@ from airflow.models.taskinstance import Context
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from environs import Env
-from requests.exceptions import ConnectionError
-
 from log_message_operator import LogMessageOperator
+from requests.exceptions import ConnectionError
 
 env: Env = Env()
 
@@ -25,18 +24,25 @@ logger: logging.Logger = logging.getLogger(__name__)
 slack_webhook_token: str = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
-SHARED_DIR: str = env("SHARED_DIR", "/tmp")
+# Defines the environments in which sending of email is enabled.
+ELIGIBLE_EMAIL_ENVIRONMENTS: Tuple[str, ...] = tuple(
+    cast(
+        Iterable[str],
+        map(lambda s: s.strip(), env.list("ELIGIBLE_EMAIL_ENVIRONMENTS", ["production"])),
+    )
+)
+
+SHARED_DIR: str = env("SHARED_DIR", "/tmp")  # noqa: S108
 
 
 class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
-    """
-    THIS IS TEMPORARY PATCH. IF YOU SEE THIS AFTER MARCH 21 2021 PLEASE POKE NICK.
+    """THIS IS TEMPORARY PATCH. IF YOU SEE THIS AFTER MARCH 21 2021 PLEASE POKE NICK.
 
     Patching default SlackWebhookHook in order to set correct Verify option,
     needed for production use.
     """
 
-    def run(
+    def run(  # noqa: D102 (it's temporary after all)
         self,
         endpoint: Optional[str],
         data: Optional[Union[Dict[str, Any], str]] = None,
@@ -53,8 +59,8 @@ class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
         super().run(endpoint, data, headers, extra_options, **request_kwargs)
 
 
-class SlackFailsafeWebhookOperator(SlackWebhookOperator):
-    def execute(self, context: Context) -> None:
+class SlackFailsafeWebhookOperator(SlackWebhookOperator):  # noqa: D101 (it's temporary after all)
+    def execute(self, context: Context) -> None:  # noqa: D102 (it's temporary after all)
         self.hook = MonkeyPatchedSlackWebhookHook(
             self.http_conn_id,
             self.webhook_token,
@@ -81,7 +87,8 @@ MessageOperator = (
 
 
 def pg_params(conn_id: str = "postgres_default") -> str:
-    """
+    """Add "stop on error" argument to connection string.
+
     Args:
         conn_id: database connection that is provided with default parameters
     returns:
@@ -92,7 +99,10 @@ def pg_params(conn_id: str = "postgres_default") -> str:
 
 
 def slack_failed_task(context: Context) -> None:
-    """
+    """Fire off a message to Slack in case of a DAG failure.
+
+    This function defines an ``on_failure_callback` function.
+
     Args:
         context: parameters in dict format
     executes:
@@ -140,6 +150,7 @@ vsd_default_args["postgres_conn_id"] = "postgres_default"
 
 def addloopvariables(iterable: Iterable) -> Iterable:
     """Pass through all values from the given iterable.
+
     Return items of the iterable and booleans
     signalling the first and the last item
 
@@ -165,12 +176,14 @@ def addloopvariables(iterable: Iterable) -> Iterable:
 
 
 def quote_string(instr: str) -> str:
-    """needed to put quotes on elements in geotypes for SQL_CHECK_GEO"""
+    """Needed to put quotes on elements in geotypes for SQL_CHECK_GEO."""
     return f"'{instr}'"
 
 
 def make_hash(composite_values: List[str], digest_size: int = 5) -> int:
-    """The blake2s algorithm is used to generate a single hased value for source
+    """Construct a hash value.
+
+    The blake2s algorithm is used to generate a single hased value for source
     composite values that uniquely identify a row.
     In case the source itself doesn't provide a single solid identification as key.
 
