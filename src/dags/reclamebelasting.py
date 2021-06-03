@@ -4,6 +4,8 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from swift_operator import SwiftOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -58,6 +60,7 @@ with DAG(
     description="""Reclamebelastingjaartarieven per belastinggebied voor (reclame)uitingen
     met oppervlakte >= 0,25 m2 en > 10 weken in een jaar zichtbaar zijn.""",
     user_defined_filters=dict(quote=quote),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="belastingen")
 ) as dag:
 
     # 1. Post info message on slack

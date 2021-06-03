@@ -14,6 +14,7 @@ from common import (
     SHARED_DIR,
     MessageOperator,
 )
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
     PostgresMultiCheckOperator,
     COUNT_CHECK,
@@ -45,6 +46,7 @@ with DAG(
     default_args=default_args,
     user_defined_filters=dict(quote=quote),
     template_searchpath=["/"],
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post info message on slack

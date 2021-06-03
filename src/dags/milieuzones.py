@@ -5,6 +5,8 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_rename_operator import PostgresTableRenameOperator
@@ -50,6 +52,7 @@ with DAG(
     default_args=default_args,
     user_defined_filters=dict(quote=quote_string),
     template_searchpath=["/"],
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post info message on slack

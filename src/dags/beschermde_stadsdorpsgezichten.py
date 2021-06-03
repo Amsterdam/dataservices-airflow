@@ -1,22 +1,17 @@
 import operator
+
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
-from swift_load_sql_operator import SwiftLoadSqlOperator
+from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
     COLNAMES_CHECK,
+    COUNT_CHECK,
     GEO_CHECK,
+    PostgresMultiCheckOperator,
 )
-
 from postgres_permissions_operator import PostgresPermissionsOperator
-
-from common import (
-    default_args,
-    MessageOperator,
-    DATAPUNT_ENVIRONMENT,
-    slack_webhook_token,
-)
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
@@ -37,7 +32,11 @@ RENAME_TABLES_SQL = """
 dag_id = "beschermde_stadsdorpsgezichten"
 owner = "team_ruimte"
 
-with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
+with DAG(
+    dag_id,
+    default_args={**default_args, **{"owner": owner}},
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="beschermdestadsdorpsgezichten"),
+) as dag:
 
     checks = []
 

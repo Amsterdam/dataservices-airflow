@@ -2,6 +2,8 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 # from airflow.operators.postgres_operator import PostgresOperator
@@ -27,6 +29,7 @@ dag_config = Variable.get(dag_id, deserialize_json=True)
 with DAG(
     dag_id,
     default_args=default_args,
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="asbestdaken")
 ) as dag:
 
     extract_shps = []

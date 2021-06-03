@@ -2,6 +2,8 @@ import pathlib
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -33,6 +35,7 @@ with DAG(
     dag_id,
     default_args=vsd_default_args,
     template_searchpath=["/"],
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="spoorlijnen")
 ) as dag:
 
     extract_zips = []

@@ -2,6 +2,7 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 
 from bash_env_operator import BashEnvOperator
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from swift_load_sql_operator import SwiftLoadSqlOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
@@ -35,6 +36,7 @@ with DAG(
     # New data is delivered every wednesday and friday evening,
     # So we schedule the import on friday and saturday morning
     schedule_interval="0 0 * * 4,6",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="beheerkaart_basis")
 ) as dag:
     # 1. Post message on slack
     slack_at_start = MessageOperator(

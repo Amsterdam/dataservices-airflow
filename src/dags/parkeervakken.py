@@ -13,6 +13,8 @@ from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from shapely.geometry import Polygon
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from swift_hook import SwiftHook
 from common import default_args, SHARED_DIR
 from postgres_check_operator import (
@@ -254,7 +256,8 @@ args = default_args.copy()
 with DAG(
     dag_id,
     default_args=args,
-    description="Parkeervakken"    
+    description="Parkeervakken",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     source = pathlib.Path(TMP_DIR)

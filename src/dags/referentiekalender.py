@@ -1,6 +1,8 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_referentiekalender import load_from_dwh
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
@@ -28,6 +30,7 @@ with DAG(
     default_args={**default_args},
     description="""Generieke kalenderreferentie hierarchische gegevens met datum
         als laagste granulariteit.""",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post message on slack
@@ -105,7 +108,7 @@ with DAG(
 
 # FLOW
 [
-    slack_at_start 
+    slack_at_start
     >> load_dwh
     >> check_count
     >> provenance_dwh_data

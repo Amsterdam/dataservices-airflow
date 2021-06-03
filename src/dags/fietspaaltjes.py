@@ -2,6 +2,8 @@ import pathlib
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -23,7 +25,12 @@ sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 # dag_config = Variable.get(dag_id, deserialize_json=True)
 
 
-with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
+with DAG(
+     dag_id,
+     default_args=default_args,
+     template_searchpath=["/"],
+     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
 

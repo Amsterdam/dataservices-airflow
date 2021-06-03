@@ -7,6 +7,8 @@ from airflow.operators.dummy_operator import DummyOperator
 from common.db import DatabaseEngine
 from environs import Env
 from more_ds.network.url import URL
+
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from provenance_rename_operator import ProvenanceRenameOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -62,6 +64,7 @@ with DAG(
     description=description,
     default_args=default_args,
     user_defined_filters=dict(quote=quote_string),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post message on slack

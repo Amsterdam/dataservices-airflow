@@ -15,18 +15,19 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from common import (
-    DATAPUNT_ENVIRONMENT, 
-    MessageOperator, 
-    default_args, 
+    DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
     slack_webhook_token,
-    SHARED_DIR
 )
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_insert_csv_operator import FileTable, PostgresInsertCsvOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
 
 FileStem = str
 UrlPath = str
@@ -210,7 +211,11 @@ assert set(table_mappings.keys()) == set(
     CSV_DEFINITIONS.keys()
 ), "Both mappings should have the same set of keys."
 
-with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
+with DAG(
+    dag_id=DAG_ID,
+    default_args=default_args,
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
+) as dag:
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -358,10 +363,7 @@ with DAG(dag_id=DAG_ID, default_args=default_args) as dag:
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=DAG_ID
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     (
         slack_at_start

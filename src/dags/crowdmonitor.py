@@ -7,6 +7,7 @@ from airflow.operators.python_operator import PythonOperator
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from common import env, default_args
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "crowdmonitor"
@@ -147,7 +148,12 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
 
 args = default_args.copy()
 
-with DAG(dag_id, default_args=args, description="Crowd Monitor",) as dag:
+with DAG(
+     dag_id,
+     default_args=args,
+     description="Crowd Monitor",
+     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+) as dag:
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLE,

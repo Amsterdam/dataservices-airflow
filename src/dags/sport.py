@@ -8,6 +8,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
 from collections import defaultdict
 from common.db import DatabaseEngine
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from http_fetch_operator import HttpFetchOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -108,6 +109,7 @@ with DAG(
     description="sportfaciliteiten, -objecten en -aanbieders",
     default_args=default_args,
     user_defined_filters=dict(quote=quote_string),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
     # 1. Post message on slack
