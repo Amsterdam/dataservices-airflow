@@ -516,7 +516,7 @@ typing-extensions==3.7.4.3
     # via rich
 unicodecsv==0.14.1
     # via apache-airflow
-urllib3==1.26.4
+urllib3==1.26.5
     # via
     #   requests
     #   sentry-sdk
