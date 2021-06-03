@@ -111,6 +111,7 @@ def slack_failed_task(context: Context) -> None:
     dag_id: str = context["dag"].dag_id
     task_id: str = context["task"].task_id
     exception: Optional[BaseException] = context.get("exception")
+    formatted_exception = ""
     if exception is not None:
         formatted_exception = "".join(
             traceback.format_exception(
