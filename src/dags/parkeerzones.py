@@ -6,21 +6,16 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
 from common import (
-    default_args,
-    pg_params,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
     quote_string,
+    slack_webhook_token,
 )
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -65,7 +60,7 @@ with DAG(
     dag_id,
     description="parkeerzones met en zonder uitzonderingen.",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote_string),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post message on slack

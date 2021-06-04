@@ -1,20 +1,16 @@
 from airflow import DAG
-from swift_load_sql_operator import SwiftLoadSqlOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
-from swap_schema_operator import SwapSchemaOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
     DATAPUNT_ENVIRONMENT,
-    slack_webhook_token,
+    DATASTORE_TYPE,
     MessageOperator,
+    default_args,
+    slack_webhook_token,
 )
-
-DATASTORE_TYPE = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from swap_schema_operator import SwapSchemaOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 dag_id = "varen"
 
@@ -34,7 +30,9 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     # 2. Drop tables in target schema PTE (schema which orginates from the DB dump file, see next step)
     #    based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
-        task_id="drop_tables", dataset_name="varen", pg_schema="pte",
+        task_id="drop_tables",
+        dataset_name="varen",
+        pg_schema="pte",
     )
 
     # 3. load the dump file
@@ -60,11 +58,15 @@ with DAG(dag_id, default_args={**default_args, **{"owner": owner}}) as dag:
     swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name="varen")
 
     # 6. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
 
-slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema >> grant_db_permissions
+(
+    slack_at_start
+    >> drop_tables
+    >> swift_load_task
+    >> provenance_renames
+    >> swap_schema
+    >> grant_db_permissions
+)

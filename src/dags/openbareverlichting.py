@@ -4,30 +4,21 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
-
-
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from http_fetch_operator import HttpFetchOperator
-
-
 from common import (
-    default_args,
-    pg_params,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from http_fetch_operator import HttpFetchOperator
 from importscripts.import_openbare_verlichting import import_openbare_verlichting
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 
 dag_id = "openbareverlichting"
 variables = Variable.get("openbareverlichting", deserialize_json=True)
@@ -40,17 +31,12 @@ count_checks = []
 geo_checks = []
 
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr: str) -> str:
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     description="locatie, status en type van een openbare verlichting.",
     schedule_interval="*/15 * * * *",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
 ) as dag:
 

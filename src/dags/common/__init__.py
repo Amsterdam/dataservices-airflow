@@ -4,7 +4,7 @@ import traceback
 from datetime import timedelta
 from hashlib import blake2s
 from inspect import cleandoc
-from typing import Dict, Optional, Any, Iterable, Union, List
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import pendulum
 from airflow.exceptions import AirflowException
@@ -13,9 +13,8 @@ from airflow.models.taskinstance import Context
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from environs import Env
-from requests.exceptions import ConnectionError
-
 from log_message_operator import LogMessageOperator
+from requests.exceptions import ConnectionError
 
 env: Env = Env()
 
@@ -23,9 +22,14 @@ env: Env = Env()
 logger: logging.Logger = logging.getLogger(__name__)
 
 slack_webhook_token: str = env("SLACK_WEBHOOK")
+
 DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
 SHARED_DIR: str = env("SHARED_DIR", "/tmp")
+
+DATASTORE_TYPE: str = (
+    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
+)
 
 
 class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):

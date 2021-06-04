@@ -1,32 +1,24 @@
-import pathlib
 import operator
+import pathlib
 
-from airflow.models import Variable
 from airflow import DAG
-
-from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
+from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from http_fetch_operator import HttpFetchOperator
-from postgres_files_operator import PostgresFilesOperator
-
-
 from common import (
-    default_args,
-    slack_webhook_token,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
+    MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
+from http_fetch_operator import HttpFetchOperator
+from ogr2ogr_operator import Ogr2OgrOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 
 dag_id = "verzinkbarepalen"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
@@ -43,16 +35,11 @@ def checker(records, pass_value):
     return found_colnames == set(pass_value)
 
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     default_args=default_args,
     template_searchpath=["/"],
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post info message on slack

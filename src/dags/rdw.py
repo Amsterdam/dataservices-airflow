@@ -1,26 +1,24 @@
+from typing import Dict, Iterable
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
+)
 from common.db import DatabaseEngine
 from environs import Env
 from http_fetch_operator import HttpFetchOperator
 from more_ds.network.url import URL
 from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from typing import Dict, Iterable
-
-
-from common import (
-    default_args,
-    SHARED_DIR,
-    slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
-    MessageOperator,
-    quote_string,
-)
-
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.rdw import SQL_CREATE_TMP_TABLE, SQL_SWAP_TABLE
 
 # Source defaults to 1000 records per request.
@@ -58,7 +56,7 @@ with DAG(
     dag_id,
     description=description,
     default_args=default_args,
-    user_defined_filters=dict(quote=quote_string),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post message on slack

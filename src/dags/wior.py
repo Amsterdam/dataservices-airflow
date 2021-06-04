@@ -1,56 +1,42 @@
-import operator
-import requests
-from requests.auth import HTTPBasicAuth
 import json
+import operator
+from datetime import datetime, timezone, tzinfo
+from typing import Dict, Optional
 
+import requests
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from common.db import DatabaseEngine
-
-from datetime import datetime, timezone, tzinfo
-
-from dateutil import tz
-
-from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from swift_operator import SwiftOperator
-
-from typing import Dict, Optional
-
-
-from more_ds.network.url import URL
-
+from airflow.operators.python_operator import PythonOperator
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
-    logger,
+    default_args,
     env,
+    logger,
     quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from common.db import DatabaseEngine
+from dateutil import tz
+from more_ds.network.url import URL
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from requests.auth import HTTPBasicAuth
 from sql.wior import (
     DROP_COLS,
+    SQL_ADD_PK,
     SQL_DROP_TMP_TABLE,
     SQL_GEOM_VALIDATION,
-    SQL_ADD_PK,
     SQL_SET_DATE_DATA_TYPES,
 )
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swift_operator import SwiftOperator
 
 dag_id: str = "wior"
 variables: Dict = Variable.get(dag_id, deserialize_json=True)
@@ -96,7 +82,7 @@ with DAG(
     dag_id,
     default_args=default_args,
     template_searchpath=["/"],
-    user_defined_filters=dict(quote=quote_string),
+    user_defined_filters={"quote": quote_string},
     description="Werken (projecten) in de openbare ruimte.",
 ) as dag:
 

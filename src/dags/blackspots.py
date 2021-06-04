@@ -1,16 +1,14 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
-from swift_load_sql_operator import SwiftLoadSqlOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    MessageOperator,
+    default_args,
     slack_webhook_token,
 )
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
+from postgres_permissions_operator import PostgresPermissionsOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 DROP_IMPORT_TABLES = """
     DROP SEQUENCE IF EXISTS blackspots_spotexport_id_seq CASCADE;
@@ -90,4 +88,11 @@ with DAG(
 
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-slack_at_start >> drop_tables >> swift_load_task >> rename_columns >> rename_tables >> grant_db_permissions
+(
+    slack_at_start
+    >> drop_tables
+    >> swift_load_task
+    >> rename_columns
+    >> rename_tables
+    >> grant_db_permissions
+)

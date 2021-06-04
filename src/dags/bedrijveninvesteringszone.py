@@ -3,36 +3,25 @@ import operator
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-
-from provenance_rename_operator import ProvenanceRenameOperator
-
-from postgres_rename_operator import PostgresTableRenameOperator
-
-from swift_operator import SwiftOperator
-
 from common import (
-    pg_params,
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    quote_string,
+    slack_webhook_token,
 )
-
 from importscripts.convert_bedrijveninvesteringszones_data import convert_biz_data
-
-from sql.bedrijveninvesteringszones import CREATE_TABLE, UPDATE_TABLE
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.bedrijveninvesteringszones import CREATE_TABLE, UPDATE_TABLE
+from swift_operator import SwiftOperator
 
 dag_id = "bedrijveninvesteringszones"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -43,16 +32,11 @@ count_checks = []
 geo_checks = []
 check_name = {}
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     description="tariefen, locaties en overige contextuele gegevens over bedrijveninvesteringszones.",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
 ) as dag:
 

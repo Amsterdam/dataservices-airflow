@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 import csv
+
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from http_fetch_operator import HttpFetchOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    slack_webhook_token,
 )
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-
+from http_fetch_operator import HttpFetchOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "anpr"
 table_id = "anpr_taxi"
@@ -55,6 +53,11 @@ SQL_RENAME_TEMP_TABLE = """
 
 
 def import_csv_data(*args, **kwargs):
+    """Import csv file.
+
+    Raises:
+        Exception: When data cannot be imported into database.
+    """
     sql_header = f"INSERT INTO {table_id}_temp (datum, aantal_taxi_passages) VALUES "
     with open(f"{TMP_PATH}/taxi_passages.csv") as csvfile:
         reader = csv.DictReader(csvfile)

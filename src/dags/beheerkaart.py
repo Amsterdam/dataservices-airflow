@@ -1,25 +1,21 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-
 from bash_env_operator import BashEnvOperator
-from swift_load_sql_operator import SwiftLoadSqlOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
-from swap_schema_operator import SwapSchemaOperator
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    slack_webhook_token,
+)
+from common.db import fetch_pg_env_vars
 from dcat_swift_operator import DCATSwiftOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-
-from common import (
-    default_args,
-    DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
-    slack_webhook_token,
-    MessageOperator,
-)
-
-from common.db import fetch_pg_env_vars
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
+from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from swap_schema_operator import SwapSchemaOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 dag_id = "beheerkaart"
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -104,11 +100,19 @@ with DAG(
         distribution_id="1",
     )
 
-     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dataset_name
-    )
+    # 10. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_name)
 
 # FLOW
-slack_at_start >> drop_tables >> swift_load_task >> provenance_renames >> swap_schema >> mkdir >> create_geopackage >> zip_geopackage >> upload_data >> grant_db_permissions  # noqa
+(
+    slack_at_start
+    >> drop_tables
+    >> swift_load_task
+    >> provenance_renames
+    >> swap_schema
+    >> mkdir
+    >> create_geopackage
+    >> zip_geopackage
+    >> upload_data
+    >> grant_db_permissions
+)  # noqa

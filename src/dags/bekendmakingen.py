@@ -4,28 +4,20 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from http_fetch_operator import HttpFetchOperator
-
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
-    pg_params,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from http_fetch_operator import HttpFetchOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.bekendmakingen import CONVERT_TO_GEOM
 
 dag_id = "bekendmakingen"
@@ -35,17 +27,13 @@ total_checks = []
 count_checks = []
 geo_checks = []
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
 
 with DAG(
     dag_id,
     description="bekendmakingen en kennisgevingen",
     default_args=default_args,
     template_searchpath=["/"],
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post info message on slack

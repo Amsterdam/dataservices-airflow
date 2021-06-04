@@ -4,32 +4,20 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from postgres_files_operator import PostgresFilesOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from swift_operator import SwiftOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-
 from common import (
-    default_args,
-    slack_webhook_token,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
+    MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
-
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swift_operator import SwiftOperator
 
 SQL_RECREATE_TMP_TABLES = """
     DROP TABLE IF EXISTS {{ params.tablename }}_new CASCADE;
@@ -59,7 +47,7 @@ with DAG(
     dag_id,
     description="Beschikbaarheid Bed & Breakfast- en Omzettingsvergunning per wijk",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
 ) as dag:
 

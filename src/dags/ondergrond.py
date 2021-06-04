@@ -1,34 +1,26 @@
 import operator
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from swift_operator import SwiftOperator
-from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from airflow.operators.postgres_operator import PostgresOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from airflow.operators.dummy_operator import DummyOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
-
-from common.db import DatabaseEngine
-
+from airflow.operators.postgres_operator import PostgresOperator
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from common.db import DatabaseEngine
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swift_operator import SwiftOperator
 
 dag_id = "ondergrond"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -39,11 +31,6 @@ total_checks = []
 count_checks = []
 geo_checks = []
 check_name = {}
-
-
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
 
 
 SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE = """
@@ -67,7 +54,7 @@ with DAG(
     dag_id,
     description="uitgevoerde onderzoeken in of op de ondergrond, bijv. Archeologische verwachtingen (A), Bodemkwaliteit (B), Conventionele explosieven (C) kademuren Dateren (D) en Ondergrondse Obstakels (OO).",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
 ) as dag:
 

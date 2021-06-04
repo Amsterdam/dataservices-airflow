@@ -1,33 +1,27 @@
 import operator
-from environs import Env
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from swift_operator import SwiftOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from ogr2ogr_operator import Ogr2OgrOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
+    DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    quote_string,
     slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
 )
-
 from common.db import DatabaseEngine
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from environs import Env
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.reclamebelasting import SQL_DROP_TMP_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swift_operator import SwiftOperator
 
 env: object = Env()
 
@@ -47,17 +41,12 @@ geo_checks: list = []
 check_name: dict = {}
 
 
-def quote(instr: str) -> str:
-    """needed to put quotes on elements in geotypes for SQL_CHECK_GEO"""
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     default_args=default_args,
     description="""Reclamebelastingjaartarieven per belastinggebied voor (reclame)uitingen
     met oppervlakte >= 0,25 m2 en > 10 weken in een jaar zichtbaar zijn.""",
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post info message on slack

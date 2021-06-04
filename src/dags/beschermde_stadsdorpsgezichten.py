@@ -1,25 +1,22 @@
 import operator
+
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
-from swift_load_sql_operator import SwiftLoadSqlOperator
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    COLNAMES_CHECK,
-    GEO_CHECK,
-)
-
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    MessageOperator,
+    default_args,
     slack_webhook_token,
 )
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-
+from postgres_check_operator import (
+    COLNAMES_CHECK,
+    COUNT_CHECK,
+    GEO_CHECK,
+    PostgresMultiCheckOperator,
+)
+from postgres_permissions_operator import PostgresPermissionsOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 CORRECT_GEO = """
     UPDATE pte.beschermde_stadsdorpsgezichten

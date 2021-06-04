@@ -1,6 +1,9 @@
+from contextlib import closing
+
 import pandas as pd
-from common.db import get_engine, get_ora_engine
-from sqlalchemy.types import Date, Integer, Text, Boolean, Numeric
+from common.db import get_connection, get_engine, get_ora_engine
+from psycopg2 import sql
+from sqlalchemy.types import Boolean, Date, Integer, Numeric, Text
 
 
 def load_from_dwh(table_name: str) -> None:
@@ -17,6 +20,7 @@ def load_from_dwh(table_name: str) -> None:
     Note2: Data is filterd on unit OIS 'Onderzoek, Informatie en Statistiek' by code 380000
 
     """
+    db_connection = get_connection()
     db_engine = get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_ami")
     date_fmt = "%Y%d%m"
@@ -72,8 +76,7 @@ def load_from_dwh(table_name: str) -> None:
             INNER JOIN DATAHUB.FI2_DHB_DIM_GROOTBOEKREKENING gbr ON gbr.ID = GB.gbr_ID
             INNER JOIN DATAHUB.FI2_DHB_DIM_VERPLICHTINGREGEL vpr ON vpr.ID = GB.VPR_ID
             INNER JOIN DATAHUB.FI2_DHB_DIM_WERKORDER wor ON wor.ID = GB.WOR_ID
-            WHERE 1=1
-            AND RVE_CODE = '380000'
+            WHERE RVE_CODE = '380000'
             """,
             connection,
             coerce_float=True,
@@ -134,5 +137,10 @@ def load_from_dwh(table_name: str) -> None:
         df.to_sql(
             table_name, db_engine, if_exists="replace", index_label="id", index=True, dtype=dtype
         )
-        with db_engine.connect() as connection:
-            connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (ID)")
+
+        with closing(db_connection.get_conn().cursor()) as cur:
+            cur.execute(
+                sql.SQL("ALTER TABLE {table_name} ADD PRIMARY KEY (ID)").format(
+                    table_name=sql.Identifier(table_name)
+                )
+            )

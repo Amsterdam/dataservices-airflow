@@ -6,22 +6,18 @@ from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
 from common import (
-    default_args,
-    pg_params,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    quote_string,
+    slack_webhook_token,
 )
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_touringcars import import_touringcars
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -38,11 +34,6 @@ geo_checks = []
 check_name = {}
 
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
-
 # remove space hyphen characters
 def clean_data(file_name):
     data = open(file_name, "r").read()
@@ -54,7 +45,7 @@ def clean_data(file_name):
 with DAG(
     dag_id,
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post message on slack
@@ -221,9 +212,11 @@ for (
     rename_tables,
 ):
 
-    [
-        data >> clean_data >> json_to_geojson >> extract_geo >> load_table >> multi_check
-    ] >> provenance_translation >> drop_table
+    (
+        [data >> clean_data >> json_to_geojson >> extract_geo >> load_table >> multi_check]
+        >> provenance_translation
+        >> drop_table
+    )
 
     [drop_table >> rename_table]
 

@@ -1,39 +1,32 @@
 import operator
 import re
+from collections import defaultdict
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-from collections import defaultdict
-from common.db import DatabaseEngine
-from ogr2ogr_operator import Ogr2OgrOperator
-from http_fetch_operator import HttpFetchOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from typeahead_location_operator import TypeAHeadLocationOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
-    MessageOperator,
     SHARED_DIR,
+    MessageOperator,
+    default_args,
     quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
-from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
+from common.db import DatabaseEngine
+from http_fetch_operator import HttpFetchOperator
 from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_geojson  # noqa
-
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from typeahead_location_operator import TypeAHeadLocationOperator
 
 # business / source keys
 COMPOSITE_KEYS: dict = {
@@ -107,7 +100,7 @@ with DAG(
     dag_id,
     description="sportfaciliteiten, -objecten en -aanbieders",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote_string),
+    user_defined_filters={"quote": quote_string},
 ) as dag:
 
     # 1. Post message on slack
