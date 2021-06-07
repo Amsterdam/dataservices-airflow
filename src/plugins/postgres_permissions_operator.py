@@ -42,6 +42,7 @@ DAG_DATASET = {
     "hoofdroutes_": "hoofdroutes",
     "reclamebelasting": "belastingen",
     "processenverbaalverkiezingen": "verkiezingen",
+    "financien_": "financien",
 }
 
 
