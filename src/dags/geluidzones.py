@@ -7,6 +7,7 @@ from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 
 from common import (
+    quote_string,
     default_args,
     pg_params,
     slack_webhook_token,
@@ -35,16 +36,11 @@ count_checks = []
 geo_checks = []
 check_name = {}
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     description="geluidszones metro, spoorwegen, industrie en schiphol",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:

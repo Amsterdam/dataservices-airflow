@@ -18,6 +18,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from common.db import DatabaseEngine
 
 from common import (
+    quote_string,
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
@@ -54,16 +55,11 @@ geo_checks = []
 check_name = {}
 
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     description="risicozones",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 

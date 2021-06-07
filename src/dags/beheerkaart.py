@@ -11,6 +11,7 @@ from dcat_swift_operator import DCATSwiftOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
+    DATASTORE_TYPE,
     default_args,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
@@ -19,8 +20,6 @@ from common import (
 )
 
 from common.db import fetch_pg_env_vars
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
 dag_id = "beheerkaart"
 tmp_dir = f"{SHARED_DIR}/{dag_id}"

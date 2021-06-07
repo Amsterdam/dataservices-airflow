@@ -6,13 +6,12 @@ from swift_load_sql_operator import SwiftLoadSqlOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
+    DATASTORE_TYPE,
     default_args,
     MessageOperator,
     DATAPUNT_ENVIRONMENT,
     slack_webhook_token,
 )
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
 DROP_IMPORT_TABLES = """
     DROP SEQUENCE IF EXISTS blackspots_spotexport_id_seq CASCADE;

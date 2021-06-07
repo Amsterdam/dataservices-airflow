@@ -17,16 +17,13 @@ from sql.afvalinzamelingplanning import SQL_DROP_TMP_TABLE
 from typing import List, Dict, Union
 
 from common import (
+    DATASTORE_TYPE,
     default_args,
     DATAPUNT_ENVIRONMENT,
     slack_webhook_token,
     MessageOperator,
 )
 from common.sql import SQL_CHECK_COUNT
-
-DATASTORE_TYPE: str = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
 
 owner = "team_ruimte"
 dag_id: str = "huishoudelijkafval"

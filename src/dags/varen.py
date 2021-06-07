@@ -8,19 +8,14 @@ from swap_schema_operator import SwapSchemaOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
+    DATASTORE_TYPE,
     default_args,
     DATAPUNT_ENVIRONMENT,
     slack_webhook_token,
     MessageOperator,
 )
 
-DATASTORE_TYPE = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
-
 dag_id = "varen"
-
-
 owner = "team_ruimte"
 with DAG(
      dag_id,

@@ -14,14 +14,12 @@ from postgres_check_operator import (
 )
 
 from common import (
+    quote_string,
+    DATASTORE_TYPE,
     default_args,
     MessageOperator,
     DATAPUNT_ENVIRONMENT,
     slack_webhook_token,
-)
-
-DATASTORE_TYPE = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )
 
 RENAME_TABLES_SQL = """
@@ -35,17 +33,13 @@ RENAME_TABLES_SQL = """
         RENAME TO rioolnetwerk_rioolleidingen;
 """
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
 dag_id = "rioolnetwerk"
 owner = "team_ruimte"
 
 with DAG(
      dag_id,
      default_args={**default_args, **{"owner": owner}},
-     user_defined_filters=dict(quote=quote),
+     user_defined_filters={"quote": quote_string},
      on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 
