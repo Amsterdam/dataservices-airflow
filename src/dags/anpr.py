@@ -11,15 +11,13 @@ from http_fetch_operator import HttpFetchOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
+    DATASTORE_TYPE,
     default_args,
     slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
 )
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-
 
 dag_id = "anpr"
 table_id = "anpr_taxi"

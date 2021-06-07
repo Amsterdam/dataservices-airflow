@@ -13,6 +13,7 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
+    quote_string,
     default_args,
     pg_params,
     slack_webhook_token,
@@ -36,17 +37,12 @@ total_checks = []
 count_checks = []
 geo_checks = []
 
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     description="bekendmakingen en kennisgevingen",
     default_args=default_args,
     template_searchpath=["/"],
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:
 

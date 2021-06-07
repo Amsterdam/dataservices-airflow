@@ -19,10 +19,6 @@ from common import (
 )
 from common.sql import SQL_CHECK_COUNT
 
-DATASTORE_TYPE: str = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
-
 dag_id: str = "referentiekalender"
 
 with DAG(

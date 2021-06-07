@@ -1,25 +1,17 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
+from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common.sql import SQL_CHECK_COUNT
 from importscripts.import_financien_grootboek import load_from_dwh
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from sql.financien_grootboek import SQL_DROP_TMP_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from contact_point.callbacks import get_contact_point_on_failure_callback
 
-from common import (
-    default_args,
-    DATAPUNT_ENVIRONMENT,
-    slack_webhook_token,
-    MessageOperator,
-)
-from common.sql import SQL_CHECK_COUNT
-
-DATASTORE_TYPE: str = (
-    "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
-)
 
 data_schema_id: str = "financien"
 dag_id: str = "financien_grootboek"
@@ -27,11 +19,12 @@ dag_id: str = "financien_grootboek"
 
 with DAG(
     dag_id,
-    default_args={**default_args},
+    default_args=default_args,
     description="""Financiele gegevens uit de centrale administratie van het
                     Amsterdams Financieel Systeem (AFS) beschikbaar gesteld via
                     een datamart van DWH AMI (Amsterdamse Management Informatie).""",
     schedule_interval="0 8 * * *",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack
@@ -54,7 +47,7 @@ with DAG(
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
-        params=dict(tablename=f"{dag_id}_new", mincount=5000),
+        params={"tablename": f"{dag_id}_new", "mincount": 5000},
     )
 
     # 4. Rename COLUMNS based on provenance (if specified)
@@ -93,7 +86,7 @@ with DAG(
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_new"),
+        params={"tablename": f"{dag_id}_new"},
     )
 
     # 8. Grant database permissions
@@ -101,7 +94,7 @@ with DAG(
 
 
 # FLOW
-[
+(
     slack_at_start
     >> load_dwh
     >> check_count
@@ -110,7 +103,7 @@ with DAG(
     >> change_data_capture
     >> clean_up
     >> grant_db_permissions
-]
+)
 
 dag.doc_md = """
     #### DAG summary

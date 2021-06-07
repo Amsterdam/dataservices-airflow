@@ -2,7 +2,7 @@ import operator
 
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
-from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import DATAPUNT_ENVIRONMENT, DATASTORE_TYPE, MessageOperator, default_args, slack_webhook_token
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
     COLNAMES_CHECK,
@@ -12,8 +12,6 @@ from postgres_check_operator import (
 )
 from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
-
-DATASTORE_TYPE = "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 
 
 CORRECT_GEO = """

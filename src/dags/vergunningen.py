@@ -13,6 +13,7 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 
 from common import (
+    quote_string,
     default_args,
     slack_webhook_token,
     MessageOperator,
@@ -25,11 +26,6 @@ from postgres_check_operator import (
     COUNT_CHECK,
     GEO_CHECK,
 )
-
-
-# needed to put quotes on elements in geotypes for SQL_CHECK_GEO
-def quote(instr):
-    return f"'{instr}'"
 
 
 SQL_RECREATE_TMP_TABLES = """
@@ -60,7 +56,7 @@ with DAG(
     dag_id,
     description="Beschikbaarheid Bed & Breakfast- en Omzettingsvergunning per wijk",
     default_args=default_args,
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
 ) as dag:

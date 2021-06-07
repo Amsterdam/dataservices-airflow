@@ -14,6 +14,7 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 from common import (
+    quote_string,
     default_args,
     SHARED_DIR,
     MessageOperator,
@@ -49,17 +50,12 @@ geo_checks: list = []
 check_name: dict = {}
 
 
-def quote(instr: str) -> str:
-    """needed to put quotes on elements in geotypes for SQL_CHECK_GEO"""
-    return f"'{instr}'"
-
-
 with DAG(
     dag_id,
     default_args=default_args,
     description="""Reclamebelastingjaartarieven per belastinggebied voor (reclame)uitingen
     met oppervlakte >= 0,25 m2 en > 10 weken in een jaar zichtbaar zijn.""",
-    user_defined_filters=dict(quote=quote),
+    user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id="belastingen")
 ) as dag:
 
