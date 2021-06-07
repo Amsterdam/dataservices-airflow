@@ -1,7 +1,7 @@
 from contextlib import closing
 
 import pandas as pd
-from common.db import get_connection, get_engine, get_ora_engine
+from common.db import get_engine, get_ora_engine, get_postgreshook_instance
 from psycopg2 import sql
 from sqlalchemy.types import Boolean, Date, Integer, Numeric, Text
 
@@ -20,7 +20,7 @@ def load_from_dwh(table_name: str) -> None:
     Note2: Data is filterd on unit OIS 'Onderzoek, Informatie en Statistiek' by code 380000
 
     """
-    db_connection = get_connection()
+    postgreshook_instance = get_postgreshook_instance()
     db_engine = get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_ami")
     date_fmt = "%Y%d%m"
@@ -138,7 +138,7 @@ def load_from_dwh(table_name: str) -> None:
             table_name, db_engine, if_exists="replace", index_label="id", index=True, dtype=dtype
         )
 
-        with closing(db_connection.get_conn().cursor()) as cur:
+        with closing(postgreshook_instance.get_conn().cursor()) as cur:
             cur.execute(
                 sql.SQL("ALTER TABLE {table_name} ADD PRIMARY KEY (ID)").format(
                     table_name=sql.Identifier(table_name)

@@ -19,8 +19,9 @@ class DatabaseEngine:
         self.db = self.connection.schema
 
 
-def get_connection(postgres_conn_id: str = "postgres_default") -> Engine:
-    """Return database connection."""
+def get_postgreshook_instance(postgres_conn_id: str = "postgres_default") -> PostgresHook:
+    """Return a postgreshook instance,
+    so it can be used to get connection i.e."""
     connection = PostgresHook(postgres_conn_id=postgres_conn_id)
     return connection
 

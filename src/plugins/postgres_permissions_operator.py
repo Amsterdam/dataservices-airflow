@@ -1,19 +1,16 @@
 import logging
-import pendulum
-from requests.exceptions import HTTPError
-
 from datetime import timedelta
-from environs import Env
+from typing import Any, Dict, Optional, Union
 
-from schematools.utils import schema_defs_from_url
-from schematools.permissions import apply_schema_and_profile_permissions
-from schematools.cli import _get_engine
-
+import pendulum
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.dagrun import DagRun
 from airflow.settings import Session
-
-from typing import Union, Dict, Any, Optional
+from environs import Env
+from requests.exceptions import HTTPError
+from schematools.cli import _get_engine
+from schematools.permissions import apply_schema_and_profile_permissions
+from schematools.utils import schema_defs_from_url
 
 env = Env()
 
@@ -42,6 +39,7 @@ DAG_DATASET = {
     "hoofdroutes_": "hoofdroutes",
     "reclamebelasting": "belastingen",
     "processenverbaalverkiezingen": "verkiezingen",
+    "financien_": "financien",
 }
 
 
