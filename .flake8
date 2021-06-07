@@ -19,7 +19,7 @@ docstring-convention = google
 statistics = True
 select = A, B, C4, D, E, F, G, P, RST, S, T, W, B9, ISC
 doctests = True
-ignore =
+extend-ignore =
     # D100  Missing docstring in public module
     D100,
     # D104  Missing docstring in public package
@@ -34,8 +34,6 @@ ignore =
     F405,
     # E731  Allow lambdas:
     E731,
-    # W503  line break before binary operator (incompatible with black):
-    W503,
     # R102  Allow raise Exception()
     R102
 exclude =
