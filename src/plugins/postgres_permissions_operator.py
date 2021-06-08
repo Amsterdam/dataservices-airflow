@@ -1,19 +1,16 @@
 import logging
-import pendulum
-from requests.exceptions import HTTPError
-
 from datetime import timedelta
-from environs import Env
+from typing import Any, Dict, Optional, Union
 
-from schematools.utils import schema_defs_from_url
-from schematools.permissions import apply_schema_and_profile_permissions
-from schematools.cli import _get_engine
-
+import pendulum
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.dagrun import DagRun
 from airflow.settings import Session
-
-from typing import Union, Dict, Any, Optional
+from environs import Env
+from requests.exceptions import HTTPError
+from schematools.cli import _get_engine
+from schematools.permissions import apply_schema_and_profile_permissions
+from schematools.utils import schema_defs_from_url
 
 env = Env()
 
@@ -47,8 +44,7 @@ DAG_DATASET = {
 
 
 class PostgresPermissionsOperator(BaseOperator):
-    """
-    This operator executes DB grants << on >> DB tables / fields << to >> DB roles.
+    """This operator executes DB grants << on >> DB tables / fields << to >> DB roles.
 
     It can be envoked based upon a single dataset or a list of datasets.
     It uses the dag_id to identify the dataset.
@@ -84,6 +80,7 @@ class PostgresPermissionsOperator(BaseOperator):
         *args: Any,
         **kwargs: Dict,
     ):
+        """Initialize paramaters."""
         super().__init__(*args, **kwargs)
         self.batch_ind = batch_ind
         self.batch_timewindow = batch_timewindow
@@ -99,8 +96,8 @@ class PostgresPermissionsOperator(BaseOperator):
         self.revoke = revoke
 
     def execute(self, context: Optional[Dict[str, Any]] = None) -> None:  # noqa: C901
-        """Executes the 'apply_schema_and_profile_permissions' method
-        from schema-tools to set the database permissions on objects to roles
+        """Executes 'apply_schema_and_profile_permissions' method  from \
+            schema-tools to set the database permissions on objects to roles.
 
         Args:
             context: When this operator is created the context parameter is used
@@ -111,7 +108,6 @@ class PostgresPermissionsOperator(BaseOperator):
             SQL grant statements on database tables to database roles
 
         """
-
         # setup logger so output can be added to the Airflow logs
         logger = logging.getLogger(__name__)
 
@@ -145,6 +141,8 @@ class PostgresPermissionsOperator(BaseOperator):
                 .filter((DagRun.dag_id != "airflow_db_permissions"))
                 # exclude the update_dag, it does not contain DB objects to grant
                 .filter((DagRun.dag_id != "update_dags"))
+                # exclude the log_cleanup dag, it does not contain DB objects to grant
+                .filter((DagRun.dag_id != "airflow_log_cleanup"))
             ]
 
             if executed_dags_after_delta:
