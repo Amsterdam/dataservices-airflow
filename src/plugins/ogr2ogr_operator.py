@@ -1,14 +1,15 @@
 import logging
 import subprocess
+from typing import Any, Dict, List, Optional
+
 from airflow.models.baseoperator import BaseOperator
 from common.db import DatabaseEngine
-from typing import Optional, Any, List, Dict
 
 logger = logging.getLogger(__name__)
 
 
 class Ogr2OgrOperator(BaseOperator):
-    """" translates various file formats with spatial data to SQL output """
+    """Translates various file formats with spatial data to SQL output."""
 
     def __init__(
         self,
@@ -29,6 +30,25 @@ class Ogr2OgrOperator(BaseOperator):
         encoding_schema: str = "UTF-8",
         **kwargs: Any,
     ) -> None:
+        """Setup params.
+
+        Args:
+            target_table_name: Name of target database table to write data.
+            input_file: Source file to import into database.
+            conn_id: Database connection. Defaults to "postgres_default".
+            s_srs: The source geo reference system. Defaults to "EPSG:4326".
+            t_srs: The target geo reference system. Defaults to "EPSG:28992".
+            fid: The record identifier. Defaults to "id".
+            geometry_name: Column name that contains the geometry data. Defaults to "geometry".
+            sql_output_file: Output SQL file path. Defaults to None.
+            sql_statement: SQL subselection on data before import. Defaults to None.
+            input_file_sep: The row separator. Defaults to None.
+            auto_detect_type: Can be set to "YES" to auto detect datatype. Defaults to None.
+            mode: If set to `PostgreSQL` data is directly imported into database.
+                Defaults to "PGDump" which output a file.
+            db_conn: Database engine instance. Defaults to None.
+            encoding_schema: Source character schema. Defaults to "UTF-8".
+        """
         super().__init__(**kwargs)
         self.conn_id = conn_id
         self.s_srs = s_srs
@@ -46,17 +66,16 @@ class Ogr2OgrOperator(BaseOperator):
         self.encoding_schema = encoding_schema
 
     def execute(self, context: Optional[Dict[str, Any]] = None) -> None:
-        """proces the input file with OGR2OGR to SQL output
+        """Proces the input file with OGR2OGR to SQL output.
 
-        ARGS:
-        mode: 'PGDump' will generate a sql file (the default)
-              'PostgreSQL' will load data directly into database
+        Args:
+            context: 'PGDump' will generate a sql file (the default)
+                'PostgreSQL' will load data directly into database
 
         Executes:
                 A batch ogr2ogr cmd
-        """
 
-        # setup the cmd to execute
+        """
         ogr2ogr_cmd: List = []
         ogr2ogr_cmd.append(f"ogr2ogr -f '{self.mode}' ")
 
@@ -76,11 +95,11 @@ class Ogr2OgrOperator(BaseOperator):
 
             # mandatory
             ogr2ogr_cmd.append(
-                f"PG:'host={getattr(self.db_conn, 'host')} "
-                f"dbname={getattr(self.db_conn, 'db')} "
-                f"user={getattr(self.db_conn, 'user')} "
-                f"password={getattr(self.db_conn, 'password')} "
-                f"port={getattr(self.db_conn, 'port')}' "
+                f"PG:'host={self.db_conn.host} "
+                f"dbname={self.db_conn.db} "
+                f"user={self.db_conn.user} "
+                f"password={self.db_conn.password} "
+                f"port={self.db_conn.port}' "
             )
             ogr2ogr_cmd.append(f"{self.input_file} ")
             ogr2ogr_cmd.append(f"-nln {self.target_table_name} -overwrite ")
@@ -91,6 +110,8 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"-oo AUTODETECT_TYPE={self.auto_detect_type} ")
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
         ogr2ogr_cmd.append(f"-lco ENCODING={self.encoding_schema} ")
+        ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
+        ogr2ogr_cmd.append("-lco precision=NO ")
         if self.sql_statement:
             ogr2ogr_cmd.append(f"-sql {self.sql_statement}")
 

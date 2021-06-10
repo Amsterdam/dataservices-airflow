@@ -78,6 +78,8 @@ services:
       AIRFLOW_CONN_MYWHEELS_BASE_URL: "https://mywheels.nl"
       AIRFLOW_CONN_MYWHEELS_API_KEY: ${dataservices_mywheels_api_key}
       AIRFLOW_CONN_RDW_BASE_URL: "https://opendata.rdw.nl/resource"
+      AIRFLOW_CONN_OOV_BRIEVENBUS_GEBIEDEN: "sftp://${oov_brievenbus_user_overlastgebieden}:\
+        ${oov_brievenbus_password_overlastgebieden}@${oov_brievenbus_host}:${oov_brievenbus_port}"
       GOB_PUBLIC_ENDPOINT: "gob/public/graphql/streaming/"
       GOB_SECURE_ENDPOINT: "gob/graphql/streaming/"
       OAUTH_TOKEN_EXPIRES_MARGIN: 20
