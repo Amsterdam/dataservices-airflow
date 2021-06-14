@@ -342,3 +342,14 @@ rdw:
     brandstof: /8ys7-d773.csv
     assen: /3huj-srit.csv
     carrosserie: /vezc-m2t6.csv
+stroomstoringen:
+  data_endpoints:
+    stroomstoringen: "/v6W5HAVrpgSg3vts/ArcGIS/rest/services/IStoringen_Productie_V7/FeatureServer/0/query?\
+      where=STORING_DATUM_GEMELD+>%3D+'6-13-2021'+AND+lower(STORING_GETROFFEN_PLAATSEN)+%3D+'amsterdam'&objectIds=&\
+      time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none&\
+      distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&returnCentroid=false&\
+      featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&\
+      applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&\
+      returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&\
+      having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=&\
+      sqlFormat=none&f=pgeojson&token="
