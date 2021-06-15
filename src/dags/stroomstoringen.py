@@ -1,9 +1,9 @@
-from datetime import datetime
-
+import pendulum
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
+from airflow.settings import TIMEZONE
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
@@ -26,14 +26,10 @@ variables: dict = Variable.get("stroomstoringen", deserialize_json=True)
 endpoint_url: str = variables["data_endpoints"]["stroomstoringen"]
 
 
-today = datetime.now().strftime("%m-%d-%Y")
+TODAY = pendulum.now(TIMEZONE).format("MM-DD-YYYY")
+TMP_DIR: str = f"{SHARED_DIR}/{dag_id}"
 
-tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
-total_checks: list = []
-count_checks: list = []
-geo_checks: list = []
-check_name: dict = {}
-db_conn: object = DatabaseEngine()
+db_conn = DatabaseEngine()
 
 
 with DAG(
@@ -55,14 +51,14 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {TMP_DIR}")
 
     # 3. download the data into temp directorys
     download_data = HttpFetchOperator(
         task_id="download",
-        endpoint=endpoint_url.format(today=today),
+        endpoint=endpoint_url.format(today=TODAY),
         http_conn_id="STROOMSTORING_BASE_URL",
-        tmp_file=f"{tmp_dir}/stroomstoringen.geojson",
+        tmp_file=f"{TMP_DIR}/stroomstoringen.geojson",
         output_type="text",
     )
 
@@ -70,7 +66,7 @@ with DAG(
     import_data = Ogr2OgrOperator(
         task_id="import_data",
         target_table_name=f"{dag_id}_{dag_id}_new",
-        input_file=f"{tmp_dir}/stroomstoringen.geojson",
+        input_file=f"{TMP_DIR}/stroomstoringen.geojson",
         auto_detect_type="YES",
         mode="PostgreSQL",
         s_srs="EPSG:28992",
@@ -89,7 +85,7 @@ with DAG(
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
+        dataset_name=dag_id,
         prefix_table_name=f"{dag_id}_",
         postfix_table_name="_new",
         rename_indexes=False,
