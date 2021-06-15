@@ -4,11 +4,11 @@ from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
-from common import env, default_args
+from common import default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
 
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
@@ -149,10 +149,10 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
 args = default_args.copy()
 
 with DAG(
-     dag_id,
-     default_args=args,
-     description="Crowd Monitor",
-     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    dag_id,
+    default_args=args,
+    description="Crowd Monitor",
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
@@ -185,9 +185,13 @@ with DAG(
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-    create_temp_tables >> copy_data >> add_aggregates_day >> add_aggregates_week >> rename_temp_tables >> grant_db_permissions
+    (
+        create_temp_tables
+        >> copy_data
+        >> add_aggregates_day
+        >> add_aggregates_week
+        >> rename_temp_tables
+        >> grant_db_permissions
+    )

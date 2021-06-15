@@ -1,26 +1,25 @@
 import logging
-from dataclasses import dataclass
 import operator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.postgres_hook import PostgresHook
-
-from common import default_args, SHARED_DIR
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.python_operator import PythonOperator
+from common import SHARED_DIR, default_args
 from common.db import get_engine
 from common.http import download_file
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
     COLNAMES_CHECK,
+    COUNT_CHECK,
     GEO_CHECK,
+    PostgresMultiCheckOperator,
 )
-from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
 from schematools.importer.geojson import GeoJSONImporter
 from schematools.introspect.geojson import introspect_geojson_files
 from schematools.types import DatasetSchema
@@ -121,9 +120,7 @@ def _load_geojson(postgres_conn_id):
         files[route.name] = dest
 
     # 2. generate schema ("schema introspect geojson *.geojson")
-    schema = introspect_geojson_files(
-        "gevaarlijke-routes", files=list(files.values())
-    )
+    schema = introspect_geojson_files("gevaarlijke-routes", files=list(files.values()))
     schema = DatasetSchema.from_dict(schema)  # TODO: move to schema-tools?
 
     # XXX This is not running as one transaction atm, but autocommitting per chunk
@@ -132,9 +129,7 @@ def _load_geojson(postgres_conn_id):
     importer = GeoJSONImporter(schema, db_engine, logger=logger)
     for route in ROUTES:
         geojson_path = files[route.name]
-        logger.info(
-            "Importing %s into %s", route.name, route.tmp_db_table_name
-        )
+        logger.info("Importing %s into %s", route.name, route.tmp_db_table_name)
         importer.generate_db_objects(
             table_name=route.schema_table_name,
             db_table_name=route.tmp_db_table_name,
@@ -151,9 +146,9 @@ def _load_geojson(postgres_conn_id):
 
 
 with DAG(
-     dag_id,
-     default_args=default_args,
-     on_failure_callback=get_contact_point_on_failure_callback(dataset_id="hoofdroutes")
+    dag_id,
+    default_args=default_args,
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="hoofdroutes"),
 ) as dag:
 
     count_checks = []
@@ -204,9 +199,7 @@ with DAG(
         )
 
     checks = count_checks + colname_checks + geo_checks
-    multi_check = PostgresMultiCheckOperator(
-        task_id="multi_check", checks=checks
-    )
+    multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
     renames = [
         PostgresTableRenameOperator(
@@ -218,10 +211,7 @@ with DAG(
     ]
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 drop_old_tables >> import_geojson >> multi_check >> renames >> grant_db_permissions

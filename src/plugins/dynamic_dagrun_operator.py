@@ -1,12 +1,14 @@
 from __future__ import annotations
+
 from datetime import datetime
-from sqlalchemy import not_
-from typing import Optional, Any
-from airflow.settings import Session
+from typing import Any, Optional
+
 from airflow.models.dag import DagModel, DagRun
 from airflow.operators.dagrun_operator import TriggerDagRunOperator
+from airflow.settings import Session
 from airflow.utils.decorators import apply_defaults
 from airflow.utils.state import State
+from sqlalchemy import not_
 
 
 class TriggerDynamicDagRunOperator(TriggerDagRunOperator):

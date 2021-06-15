@@ -1,26 +1,20 @@
 import pathlib
+
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from http_fetch_operator import HttpFetchOperator
-from postgres_files_operator import PostgresFilesOperator
-
 from common import (
-    vsd_default_args,
-    slack_webhook_token,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
+    MessageOperator,
+    slack_webhook_token,
+    vsd_default_args,
 )
-
-from common.sql import (
-    SQL_TABLE_RENAME,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
-    SQL_CHECK_COLNAMES,
-)
+from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_TABLE_RENAME
+from http_fetch_operator import HttpFetchOperator
+from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
+from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "vezips"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
@@ -31,7 +25,11 @@ def checker(records, pass_value):
     return found_colnames == set(pass_value)
 
 
-with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as dag:
+with DAG(
+    dag_id,
+    default_args=vsd_default_args,
+    template_searchpath=["/"],
+) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
     colnames = [
@@ -71,9 +69,7 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
         f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.json",
     )
 
-    drop_table = PostgresOperator(
-        task_id="drop_table", sql="DROP TABLE IF EXISTS vezips_new"
-    )
+    drop_table = PostgresOperator(task_id="drop_table", sql="DROP TABLE IF EXISTS vezips_new")
     create_table = PostgresFilesOperator(
         task_id="create_table", sql_files=[f"{tmp_dir}/{dag_id}.sql"]
     )
@@ -103,18 +99,20 @@ with DAG(dag_id, default_args=vsd_default_args, template_searchpath=["/"],) as d
     check_geo = PostgresCheckOperator(
         task_id="check_geo",
         sql=SQL_CHECK_GEO,
-        params=dict(tablename=f"{dag_id}_new", geotype="ST_Point",),
+        params=dict(
+            tablename=f"{dag_id}_new",
+            geotype="ST_Point",
+        ),
     )
 
     rename_table = PostgresOperator(
-        task_id="rename_table", sql=SQL_TABLE_RENAME, params=dict(tablename=dag_id),
+        task_id="rename_table",
+        sql=SQL_TABLE_RENAME,
+        params=dict(tablename=dag_id),
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     slack_at_start

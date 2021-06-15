@@ -1,4 +1,5 @@
 import logging
+
 import simplejson as json
 from geojson import Point
 
@@ -21,8 +22,8 @@ ID_TYPES_MAP = {}
 
 
 def generate_source_types_mapping(types):
-    """ 
-    generates objecttypes mapping based on source file 
+    """
+    generates objecttypes mapping based on source file
     used in json2geojson to lookup name on objecttype id
     i.e. ["1": {"code":"1","naam":"Klok"}, "10": {"code":"10","naam":"Schijnwerpers"}, ...]
     """

@@ -1,7 +1,8 @@
 import argparse
 import logging
-import objectstore
 import os
+
+import objectstore
 
 # from various_small_datasets.generic.source import OBJECTSTORE
 from common.objectstore import fetch_objectstore_credentials

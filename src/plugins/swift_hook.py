@@ -1,12 +1,13 @@
 import ntpath
 from contextlib import contextmanager
-from datetime import datetime, timezone, timedelta, tzinfo
-from dateutil import tz
+from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
-from airflow.hooks.base import BaseHook
+from typing import Dict, Iterator, Optional
+
 from airflow.exceptions import AirflowException
-from swiftclient.service import SwiftService, SwiftError, SwiftUploadObject
-from typing import Optional, Iterator, Dict
+from airflow.hooks.base import BaseHook
+from dateutil import tz
+from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
 
 to_zone: Optional[tzinfo] = tz.gettz("Europe/Amsterdam")
 

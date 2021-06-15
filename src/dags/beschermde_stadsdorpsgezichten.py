@@ -2,7 +2,13 @@ import operator
 
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
-from common import DATAPUNT_ENVIRONMENT, DATASTORE_TYPE, MessageOperator, default_args, slack_webhook_token
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    MessageOperator,
+    default_args,
+    slack_webhook_token,
+)
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
     COLNAMES_CHECK,
@@ -12,7 +18,6 @@ from postgres_check_operator import (
 )
 from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
-
 
 CORRECT_GEO = """
     UPDATE pte.beschermde_stadsdorpsgezichten
@@ -33,7 +38,9 @@ owner = "team_ruimte"
 with DAG(
     dag_id,
     default_args={**default_args, **{"owner": owner}},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="beschermdestadsdorpsgezichten"),
+    on_failure_callback=get_contact_point_on_failure_callback(
+        dataset_id="beschermdestadsdorpsgezichten"
+    ),
 ) as dag:
 
     checks = []

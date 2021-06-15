@@ -1,29 +1,20 @@
+from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
-from airflow import DAG
-
-
-from common import pg_params, default_args, SHARED_DIR
-from common.sql import (
-    SQL_TABLE_RENAME,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_COLNAMES,
-    SQL_CHECK_GEO,
-)
+from common import SHARED_DIR, default_args, pg_params
+from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_TABLE_RENAME
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_hoofdroutes import import_hoofdroutes
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-
 
 dag_id = "hoofdroutes"
 
 with DAG(
     dag_id,
     default_args=default_args,
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -77,8 +68,15 @@ with DAG(
     # Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-import_routes >> extract_geojson >> load_table >> [
-    check_count,
-    check_geo,
-    check_colnames,
-] >> rename_table >> grant_db_permissions
+(
+    import_routes
+    >> extract_geojson
+    >> load_table
+    >> [
+        check_count,
+        check_geo,
+        check_colnames,
+    ]
+    >> rename_table
+    >> grant_db_permissions
+)

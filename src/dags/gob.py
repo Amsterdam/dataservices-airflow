@@ -1,26 +1,20 @@
-from dataclasses import dataclass
 import json
 import pathlib
+from dataclasses import dataclass
 from typing import Any
+
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
-
+from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_table_init_operator import PostgresTableInitOperator
-from postgres_table_copy_operator import PostgresTableCopyOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
 from http_gob_operator import HttpGobOperator
-from common import (
-    default_args,
-    DATAPUNT_ENVIRONMENT,
-    MessageOperator,
-    slack_webhook_token,
-    env,
-)
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
+from postgres_table_init_operator import PostgresTableInitOperator
 from schematools import TMP_TABLE_POSTFIX
 from schematools.utils import schema_def_from_url
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
 GOB_PUBLIC_ENDPOINT = env("GOB_PUBLIC_ENDPOINT")
@@ -66,7 +60,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         default_args={"owner": owner, **default_args},
         schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
         tags=["gob"],
-        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
     )
 
     kwargs = dict(

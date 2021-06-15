@@ -1,9 +1,8 @@
 import csv
-from hashlib import blake2s
 import json
 import logging
-from typing import List, Tuple, Iterator, Type, Dict, Any, Optional
-
+from hashlib import blake2s
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
 
 # define logger for output to console
 logger = logging.getLogger(__name__)

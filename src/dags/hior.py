@@ -1,21 +1,20 @@
 import pathlib
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    pg_params,
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    slack_webhook_token,
 )
-
 from importscripts.import_hior import import_hior
+from postgres_permissions_operator import PostgresPermissionsOperator
 
 SQL_TABLE_RENAME = """
     BEGIN;

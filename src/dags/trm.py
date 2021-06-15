@@ -1,26 +1,20 @@
 import pathlib
+
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
+    MessageOperator,
+    slack_webhook_token,
+    vsd_default_args,
+)
+from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_TABLE_RENAMES
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
 from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-
-from common import (
-    vsd_default_args,
-    slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
-    MessageOperator,
-)
-
-from common.sql import (
-    SQL_TABLE_RENAMES,
-    SQL_CHECK_COUNT,
-    SQL_CHECK_COLNAMES,
-)
 
 dag_id = "trm"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
@@ -35,7 +29,7 @@ with DAG(
     dag_id,
     default_args=vsd_default_args,
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="spoorlijnen")
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="spoorlijnen"),
 ) as dag:
 
     extract_zips = []

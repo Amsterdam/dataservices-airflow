@@ -5,26 +5,24 @@ from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
+)
+from common.db import DatabaseEngine
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from sql.schiphol import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM, SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
-
-from common import (
-    quote_string,
-    DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
-    MessageOperator,
-    default_args,
-    slack_webhook_token,
-)
-from common.db import DatabaseEngine
-from sql.schiphol import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM, SQL_DROP_TMP_TABLE
 
 dag_id = "schiphol"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -44,7 +42,7 @@ with DAG(
     "maatgevendetoetshoogtes en vogelvrijwaringsgebieden",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack

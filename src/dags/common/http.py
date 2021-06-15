@@ -1,9 +1,7 @@
 from airflow.hooks.http_hook import HttpHook
 
 
-def download_file(
-    url: str, destination, data=None, headers=None, http_conn_id="http_default"
-):
+def download_file(url: str, destination, data=None, headers=None, http_conn_id="http_default"):
     """Perform an HTTP download using Airflow's HttpHook"""
     if http_conn_id and "://" in url:
         raise ValueError("Use http_conn_id=None when downloading from FQDN-urls")

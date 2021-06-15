@@ -1,8 +1,8 @@
-import pandas as pd
-import re
 import argparse
-
 import pprint
+import re
+
+import pandas as pd
 
 pp = pprint.PrettyPrinter()
 

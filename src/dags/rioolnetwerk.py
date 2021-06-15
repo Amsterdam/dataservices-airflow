@@ -1,26 +1,25 @@
 import operator
+
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from swift_load_sql_operator import SwiftLoadSqlOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    COLNAMES_CHECK,
-    GEO_CHECK,
-)
-
 from common import (
-    quote_string,
-    DATASTORE_TYPE,
-    default_args,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    MessageOperator,
+    default_args,
+    quote_string,
     slack_webhook_token,
 )
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_check_operator import (
+    COLNAMES_CHECK,
+    COUNT_CHECK,
+    GEO_CHECK,
+    PostgresMultiCheckOperator,
+)
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 RENAME_TABLES_SQL = """
     DROP TABLE IF EXISTS public.rioolnetwerk_rioolknopen;
@@ -37,10 +36,10 @@ dag_id = "rioolnetwerk"
 owner = "team_ruimte"
 
 with DAG(
-     dag_id,
-     default_args={**default_args, **{"owner": owner}},
-     user_defined_filters={"quote": quote_string},
-     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    dag_id,
+    default_args={**default_args, **{"owner": owner}},
+    user_defined_filters={"quote": quote_string},
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     checks = []
@@ -64,10 +63,7 @@ with DAG(
 
     drop_tables = PostgresOperator(
         task_id="drop_tables",
-        sql=[
-            f"DROP TABLE IF EXISTS pte.{table_name} CASCADE"
-            for table_name in table_names
-        ],
+        sql=[f"DROP TABLE IF EXISTS pte.{table_name} CASCADE" for table_name in table_names],
     )
 
     swift_load_task = SwiftLoadSqlOperator(
@@ -82,7 +78,13 @@ with DAG(
             "kel_rioolknopen",
             180000,
             "POINT",
-            {"objnr", "knoopnr", "objectsoor", "type_funde", "geometrie",},
+            {
+                "objnr",
+                "knoopnr",
+                "objectsoor",
+                "type_funde",
+                "geometrie",
+            },
         ),
         (
             "kel_rioolleidingen",
@@ -129,13 +131,13 @@ with DAG(
         task_id="rename_columns", dataset_name="rioolnetwerk", pg_schema="pte"
     )
 
-    rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL,)
+    rename_tables = PostgresOperator(
+        task_id="rename_tables",
+        sql=RENAME_TABLES_SQL,
+    )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 [
@@ -147,4 +149,3 @@ with DAG(
     >> rename_tables
     >> grant_db_permissions
 ]
-

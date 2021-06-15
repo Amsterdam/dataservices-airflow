@@ -1,9 +1,8 @@
 import re
 
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.operators.postgres_operator import PostgresOperator
 from airflow.utils.decorators import apply_defaults
-
 from check_helpers import check_safe_name
 
 
@@ -21,21 +20,21 @@ class PostgresTableRenameOperator(PostgresOperator):
     ):
         check_safe_name(old_table_name)
         check_safe_name(new_table_name)
-        super().__init__(
-            task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs
-        )
+        super().__init__(task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs)
         self.old_table_name = old_table_name
         self.new_table_name = new_table_name
 
     def execute(self, context):
         # First get all index names, so it's known which indices to rename
-        hook = PostgresHook(
-            postgres_conn_id=self.postgres_conn_id, schema=self.database
-        )
+        hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
         # Start a list to hold rename information
         table_renames = [
-            (self.old_table_name, self.new_table_name, f"{self.new_table_name}_old",)
+            (
+                self.old_table_name,
+                self.new_table_name,
+                f"{self.new_table_name}_old",
+            )
         ]
 
         # Find the cross-tables for n-m relations, we assume they have
@@ -86,9 +85,7 @@ class PostgresTableRenameOperator(PostgresOperator):
             "DROP TABLE IF EXISTS {backup_table_name}",
         ):
 
-            for old_table_name, new_table_name, backup_table_name in (
-                table_renames + renames
-            ):
+            for old_table_name, new_table_name, backup_table_name in table_renames + renames:
                 lookup = dict(
                     old_table_name=old_table_name,
                     new_table_name=new_table_name,

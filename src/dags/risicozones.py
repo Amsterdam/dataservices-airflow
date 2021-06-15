@@ -1,44 +1,35 @@
 import operator
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from swift_operator import SwiftOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
-
-from common.db import DatabaseEngine
-
 from common import (
-    quote_string,
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
-from sql.risicozones import SET_GEOM, SQL_DROP_TMP_TABLE
+from common.db import DatabaseEngine
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_risicozones import (
-    merge_files_iter,
-    union_files_iter,
     cleanse_misformed_data_iter,
+    merge_files_iter,
     unify_geometry_data_iter,
+    union_files_iter,
 )
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.risicozones import SET_GEOM, SQL_DROP_TMP_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swift_operator import SwiftOperator
 
 dag_id = "risicozones"
 variables = Variable.get(dag_id, deserialize_json=True)
@@ -60,7 +51,7 @@ with DAG(
     description="risicozones",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack

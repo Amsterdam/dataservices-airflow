@@ -1,40 +1,33 @@
 import operator
 import re
+from collections import defaultdict
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-from collections import defaultdict
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
+)
 from common.db import DatabaseEngine
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
 from http_fetch_operator import HttpFetchOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from typeahead_location_operator import TypeAHeadLocationOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
-from common import (
-    default_args,
-    slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
-    MessageOperator,
-    SHARED_DIR,
-    quote_string,
-)
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
-from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
 from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_geojson  # noqa
-
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from typeahead_location_operator import TypeAHeadLocationOperator
 
 # business / source keys
 COMPOSITE_KEYS: dict = {
@@ -109,7 +102,7 @@ with DAG(
     description="sportfaciliteiten, -objecten en -aanbieders",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack

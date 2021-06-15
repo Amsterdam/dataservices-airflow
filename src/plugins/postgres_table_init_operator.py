@@ -1,7 +1,8 @@
-from typing import Any, Dict, Callable, Optional
+from typing import Any, Callable, Dict, Optional
+
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import XCOM_RETURN_KEY
 from airflow.operators.postgres_operator import PostgresOperator
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 

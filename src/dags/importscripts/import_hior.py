@@ -1,7 +1,7 @@
-import pandas as pd
+import pprint
 import re
 
-import pprint
+import pandas as pd
 
 pp = pprint.PrettyPrinter()
 

@@ -1,14 +1,15 @@
 import logging
 import subprocess
+from typing import Any, Dict, List, Optional
+
 from airflow.models.baseoperator import BaseOperator
 from common.db import DatabaseEngine
-from typing import Optional, Any, List, Dict
 
 logger = logging.getLogger(__name__)
 
 
 class Ogr2OgrOperator(BaseOperator):
-    """" translates various file formats with spatial data to SQL output """
+    """ " translates various file formats with spatial data to SQL output"""
 
     def __init__(
         self,

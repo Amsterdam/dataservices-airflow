@@ -1,7 +1,8 @@
+from typing import Any, Dict, Optional
+
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from swift_hook import SwiftHook
-from typing import Dict, Any, Optional
 
 
 class SwiftOperator(BaseOperator):

@@ -1,18 +1,12 @@
-import ccsv as csv
-import json
-import sys
 import hashlib
-from collections import defaultdict
+import json
 import operator
-from shapely import wkt
-from shapely.geometry import (
-    GeometryCollection,
-    MultiLineString,
-    LineString,
-    MultiPolygon,
-    Polygon,
-)
+import sys
+from collections import defaultdict
 
+import ccsv as csv
+from shapely import wkt
+from shapely.geometry import GeometryCollection, LineString, MultiLineString, MultiPolygon, Polygon
 
 # set max number of karakters per cell
 csv.field_size_limit(sys.maxsize)
@@ -71,21 +65,20 @@ def filter_rows(row, filter: dict = None):
     filter_type = FILTER_OPTIONS[filter["filter_type"].upper()]
 
     if filter_type == "startswith":
-        if row.startswith(filter['filter_value']):
+        if row.startswith(filter["filter_value"]):
             return True
 
     if filter_type == "in":
-        if operator.contains(row, filter['filter_value'].upper()):
+        if operator.contains(row, filter["filter_value"].upper()):
             return True
 
     if filter_type == "==":
-        if operator.eq(row, filter['filter_value'].upper()):
+        if operator.eq(row, filter["filter_value"].upper()):
             return True
 
     # TODO: add more filter possibilities
     else:
         return False
-
 
 
 def unique_row_id(values: list):
@@ -133,7 +126,7 @@ def merge_files_parser(
     for row in source_file:
 
         if source_filter:
-            idx_col_to_filter = header_source.index(source_filter['filter_column'])
+            idx_col_to_filter = header_source.index(source_filter["filter_column"])
             row_col = row[idx_col_to_filter]
         else:
             row_col = row
@@ -143,9 +136,7 @@ def merge_files_parser(
                 # To avoid the number of values exceeds the number of columns to accomodate these values.
                 # This happens when the value of name_join_key is found more then once in the same file
                 # i.e. dmb_lpg_afleverzuil.csv
-                if len(source_data_to_merge[row[idx_key]]) >= len(
-                    source_fields_names
-                ):
+                if len(source_data_to_merge[row[idx_key]]) >= len(source_fields_names):
                     continue
                 idx_field = header_source.index(field)
                 source_data_to_merge[row[idx_key]].append(row[idx_field])
@@ -154,7 +145,7 @@ def merge_files_parser(
     for row in target_file:
 
         if target_filter:
-            idx_col_to_filter = header_target.index(target_filter['filter_column'])
+            idx_col_to_filter = header_target.index(target_filter["filter_column"])
             row_col = row[idx_col_to_filter]
         else:
             row_col = row
@@ -212,7 +203,7 @@ def union_files_parser(
     id_column: str,
     row_unique_cols: list,
 ):
-    """generate all data from source files and concat it's content in one target file """
+    """generate all data from source files and concat it's content in one target file"""
     header = get_header(f"{source_file_dir_path}/{source_file[0]}", source_file_content_column)
     # with a union, to avoid dubplicate key errors,
     # it is needed to create an unique value for the record identifcation field
@@ -229,6 +220,7 @@ def union_files_parser(
             row[0] = row_id
             row.append(content_type)
             yield row
+
 
 def union_files_iter(
     target_file: str,
@@ -263,6 +255,7 @@ def union_files_iter(
 # ----------------------------#
 # Cleansing data logic
 # ----------------------------#
+
 
 def cleanse_misformed_data_parser(
     source_file: str,
@@ -374,10 +367,7 @@ def unify_geometry_data_iter(
 
     header = get_header(source_file)
     rows = [
-        row
-        for row in unify_geometry_data_parser(
-            source_file, geom_data_type_to_use, geom_column
-        )
+        row for row in unify_geometry_data_parser(source_file, geom_data_type_to_use, geom_column)
     ]
     output_file = output_file if output_file else source_file
     save_file(output_file, header, rows)

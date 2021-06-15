@@ -1,24 +1,22 @@
 import pathlib
+
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from http_fetch_operator import HttpFetchOperator
-from postgres_files_operator import PostgresFilesOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-
-
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    slack_webhook_token,
 )
-from importscripts.import_fietspaaltjes import import_fietspaaltjes
 from common.sql import SQL_TABLE_RENAME
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from http_fetch_operator import HttpFetchOperator
+from importscripts.import_fietspaaltjes import import_fietspaaltjes
+from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 
 dag_id = "fietspaaltjes"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
@@ -26,10 +24,10 @@ sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 
 
 with DAG(
-     dag_id,
-     default_args=default_args,
-     template_searchpath=["/"],
-     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    dag_id,
+    default_args=default_args,
+    template_searchpath=["/"],
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -52,7 +50,10 @@ with DAG(
     create_sql = PythonOperator(
         task_id="create_sql",
         python_callable=import_fietspaaltjes,
-        op_args=[f"{tmp_dir}/{dag_id}.json", f"{tmp_dir}/{dag_id}.sql",],
+        op_args=[
+            f"{tmp_dir}/{dag_id}.json",
+            f"{tmp_dir}/{dag_id}.sql",
+        ],
     )
 
     create_and_fill_table = PostgresFilesOperator(
@@ -75,9 +76,14 @@ with DAG(
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-slack_at_start >> fetch_json >> create_sql >> create_and_fill_table >> rename_table >> provenance_translation >> grant_db_permissions
+(
+    slack_at_start
+    >> fetch_json
+    >> create_sql
+    >> create_and_fill_table
+    >> rename_table
+    >> provenance_translation
+    >> grant_db_permissions
+)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from shared.utils.check_imported_data import run_sql_checks, assert_count_minimum
+from shared.utils.check_imported_data import assert_count_minimum, run_sql_checks
 
 sql_checks = [
     (

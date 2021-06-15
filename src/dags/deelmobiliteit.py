@@ -1,37 +1,29 @@
 import operator
-from airflow import DAG
-from airflow.models import Variable
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-from common.db import DatabaseEngine
-from environs import Env
-from more_ds.network.url import URL
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from provenance_rename_operator import ProvenanceRenameOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
 from typing import Dict
 
+from airflow import DAG
+from airflow.models import Variable
+from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.python_operator import PythonOperator
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     MessageOperator,
+    default_args,
     quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
-from sql.deelmobiliteit import SQL_SET_GEOM, SQL_FLAG_NOT_RECENT_DATA, SQL_DROP_TMP_TABLE
-from importscripts.import_deelmobiliteit import import_scooter_data, import_auto_data
-
+from common.db import DatabaseEngine
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from environs import Env
+from importscripts.import_deelmobiliteit import import_auto_data, import_scooter_data
+from more_ds.network.url import URL
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.deelmobiliteit import SQL_DROP_TMP_TABLE, SQL_FLAG_NOT_RECENT_DATA, SQL_SET_GEOM
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 dag_id: str = "deelmobiliteit"
 description: str = (
@@ -64,7 +56,7 @@ with DAG(
     description=description,
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack

@@ -1,10 +1,11 @@
 import datetime
+import operator
 import os
 import pathlib
 import re
 import subprocess
+
 import dateutil.parser
-import operator
 import shapefile
 from airflow import DAG
 from airflow.exceptions import AirflowException
@@ -12,17 +13,12 @@ from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from shapely.geometry import Polygon
-
+from common import SHARED_DIR, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from swift_hook import SwiftHook
-from common import default_args, SHARED_DIR
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-)
+from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-
+from shapely.geometry import Polygon
+from swift_hook import SwiftHook
 
 dag_id = "parkeervakken"
 postgres_conn_id = "parkeervakken_postgres"
@@ -156,12 +152,8 @@ def import_data(shp_file, ids):
                     opmerking=mode["opmerking"],
                     dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
                     kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
-                    begin_datum=f"'{mode['begin_datum']}'"
-                    if mode["begin_datum"]
-                    else "NULL",
-                    eind_datum=f"'{mode['eind_datum']}'"
-                    if mode["eind_datum"]
-                    else "NULL",
+                    begin_datum=f"'{mode['begin_datum']}'" if mode["begin_datum"] else "NULL",
+                    eind_datum=f"'{mode['eind_datum']}'" if mode["eind_datum"] else "NULL",
                     aantal=row.record.AANTAL,
                 )
                 for mode in regimes
@@ -192,9 +184,7 @@ def import_data(shp_file, ids):
             raise Exception("Failed to create regimes: {}".format(str(e)[0:150]))
 
     print(
-        "Created: {} parkeervakken and {} regimes".format(
-            len(parkeervakken_sql), len(regimes_sql)
-        )
+        "Created: {} parkeervakken and {} regimes".format(len(parkeervakken_sql), len(regimes_sql))
     )
     return duplicates
 
@@ -257,7 +247,7 @@ with DAG(
     dag_id,
     default_args=args,
     description="Parkeervakken",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     source = pathlib.Path(TMP_DIR)
@@ -291,17 +281,21 @@ with DAG(
     )
 
     run_import_task = PythonOperator(
-        task_id="run_import_task", python_callable=run_imports, dag=dag,
+        task_id="run_import_task",
+        python_callable=run_imports,
+        dag=dag,
     )
 
     count_check = PostgresMultiCheckOperator(
         task_id="count_check",
-        checks=[COUNT_CHECK.make_check(
-            check_id="non_zero_check",
-            pass_value=10,
-            params=dict(table_name=f"{dag_id}_{dag_id}_temp"),
-            result_checker=operator.ge,
-        )]
+        checks=[
+            COUNT_CHECK.make_check(
+                check_id="non_zero_check",
+                pass_value=10,
+                params=dict(table_name=f"{dag_id}_{dag_id}_temp"),
+                result_checker=operator.ge,
+            )
+        ],
     )
 
     rename_temp_tables = PostgresOperator(
@@ -311,10 +305,7 @@ with DAG(
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 (
     mk_tmp_dir
@@ -332,9 +323,7 @@ with DAG(
 def create_parkeervaak(row, soort=None):
     geometry = "''"
     if row.shape.shapeTypeName == "POLYGON":
-        geometry = "ST_GeometryFromText('{}', 28992)".format(
-            str(Polygon(row.shape.points))
-        )
+        geometry = "ST_GeometryFromText('{}', 28992)".format(str(Polygon(row.shape.points)))
     sql = (
         "("
         "'{parkeer_id}',"
@@ -422,15 +411,13 @@ def create_regimes(row):
 
 def add_a_minute(time):
     return (
-        datetime.datetime.combine(datetime.date.today(), time)
-        + datetime.timedelta(minutes=1)
+        datetime.datetime.combine(datetime.date.today(), time) + datetime.timedelta(minutes=1)
     ).time()
 
 
 def remove_a_minute(time):
     return (
-        datetime.datetime.combine(datetime.date.today(), time)
-        - datetime.timedelta(minutes=1)
+        datetime.datetime.combine(datetime.date.today(), time) - datetime.timedelta(minutes=1)
     ).time()
 
 
@@ -510,9 +497,7 @@ def days_from_row(row):
         days = WEEK_DAYS
     else:
         # One day permit
-        days = [
-            day for day in WEEK_DAYS if getattr(row.record, day.upper()) is not None
-        ]
+        days = [day for day in WEEK_DAYS if getattr(row.record, day.upper()) is not None]
 
     return days
 

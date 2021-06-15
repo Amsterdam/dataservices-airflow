@@ -124,7 +124,7 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
         basisregistratie grootschalige topologie (BGT) en kleinschalige basiskaart (KBK10 en 50).
         The basiskaart data is collected from basiskaart DB.""",
         tags=["basiskaart"],
-        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
     )
 
     with dag:

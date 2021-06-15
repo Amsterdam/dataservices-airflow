@@ -1,10 +1,11 @@
 from pathlib import Path
 from zipfile import ZipFile
+
 from airflow.hooks.base_hook import BaseHook
 
 
 class ZipHook(BaseHook):
-    """ Implement unzipping as a hook, for easy re-use from operators """
+    """Implement unzipping as a hook, for easy re-use from operators"""
 
     def __init__(self, zip_file):
         self.zip_file = zip_file

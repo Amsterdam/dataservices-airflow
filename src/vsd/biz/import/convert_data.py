@@ -1,7 +1,8 @@
-import math
-import pandas
-import re
 import argparse
+import math
+import re
+
+import pandas
 
 
 def main():
@@ -137,9 +138,7 @@ def main():
                 t[1].replace("'", "''"),
                 t[2],
                 t[3],
-                "NULL"
-                if isinstance(t[4], float) and math.isnan(t[4])
-                else makequotedlink(t[4]),
+                "NULL" if isinstance(t[4], float) and math.isnan(t[4]) else makequotedlink(t[4]),
                 "NULL" if math.isnan(t[5]) else int(t[5]),
                 "NULL" if math.isnan(t[6]) else int(t[6]),
                 makequotedlink(t[7]),

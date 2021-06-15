@@ -49,7 +49,7 @@ with DAG(
                 3D sensoren, wifi sensoren, (tel)camera's en beacons""",
     default_args=default_args,
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post info message on slack

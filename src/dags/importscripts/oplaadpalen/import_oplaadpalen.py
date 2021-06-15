@@ -22,10 +22,7 @@ wsdl = "https://emobilitygetstatchargingpointvipprdnl.azurewebsites.net/GetStatC
 def get_static_data():
     datafile = "/tmp/static_oplaadpalen.dat"
 
-    if (
-        os.path.isfile(datafile)
-        and time.time() - os.path.getmtime(datafile) < 24 * 60 * 60
-    ):
+    if os.path.isfile(datafile) and time.time() - os.path.getmtime(datafile) < 24 * 60 * 60:
         fd = open(datafile, "rb")
         result = pickle.load(fd)
         fd.close()
@@ -153,12 +150,8 @@ def main():
             "charging_point": charging_point,
             "connector_type": ";".join(list(OrderedDict.fromkeys(connector_type_list))),
             "vehicle_type": ";".join(list(OrderedDict.fromkeys(vehicle_type_list))),
-            "charging_capability": ";".join(
-                list(OrderedDict.fromkeys(charging_capability_list))
-            ),
-            "identification_type": ";".join(
-                list(OrderedDict.fromkeys(identification_type_list))
-            ),
+            "charging_capability": ";".join(list(OrderedDict.fromkeys(charging_capability_list))),
+            "identification_type": ";".join(list(OrderedDict.fromkeys(identification_type_list))),
         }
 
         inserts.append(make_insert(**kwargs))

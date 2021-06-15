@@ -1,10 +1,11 @@
 import tempfile
 from pathlib import Path
+
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from psql_cmd_hook import PsqlCmdHook
 from swift_hook import SwiftHook
 from zip_hook import ZipHook
-from psql_cmd_hook import PsqlCmdHook
 
 
 class SwiftLoadSqlOperator(BaseOperator):

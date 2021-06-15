@@ -1,29 +1,28 @@
+from typing import Dict, List, Union
+
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    MessageOperator,
+    default_args,
+    slack_webhook_token,
+)
+from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_afvalinzamelingplanning import load_from_dwh
-from swift_load_sql_operator import SwiftLoadSqlOperator
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from provenance_rename_operator import ProvenanceRenameOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from schematools.utils import to_snake_case
-from swap_schema_operator import SwapSchemaOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from sql.afvalinzamelingplanning import SQL_DROP_TMP_TABLE
-from typing import List, Dict, Union
-
-from common import (
-    DATASTORE_TYPE,
-    default_args,
-    DATAPUNT_ENVIRONMENT,
-    slack_webhook_token,
-    MessageOperator,
-)
-from common.sql import SQL_CHECK_COUNT
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swap_schema_operator import SwapSchemaOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 owner = "team_ruimte"
 dag_id: str = "huishoudelijkafval"
@@ -38,7 +37,7 @@ tables: Dict[str, Union[List[str], str]] = {
         "loopafstandCategorie",
         "bagObjectLoopafstand",
         "adresLoopafstand",
-        "bijplaatsingen"
+        "bijplaatsingen",
     ],
     "dwh_stadsdelen": "planningVoertuigen",
 }
@@ -48,7 +47,7 @@ with DAG(
     dag_id,
     default_args={**default_args, **{"owner": owner}},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack
@@ -95,7 +94,7 @@ with DAG(
     # 5. DUMP FILE SOURCE
     # Swap tables to target schema public
     swap_schema = SwapSchemaOperator(
-        task_id="swap_schema", dataset_name="huishoudelijkafval", subset_tables=tables['dump_file']
+        task_id="swap_schema", dataset_name="huishoudelijkafval", subset_tables=tables["dump_file"]
     )
 
     # 6. DWH STADSDELEN SOURCE
@@ -159,21 +158,13 @@ with DAG(
     )
 
     # 12. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 # FLOW
 slack_at_start >> [drop_tables, load_dwh]
 # Path 1
-[
-    drop_tables
-    >> load_file
-    >> provenance_file_data
-    >> swap_schema
-]
+[drop_tables >> load_file >> provenance_file_data >> swap_schema]
 # Path 2
 [
     load_dwh
