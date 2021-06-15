@@ -1,6 +1,7 @@
 import json
-from jsonpointer import resolve_pointer
+
 import requests
+from jsonpointer import resolve_pointer
 
 INSERT_TMPL = """
     INSERT INTO fietspaaltjes_fietspaaltjes_new (
@@ -140,9 +141,7 @@ def import_fietspaaltjes(file_path, output_path):
 
     with open(output_path, "w") as outfile:
         outfile.write(
-            INSERT_TMPL.format(
-                names=", ".join(MAPPING.keys()), values=",\n".join(value_lines)
-            )
+            INSERT_TMPL.format(names=", ".join(MAPPING.keys()), values=",\n".join(value_lines))
         )
 
 

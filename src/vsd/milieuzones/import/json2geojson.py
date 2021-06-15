@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 from sys import argv
+
 import simplejson as json
-from geojson import loads, Polygon, MultiPolygon, GeometryCollection
+from geojson import GeometryCollection, MultiPolygon, Polygon, loads
 
 
 def json2geojson(data):
@@ -29,11 +30,13 @@ def json2geojson(data):
             if multipolygon is None:
                 raise Exception("Missing (multi)polygon")
 
-            properties = {
-                key: milieuzone[key] for key in ("id", "verkeerstype", "vanafdatum")
-            }
+            properties = {key: milieuzone[key] for key in ("id", "verkeerstype", "vanafdatum")}
             features.append(
-                {"type": "Feature", "geometry": multipolygon, "properties": properties,}
+                {
+                    "type": "Feature",
+                    "geometry": multipolygon,
+                    "properties": properties,
+                }
             )
 
     geojson = {"type": "FeatureCollection", "features": [f for f in features]}

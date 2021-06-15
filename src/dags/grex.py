@@ -2,18 +2,17 @@ import pandas as pd
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from geoalchemy2 import Geometry, WKTElement
-from shapely import wkt
-from shapely.geometry.multipolygon import MultiPolygon
-from shapely.geometry.polygon import Polygon
-from sqlalchemy.types import Date, Float, Integer, Text
-
 from common import default_args
 from common.db import get_engine, get_ora_engine
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from geoalchemy2 import Geometry, WKTElement
 from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from shapely import wkt
+from shapely.geometry.multipolygon import MultiPolygon
+from shapely.geometry.polygon import Polygon
+from sqlalchemy.types import Date, Float, Integer, Text
 
 dag_id = "grex"
 
@@ -98,7 +97,7 @@ with DAG(
     default_args=default_args,
     description="GrondExploitatie",
     schedule_interval="0 6 * * *",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     load_data = PythonOperator(

@@ -2,22 +2,20 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    pg_params,
+    slack_webhook_token,
+)
+from common.sql import SQL_TABLE_RENAMES
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 # from airflow.operators.postgres_operator import PostgresOperator
 from swift_operator import SwiftOperator
-from common import (
-    pg_params,
-    default_args,
-    slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
-    MessageOperator,
-)
-from common.sql import SQL_TABLE_RENAMES
-
 
 SQL_RENAME_COL = """
 ALTER TABLE asbest_daken_new RENAME COLUMN identifica TO pandidentificatie
@@ -29,7 +27,7 @@ dag_config = Variable.get(dag_id, deserialize_json=True)
 with DAG(
     dag_id,
     default_args=default_args,
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="asbestdaken")
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="asbestdaken"),
 ) as dag:
 
     extract_shps = []

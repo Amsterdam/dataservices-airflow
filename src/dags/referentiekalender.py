@@ -1,23 +1,16 @@
 from airflow import DAG
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
+from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_referentiekalender import load_from_dwh
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from sql.referentiekalender import SQL_DROP_TMP_TABLE
-
-from common import (
-    default_args,
-    DATAPUNT_ENVIRONMENT,
-    slack_webhook_token,
-    MessageOperator,
-)
-from common.sql import SQL_CHECK_COUNT
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 dag_id: str = "referentiekalender"
 
@@ -26,7 +19,7 @@ with DAG(
     default_args={**default_args},
     description="""Generieke kalenderreferentie hierarchische gegevens met datum
         als laagste granulariteit.""",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post message on slack
@@ -96,10 +89,7 @@ with DAG(
     )
 
     # 8. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
 # FLOW

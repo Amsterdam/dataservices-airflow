@@ -1,10 +1,11 @@
 from collections import defaultdict
-from environs import Env
-from airflow.models.baseoperator import BaseOperator
+from typing import Any, Dict, Iterable, List, Optional, Set
+
 from airflow.hooks.postgres_hook import PostgresHook
+from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from environs import Env
 from schematools.utils import schema_def_from_url, to_snake_case
-from typing import List, Dict, Set, Iterable, Any, Optional
 
 env = Env()
 SCHEMA_URL = env("SCHEMA_URL")

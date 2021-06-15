@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-import psycopg2
 import logging
 import random
 
+import psycopg2
 from various_small_datasets.settings import DATABASES
 
 log = logging.getLogger(__name__)

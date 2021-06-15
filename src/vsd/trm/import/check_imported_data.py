@@ -1,7 +1,5 @@
 #!/usr/bin/env python
-from shared.utils.check_imported_data import (
-    run_sql_checks,
-)
+from shared.utils.check_imported_data import run_sql_checks
 
 sql_checks = [
     ("count_metro", "select count(*) from trm_metro_new", lambda x: x[0][0] > 700),
@@ -11,7 +9,7 @@ sql_checks = [
         """
 select column_name from information_schema.columns where table_schema = 'public' and table_name = 'trm_tram_new'
                     """,
-        lambda x: {"ogc_fid", "wkb_geometry", "volgorde"} <= set(elem[0] for elem in x)
+        lambda x: {"ogc_fid", "wkb_geometry", "volgorde"} <= set(elem[0] for elem in x),
     ),
     (
         "columns_metro",

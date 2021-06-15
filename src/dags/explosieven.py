@@ -5,26 +5,21 @@ from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
 from common import (
-    quote_string,
-    default_args,
-    pg_params,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    quote_string,
+    slack_webhook_token,
 )
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.explosieven import REMOVE_COLS, ADD_HYPERLINK_PDF
+from sql.explosieven import ADD_HYPERLINK_PDF, REMOVE_COLS
 from swift_operator import SwiftOperator
 
 dag_id = "explosieven"
@@ -43,7 +38,7 @@ with DAG(
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post info message on slack

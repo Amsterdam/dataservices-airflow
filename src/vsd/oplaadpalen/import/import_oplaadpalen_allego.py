@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 import argparse
-import os
-import re
-from collections import OrderedDict
-import requests
 import logging
-import psycopg2
-import urllib.parse
+import os
 import random
+import re
+import urllib.parse
+from collections import OrderedDict
 
+import psycopg2
+import requests
+from common.db import fetch_pg_env_vars
 from requests import HTTPError
 from simplejson import JSONDecodeError
-
-from common.db import fetch_pg_env_vars
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -36,7 +35,9 @@ oplaadpunten_providers = {
     #'Eneco'
 }
 
-base_url = "https://www.allego.eu/api/feature/experienceaccelerator/areas/chargepointmap/getchargepoints"
+base_url = (
+    "https://www.allego.eu/api/feature/experienceaccelerator/areas/chargepointmap/getchargepoints"
+)
 
 
 def get_all_oplaadpunten():
@@ -149,12 +150,8 @@ def _make_oplaadpaal_args(opl: dict):
         "status": status,
         "connector_type": ";".join(list(OrderedDict.fromkeys(connector_type_list))),
         "vehicle_type": ";".join(list(OrderedDict.fromkeys(vehicle_type_list))),
-        "charging_capability": ";".join(
-            list(OrderedDict.fromkeys(charging_capability_list))
-        ),
-        "identification_type": ";".join(
-            list(OrderedDict.fromkeys(identification_type_list))
-        ),
+        "charging_capability": ";".join(list(OrderedDict.fromkeys(charging_capability_list))),
+        "identification_type": ";".join(list(OrderedDict.fromkeys(identification_type_list))),
         "charging_cap_max": charging_cap_max,
     }
     return args
@@ -356,9 +353,7 @@ def main():
                         ):
                             oplaadpaal_remote = get_remote_oplaadpaal(id1)
                             if oplaadpaal_remote:
-                                update_complete_oplaadpaal(
-                                    curs, table_name, oplaadpaal_remote
-                                )
+                                update_complete_oplaadpaal(curs, table_name, oplaadpaal_remote)
                                 total_complete_updates += 1
                         else:
                             update_oplaadpaal(curs, table_name, id1, status)
@@ -375,9 +370,7 @@ def main():
                 total_set_unknown = set_oplaadpalen_unknown(curs, table_name)
 
             with conn.cursor() as curs:
-                total_deletes = set_oplaadpalen_deleted(
-                    curs, table_name, args.max_inserts
-                )
+                total_deletes = set_oplaadpalen_deleted(curs, table_name, args.max_inserts)
 
         log.info(f"Inserted {total_inserts} laadpalen")
         log.info(f"Updated {total_updates} laadpalen")

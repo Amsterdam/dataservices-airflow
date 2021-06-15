@@ -1,29 +1,22 @@
 import pathlib
+
 from airflow import DAG
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from postgres_check_operator import PostgresCheckOperator
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.python_operator import PythonOperator
-from airflow.operators.python_operator import BranchPythonOperator
-from postgres_xcom_operator import PostgresXcomOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
-
+from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.python_operator import BranchPythonOperator, PythonOperator
 from common import (
-    vsd_default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    slack_webhook_token,
+    vsd_default_args,
 )
+from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.oplaadpalen.import_oplaadpalen_allego import import_oplaadpalen
-
-from common.sql import (
-    SQL_CHECK_COUNT,
-    SQL_CHECK_GEO,
-)
+from postgres_check_operator import PostgresCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_xcom_operator import PostgresXcomOperator
 
 SQL_EXISTS_CHECK = """
     SELECT 1 WHERE EXISTS (
@@ -59,7 +52,7 @@ with DAG(
     default_args=vsd_default_args,
     template_searchpath=["/"],
     schedule_interval="@hourly",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -76,9 +69,7 @@ with DAG(
         task_id="check_table_exists", sql=SQL_EXISTS_CHECK, do_xcom_push=True
     )
 
-    branch_task = BranchPythonOperator(
-        task_id="branch_task", python_callable=choose_branch
-    )
+    branch_task = BranchPythonOperator(task_id="branch_task", python_callable=choose_branch)
 
     update_oplaadpalen = PostgresOperator(
         task_id="update_oplaadpalen", sql=f"{sql_path}/oplaadpalen_copy.sql"
@@ -93,11 +84,7 @@ with DAG(
         task_id="import_allego",
         python_callable=import_oplaadpalen,
         trigger_rule="none_failed_or_skipped",
-        op_args=[
-            PostgresHook(
-                postgres_conn_id=dag.default_args["postgres_conn_id"]
-            ).get_conn()
-        ],
+        op_args=[PostgresHook(postgres_conn_id=dag.default_args["postgres_conn_id"]).get_conn()],
     )
 
     check_count = PostgresCheckOperator(
@@ -113,12 +100,12 @@ with DAG(
     )
 
     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(
-        task_id="grants",
-        dag_name=dag_id
-    )
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-    rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME,)
+    rename_table = PostgresOperator(
+        task_id="rename_table",
+        sql=SQL_TABLE_RENAME,
+    )
 
 slack_at_start >> check_table_exists >> branch_task
 branch_task >> update_oplaadpalen >> import_allego

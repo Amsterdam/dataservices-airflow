@@ -1,13 +1,7 @@
 import logging
 
 from airflow import DAG
-
-from common import (
-    default_args,
-    slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
-    MessageOperator,
-)
+from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "airflow_db_permissions"

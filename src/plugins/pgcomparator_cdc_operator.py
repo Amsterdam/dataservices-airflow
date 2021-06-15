@@ -1,7 +1,7 @@
-import dsnparse
 import subprocess
 from typing import Any, Dict, Optional
 
+import dsnparse
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from environs import Env

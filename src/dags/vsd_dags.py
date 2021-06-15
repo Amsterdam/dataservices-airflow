@@ -1,6 +1,7 @@
 import os
-import sys
 import pathlib
+import sys
+
 from airflow import DAG
 from bash_env_operator import BashEnvOperator
 from common import default_args as common_default_args
@@ -8,9 +9,8 @@ from common.db import fetch_pg_env_vars
 
 vsd_dir = pathlib.Path(__file__).resolve().parents[1] / "vsd"
 
-SCHEDULE_INTERVAL_EXCEPTIONS = {
-    "grootstedelijke_projecten": "@monthly"
-}
+SCHEDULE_INTERVAL_EXCEPTIONS = {"grootstedelijke_projecten": "@monthly"}
+
 
 def fetch_env_vars():
     return {
@@ -26,10 +26,7 @@ def create_vsd_dag(vsd_id, default_args):
     shared_dir = vsd_dir / "shared"
     data_dir = vsd_dir / vsd_id / "data"
 
-    kwargs = {
-        "default_args": default_args,
-        "template_searchpath" : ["/"]
-    }
+    kwargs = {"default_args": default_args, "template_searchpath": ["/"]}
     schedule_interval = SCHEDULE_INTERVAL_EXCEPTIONS.get(vsd_id)
     if schedule_interval:
         kwargs["schedule_interval"] = schedule_interval

@@ -1,10 +1,10 @@
 import json
-from urllib.parse import urlparse, ParseResult
+from urllib.parse import ParseResult, urlparse
 
 from airflow.hooks.http_hook import HttpHook
+from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from airflow.hooks.postgres_hook import PostgresHook
 
 
 class TypeAHeadLocationOperator(BaseOperator):
@@ -147,7 +147,7 @@ class TypeAHeadLocationOperator(BaseOperator):
                     self.log.info(f"No BAG id found for {record}")
                     continue
                 else:
-                    bag_id = get_uri.path.rsplit("/")[-2]                
+                    bag_id = get_uri.path.rsplit("/")[-2]
                     self.log.info(f"BAG id found for {record_key}: {bag_id}")
 
             except AttributeError:

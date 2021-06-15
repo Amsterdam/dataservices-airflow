@@ -1,34 +1,25 @@
-import pathlib
 import operator
+import pathlib
 
-from airflow.models import Variable
 from airflow import DAG
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
+from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from http_fetch_operator import HttpFetchOperator
-from postgres_files_operator import PostgresFilesOperator
-
-
 from common import (
-    quote_string,
-    default_args,
-    slack_webhook_token,
-    MessageOperator,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
+    MessageOperator,
+    default_args,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from http_fetch_operator import HttpFetchOperator
+from ogr2ogr_operator import Ogr2OgrOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_files_operator import PostgresFilesOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 
 dag_id = "verzinkbarepalen"
 data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
@@ -50,7 +41,7 @@ with DAG(
     default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post info message on slack

@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import psycopg2
 import logging
-from validator_collection import checkers
 
+import psycopg2
 from common.db import fetch_pg_env_vars
+from validator_collection import checkers
 
 log = logging.getLogger(__name__)
 

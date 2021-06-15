@@ -1,29 +1,25 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-
-from bash_env_operator import BashEnvOperator
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from swift_load_sql_operator import SwiftLoadSqlOperator
 from airflow.operators.postgres_operator import PostgresOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
-from swap_schema_operator import SwapSchemaOperator
+from bash_env_operator import BashEnvOperator
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    slack_webhook_token,
+)
+from common.db import fetch_pg_env_vars
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from dcat_swift_operator import DCATSwiftOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-
-
-from common import (
-    DATASTORE_TYPE,
-    default_args,
-    DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
-    slack_webhook_token,
-    MessageOperator,
-)
-
-from common.db import fetch_pg_env_vars
+from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.beheerkaart_basis import RENAME_COLS
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swap_schema_operator import SwapSchemaOperator
+from swift_load_sql_operator import SwiftLoadSqlOperator
 
 dag_id = "beheerkaart"
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -43,7 +39,7 @@ with DAG(
     # New data is delivered every wednesday and friday evening,
     # So we schedule the import on friday and saturday morning
     schedule_interval="0 0 * * 4,6",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="beheerkaart_basis")
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="beheerkaart_basis"),
 ) as dag:
     # 1. Post message on slack
     slack_at_start = MessageOperator(
@@ -146,7 +142,8 @@ slack_at_start >> drop_tables >> create_tables
 for table in create_tables:
     table >> rename_cols
 
-(   rename_cols
+(
+    rename_cols
     >> swift_load_task
     >> provenance_renames
     >> swap_schema
@@ -155,4 +152,4 @@ for table in create_tables:
     >> zip_geopackage
     >> upload_data
     >> grant_db_permissions
-    )
+)

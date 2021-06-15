@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 import csv
+
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    DATASTORE_TYPE,
+    SHARED_DIR,
+    MessageOperator,
+    default_args,
+    slack_webhook_token,
+)
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-
-from common import (
-    DATASTORE_TYPE,
-    default_args,
-    slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
-    MessageOperator,
-)
 
 dag_id = "anpr"
 table_id = "anpr_taxi"
@@ -79,7 +78,7 @@ with DAG(
     dag_id,
     default_args=args,
     description="aantal geidentificeerde taxikentekenplaten per dag",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. starting message on Slack

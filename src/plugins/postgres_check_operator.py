@@ -1,15 +1,14 @@
+import operator
 from dataclasses import dataclass
 from functools import partial
-import operator
 from string import Template
-from typing import Dict, List, Any, Callable, Iterable, ClassVar
+from typing import Any, Callable, ClassVar, Dict, Iterable, List
 
 from airflow.exceptions import AirflowException
-from airflow.models import BaseOperator
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.utils.decorators import apply_defaults
+from airflow.models import BaseOperator
 from airflow.operators.sql import SQLCheckOperator, SQLValueCheckOperator
-
+from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name, make_params
 
 

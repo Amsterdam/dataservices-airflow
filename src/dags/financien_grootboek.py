@@ -3,6 +3,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
 from common.sql import SQL_CHECK_COUNT
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_financien_grootboek import load_from_dwh
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
@@ -10,8 +11,6 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.financien_grootboek import SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from contact_point.callbacks import get_contact_point_on_failure_callback
-
 
 data_schema_id: str = "financien"
 dag_id: str = "financien_grootboek"

@@ -1,38 +1,29 @@
 import operator
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
-from airflow.operators.dummy_operator import DummyOperator
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from swift_operator import SwiftOperator
-
 from common import (
-    default_args,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
     quote_string,
+    slack_webhook_token,
 )
-
 from common.db import DatabaseEngine
-
-from sql.milieuzones import DEL_ROWS, DROP_COLS
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_milieuzones import import_milieuzones
+from ogr2ogr_operator import Ogr2OgrOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.milieuzones import DEL_ROWS, DROP_COLS
+from swift_operator import SwiftOperator
 
 dag_id: str = "milieuzones"
 variables_milieuzones: dict = Variable.get("milieuzones", deserialize_json=True)
@@ -52,7 +43,7 @@ with DAG(
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post info message on slack
@@ -232,9 +223,11 @@ for (
     rename_tables,
 ):
 
-    [
-        import_data_file >> drop_cols >> del_rows
-    ] >> provenance_translation >> revalidate_geometry_record
+    (
+        [import_data_file >> drop_cols >> del_rows]
+        >> provenance_translation
+        >> revalidate_geometry_record
+    )
 
     [revalidate_geometry_record >> multi_check >> rename_table]
 

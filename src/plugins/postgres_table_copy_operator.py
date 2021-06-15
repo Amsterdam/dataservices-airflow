@@ -6,10 +6,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.models import BaseOperator, XCOM_RETURN_KEY
+from airflow.models import XCOM_RETURN_KEY, BaseOperator
 from airflow.utils.decorators import apply_defaults
-from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 from psycopg2 import sql
+from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 
 @dataclass

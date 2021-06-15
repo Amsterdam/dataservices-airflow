@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 import json
-import yaml
 import pathlib
-from yamlip import fetch_interpolated_yaml
 
+import yaml
+from yamlip import fetch_interpolated_yaml
 
 vars_path = pathlib.Path(__file__).resolve().parents[1] / "vars"
 json_path = vars_path / "vars.json"

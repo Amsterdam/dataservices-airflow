@@ -1,12 +1,12 @@
-import os
-import re
-from collections import OrderedDict
-import requests
 import logging
-import psycopg2
-import urllib.parse
+import os
 import random
+import re
+import urllib.parse
+from collections import OrderedDict
 
+import psycopg2
+import requests
 from requests import HTTPError
 from simplejson import JSONDecodeError
 
@@ -34,7 +34,9 @@ oplaadpunten_providers = {
     # 'Eneco'
 }
 
-base_url = "https://www.allego.eu/api/feature/experienceaccelerator/areas/chargepointmap/getchargepoints"
+base_url = (
+    "https://www.allego.eu/api/feature/experienceaccelerator/areas/chargepointmap/getchargepoints"
+)
 
 
 def get_all_oplaadpunten():
@@ -147,12 +149,8 @@ def _make_oplaadpaal_args(opl: dict):
         "status": status,
         "connector_type": ";".join(list(OrderedDict.fromkeys(connector_type_list))),
         "vehicle_type": ";".join(list(OrderedDict.fromkeys(vehicle_type_list))),
-        "charging_capability": ";".join(
-            list(OrderedDict.fromkeys(charging_capability_list))
-        ),
-        "identification_type": ";".join(
-            list(OrderedDict.fromkeys(identification_type_list))
-        ),
+        "charging_capability": ";".join(list(OrderedDict.fromkeys(charging_capability_list))),
+        "identification_type": ";".join(list(OrderedDict.fromkeys(identification_type_list))),
         "charging_cap_max": charging_cap_max,
     }
     return args
@@ -339,15 +337,10 @@ def import_oplaadpalen(pg_conn, max_inserts=100):
                     if oplaadpaal_db:
                         # randomize complete update
                         max_age = LAADPAAL_MAX_AGE + random.randint(-10000, 10000)
-                        if (
-                            oplaadpaal_db[3] > max_age
-                            and total_complete_updates < max_inserts
-                        ):
+                        if oplaadpaal_db[3] > max_age and total_complete_updates < max_inserts:
                             oplaadpaal_remote = get_remote_oplaadpaal(id1)
                             if oplaadpaal_remote:
-                                update_complete_oplaadpaal(
-                                    curs, table_name, oplaadpaal_remote
-                                )
+                                update_complete_oplaadpaal(curs, table_name, oplaadpaal_remote)
                                 total_complete_updates += 1
                         else:
                             update_oplaadpaal(curs, table_name, id1, status)

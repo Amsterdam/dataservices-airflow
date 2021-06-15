@@ -1,6 +1,6 @@
 import pandas as pd
 from common.db import get_engine, get_ora_engine
-from sqlalchemy.types import Date, Integer, Text, Numeric, DateTime
+from sqlalchemy.types import Date, DateTime, Integer, Numeric, Text
 
 
 def load_from_dwh(table_name: str) -> None:

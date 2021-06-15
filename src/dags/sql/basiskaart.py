@@ -14,9 +14,9 @@
 #
 
 
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # CREATE tables (on master DB)
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 CREATE_TABLES = """
 	{% if 'labels' == params.base_table %}
 
@@ -95,9 +95,9 @@ CREATE_TABLES = """
 	/* creating index on geometrie */
 	CREATE INDEX IF NOT EXISTS {{ params.dag_id }}_{{ params.base_table }}_geom_idx ON {{ params.dag_id }}_{{ params.base_table }} USING gist (geometrie);
 """
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # CREATE MVIEWS (on master DB) for the T-rex tile generator
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 CREATE_MVIEWS = """
 	DROP MATERIALIZED VIEW IF EXISTS bgt_vw_{{ params.base_table }};
@@ -112,9 +112,9 @@ CREATE_MVIEWS = """
 	ALTER MATERIALIZED VIEW IF EXISTS bgt_vw_{{ params.base_table }} RENAME COLUMN id TO identificatie_lokaalid;
 """
 
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 # SELECT statements (to get data out of basiskaart DB)
-#--------------------------------------------------------------------------
+# --------------------------------------------------------------------------
 
 SELECT_GEBOUWVLAK_SQL = """
 SELECT

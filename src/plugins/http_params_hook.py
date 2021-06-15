@@ -1,13 +1,14 @@
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
+
 import requests
 from airflow.hooks.http_hook import HttpHook
 
 
 class HttpParamsHook(HttpHook):
-    """ Unfortunately, the default HttpHook makes it impossible
-        to combine query params with a payload in the body, so
-        we need a subclass with a slightly modified copy of the
-        run method
+    """Unfortunately, the default HttpHook makes it impossible
+    to combine query params with a payload in the body, so
+    we need a subclass with a slightly modified copy of the
+    run method
     """
 
     def run(

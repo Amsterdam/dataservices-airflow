@@ -1,27 +1,24 @@
-from datetime import datetime
 import json
-from pathlib import Path
 import shutil
 import time
-from typing import Any, Dict, Optional
-from environs import Env
+from datetime import datetime
+from pathlib import Path
 from tempfile import TemporaryDirectory
-from urllib3.exceptions import ProtocolError
+from typing import Any, Dict, Optional
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from airflow.models import Variable, XCOM_RETURN_KEY
+from airflow.exceptions import AirflowException
+from airflow.hooks.http_hook import HttpHook
+from airflow.hooks.postgres_hook import PostgresHook
+from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.hooks.http_hook import HttpHook
-from airflow.exceptions import AirflowException
+from environs import Env
+from http_params_hook import HttpParamsHook
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import toCamelCase, schema_def_from_url
-
-
-from http_params_hook import HttpParamsHook
+from schematools.utils import schema_def_from_url, toCamelCase
+from sqlalchemy.exc import SQLAlchemyError
+from urllib3.exceptions import ProtocolError
 
 env = Env()
 SCHEMA_URL = env("SCHEMA_URL")

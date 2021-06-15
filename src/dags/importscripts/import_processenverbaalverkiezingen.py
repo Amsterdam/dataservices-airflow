@@ -1,7 +1,8 @@
 import csv
+from typing import Iterable, List, TypedDict
+
 from common import make_hash
 from more_ds.network.url import URL
-from typing import List, TypedDict, Iterable
 from swift_hook import SwiftHook
 
 

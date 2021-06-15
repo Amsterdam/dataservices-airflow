@@ -1,36 +1,28 @@
 import operator
-from environs import Env
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from swift_operator import SwiftOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from ogr2ogr_operator import Ogr2OgrOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
 from common import (
-    quote_string,
-    default_args,
+    DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    quote_string,
     slack_webhook_token,
-    DATAPUNT_ENVIRONMENT,
 )
-
 from common.db import DatabaseEngine
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from environs import Env
+from ogr2ogr_operator import Ogr2OgrOperator
+from pgcomparator_cdc_operator import PgComparatorCDCOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.reclamebelasting import SQL_DROP_TMP_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from swift_operator import SwiftOperator
 
 env: object = Env()
 
@@ -56,7 +48,7 @@ with DAG(
     description="""Reclamebelastingjaartarieven per belastinggebied voor (reclame)uitingen
     met oppervlakte >= 0,25 m2 en > 10 weken in een jaar zichtbaar zijn.""",
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="belastingen")
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="belastingen"),
 ) as dag:
 
     # 1. Post info message on slack

@@ -1,18 +1,21 @@
 import operator
+
 from airflow import DAG
-
-from swift_operator import SwiftOperator
-
-# from airflow.operators.postgres_operator import PostgresOperator
+from check_helpers import make_params
+from common import default_args
 
 # from airflow.operators.bash_operator import BashOperator
 # from airflow.operators.python_operator import PythonOperator
 from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
     COLNAMES_CHECK,
+    COUNT_CHECK,
     GEO_CHECK,
+    PostgresMultiCheckOperator,
 )
+from swift_operator import SwiftOperator
+
+# from airflow.operators.postgres_operator import PostgresOperator
+
 
 # from airflow.operators.postgres_operator import PostgresOperator
 # from airflow.operators.bash_operator import BashOperator
@@ -20,8 +23,6 @@ from postgres_check_operator import (
 
 # from airflow.operators.dummy_operator import DummyOperator
 
-from common import default_args
-from check_helpers import make_params
 
 # from common import pg_params
 
@@ -32,7 +33,10 @@ def create_error(*args, **kwargs):
     raise Exception
 
 
-with DAG("testdag", default_args=default_args,) as dag:
+with DAG(
+    "testdag",
+    default_args=default_args,
+) as dag:
 
     swift_task = SwiftOperator(
         task_id="swift_task",
@@ -67,9 +71,7 @@ with DAG("testdag", default_args=default_args,) as dag:
     )
 
     checks = [count_check, colname_check, geo_check]
-    multi = PostgresMultiCheckOperator(
-        task_id="multi", checks=checks, params=make_params(checks)
-    )
+    multi = PostgresMultiCheckOperator(task_id="multi", checks=checks, params=make_params(checks))
 
     # swift_task
     # sqls = [

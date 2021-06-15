@@ -1,13 +1,14 @@
 import argparse
 import datetime
+import logging
 import os
+from typing import Iterable
+
 import numpy as np
 import pandas as pd
 import sqlalchemy
-from sqlalchemy import Integer
 from common.db import get_engine
-from typing import Iterable
-import logging
+from sqlalchemy import Integer
 
 LOGLEVEL: str = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -81,7 +82,7 @@ def main() -> None:
         },
         header=0,
     )
-    
+
     # loop trough all rows and calculate it's max iso week
     for index, row in df.iterrows():
         df.at[index, "max_week"] = max(iter_valid_weeks(row["jaar"]))
@@ -106,7 +107,7 @@ def main() -> None:
     df = df.groupby(
         ["organisatie", "type_interventie", "week_nummer", "jaar"], as_index=False
     ).sum()
-    
+
     df.index.name = "id"
 
     engine: sqlalchemy.engine.Engine = get_engine()

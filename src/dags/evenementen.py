@@ -1,35 +1,26 @@
 import operator
-import requests
 
+import requests
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
 from airflow.operators.postgres_operator import PostgresOperator
-
-from contact_point.callbacks import get_contact_point_on_failure_callback
-from provenance_rename_operator import ProvenanceRenameOperator
-from postgres_rename_operator import PostgresTableRenameOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-
+from airflow.operators.python_operator import PythonOperator
 from common import (
-    quote_string,
-    default_args,
-    pg_params,
-    slack_webhook_token,
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
+    default_args,
+    pg_params,
+    quote_string,
+    slack_webhook_token,
 )
-
-from postgres_check_operator import (
-    PostgresMultiCheckOperator,
-    COUNT_CHECK,
-    GEO_CHECK,
-)
-
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
 from sql.evenementen import SET_DATE_DATATYPE
-
 
 dag_id = "evenementen"
 
@@ -44,7 +35,7 @@ geo_checks = []
 
 # data connection
 def get_data():
-    """ calling the data endpoint """
+    """calling the data endpoint"""
 
     # get data
     data_url = data_endpoint
@@ -61,7 +52,7 @@ with DAG(
     default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id)
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
     # 1. Post info message on slack

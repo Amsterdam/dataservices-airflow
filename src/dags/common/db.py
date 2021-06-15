@@ -1,10 +1,10 @@
 import dsnparse
 from airflow import AirflowException
 from airflow.hooks.oracle_hook import OracleHook
+from airflow.hooks.postgres_hook import PostgresHook
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
-from airflow.hooks.postgres_hook import PostgresHook
 
 
 class DatabaseEngine:
@@ -60,6 +60,7 @@ def fetch_pg_env_vars(postgres_conn_id="postgres_default"):
     # Need to get rid of trailing '&'
     # moved from to here due to circular import error
     from . import env
+
     stripped_env = env("AIRFLOW_CONN_POSTGRES_DEFAULT")[:-1]
     pg_conn_info = dsnparse.parse(stripped_env)
     return {

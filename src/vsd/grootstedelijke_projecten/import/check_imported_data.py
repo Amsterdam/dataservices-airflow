@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 from shared.utils.check_imported_data import (
-    run_sql_checks,
-    assert_count_zero,
     assert_count_minimum,
+    assert_count_zero,
+    run_sql_checks,
 )
 
 sql_checks = [
-    ("count", "select count(*) from gebieden_grootstedelijke_projecten_new", assert_count_minimum(74)),
+    (
+        "count",
+        "select count(*) from gebieden_grootstedelijke_projecten_new",
+        assert_count_minimum(74),
+    ),
     (
         "geometrie",
         """

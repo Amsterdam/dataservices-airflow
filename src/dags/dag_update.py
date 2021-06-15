@@ -1,11 +1,11 @@
 import pathlib
+
+from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
+from common import SHARED_DIR, default_args
 
 # from airflow.operators.python_operator import PythonOperator
 from environs import Env
-
-from airflow import DAG
-from common import default_args, SHARED_DIR
 
 env = Env()
 
@@ -18,9 +18,7 @@ def doit():
     pass
 
 
-with DAG(
-    "update_dags", default_args=default_args, schedule_interval="0 * * * *"
-) as dag:
+with DAG("update_dags", default_args=default_args, schedule_interval="0 * * * *") as dag:
 
     github_url = "https://github.com/Amsterdam/dataservices-airflow/archive/master.zip"
 

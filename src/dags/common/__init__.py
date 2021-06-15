@@ -38,6 +38,7 @@ DATASTORE_TYPE: str = (
     "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )
 
+
 class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
     """THIS IS TEMPORARY PATCH. IF YOU SEE THIS AFTER MARCH 21 2021 PLEASE POKE NICK.
 

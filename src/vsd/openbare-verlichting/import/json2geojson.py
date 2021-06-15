@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import logging
 from sys import argv
+
 import simplejson as json
 from geojson import Point
 

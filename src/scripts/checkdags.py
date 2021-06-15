@@ -5,9 +5,8 @@ When DAGs are broken, this results in Airflow not being able to start.
 So, broken dags are detected during deployment.
 """
 
-from pathlib import Path
 import subprocess
-
+from pathlib import Path
 
 dagsfolder = Path(__file__).parent / ".." / "dags"
 

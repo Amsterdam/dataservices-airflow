@@ -1,13 +1,12 @@
+import argparse
 import json
 import logging
 import os
-import argparse
 
 import pandas as pd
-from sqlalchemy import Integer, Date, String
 from common.db import get_engine
-
 from provenance_rename_operator import ProvenanceRenameOperator
+from sqlalchemy import Date, Integer, String
 
 LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
@@ -17,7 +16,7 @@ subset_amterdam = list()
 
 
 def data_parser(file):
-    """ loading data and parsing json """
+    """loading data and parsing json"""
     log.info(f"read file {file}")
     with open(file, "r") as data:
         for row in data:
@@ -26,7 +25,7 @@ def data_parser(file):
 
 
 def data_iter(file):
-    """ getting data and filtering on Amsterdam """
+    """getting data and filtering on Amsterdam"""
     data = data_parser(file)
     for row in data:
         # selection only Amsterdam
@@ -35,7 +34,7 @@ def data_iter(file):
 
 
 def main():
-    """ starting import """
+    """starting import"""
 
     # get argument
     parser = argparse.ArgumentParser()
@@ -51,12 +50,17 @@ def main():
     result.columns = result.columns.str.lower()
 
     # aggregating numbers per group
-    result = result.groupby(
-        ['date_of_publication', 'municipality_code', 'municipality_name', 'province']).agg(
-        total_reported = ('total_reported','sum'),
-        hospital_admission  = ('hospital_admission','sum'),
-        deceased  = ('deceased','sum'),
-        ).reset_index()
+    result = (
+        result.groupby(
+            ["date_of_publication", "municipality_code", "municipality_name", "province"]
+        )
+        .agg(
+            total_reported=("total_reported", "sum"),
+            hospital_admission=("hospital_admission", "sum"),
+            deceased=("deceased", "sum"),
+        )
+        .reset_index()
+    )
 
     log.info(f"Starting import {args.input_json}")
 
