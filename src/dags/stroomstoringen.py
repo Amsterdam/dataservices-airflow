@@ -38,6 +38,8 @@ with DAG(
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
+    schedule_interval="*/10 * * * *",
+    catchup=False,
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
