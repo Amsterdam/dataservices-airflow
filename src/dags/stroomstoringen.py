@@ -71,7 +71,7 @@ with DAG(
         input_file=f"{TMP_DIR}/stroomstoringen.geojson",
         auto_detect_type="YES",
         mode="PostgreSQL",
-        s_srs="EPSG:28992",
+        s_srs="EPSG:4326",
         t_srs="EPSG:28992",
         fid="objectid",
         db_conn=db_conn,
