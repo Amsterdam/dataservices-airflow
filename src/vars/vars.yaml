@@ -345,12 +345,10 @@ rdw:
 stroomstoringen:
   data_endpoints:
     stroomstoringen: "/v6W5HAVrpgSg3vts/ArcGIS/rest/services/IStoringen_Productie_V7/FeatureServer/0/query?\
-      where=STORING_DATUM_GEMELD+%3E%3D+%27{today}%27+AND+lower%28STORING_GETROFFEN_PLAATSEN%29+%3D+%27amsterdam%27+\
-      AND+STORING_STATUS+not+like+%27opgelost%27&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=\
-      &spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false\
-      &outFields=*&returnGeometry=true&returnCentroid=false&featureEncoding=esriDefault&multipatchOption=xyFootprint\
-      &maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false\
-      &returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false\
-      &returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=\
-      &resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true&quantizationParameters=\
-      &sqlFormat=none&f=pgeojson&token="
+      where=STORING_DATUM_GEMELD+%3E%3D+%27{today}%27+AND+lower%28STORING_GETROFFEN_PLAATSEN%29+%3D+%27amsterdam%27\
+      &objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&spatialRel=esriSpatialRelIntersects&resultType=none\
+      &distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&returnGeometry=true&returnCentroid=false&featureEncoding=esriDefault\
+      &multipatchOption=xyFootprint&maxAllowableOffset=&geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false\
+      &returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false\
+      &orderByFields=&groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false\
+      &returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
