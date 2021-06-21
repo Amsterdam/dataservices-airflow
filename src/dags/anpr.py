@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import csv
+import logging
+from pathlib import Path
+from typing import Any
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
@@ -18,7 +21,9 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
-dag_id = "anpr"
+logger = logging.getLogger(__name__)
+
+DAG_ID = "anpr"
 table_id = "anpr_taxi"
 http_conn_id = (
     "taxi_waarnemingen_conn_id"
@@ -26,7 +31,7 @@ http_conn_id = (
     else "taxi_waarnemingen_acc_conn_id"
 )
 endpoint = "/v0/milieuzone/passage/export-taxi/"
-TMP_PATH = f"{SHARED_DIR}/{dag_id}/"
+TMP_DIR = Path(SHARED_DIR) / DAG_ID
 
 
 args = default_args.copy()
@@ -53,9 +58,10 @@ SQL_RENAME_TEMP_TABLE = """
 """
 
 
-def import_csv_data(*args, **kwargs):
+def import_csv_data(**_: Any) -> None:
+    """Insert rows for CSV file into DB table."""
     sql_header = f"INSERT INTO {table_id}_temp (datum, aantal_taxi_passages) VALUES "
-    with open(f"{TMP_PATH}/taxi_passages.csv") as csvfile:
+    with open(TMP_DIR / "taxi_passages.csv") as csvfile:
         reader = csv.DictReader(csvfile)
         items = []
         for row in reader:
@@ -70,15 +76,15 @@ def import_csv_data(*args, **kwargs):
             try:
                 hook.run(sql)
             except Exception as e:
-                raise Exception("Failed to create data: {}".format(str(e)[0:150]))
-            print("Created {} recods".format(len(items)))
+                raise Exception(f"Failed to create data: {e}"[:150])
+            logger.debug("Created %d records.", len(items))
 
 
 with DAG(
-    dag_id,
+    DAG_ID,
     default_args=args,
     description="aantal geidentificeerde taxikentekenplaten per dag",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     # 1. starting message on Slack
@@ -86,26 +92,26 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
     # 2. make temp dir
-    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_PATH}")
+    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_DIR}")
 
     # 3. download the data into temp directory
     download_data = HttpFetchOperator(
         task_id="download",
         endpoint=endpoint,
         http_conn_id=http_conn_id,
-        tmp_file=f"{TMP_PATH}/taxi_passages.csv",
+        tmp_file=TMP_DIR / "taxi_passages.csv",
         output_type="text",
     )
 
     create_temp_table = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLE,
-        params=dict(base_table=table_id),
+        params={"base_table": table_id},
     )
 
     import_data = PythonOperator(
@@ -117,11 +123,11 @@ with DAG(
     rename_temp_table = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLE,
-        params=dict(base_table=table_id),
+        params={"base_table": table_id},
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 
 (
