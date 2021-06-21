@@ -35,7 +35,9 @@ extend-ignore =
     # E731  Allow lambdas:
     E731,
     # R102  Allow raise Exception()
-    R102
+    R102,
+    # S101 Use of assert detected
+    S101
 exclude =
     .git,
     **/migrations/*,
