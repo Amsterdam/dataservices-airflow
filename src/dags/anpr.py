@@ -6,7 +6,6 @@ from typing import Any
 
 from airflow import DAG
 from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.bash_operator import BashOperator
 from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import PythonOperator
 from common import (
@@ -17,6 +16,7 @@ from common import (
     default_args,
     slack_webhook_token,
 )
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -97,7 +97,7 @@ with DAG(
     )
 
     # 2. make temp dir
-    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_DIR}")
+    mk_tmp_dir = mk_dir(TMP_DIR, clean_if_exists=True)
 
     # 3. download the data into temp directory
     download_data = HttpFetchOperator(
