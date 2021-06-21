@@ -2,7 +2,7 @@ import itertools
 import operator
 from contextlib import closing
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.postgres_hook import PostgresHook
@@ -112,7 +112,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 "even though source table will be dropped."
             )
 
-    def execute(self, context: Dict[str, Any]) -> None:  # noqa: C901
+    def execute(self, context: Dict[str, Any]) -> None:  # noqa: C901, D102
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
         # Use the mixin class _assign to assign new values, if provided.
@@ -141,16 +141,17 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         SELECT tablename FROM pg_tables
                         WHERE schemaname = 'public' AND tablename like %(table_name)s ESCAPE '!'
                     """,
-                    dict(table_name=f"{self.source_table_name}!_%"),
+                    {"table_name": f"{self.source_table_name}!_%"},
                 )
 
-                junction_tables = tuple(map(operator.itemgetter("tablename"), cursor.fetchall()))
+                junction_tables = cast(
+                    Tuple[str, ...],
+                    tuple(map(operator.itemgetter("tablename"), cursor.fetchall())),
+                )
                 if junction_tables:
-                    self.log.info(
-                        f"Found the following junction tables: '{', '.join(junction_tables)}'."
-                    )
+                    self.log.info("Found the following junction tables: %r", junction_tables)
                 else:
-                    self.log.info("Did not found any junction tables.")
+                    self.log.info("Did not find any junction tables.")
 
                 junction_table_copies: List[TableMapping] = []
                 for source_table_name in junction_tables:
@@ -164,7 +165,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         sql="""
                     CREATE TABLE IF NOT EXISTS {target_table_name}
                     (
-                        LIKE {source_table_name} INCLUDING CONSTRAINTS INCLUDING INDEXES
+                        LIKE {source_table_name} INCLUDING ALL
                     )
                     """,
                         log_msg="Creating new table '{target_table_name}' "
@@ -200,7 +201,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 for table_mapping in itertools.chain(table_copies, junction_table_copies):
                     for stmt in statements:
                         self.log.info(
-                            stmt.log_msg.format(
+                            stmt.log_msg.format(  # noqa: G001
                                 source_table_name=table_mapping.source,
                                 target_table_name=table_mapping.target,
                             )
