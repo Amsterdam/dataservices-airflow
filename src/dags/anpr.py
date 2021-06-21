@@ -24,14 +24,14 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 logger = logging.getLogger(__name__)
 
 DAG_ID = "anpr"
-table_id = "anpr_taxi"
-http_conn_id = (
+TMP_DIR = Path(SHARED_DIR) / DAG_ID
+TABLE_ID = "anpr_taxi"
+HTTP_CONN_ID = (
     "taxi_waarnemingen_conn_id"
     if DATASTORE_TYPE != "acceptance"
     else "taxi_waarnemingen_acc_conn_id"
 )
-endpoint = "/v0/milieuzone/passage/export-taxi/"
-TMP_DIR = Path(SHARED_DIR) / DAG_ID
+ENDPOINT = "/v0/milieuzone/passage/export-taxi/"
 
 
 args = default_args.copy()
@@ -60,7 +60,7 @@ SQL_RENAME_TEMP_TABLE = """
 
 def import_csv_data(**_: Any) -> None:
     """Insert rows for CSV file into DB table."""
-    sql_header = f"INSERT INTO {table_id}_temp (datum, aantal_taxi_passages) VALUES "
+    sql_header = f"INSERT INTO {TABLE_ID}_temp (datum, aantal_taxi_passages) VALUES "
     with open(TMP_DIR / "taxi_passages.csv") as csvfile:
         reader = csv.DictReader(csvfile)
         items = []
@@ -102,8 +102,8 @@ with DAG(
     # 3. download the data into temp directory
     download_data = HttpFetchOperator(
         task_id="download",
-        endpoint=endpoint,
-        http_conn_id=http_conn_id,
+        endpoint=ENDPOINT,
+        http_conn_id=HTTP_CONN_ID,
         tmp_file=TMP_DIR / "taxi_passages.csv",
         output_type="text",
     )
@@ -111,7 +111,7 @@ with DAG(
     create_temp_table = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLE,
-        params={"base_table": table_id},
+        params={"base_table": TABLE_ID},
     )
 
     import_data = PythonOperator(
@@ -123,7 +123,7 @@ with DAG(
     rename_temp_table = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLE,
-        params={"base_table": table_id},
+        params={"base_table": TABLE_ID},
     )
 
     # Grant database permissions
