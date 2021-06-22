@@ -193,7 +193,7 @@ with DAG(
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains power stations data for event or mar
+    This DAG contains power stations data for event or market
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
