@@ -2,8 +2,8 @@ import operator
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.bash import BashOperator
+from airflow.operators.dummy import DummyOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,

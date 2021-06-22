@@ -1,7 +1,7 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import SHARED_DIR, default_args, pg_params
 from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_TABLE_RENAME
 from contact_point.callbacks import get_contact_point_on_failure_callback

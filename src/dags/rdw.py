@@ -2,8 +2,8 @@ from typing import Dict, Iterable
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.bash import BashOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,

@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from bash_env_operator import BashEnvOperator
 from common import (
     DATAPUNT_ENVIRONMENT,

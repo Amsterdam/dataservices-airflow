@@ -1,7 +1,7 @@
 import pandas as pd
 from airflow import DAG
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import default_args
 from common.db import get_engine, get_ora_engine
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO

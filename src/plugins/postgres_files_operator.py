@@ -1,5 +1,5 @@
 from airflow.hooks.base_hook import BaseHook
-from airflow.operators.bash_operator import BashOperator
+from airflow.operators.bash import BashOperator
 
 pg_params = " ".join(
     [

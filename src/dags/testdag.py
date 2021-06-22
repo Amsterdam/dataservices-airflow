@@ -4,8 +4,8 @@ from airflow import DAG
 from check_helpers import make_params
 from common import default_args
 
-# from airflow.operators.bash_operator import BashOperator
-# from airflow.operators.python_operator import PythonOperator
+# from airflow.operators.bash import BashOperator
+# from airflow.operators.python import PythonOperator
 from postgres_check_operator import (
     COLNAMES_CHECK,
     COUNT_CHECK,
@@ -14,14 +14,14 @@ from postgres_check_operator import (
 )
 from swift_operator import SwiftOperator
 
-# from airflow.operators.postgres_operator import PostgresOperator
+# from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 
-# from airflow.operators.postgres_operator import PostgresOperator
-# from airflow.operators.bash_operator import BashOperator
-# from airflow.operators.python_operator import PythonOperator
+# from airflow.providers.postgres.operators.postgres import PostgresOperator
+# from airflow.operators.bash import BashOperator
+# from airflow.operators.python import PythonOperator
 
-# from airflow.operators.dummy_operator import DummyOperator
+# from airflow.operators.dummy import DummyOperator
 
 
 # from common import pg_params
