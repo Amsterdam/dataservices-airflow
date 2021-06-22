@@ -16,4 +16,4 @@ wheel == 0.34.1
 black
 isort
 
-mypy
+mypy==0.812
