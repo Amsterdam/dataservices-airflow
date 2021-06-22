@@ -64,7 +64,7 @@ services:
       AIRFLOW_CONN_OIDC_SERVER: "https://iam.amsterdam.nl/https"
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
-      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl"
+      AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl/https"
       AIRFLOW_CONN_RIVM_BASE_URL: "https://data.rivm.nl/covid-19/"
       AIRFLOW_CONN_WIOR_PASSWD: ${dataservices_wior_passwd}
       AIRFLOW_CONN_WIOR_USER: ${dataservices_wior_user}
