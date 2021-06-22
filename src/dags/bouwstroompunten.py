@@ -1,23 +1,26 @@
 import json
 import operator
+from typing import Any
 
+import dsnparse
 import requests
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.operators.bash_operator import BashOperator
+from airflow.operators.postgres_operator import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
     MessageOperator,
     default_args,
-    pg_params,
     quote_string,
     slack_webhook_token,
 )
+from common.db import DatabaseEngine
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
+from http_fetch_operator import HttpFetchOperator
+from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
@@ -38,34 +41,33 @@ total_checks = []
 count_checks = []
 geo_checks = []
 
+db_conn: object = DatabaseEngine()
 
-# data connection
-def get_data():
-    """getting the the access token and calling the data endpoint"""
 
-    # get token
-    token_url = f"{base_url}/{auth_endpoint}"
+def get_token() -> Any:
+    """Getting the access token for calling the data endpoint.
+
+    Returns:
+        API access token.
+
+    Note: Because of the additional /https in the base url environment variable
+    `AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL` the scheme en host must be extracted
+    and merged into a base endpoint
+    """
+    scheme = dsnparse.parse(base_url).scheme
+    host = dsnparse.parse(base_url).hostloc
+    base_endpoint = "".join([scheme, "://", host])
+    token_url = f"{base_endpoint}/{auth_endpoint}"
     token_payload = {"identifier": user, "password": password}
     token_headers = {"content-type": "application/json"}
-    # verify=Fals because source API is apparently configured incorrectly.
     token_request = requests.post(
-        token_url, data=json.dumps(token_payload), headers=token_headers, verify=False
+        token_url,
+        data=json.dumps(token_payload),
+        headers=token_headers,
+        verify=True,
     )
     token_load = json.loads(token_request.text)
-    token_get = token_load["jwt"]
-
-    # get data
-    data_url = f"{base_url}/{data_endpoint}"
-    data_headers = {
-        "content-type": "application/json",
-        "Authorization": f"Bearer {token_get}",
-    }
-    data_data = requests.get(data_url, headers=data_headers, verify=False)
-
-    # store data
-    with open(data_file, "w") as file:
-        file.write(data_data.text)
-    file.close()
+    return token_load["jwt"]
 
 
 with DAG(
@@ -89,27 +91,32 @@ with DAG(
     mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
 
     # 3. Download data
-    download_data = PythonOperator(task_id="download_data", python_callable=get_data)
+    download_data = HttpFetchOperator(
+        task_id="download",
+        endpoint=data_endpoint,
+        http_conn_id="BOUWSTROOMPUNTEN_BASE_URL",
+        tmp_file=data_file,
+        headers={
+            "content-type": "application/json",
+            "Authorization": f"Bearer {get_token()}",
+        },
+    )
 
-    # 4. Create SQL
+    # 4. Import data
     # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
     # So FID=ID cannot be used.
-    create_SQL = BashOperator(
-        task_id="create_SQL_based_on_geojson",
-        bash_command="ogr2ogr -f 'PGDump' "
-        "-t_srs EPSG:28992 "
-        f"-nln {dag_id} "
-        f"{tmp_dir}/{dag_id}.sql {data_file} "
-        "-lco GEOMETRY_NAME=geometry ",
+    import_data = Ogr2OgrOperator(
+        task_id="import_data",
+        target_table_name=f"{dag_id}_{dag_id}_new",
+        input_file=data_file,
+        s_srs=None,
+        fid="ogc_fid",
+        auto_detect_type="YES",
+        mode="PostgreSQL",
+        db_conn=db_conn,
     )
 
-    # 5. Create TABLE
-    create_table = BashOperator(
-        task_id="create_table",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
-    )
-
-    # 6. Drop Exisiting TABLE
+    # 5. Drop Exisiting TABLE
     drop_tables = PostgresOperator(
         task_id="drop_existing_table",
         sql=[
@@ -117,23 +124,28 @@ with DAG(
         ],
     )
 
-    # 7. Rename COLUMNS based on Provenance
+    # 6. Rename COLUMNS based on provenance (if specified)
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name=dag_id, pg_schema="public"
+        task_id="rename_columns",
+        dataset_name=dag_id,
+        prefix_table_name=f"{dag_id}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema="public",
     )
 
-    # 8. Rename TABLE
+    # 7. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id="rename_table",
-        old_table_name=dag_id,
+        old_table_name=f"{dag_id}_{dag_id}_new",
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
-    # 9. RE-define PK(see step 4 why)
+    # 8. RE-define PK(see step 4 why)
     redefine_pk = PostgresOperator(
         task_id="re-define_pk",
         sql=ADD_PK,
-        params=dict(tablename=f"{dag_id}_{dag_id}"),
+        params={"tablename": f"{dag_id}_{dag_id}"},
     )
 
     # PREPARE CHECKS
@@ -141,7 +153,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=25,
-            params=dict(table_name=f"{dag_id}_{dag_id}"),
+            params={"table_name": f"{dag_id}_{dag_id}"},
             result_checker=operator.ge,
         )
     )
@@ -149,20 +161,20 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}",
-                geotype=["POINT"],
-            ),
+            params={
+                "table_name": f"{dag_id}_{dag_id}",
+                "geotype": ["POINT"],
+            },
             pass_value=1,
         )
     )
 
     total_checks = count_checks + geo_checks
 
-    # 10. RUN bundled CHECKS
+    # 9. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 11. Grant database permissions
+    # 10. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
@@ -170,8 +182,7 @@ with DAG(
     slack_at_start
     >> mkdir
     >> download_data
-    >> create_SQL
-    >> create_table
+    >> import_data
     >> drop_tables
     >> provenance_translation
     >> rename_table
@@ -182,7 +193,7 @@ with DAG(
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains power stations data
+    This DAG contains power stations data for event or mar
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
