@@ -1,9 +1,9 @@
 import pathlib
 
 from airflow import DAG
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.operators.python_operator import BranchPythonOperator, PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,

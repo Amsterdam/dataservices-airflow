@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from psycopg2 import sql
 from psycopg2.extras import execute_batch

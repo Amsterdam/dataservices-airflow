@@ -1,5 +1,5 @@
 from airflow import DAG
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     DATASTORE_TYPE,

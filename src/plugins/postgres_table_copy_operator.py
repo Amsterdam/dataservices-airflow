@@ -5,8 +5,8 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 from airflow.exceptions import AirflowFailException
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import XCOM_RETURN_KEY, BaseOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from psycopg2 import sql
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin

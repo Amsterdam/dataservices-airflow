@@ -5,9 +5,9 @@ from string import Template
 from typing import Any, Callable, ClassVar, Dict, Iterable, List
 
 from airflow.exceptions import AirflowException
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import BaseOperator
 from airflow.operators.sql import SQLCheckOperator, SQLValueCheckOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name, make_params
 

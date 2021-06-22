@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.operators.bash import BashOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
@@ -14,7 +14,7 @@ from common.sql import SQL_TABLE_RENAMES
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 
-# from airflow.operators.postgres_operator import PostgresOperator
+# from airflow.providers.postgres.operators.postgres import PostgresOperator
 from swift_operator import SwiftOperator
 
 SQL_RENAME_COL = """

@@ -1,7 +1,7 @@
 import re
 
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name
 

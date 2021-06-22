@@ -8,9 +8,9 @@ from typing import Any, Dict, Optional
 
 from airflow.exceptions import AirflowException
 from airflow.hooks.http_hook import HttpHook
-from airflow.hooks.postgres_hook import PostgresHook
 from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from http_params_hook import HttpParamsHook

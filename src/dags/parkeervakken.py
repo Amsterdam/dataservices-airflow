@@ -9,10 +9,10 @@ import dateutil.parser
 import shapefile
 from airflow import DAG
 from airflow.exceptions import AirflowException
-from airflow.hooks.postgres_hook import PostgresHook
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.bash import BashOperator
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import SHARED_DIR, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator

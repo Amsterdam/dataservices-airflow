@@ -1,7 +1,7 @@
 import dsnparse
 from airflow import AirflowException
 from airflow.hooks.oracle_hook import OracleHook
-from airflow.hooks.postgres_hook import PostgresHook
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError

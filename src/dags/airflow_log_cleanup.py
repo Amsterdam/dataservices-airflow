@@ -15,8 +15,8 @@ from typing import Dict, List, Optional
 import airflow
 from airflow.configuration import conf
 from airflow.models import DAG, Variable
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.bash import BashOperator
+from airflow.operators.dummy import DummyOperator
 from common import SHARED_DIR
 from environs import Env
 
