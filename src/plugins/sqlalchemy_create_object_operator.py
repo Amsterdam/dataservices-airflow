@@ -17,10 +17,12 @@ env = Env()
 # for database connection the url params must be omitted.
 DEFAULT_DB_CONN = env.str("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
 SCHEMA_URL = URL(env("SCHEMA_URL"))
+MATCH_ALL = re.compile(r".*")
 
 
 class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
-    """Create PostgreSQL objects based on an Amsterdam schema using SQLAlchemy
+    """Create PostgreSQL objects based on an Amsterdam schema using SQLAlchemy.
+
     This operator takes a JSON data schema definition and DB connection to create the specified
     tables and/or an index. The latter is based on the Identifier object in the data JSON schema
     i.e. "identifier": ["identificatie", "volgnummer"] which is common for temporal data. And on
@@ -38,7 +40,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
     def __init__(
         self,
         data_schema_name: str,
-        data_table_name: Optional[Union[str, Pattern]] = re.compile(r".*"),
+        data_table_name: Optional[Union[str, Pattern]] = MATCH_ALL,
         db_conn: str = DEFAULT_DB_CONN,
         pg_schema: Optional[str] = None,
         db_table_name: Optional[str] = None,
@@ -51,6 +53,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         **kwargs: Any,
     ):
         """Initialize SqlAlchemyCreateObjectOperator.
+
         Args:
             data_schema_name: Name of the schema to derive PostgreSQL objects from.
             data_table_name: Table(s) to create PostgreSQL objects for. This can either be a
@@ -91,12 +94,12 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
     def execute(self, context: Dict[str, Any]) -> None:
         """Executes the ``generate_db_object`` method from schema-tools.
+
         Which leads to the creation of tables and/or an index on the identifier (as specified in
         the data JSON schema). By default both tables and the identifier and 'many-to-many
         table' indexes are created. By setting the boolean indicators in the method parameters,
         tables or an identifier index (per table) can be created.
         """
-
         # Use the mixin class _assign to assign new values, if provided.
         # This needs to operate first, it can change the data_table_name.
         self._assign(context)
@@ -134,9 +137,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
             if re.fullmatch(self.data_table_name, cur_table):
                 self.log.info(
-                    "Generating PostgreSQL objects for table: '%s'",
+                    "Generating PostgreSQL objects for table: '%s' in DB schema: '%s'",
                     table.name,
-                    " in DB schema: '%s'",
                     self.pg_schema if self.pg_schema else "public",
                 )
                 importer.generate_db_objects(
