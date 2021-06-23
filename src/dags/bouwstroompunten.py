@@ -1,7 +1,7 @@
 import json
 import operator
 from pathlib import Path
-from typing import Dict
+from typing import Any, Union
 
 import dsnparse
 import requests
@@ -45,7 +45,7 @@ geo_checks = []
 db_conn: object = DatabaseEngine()
 
 
-def get_token() -> Dict[str, str]:
+def get_token() -> Union[str, Any]:
     """Getting the access token for calling the data endpoint.
 
     Returns:
@@ -61,12 +61,18 @@ def get_token() -> Dict[str, str]:
     token_url = f"{base_endpoint}/{auth_endpoint}"
     token_payload = {"identifier": user, "password": password}
     token_headers = {"content-type": "application/json"}
-    token_request = requests.post(
-        token_url,
-        data=json.dumps(token_payload),
-        headers=token_headers,
-        verify=True,
-    )
+
+    try:
+        token_request = requests.post(
+            token_url,
+            data=json.dumps(token_payload),
+            headers=token_headers,
+            verify=True,
+        )
+        token_request.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise requests.exceptions.HTTPError("Something went wrong", err.response.text)
+
     token_load = json.loads(token_request.text)
     return token_load["jwt"]
 
