@@ -1,13 +1,13 @@
 import json
 import operator
-from typing import Any
+from pathlib import Path
+from typing import Dict
 
 import dsnparse
 import requests
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.postgres_operator import PostgresOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
@@ -17,6 +17,7 @@ from common import (
     slack_webhook_token,
 )
 from common.db import DatabaseEngine
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
 from http_fetch_operator import HttpFetchOperator
@@ -31,7 +32,7 @@ dag_id = "bouwstroompunten"
 variables = Variable.get(dag_id, deserialize_json=True)
 auth_endpoint = variables["data_endpoints"]["auth"]
 data_endpoint = variables["data_endpoints"]["data"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
+tmp_dir = Path(SHARED_DIR) / dag_id
 data_file = f"{tmp_dir}/bouwstroompunten_data.geojson"
 env = Env()
 password = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD")
@@ -44,7 +45,7 @@ geo_checks = []
 db_conn: object = DatabaseEngine()
 
 
-def get_token() -> Any:
+def get_token() -> Dict[str, str]:
     """Getting the access token for calling the data endpoint.
 
     Returns:
@@ -52,7 +53,7 @@ def get_token() -> Any:
 
     Note: Because of the additional /https in the base url environment variable
     `AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL` the scheme en host must be extracted
-    and merged into a base endpoint
+    and merged into a base endpoint.
     """
     scheme = dsnparse.parse(base_url).scheme
     host = dsnparse.parse(base_url).hostloc
@@ -88,7 +89,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(tmp_dir, clean_if_exists=False)
 
     # 3. Download data
     download_data = HttpFetchOperator(
@@ -119,9 +120,8 @@ with DAG(
     # 5. Drop Exisiting TABLE
     drop_tables = PostgresOperator(
         task_id="drop_existing_table",
-        sql=[
-            f"DROP TABLE IF EXISTS {dag_id}_{dag_id} CASCADE",
-        ],
+        sql="DROP TABLE IF EXISTS {{ params.table_id }} CASCADE",
+        params={"table_id": f"{dag_id}_{dag_id}"},
     )
 
     # 6. Rename COLUMNS based on provenance (if specified)
@@ -177,19 +177,18 @@ with DAG(
     # 10. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-
-(
-    slack_at_start
-    >> mkdir
-    >> download_data
-    >> import_data
-    >> drop_tables
-    >> provenance_translation
-    >> rename_table
-    >> redefine_pk
-    >> multi_checks
-    >> grant_db_permissions
-)
+    (
+        slack_at_start
+        >> mkdir
+        >> download_data
+        >> import_data
+        >> drop_tables
+        >> provenance_translation
+        >> rename_table
+        >> redefine_pk
+        >> multi_checks
+        >> grant_db_permissions
+    )
 
 dag.doc_md = """
     #### DAG summary
