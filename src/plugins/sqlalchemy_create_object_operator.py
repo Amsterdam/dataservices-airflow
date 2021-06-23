@@ -106,7 +106,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
         # NB. data_table_name could have been changed because of xcom info
         if isinstance(self.data_table_name, str):
-            self.data_table_name = re.compile(self.data_table_name)
+            self.data_table_name = re.compile(re.escape(self.data_table_name))
         else:
             self.data_table_name = self.data_table_name
 
