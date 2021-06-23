@@ -71,7 +71,9 @@ def get_token() -> Union[str, Any]:
         )
         token_request.raise_for_status()
     except requests.exceptions.HTTPError as err:
-        raise requests.exceptions.HTTPError("Something went wrong", err.response.text)
+        raise requests.exceptions.HTTPError(
+            "Something went wrong, please check the get_token function.", err.response.text
+        )
 
     token_load = json.loads(token_request.text)
     return token_load["jwt"]
