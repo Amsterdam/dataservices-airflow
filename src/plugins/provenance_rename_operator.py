@@ -12,7 +12,7 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 
 
 class ProvenanceRenameOperator(BaseOperator):
-    @apply_defaults  # type: ignore
+    @apply_defaults
     def __init__(
         self,
         dataset_name: str,

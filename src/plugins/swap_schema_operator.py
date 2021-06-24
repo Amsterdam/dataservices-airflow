@@ -11,7 +11,7 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 
 
 class SwapSchemaOperator(BaseOperator):
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         dataset_name: str,

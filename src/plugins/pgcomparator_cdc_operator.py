@@ -30,7 +30,7 @@ class PgComparatorCDCOperator(BaseOperator):
     it will stop ``pg_comparator`` from needlessly hashing the key and *use the key* as-is.
     """
 
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         source_table: str,
