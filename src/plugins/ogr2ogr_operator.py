@@ -92,6 +92,8 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"-oo AUTODETECT_TYPE={self.auto_detect_type} ")
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
         ogr2ogr_cmd.append(f"-lco ENCODING={self.encoding_schema} ")
+        ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
+        ogr2ogr_cmd.append("-lco precision=NO ")
         if self.sql_statement:
             ogr2ogr_cmd.append(f"-sql {self.sql_statement}")
 
