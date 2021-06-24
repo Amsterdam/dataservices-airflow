@@ -6,7 +6,7 @@ from swift_hook import SwiftHook
 
 
 class SwiftOperator(BaseOperator):
-    @apply_defaults  # type: ignore
+    @apply_defaults
     def __init__(
         self,
         container: str,

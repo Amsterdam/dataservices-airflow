@@ -46,7 +46,7 @@ class PostgresInsertCsvOperator(BaseOperator):
     .. warning:: Currently this operator assumes that an empty string represents a NULL value!
     """
 
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         data: Tuple[FileTable, ...],

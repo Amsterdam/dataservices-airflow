@@ -44,7 +44,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
        configurable.
     """
 
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         source_table_name: Optional[str] = None,

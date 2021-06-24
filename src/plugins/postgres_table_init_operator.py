@@ -10,7 +10,7 @@ from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
     """Drop or truncated a table and associated n-m cross tables."""
 
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         table_name: Optional[str] = None,

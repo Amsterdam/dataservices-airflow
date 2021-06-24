@@ -252,7 +252,7 @@ for (set_geom, multi_checks) in zip(set_geom, multi_checks):
 
     [set_geom >> multi_checks] >> provenance
 
-provenance >> change_data_capture  # type: ignore
+provenance >> change_data_capture
 
 for (change_data_capture, clean_up, history_window) in zip(
     change_data_capture, clean_up, history_window

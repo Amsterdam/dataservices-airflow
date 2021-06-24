@@ -23,7 +23,7 @@ class HttpFetchOperator(BaseOperator):
         "headers",
     ]
 
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         endpoint: str,

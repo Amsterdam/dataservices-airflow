@@ -29,7 +29,7 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
     When the next DAGs in the chain is still running, it will not be triggered!
     """
 
-    @apply_defaults  # type: ignore [misc]
+    @apply_defaults
     def __init__(
         self,
         dag_id_prefix: str = "",
