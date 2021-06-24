@@ -23,7 +23,7 @@ psql -X --set ON_ERROR_STOP=on <<SQL
 \i ${TMPDIR}/biz_data_insert.sql
 SQL
 
-${SCRIPT_DIR}/check_imported_data.py
+${SCRIPT_DIR}/check_imported_biz_data.py
 
 echo "Rename tables"
 psql -X --set ON_ERROR_STOP=on <<SQL
