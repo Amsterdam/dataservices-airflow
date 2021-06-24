@@ -1,3 +1,5 @@
+from typing import Final
+
 # SQL: contains select en create queries
 #
 # Note1:
@@ -17,7 +19,7 @@
 # --------------------------------------------------------------------------
 # CREATE tables (on master DB)
 # --------------------------------------------------------------------------
-CREATE_TABLES = """
+CREATE_TABLES: Final = """
 	{% if 'labels' == params.base_table %}
 
 	DROP TABLE IF EXISTS {{ params.dag_id }}_{{ params.base_table }}_TEMP CASCADE;
@@ -99,7 +101,7 @@ CREATE_TABLES = """
 # CREATE MVIEWS (on master DB) for the T-rex tile generator
 # --------------------------------------------------------------------------
 
-CREATE_MVIEWS = """
+CREATE_MVIEWS: Final = """
 	DROP MATERIALIZED VIEW IF EXISTS bgt_vw_{{ params.base_table }};
 
     CREATE MATERIALIZED VIEW IF NOT EXISTS bgt_vw_{{ params.base_table }} AS
@@ -116,7 +118,7 @@ CREATE_MVIEWS = """
 # SELECT statements (to get data out of basiskaart DB)
 # --------------------------------------------------------------------------
 
-SELECT_GEBOUWVLAK_SQL = """
+SELECT_GEBOUWVLAK_SQL: Final = """
 SELECT
 	"BGTPLUS_GISE_bordes".identificatie_lokaalid || 'BGTPLUS_GISE_bordes' as id,
     "BGTPLUS_GISE_bordes".plus_type as type,
@@ -411,7 +413,7 @@ UNION
   FROM kbk50."GBW_kassen"
 """
 
-SELECT_INRICHTINGSELEMENTLIJN_SQL = """
+SELECT_INRICHTINGSELEMENTLIJN_SQL: Final = """
 /*
 NOTE: since 23 dec not present any more in the source. Possibly part of BGT instead of BGTPLUS.
 SELECT
@@ -756,7 +758,7 @@ UNION
 """
 
 
-SELECT_INRICHTINGSELEMENTPUNT_SQL = """
+SELECT_INRICHTINGSELEMENTPUNT_SQL: Final = """
 SELECT
 		"BGTPLUS_BAK_afvalbak".identificatie_lokaalid || 'BGTPLUS_BAK_afvalbak' as id,
     "BGTPLUS_BAK_afvalbak".plus_type as type,
@@ -1419,7 +1421,7 @@ UNION
 """
 
 
-SELECT_INRICHTINGSELEMENTVLAK_SQL = """
+SELECT_INRICHTINGSELEMENTVLAK_SQL: Final = """
 SELECT
 		"BGTPLUS_KDL_keermuur".identificatie_lokaalid || 'BGTPLUS_KDL_keermuur' as id,
     "BGTPLUS_KDL_keermuur".plus_type as type,
@@ -1588,7 +1590,7 @@ UNION
   WHERE 1=1
 """
 
-SELECT_SPOORLIJN_SQL = """
+SELECT_SPOORLIJN_SQL: Final = """
   SELECT
  		"BGT_SPR_sneltram".identificatie_lokaalid || 'BGT_SPR_sneltram' as id,
         "BGT_SPR_sneltram".bgt_functie as type,
@@ -1771,7 +1773,7 @@ UNION
     WHERE 1=1
 """
 
-SELECT_TERREINDEELVLAK_SQL = """
+SELECT_TERREINDEELVLAK_SQL: Final = """
 SELECT
  		"BGT_BTRN_boomteelt".identificatie_lokaalid || 'BGT_BTRN_boomteelt' as id,
     "BGT_BTRN_boomteelt".bgt_fysiekvoorkomen as type,
@@ -2261,7 +2263,7 @@ UNION
 """
 
 
-SELECT_WATERDEELLIJN_SQL = """
+SELECT_WATERDEELLIJN_SQL: Final = """
 SELECT
  		"BGTPLUS_KDL_duiker_L".identificatie_lokaalid || 'BGTPLUS_KDL_duiker_L' as id,
     "BGTPLUS_KDL_duiker_L".plus_type as type,
@@ -2300,7 +2302,7 @@ SELECT
   WHERE 1=1
 """
 
-SELECT_WATERDEELVLAK_SQL = """
+SELECT_WATERDEELVLAK_SQL: Final = """
 SELECT
  		"BGTPLUS_KDL_duiker_V".identificatie_lokaalid || 'BGTPLUS_KDL_duiker_V' as id,
     "BGTPLUS_KDL_duiker_V".plus_type as type,
@@ -2386,7 +2388,7 @@ UNION
 """
 
 
-SELECT_WEGDEELLIJN_SQL = """
+SELECT_WEGDEELLIJN_SQL: Final = """
 /* --- KBK10 ---- */
     select
         "WGL_smalle_weg".ogc_fid::text ||'-'|| 'WGL_smalle_weg' as id,
@@ -2537,7 +2539,7 @@ UNION
     WHERE 1=1
 """
 
-SELECT_WEGDEELVLAK_SQL = """
+SELECT_WEGDEELVLAK_SQL: Final = """
  SELECT
  		"BGT_OWGL_berm".identificatie_lokaalid ||'-'|| "BGT_OWGL_berm".tijdstipregistratie ||'-'|| 'BGT_OWGL_berm' as id,
         "BGT_OWGL_berm".bgt_functie as type,
@@ -2828,7 +2830,7 @@ UNION
     WHERE 1=1
 """
 
-SELECT_LABELS_SQL = """
+SELECT_LABELS_SQL: Final = """
 SELECT
     "BAG_LBL_Ligplaatsnummeraanduidingreeks"."BAG_identificatie" || 'BAG_LBL_Ligplaatsnummeraanduidingreeks' as id,
     'ligplaats' as type,

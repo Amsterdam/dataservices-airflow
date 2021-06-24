@@ -1,5 +1,7 @@
+from typing import Final
+
 # Removing temp table that was used for CDC (change data capture)
-SQL_DROP_TMP_TABLE = """
+SQL_DROP_TMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 """
 
@@ -10,7 +12,7 @@ SQL_DROP_TMP_TABLE = """
 # Therefor the temporary identifier is dropped (==fid) and
 # the real identifier is set to be the primairy key after
 # ogr2ogr has loaded the data.
-SQL_REDEFINE_PK = """
+SQL_REDEFINE_PK: Final = """
     ALTER TABLE {{ params.tablename }} DROP COLUMN FID;
     ALTER TABLE {{ params.tablename }} ADD CONSTRAINT {{ params.tablename }}_pkey PRIMARY KEY (ID);
 """

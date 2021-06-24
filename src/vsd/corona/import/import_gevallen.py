@@ -2,13 +2,14 @@ import argparse
 import json
 import logging
 import os
+from typing import Final
 
 import pandas as pd
 from common.db import get_engine
 from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy import Date, Integer, String
 
-LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+LOGLEVEL: Final = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
 log = logging.getLogger(__name__)
 

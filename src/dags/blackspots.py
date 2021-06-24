@@ -1,3 +1,5 @@
+from typing import Final
+
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
@@ -11,12 +13,12 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
-DROP_IMPORT_TABLES = """
+DROP_IMPORT_TABLES: Final = """
     DROP SEQUENCE IF EXISTS blackspots_spotexport_id_seq CASCADE;
     DROP TABLE IF EXISTS blackspots_spotexport CASCADE;
 """
 
-RENAME_COLUMNS = """
+RENAME_COLUMNS: Final = """
     create or replace function is_date(s varchar) returns boolean as $$
     begin
       if (s = '') IS NOT FALSE then
@@ -45,7 +47,7 @@ RENAME_COLUMNS = """
         RENAME COLUMN point TO geometry;
 """
 
-RENAME_TABLES_SQL = """
+RENAME_TABLES_SQL: Final = """
     ALTER TABLE IF EXISTS blackspots_blackspots RENAME TO blackspots_blackspots_old;
     ALTER TABLE blackspots_spotexport RENAME TO blackspots_blackspots;
     -- We do not need a sequence for the api I think?

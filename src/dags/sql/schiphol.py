@@ -1,7 +1,9 @@
+from typing import Final
+
 # Because geometry is ignore when importing .csv with ogr2ogr, it's set explicitly
 # in the geometry column a polygon and point type are present,
 # therefore the general geometry type is used.
-SET_GEOM = """
+SET_GEOM: Final = """
 {% if 'vogelvrijwaringsgebied' in params.tablename or 'geluidzone' in params.tablename %}
 ALTER TABLE {{ params.tablename }}  ALTER COLUMN geometrie TYPE geometry(MULTIPOLYGON, 0) USING
 geometrie::geometry(MultiPolygon,0);
@@ -12,7 +14,7 @@ CREATE INDEX {{ params.tablename }}_geom_idx ON {{ params.tablename }} USING GiS
 """
 
 # Adding referenced information from parent table to child table
-ADD_THEMA_CONTEXT = """
+ADD_THEMA_CONTEXT: Final = """
     ALTER TABLE {{ params.tablename }} ADD COLUMN IF NOT EXISTS thema varchar(1000);
     ALTER TABLE {{ params.tablename }} ADD COLUMN IF NOT EXISTS
     thema_toelichting varchar(1000);
@@ -43,13 +45,13 @@ ADD_THEMA_CONTEXT = """
 """
 
 # Removing inrelevant cols
-DROP_COLS = """
+DROP_COLS: Final = """
     ALTER TABLE {{ params.tablename }} DROP COLUMN IF EXISTS tma_id;
     ALTER TABLE {{ params.tablename }} DROP COLUMN IF EXISTS wkt;
     ALTER TABLE {{ params.tablename }} DROP COLUMN IF EXISTS vlaknaam;
 """
 
 # Removing temp table that was used for CDC (change data capture)
-SQL_DROP_TMP_TABLE = """
+SQL_DROP_TMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 """

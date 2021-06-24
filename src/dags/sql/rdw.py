@@ -1,9 +1,11 @@
+from typing import Final
+
 # Setting up temp table
 # the main table rdw_voertuig has two
 # child tables (assen en brandstof) that
 # refer to rdw_voertuig and are used as
 # an object (array) within the schema definition.
-SQL_CREATE_TMP_TABLE = """
+SQL_CREATE_TMP_TABLE: Final = """
 DROP TABLE IF EXISTS rdw_voertuig_new CASCADE;
 DROP TABLE IF EXISTS rdw_assen_new CASCADE;
 DROP TABLE IF EXISTS rdw_brandstof_new CASCADE;
@@ -59,7 +61,7 @@ DROP TABLE rdw_carrosserie_download;
 """
 
 # swap tmp to target
-SQL_SWAP_TABLE = """
+SQL_SWAP_TABLE: Final = """
 DROP TABLE IF EXISTS rdw_voertuig;
 DROP TABLE IF EXISTS rdw_voertuig_brandstof;
 DROP TABLE IF EXISTS rdw_voertuig_assen;

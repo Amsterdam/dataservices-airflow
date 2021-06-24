@@ -1,9 +1,10 @@
 import json
+from typing import Final
 
 import requests
 from jsonpointer import resolve_pointer
 
-INSERT_TMPL = """
+INSERT_TMPL: Final = """
     INSERT INTO fietspaaltjes_fietspaaltjes_new (
         {names}
     )
@@ -11,7 +12,7 @@ INSERT_TMPL = """
         {values}
 """
 
-MAPPING = {
+MAPPING: Final = {
     # "id": "/ref/2013",
     "id": "/ref/current",
     "geometry": "/geo",

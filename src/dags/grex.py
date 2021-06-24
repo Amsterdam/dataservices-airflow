@@ -1,3 +1,5 @@
+from typing import Final
+
 import pandas as pd
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -18,7 +20,7 @@ dag_id = "grex"
 
 table_name = f"{dag_id}_projecten"
 table_name_new = f"{table_name}_new"
-SQL_TABLE_RENAME = f"""
+SQL_TABLE_RENAME: Final = f"""
     DROP TABLE IF EXISTS {table_name} CASCADE;
     ALTER TABLE {table_name_new} RENAME TO {table_name};
     ALTER TABLE {table_name} RENAME CONSTRAINT {table_name_new}_pkey TO {table_name}_pkey;

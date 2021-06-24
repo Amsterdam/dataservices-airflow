@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 import logging
 from sys import argv
+from typing import Final
 
 import simplejson as json
 from geojson import Point
@@ -9,7 +10,7 @@ log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 # These types are checked against the data of the $OPENBARE_VERLICHTING_DATA_TYPES_SRC url.
-ID_TYPES_MAP = {
+ID_TYPES_MAP: Final = {
     "1": {
         "external_name": "Klok",
         "internal_name": "Klok",

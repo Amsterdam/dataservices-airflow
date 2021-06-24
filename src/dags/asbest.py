@@ -1,3 +1,5 @@
+from typing import Final
+
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
@@ -17,7 +19,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 # from airflow.providers.postgres.operators.postgres import PostgresOperator
 from swift_operator import SwiftOperator
 
-SQL_RENAME_COL = """
+SQL_RENAME_COL: Final = """
 ALTER TABLE asbest_daken_new RENAME COLUMN identifica TO pandidentificatie
 """
 

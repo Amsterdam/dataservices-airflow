@@ -1,4 +1,5 @@
 import operator
+from typing import Final
 
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
@@ -19,13 +20,13 @@ from postgres_check_operator import (
 from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
-CORRECT_GEO = """
+CORRECT_GEO: Final = """
     UPDATE pte.beschermde_stadsdorpsgezichten
         SET geometry = ST_CollectionExtract(ST_MakeValid("geometry"), 3)
     WHERE ST_IsValid(geometry) = False;
 """
 
-RENAME_TABLES_SQL = """
+RENAME_TABLES_SQL: Final = """
     DROP TABLE IF EXISTS public.beschermdestadsdorpsgezichten_beschermdestadsdorpsgezichten;
     ALTER TABLE pte.beschermde_stadsdorpsgezichten SET SCHEMA public;
     ALTER TABLE beschermde_stadsdorpsgezichten

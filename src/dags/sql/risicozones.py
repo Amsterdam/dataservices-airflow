@@ -1,5 +1,7 @@
+from typing import Final
+
 # Because geometry is ignored when importing .csv with ogr2ogr, it's set explicitly
-SET_GEOM = """
+SET_GEOM: Final = """
     {% if 'lpgtankstations' in params.tablename or 'bedrijven' in params.tablename or 'lpgvulpunten' in params.tablename or 'lpgafleverzuilen' in params.tablename  %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometrie_punt TYPE geometry(POINT, 0) using ST_GeomFromText(CASE WHEN geometrie_punt LIKE 'POINT%' THEN geometrie_punt ELSE NULL END);
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometrie_punt TYPE geometry(POINT, 28992) USING ST_SetSRID(geometrie_punt, 28992);
@@ -23,6 +25,6 @@ SET_GEOM = """
 """
 
 # Drop temp table after use
-SQL_DROP_TMP_TABLE = """
+SQL_DROP_TMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 """

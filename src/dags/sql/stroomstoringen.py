@@ -1,9 +1,11 @@
+from typing import Final
+
 # The data contains epoch times.
 # In order to translate it to a timestamp, the data is updated.
 # The dates are stored in millseconds.
 # Unix timestamps measures time with seconds, and not milliseconds (in Postgres too)
 # Therefore the values must be devided by 1000 before converting to timestamp
-CONVERT_DATE_TIME = """
+CONVERT_DATE_TIME: Final = """
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_datum_gemeld TYPE TIMESTAMP
     WITH TIME zone using TO_TIMESTAMP(storing_datum_gemeld/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_datum_schatting TYPE TIMESTAMP

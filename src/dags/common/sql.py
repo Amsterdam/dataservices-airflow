@@ -1,10 +1,12 @@
-SQL_DROP_TABLE = """
+from typing import Final
+
+SQL_DROP_TABLE: Final = """
     BEGIN;
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
     COMMIT;
 """
 
-SQL_TABLE_RENAME = """
+SQL_TABLE_RENAME: Final = """
     {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% set pk = params.pk|default("pk", true) %}
     ALTER TABLE IF EXISTS {{ params.tablename }} RENAME TO {{ params.tablename }}_old;
@@ -15,7 +17,7 @@ SQL_TABLE_RENAME = """
       RENAME TO {{ params.tablename }}_{{ geo_column }}_geom_idx;
 """
 
-SQL_TABLE_RENAMES = """
+SQL_TABLE_RENAMES: Final = """
     {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% for tablename in params.tablenames %}
       ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
@@ -27,11 +29,11 @@ SQL_TABLE_RENAMES = """
     {% endfor %}
 """
 
-SQL_CHECK_COUNT = """
+SQL_CHECK_COUNT: Final = """
     SELECT 1 FROM {{ params.tablename }} HAVING count(*) >= {{ params.mincount }}
 """
 
-SQL_CHECK_GEO = """
+SQL_CHECK_GEO: Final = """
   {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
   SELECT 1 WHERE NOT EXISTS (
       SELECT FROM {{ params.tablename }} WHERE
@@ -52,7 +54,7 @@ SQL_CHECK_GEO = """
       )
 """
 
-SQL_CHECK_COLNAMES = """
+SQL_CHECK_COLNAMES: Final = """
     SELECT column_name FROM information_schema.columns WHERE
       table_schema = 'public' AND table_name = '{{ params.tablename }}'
     ORDER BY column_name

@@ -7,7 +7,7 @@ from csv import Dialect
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any, Callable, Dict, Tuple, Type, TypedDict
+from typing import Any, Callable, Dict, Final, Tuple, Type, TypedDict
 
 from airflow import DAG
 from airflow.models import Variable
@@ -32,10 +32,10 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 FileStem = str
 UrlPath = str
 
-DAG_ID = "bbga"
-TMP_DIR = Path(SHARED_DIR) / DAG_ID
-TMP_TABLE_PREFIX = "tmp_"
-VARS = Variable.get(DAG_ID, deserialize_json=True)
+DAG_ID: Final = "bbga"
+TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
+TMP_TABLE_PREFIX: Final = "tmp_"
+VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: Dict[FileStem, UrlPath] = VARS["data_endpoints"]
 table_mappings: Dict[FileStem, str] = VARS["table_mappings"]
 

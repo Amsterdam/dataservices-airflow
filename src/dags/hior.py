@@ -1,4 +1,5 @@
 import pathlib
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -16,7 +17,7 @@ from common import (
 from importscripts.import_hior import import_hior
 from postgres_permissions_operator import PostgresPermissionsOperator
 
-SQL_TABLE_RENAME = """
+SQL_TABLE_RENAME: Final = """
     BEGIN;
     ALTER TABLE IF EXISTS hior_items RENAME TO hior_items_old;
     ALTER TABLE IF EXISTS hior_properties RENAME TO hior_properties_old;

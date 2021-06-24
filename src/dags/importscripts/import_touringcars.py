@@ -1,9 +1,10 @@
 import json
 import logging
+from typing import Final
 
 from geojson import GeometryCollection, loads
 
-LOGGER = logging.getLogger("airflow.task")
+LOGGER: Final = logging.getLogger("airflow.task")
 
 
 def json2geojson(data, in_file):

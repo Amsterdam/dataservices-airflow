@@ -1,4 +1,5 @@
 import operator
+from typing import Final
 
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
@@ -21,7 +22,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
-RENAME_TABLES_SQL = """
+RENAME_TABLES_SQL: Final = """
     DROP TABLE IF EXISTS public.rioolnetwerk_rioolknopen;
     ALTER TABLE pte.rioolknopen SET SCHEMA public;
     ALTER TABLE rioolknopen

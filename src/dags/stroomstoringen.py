@@ -1,3 +1,5 @@
+from typing import Final
+
 import pendulum
 from airflow import DAG
 from airflow.models import Variable
@@ -26,7 +28,7 @@ variables: dict = Variable.get("stroomstoringen", deserialize_json=True)
 endpoint_url: str = variables["data_endpoints"]["stroomstoringen"]
 
 
-TODAY = pendulum.now(TIMEZONE).format("MM-DD-YYYY")
+TODAY: Final = pendulum.now(TIMEZONE).format("MM-DD-YYYY")
 TMP_DIR: str = f"{SHARED_DIR}/{dag_id}"
 
 db_conn = DatabaseEngine()

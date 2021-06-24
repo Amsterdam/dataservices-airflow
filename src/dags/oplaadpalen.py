@@ -1,4 +1,5 @@
 import pathlib
+from typing import Final
 
 from airflow import DAG
 from airflow.operators.python_operator import BranchPythonOperator, PythonOperator
@@ -18,7 +19,7 @@ from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_xcom_operator import PostgresXcomOperator
 
-SQL_EXISTS_CHECK = """
+SQL_EXISTS_CHECK: Final = """
     SELECT 1 WHERE EXISTS (
        SELECT
        FROM   information_schema.tables
@@ -27,7 +28,7 @@ SQL_EXISTS_CHECK = """
        )
 """
 
-SQL_TABLE_RENAME = """
+SQL_TABLE_RENAME: Final = """
     ALTER TABLE IF EXISTS oplaadpalen RENAME TO oplaadpalen_old;
     ALTER TABLE oplaadpalen_new RENAME TO oplaadpalen;
     CREATE OR REPLACE VIEW oplaadpunten AS SELECT op.*,

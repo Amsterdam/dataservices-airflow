@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from typing import Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -10,11 +10,14 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
+#!/usr/bin/env python3
+
+
 dag_id = "crowdmonitor"
 table_id = f"{dag_id}_passanten"
 import_step = 10000
 
-SQL_CREATE_TEMP_TABLE = """
+SQL_CREATE_TEMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.base_table }}_temp CASCADE;
     CREATE TABLE {{ params.base_table }}_temp (
       id integer PRIMARY KEY,
@@ -34,7 +37,7 @@ SQL_CREATE_TEMP_TABLE = """
 """
 
 
-SQL_RENAME_TEMP_TABLE = """
+SQL_RENAME_TEMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old CASCADE;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
@@ -50,7 +53,7 @@ SQL_RENAME_TEMP_TABLE = """
    CREATE INDEX {{ params.base_table }}_geometrie_idx ON {{ params.base_table }} USING gist (geometrie);
 """
 
-SQL_ADD_AGGREGATES = """
+SQL_ADD_AGGREGATES: Final = """
 SET TIME ZONE 'Europe/Amsterdam';
 DELETE FROM {{ params.table }} WHERE periode = '{{ params.periode }}';
 INSERT into {{ params.table }}(sensor, naam_locatie, periode, datum_uur, aantal_passanten)

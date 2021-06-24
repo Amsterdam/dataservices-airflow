@@ -1,3 +1,5 @@
+from typing import Final
+
 """
 In contrast to the .geojson source files,
 the .csv source files only have X,Y columns: no geometry column.
@@ -15,7 +17,7 @@ contain letters (!)).
 Finally the X and Y columns are dropped when the geometry column is created.
 """
 
-ADD_GEOMETRY_COL = """
+ADD_GEOMETRY_COL: Final = """
     DO $$DECLARE counter_x_y integer;
     BEGIN
         SELECT count(1) into counter_x_y
@@ -55,7 +57,7 @@ ADD_GEOMETRY_COL = """
 
 # The dataset zwembaden and sporthallen are present in one source file, to seperate the data
 # the duplicate rows are delete from the table
-DEL_ROWS = """
+DEL_ROWS: Final = """
     DELETE FROM sport_zwembad_new WHERE TYPE != 'Zwembad';
     COMMIT;
     DELETE FROM sport_sporthal_new WHERE TYPE != 'Sporthal';
@@ -63,6 +65,6 @@ DEL_ROWS = """
 """
 
 # Removing temp table that was used for CDC (change data capture)
-SQL_DROP_TMP_TABLE = """
+SQL_DROP_TMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 """
