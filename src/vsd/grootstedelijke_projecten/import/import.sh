@@ -19,7 +19,7 @@ psql -X --set ON_ERROR_STOP=on <<SQL
 SQL
 
 echo "Check imported data"
-${SCRIPT_DIR}/check_imported_data.py
+${SCRIPT_DIR}/check_imported_gp_data.py
 
 echo "Rename tables"
 psql -X --set ON_ERROR_STOP=on <<SQL
@@ -32,4 +32,3 @@ COMMIT;
 SQL
 
 source ${SHARED_DIR}/import/after.sh
-
