@@ -1,4 +1,5 @@
 import logging
+from typing import Final
 
 import simplejson as json
 from geojson import Point
@@ -18,7 +19,7 @@ logging.basicConfig(level=logging.DEBUG)
 #     "10": {"external_name": "Schijnwerpers", "internal_name": "Schijnwerpers",},
 # }
 
-ID_TYPES_MAP = {}
+ID_TYPES_MAP: Final = {}
 
 
 def generate_source_types_mapping(types):

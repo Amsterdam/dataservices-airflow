@@ -1,5 +1,5 @@
 import logging
-from typing import Tuple, cast
+from typing import Final, Tuple, cast
 
 from airflow.models.dag import DagStateChangeCallback
 from airflow.models.taskinstance import Context, TaskInstance
@@ -14,8 +14,8 @@ from schematools.types import DatasetSchema
 from schematools.utils import def_from_url
 
 env = Env()
-SCHEMA_URL = URL(env("SCHEMA_URL"))
-DEFAULT_CONTACT_POINT_NAME = "broneigenaar"
+SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
+DEFAULT_CONTACT_POINT_NAME: Final = "broneigenaar"
 
 logger = logging.getLogger(__name__)
 

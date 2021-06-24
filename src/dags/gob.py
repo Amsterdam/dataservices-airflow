@@ -1,7 +1,7 @@
 import json
 import pathlib
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -16,11 +16,11 @@ from schematools import TMP_TABLE_POSTFIX
 from schematools.utils import schema_def_from_url
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
-MAX_RECORDS = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
-GOB_PUBLIC_ENDPOINT = env("GOB_PUBLIC_ENDPOINT")
-GOB_SECURE_ENDPOINT = env("GOB_SECURE_ENDPOINT")
-OAUTH_TOKEN_EXPIRES_MARGIN = env.int("OAUTH_TOKEN_EXPIRES_MARGIN", 5)
-SCHEMA_URL = env("SCHEMA_URL")
+MAX_RECORDS: Final = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
+GOB_PUBLIC_ENDPOINT: Final = env("GOB_PUBLIC_ENDPOINT")
+GOB_SECURE_ENDPOINT: Final = env("GOB_SECURE_ENDPOINT")
+OAUTH_TOKEN_EXPIRES_MARGIN: Final = env.int("OAUTH_TOKEN_EXPIRES_MARGIN", 5)
+SCHEMA_URL: Final = env("SCHEMA_URL")
 
 dag_id = "gob"
 owner = "gob"

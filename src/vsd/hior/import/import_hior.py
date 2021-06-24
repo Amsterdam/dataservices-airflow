@@ -1,6 +1,7 @@
 import argparse
 import pprint
 import re
+from typing import Final
 
 import pandas as pd
 
@@ -8,20 +9,20 @@ pp = pprint.PrettyPrinter()
 
 # Configuration
 # Sheet that contains the reference data
-SHEET_NAME = "Achterkant"
-FAQ_SHEET_NAME = "FAQ"
-METADATA_SHEET_NAME = "Metadata"
+SHEET_NAME: Final = "Achterkant"
+FAQ_SHEET_NAME: Final = "FAQ"
+METADATA_SHEET_NAME: Final = "Metadata"
 
 # Columns that contain the items
-TEXT = "Kerntekst"
-DESCRIPTION = "Toelichting"
-QUESTION = "Vraag"
-ANSWER = "Antwoord"
-PROPERTY = "Eigenschap"
-VALUE = "Waarde"
+TEXT: Final = "Kerntekst"
+DESCRIPTION: Final = "Toelichting"
+QUESTION: Final = "Vraag"
+ANSWER: Final = "Antwoord"
+PROPERTY: Final = "Eigenschap"
+VALUE: Final = "Waarde"
 
 # Colums that contain the item properties
-PROPERTIES = [
+PROPERTIES: Final = [
     ("Theme", ["Thema", "Subthema 1", "Subthema 2"]),
     ("Area", ["Stadsdeel"]),
     ("Type", ["Type."]),
@@ -30,7 +31,7 @@ PROPERTIES = [
 ]
 
 # Columns that contain attributes
-ATTRIBUTES = [
+ATTRIBUTES: Final = [
     (
         "Image",
         [
@@ -46,11 +47,11 @@ ATTRIBUTES = [
 ]
 
 # Table names to write new HIOR data to
-ITEMS_TABLE = "hior_items_new"
-PROPS_TABLE = "hior_properties_new"
-ATTRS_TABLE = "hior_attributes_new"
-FAQ_TABLE = "hior_faq_new"
-METADATA_TABLE = "hior_metadata_new"
+ITEMS_TABLE: Final = "hior_items_new"
+PROPS_TABLE: Final = "hior_properties_new"
+ATTRS_TABLE: Final = "hior_attributes_new"
+FAQ_TABLE: Final = "hior_faq_new"
+METADATA_TABLE: Final = "hior_metadata_new"
 
 
 def import_row(id, series):

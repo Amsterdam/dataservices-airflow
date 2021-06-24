@@ -1,6 +1,6 @@
 import operator
 import pathlib
-from typing import Dict, List
+from typing import Dict, Final, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -34,17 +34,17 @@ geo_checks: List = []
 check_name: Dict = {}
 
 
-SQL_MAKE_VALID_GEOM = """
+SQL_MAKE_VALID_GEOM: Final = """
     UPDATE {{ params.tablename }} SET geometry = st_makevalid(geometry)
     WHERE ST_IsValid(geometry) is false;
     COMMIT;
 """
 
-SQL_ADD_COLOR = """
+SQL_ADD_COLOR: Final = """
     ALTER TABLE parkeerzones_parkeerzones_new ADD COLUMN gebiedskleurcode VARCHAR(7);
 """
 
-SQL_UPDATE_COLORS = """
+SQL_UPDATE_COLORS: Final = """
     UPDATE parkeerzones_parkeerzones_new p SET gebiedskleurcode = pmc.color
     FROM parkeerzones_map_color pmc WHERE p.id = pmc.ogc_fid
     AND p.gebiedscode = pmc.gebied_code;
@@ -52,7 +52,7 @@ SQL_UPDATE_COLORS = """
     DROP TABLE parkeerzones_map_color;
 """
 
-SQL_DELETE_UNUSED = """
+SQL_DELETE_UNUSED: Final = """
     DELETE FROM {{ params.tablename }} WHERE indicatie_zichtbaar = 'FALSE';
     COMMIT;
 """

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Final, List, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -7,7 +7,7 @@ from environs import Env
 from schematools.utils import schema_def_from_url, to_snake_case
 
 env = Env()
-SCHEMA_URL = env("SCHEMA_URL")
+SCHEMA_URL: Final = env("SCHEMA_URL")
 
 
 class SwapSchemaOperator(BaseOperator):

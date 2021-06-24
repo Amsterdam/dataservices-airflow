@@ -1,5 +1,7 @@
+from typing import Final
+
 # add categorie en categorienaam fields that are not present in source file
-ADD_CATEGORIE_CATEGORIENAAM = """    
+ADD_CATEGORIE_CATEGORIENAAM: Final = """
     ALTER TABLE {{ params.tablename }} ADD COLUMN IF NOT EXISTS categorie VARCHAR(50);
     ALTER TABLE {{ params.tablename }} ADD COLUMN IF NOT EXISTS categorienaam VARCHAR(100);
 
@@ -134,8 +136,8 @@ ADD_CATEGORIE_CATEGORIENAAM = """
     ('408','K'),
     ('055','WK'),
     ('337','BU'),
-    ('422','TR')), 
-    
+    ('422','TR')),
+
     categorie_namen(categorie, categorienaam) AS ( VALUES
     ('K', 'Kernwinkelgebied'),
     ('BU','Buurtcentrum'),
@@ -146,7 +148,7 @@ ADD_CATEGORIE_CATEGORIENAAM = """
     ('TR', 'Trafficlocaties'))
 
     UPDATE      {{ params.tablename }}
-    SET         categorie = categorie.categorie, 
+    SET         categorie = categorie.categorie,
                 categorienaam = categorie_namen.categorienaam
     FROM        categorie
     INNER JOIN  categorie_namen ON categorie.categorie = categorie_namen.categorie

@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Final, Optional, Union
 
 import pendulum
 from airflow.models.baseoperator import BaseOperator
@@ -26,7 +26,7 @@ datapunt_evironment = env("DATAPUNT_ENVIRONMENT")
 # Since the dataschema is the basis for the database permissions, for the situation
 # where dag_id does not match dataschema name, the relation between the dag_id and
 # schema name is held in this constant.
-DAG_DATASET = {
+DAG_DATASET: Final = {
     "basiskaart_": "basiskaart",
     "bag_": "bag",
     "brk_": "brk",

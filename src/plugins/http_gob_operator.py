@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Final, Optional
 
 from airflow.exceptions import AirflowException
 from airflow.hooks.http_hook import HttpHook
@@ -21,11 +21,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from urllib3.exceptions import ProtocolError
 
 env = Env()
-SCHEMA_URL = env("SCHEMA_URL")
+SCHEMA_URL: Final = env("SCHEMA_URL")
 
-OIDC_TOKEN_ENDPOINT = env("OIDC_TOKEN_ENDPOINT")
-OIDC_CLIENT_ID = env("OIDC_CLIENT_ID")
-OIDC_CLIENT_SECRET = env("OIDC_CLIENT_SECRET")
+OIDC_TOKEN_ENDPOINT: Final = env("OIDC_TOKEN_ENDPOINT")
+OIDC_CLIENT_ID: Final = env("OIDC_CLIENT_ID")
+OIDC_CLIENT_SECRET: Final = env("OIDC_CLIENT_SECRET")
 
 
 class HttpGobOperator(BaseOperator):

@@ -4,13 +4,14 @@ import math
 import pprint
 import re
 from pathlib import Path
+from typing import Final
 
 import pandas as pd
 
 pp = pprint.PrettyPrinter()
 
 # Configuration
-CONFIG = {
+CONFIG: Final = {
     # 111    ' Omschrijving\n ', ' Primaire functie(s)\n ', ' Type code\n (V&OR)',
     #        ' Object nr.\n (leverancier)', ' Locatie nr.\n (leverancier)',
     #        ' Standplaatsomschrijving\n', ' Rijksdriehoek\n X-coördinaat (m)',
@@ -73,8 +74,8 @@ CONFIG = {
 }
 
 # Table names to write new IoT data to
-THINGS_TABLE = "cmsa_sensor_new"
-LOCATIONS_TABLE = "cmsa_locatie_new"
+THINGS_TABLE: Final = "cmsa_sensor_new"
+LOCATIONS_TABLE: Final = "cmsa_locatie_new"
 # OWNERS_TABLE = "iot_owners_new"
 
 

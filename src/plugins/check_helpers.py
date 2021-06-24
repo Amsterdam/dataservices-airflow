@@ -1,9 +1,10 @@
 import re
 import warnings
+from typing import Final
 
 from attrdict import AttrDict
 
-RE_SAFE_IDENTIFIER = re.compile(r"\A[a-z][a-z0-9_\-]+\Z", re.I)
+RE_SAFE_IDENTIFIER: Final = re.compile(r"\A[a-z][a-z0-9_\-]+\Z", re.I)
 
 
 def check_safe_name(sql_identifier: str) -> None:

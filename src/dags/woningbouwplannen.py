@@ -1,3 +1,5 @@
+from typing import Final
+
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
@@ -16,7 +18,7 @@ from swift_load_sql_operator import SwiftLoadSqlOperator
 
 dag_id = "woningbouwplannen"
 
-NM_RENAMES_SQL = """
+NM_RENAMES_SQL: Final = """
     DROP TABLE IF EXISTS public.woningbouwplannen_strategischeruimtes_buurten;
     ALTER TABLE pte.wbw_rel_strategischeruimte_buurt SET SCHEMA public;
     ALTER TABLE wbw_rel_strategischeruimte_buurt

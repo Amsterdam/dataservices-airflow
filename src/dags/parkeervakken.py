@@ -4,6 +4,7 @@ import os
 import pathlib
 import re
 import subprocess
+from typing import Final
 
 import dateutil.parser
 import shapefile
@@ -25,16 +26,16 @@ postgres_conn_id = "parkeervakken_postgres"
 
 # CONFIG = Variable.get(DAG_ID, deserialize_json=True)
 
-TABLES = dict(
+TABLES: Final = dict(
     BASE=f"{dag_id}_{dag_id}",
     BASE_TEMP=f"{dag_id}_{dag_id}_temp",
     REGIMES=f"{dag_id}_{dag_id}_regimes",
     REGIMES_TEMP=f"{dag_id}_{dag_id}_regimes_temp",
 )
-WEEK_DAYS = ["ma", "di", "wo", "do", "vr", "za", "zo"]
+WEEK_DAYS: Final = ["ma", "di", "wo", "do", "vr", "za", "zo"]
 
 
-SQL_CREATE_TEMP_TABLES = """
+SQL_CREATE_TEMP_TABLES: Final = """
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;
     CREATE TABLE {{ params.base_table }}_temp (
         LIKE {{ params.base_table }} INCLUDING ALL);
@@ -55,7 +56,7 @@ SQL_CREATE_TEMP_TABLES = """
         ADD COLUMN IF NOT EXISTS e_type_description VARCHAR;
 """
 
-SQL_RENAME_TEMP_TABLES = """
+SQL_RENAME_TEMP_TABLES: Final = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
@@ -76,9 +77,9 @@ SQL_RENAME_TEMP_TABLES = """
         ON {{ params.base_table }} USING gist(geometry);
 """
 
-TMP_DIR = f"{SHARED_DIR}/{dag_id}"
+TMP_DIR: Final = f"{SHARED_DIR}/{dag_id}"
 
-E_TYPES = dict(
+E_TYPES: Final = dict(
     E1="Parkeerverbod",
     E2="Verbod stil te staan",
     E3="Verbod fietsen en bromfietsen te plaatsen",

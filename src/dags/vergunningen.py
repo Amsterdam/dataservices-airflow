@@ -1,4 +1,5 @@
 import operator
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -20,14 +21,14 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
-SQL_RECREATE_TMP_TABLES = """
+SQL_RECREATE_TMP_TABLES: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }}_new CASCADE;
     CREATE TABLE IF NOT EXISTS {{ params.tablename }}_new AS
     (SELECT * FROM {{ params.tablename }} WHERE 1=2);
     ALTER TABLE {{ params.tablename }}_new ADD PRIMARY KEY (id);
 """
 
-SQL_DROP_TMP_TABLES = """
+SQL_DROP_TMP_TABLES: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }}_new CASCADE;
 """
 

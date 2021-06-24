@@ -1,6 +1,6 @@
 import re
 from re import Pattern
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Final, Optional, Union
 
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
@@ -15,9 +15,9 @@ from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 env = Env()
 # split is used to remove url params, if exists.
 # for database connection the url params must be omitted.
-DEFAULT_DB_CONN = env.str("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
-SCHEMA_URL = URL(env("SCHEMA_URL"))
-MATCH_ALL = re.compile(r".*")
+DEFAULT_DB_CONN: Final = env.str("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
+SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
+MATCH_ALL: Final = re.compile(r".*")
 
 
 class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):

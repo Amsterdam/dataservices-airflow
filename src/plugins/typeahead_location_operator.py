@@ -1,4 +1,5 @@
 import json
+from typing import Final
 from urllib.parse import ParseResult, urlparse
 
 from airflow.hooks.http_hook import HttpHook

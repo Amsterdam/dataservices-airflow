@@ -1,6 +1,7 @@
 import os
 import pathlib
 import sys
+from typing import Final
 
 from airflow import DAG
 from bash_env_operator import BashEnvOperator
@@ -9,7 +10,7 @@ from common.db import fetch_pg_env_vars
 
 vsd_dir = pathlib.Path(__file__).resolve().parents[1] / "vsd"
 
-SCHEDULE_INTERVAL_EXCEPTIONS = {"grootstedelijke_projecten": "@monthly"}
+SCHEDULE_INTERVAL_EXCEPTIONS: Final = {"grootstedelijke_projecten": "@monthly"}
 
 
 def fetch_env_vars():

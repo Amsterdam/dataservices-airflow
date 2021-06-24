@@ -2,7 +2,7 @@ import operator
 from dataclasses import dataclass
 from functools import partial
 from string import Template
-from typing import Any, Callable, ClassVar, Dict, Iterable, List
+from typing import Any, Callable, ClassVar, Dict, Final, Iterable, List
 
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
@@ -59,12 +59,12 @@ class CheckFactory:
         )
 
 
-COUNT_CHECK = CheckFactory(
+COUNT_CHECK: Final = CheckFactory(
     "SELECT COUNT(*) AS count FROM {{ params['$check_id'].table_name }}",
     result_fetcher=partial(record_by_name, "count"),
 )
 
-COLNAMES_CHECK = CheckFactory(
+COLNAMES_CHECK: Final = CheckFactory(
     """
     SELECT column_name FROM information_schema.columns
      WHERE table_schema = %s AND table_name = %s
@@ -73,7 +73,7 @@ COLNAMES_CHECK = CheckFactory(
     result_fetcher=flattened_records_as_set,
 )
 
-GEO_CHECK = CheckFactory(
+GEO_CHECK: Final = CheckFactory(
     """
   {% set lparams = params['$check_id'] %}
   {% set geo_column = lparams.geo_column|default("geometry", true) %}

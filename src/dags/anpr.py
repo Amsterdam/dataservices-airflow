@@ -2,7 +2,7 @@
 import csv
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -25,20 +25,20 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 logger = logging.getLogger(__name__)
 
-DAG_ID = "anpr"
-TMP_DIR = Path(SHARED_DIR) / DAG_ID
-TABLE_ID = "anpr_taxi"
-HTTP_CONN_ID = (
+DAG_ID: Final = "anpr"
+TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
+TABLE_ID: Final = "anpr_taxi"
+HTTP_CONN_ID: Final = (
     "taxi_waarnemingen_conn_id"
     if DATASTORE_TYPE != "acceptance"
     else "taxi_waarnemingen_acc_conn_id"
 )
-ENDPOINT = "/v0/milieuzone/passage/export-taxi/"
+ENDPOINT: Final = "/v0/milieuzone/passage/export-taxi/"
 
 
 args = default_args.copy()
 
-SQL_RENAME_TEMP_TABLE = """
+SQL_RENAME_TEMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.base_table }}_old CASCADE;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;

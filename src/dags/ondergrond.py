@@ -1,4 +1,5 @@
 import operator
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -34,7 +35,7 @@ geo_checks = []
 check_name = {}
 
 
-SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE = """
+SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE: Final = """
     ALTER TABLE {{ params.tablename }}
     DROP COLUMN IF EXISTS dateringtot,
     DROP COLUMN IF EXISTS dateringvan,
@@ -47,7 +48,7 @@ SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE = """
     DROP COLUMN IF EXISTS fid;
 """
 
-SQL_DROP_TMP_TABLE = """
+SQL_DROP_TMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 """
 

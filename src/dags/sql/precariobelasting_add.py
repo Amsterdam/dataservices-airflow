@@ -1,15 +1,17 @@
+from typing import Final
+
 # add derived columns: The column gebied is missing in WOONSCHEPEN and BEDRIJFSVAARTUIGEN so needs to be added.
-ADD_GEBIED_COLUMN = """
+ADD_GEBIED_COLUMN: Final = """
 {% for tablename in params.tablenames %}
     ALTER TABLE {{ tablename }} ADD COLUMN IF NOT EXISTS gebied VARCHAR(25);
 
     WITH {{ tablename }}_gebied as (
-    select 
-    ID identifier, 
-    /* based on the rate ('tarief') value, a area ('gebied') is identified by an added group number 
+    select
+    ID identifier,
+    /* based on the rate ('tarief') value, a area ('gebied') is identified by an added group number
         the regexp is used to focus on the rate numbers only, not clutered by additional karakters like euro sign or , or -
     */
-    CASE 
+    CASE
     WHEN dense_rank() over (order by regexp_replace(tarief_per_jaar_per_m2, '[^[:digit:]]', '', 'g')) = 1 THEN 'Tariefgebied A'
     ELSE 'Tariefgebied B'
     END
@@ -25,7 +27,7 @@ ADD_GEBIED_COLUMN = """
 """
 
 # The source contains in the field gebied the value 'gebied A' or 'gebied 1', this needs te be translated to 'Tariefgebied [Letter or Number]' etc.
-RENAME_DATAVALUE_GEBIED = """
+RENAME_DATAVALUE_GEBIED: Final = """
 {% for tablename in params.tablenames %}
     UPDATE {{ tablename }}
     SET gebied = regexp_replace(gebied, 'Gebied', 'Tariefgebied')
@@ -37,13 +39,13 @@ RENAME_DATAVALUE_GEBIED = """
 # ------------------------------------------------------------------------------------------------ #
 # TIJDELIJK. Nodig voor geosearch. TO DO: creatie DB structuur volledig baseren op metadataschema #
 # ------------------------------------------------------------------------------------------------ #
-ADD_TITLE = """
+ADD_TITLE: Final = """
 {% for tablename in params.tablenames %}
     ALTER TABLE {{ tablename }} ADD COLUMN IF NOT EXISTS title VARCHAR(100);
 
     WITH {{ tablename }}_gebied as (
-    select 
-    ID identifier, 
+    select
+    ID identifier,
     {% if 'woonschepen' in tablename %}
     'Precariobelasting woonschepen per belastinggebied, per jaar en per m2' as title_text
     {% elif 'bedrijfsvaartuigen' in tablename %}

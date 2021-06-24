@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -28,7 +29,7 @@ sql_path = Path(__file__).resolve().parents[0] / "sql"
 fetch_jsons = []
 
 
-SQL_TABLE_RENAMES = """
+SQL_TABLE_RENAMES: Final = """
     ALTER TABLE IF EXISTS cmsa_sensor RENAME TO cmsa_sensor_old;
     ALTER TABLE IF EXISTS cmsa_locatie RENAME TO cmsa_locatie_old;
     ALTER TABLE IF EXISTS cmsa_markering RENAME TO cmsa_markering_old;

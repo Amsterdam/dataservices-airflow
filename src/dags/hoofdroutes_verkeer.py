@@ -2,7 +2,7 @@ import logging
 import operator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Final, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -26,7 +26,7 @@ from schematools.types import DatasetSchema
 
 logger = logging.getLogger(__name__)
 dag_id = "hoofdroutes_verkeer"
-DATASET_NAME = "hoofdroutes"
+DATASET_NAME: Final = "hoofdroutes"
 
 
 @dataclass
@@ -51,7 +51,7 @@ class Route:
         return f"{self.db_table_name}_new"
 
 
-ROUTES = [
+ROUTES: Final = [
     Route(
         "routes-gevaarlijke-stoffen",
         "https://api.data.amsterdam.nl/dcatd/datasets/ZtMOaEZSOnXM9w/purls/1",
@@ -92,13 +92,13 @@ ROUTES = [
     # ),
 ]
 
-DROP_TMPL = """
+DROP_TMPL: Final = """
     {% for tablename in params.tablenames %}
     DROP TABLE IF EXISTS {{ tablename }} CASCADE;
     {% endfor %}
 """
 
-TABLES_TO_DROP = [r.tmp_db_table_name for r in ROUTES]
+TABLES_TO_DROP: Final = [r.tmp_db_table_name for r in ROUTES]
 
 
 def _load_geojson(postgres_conn_id):

@@ -6,6 +6,7 @@ import random
 import re
 import urllib.parse
 from collections import OrderedDict
+from typing import Final
 
 import psycopg2
 import requests
@@ -13,7 +14,7 @@ from common.db import fetch_pg_env_vars
 from requests import HTTPError
 from simplejson import JSONDecodeError
 
-LOGLEVEL = os.environ.get("LOGLEVEL", "INFO").upper()
+LOGLEVEL: Final = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
 log = logging.getLogger(__name__)
 
@@ -24,9 +25,9 @@ password = pg_env_vars["PGPASSWORD"]
 host = pg_env_vars["PGHOST"]
 port = pg_env_vars["PGPORT"]
 
-LAADPAAL_MAX_AGE = 8640000  # 100 days
+LAADPAAL_MAX_AGE: Final = 8640000  # 100 days
 
-LAADPAAL_DELETE_AGE = 864000  # 10 days
+LAADPAAL_DELETE_AGE: Final = 864000  # 10 days
 
 oplaadpunten_providers = {
     "Allego",
