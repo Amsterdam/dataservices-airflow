@@ -1,4 +1,4 @@
-import ntpath
+import os.path
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
@@ -106,7 +106,7 @@ class SwiftHook(BaseHook):
         Raises:
             AirflowException: Upload cannot be executed
         """
-        filename = ntpath.basename(local_path)
+        filename = os.path.basename(local_path)
         with self.connection() as swift:
             try:
                 for r in swift.upload(
