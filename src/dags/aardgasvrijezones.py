@@ -1,4 +1,5 @@
 import operator
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
@@ -13,6 +14,7 @@ from common import (
     quote_string,
     slack_webhook_token,
 )
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -49,7 +51,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(Path(tmp_dir))
 
     # 3. Download data
     download_data = [

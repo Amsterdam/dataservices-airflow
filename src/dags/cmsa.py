@@ -3,7 +3,6 @@ from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
@@ -13,6 +12,7 @@ from common import (
     default_args,
     slack_webhook_token,
 )
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_cmsa import import_cmsa
@@ -63,7 +63,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(tmp_dir)
 
     # 3. Download sensor data (geojson) from maps.amsterdam.nl
     download_geojson = HttpFetchOperator(

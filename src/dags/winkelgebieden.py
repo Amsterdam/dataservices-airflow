@@ -1,5 +1,5 @@
 import operator
-import pathlib
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
@@ -14,6 +14,7 @@ from common import (
     quote_string,
     slack_webhook_token,
 )
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -22,8 +23,8 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from sql.winkelgebieden_add import ADD_CATEGORIE_CATEGORIENAAM
 
 dag_id = "winkelgebieden"
-data_path = pathlib.Path(__file__).resolve().parents[1] / "data"
-sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
+data_path = Path(__file__).resolve().parents[1] / "data"
+sql_path = Path(__file__).resolve().parents[0] / "sql"
 variables = Variable.get(dag_id, deserialize_json=True)
 schema_end_point = variables["schema_end_point"]
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
@@ -50,7 +51,7 @@ with DAG(
     )
 
     # 2. TEMP DIR
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(Path(tmp_dir))
 
     # 3. EXTRACT data based on TAB definition
     extract_data = BashOperator(

@@ -1,9 +1,9 @@
+from pathlib import Path
 from typing import Final
 
 import pendulum
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.settings import TIMEZONE
 from common import (
@@ -15,6 +15,7 @@ from common import (
     slack_webhook_token,
 )
 from common.db import DatabaseEngine
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -55,7 +56,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {TMP_DIR}")
+    mkdir = mk_dir(Path(TMP_DIR))
 
     # 3. download the data into temp directorys
     download_data = HttpFetchOperator(

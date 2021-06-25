@@ -1,12 +1,12 @@
 import json
 import operator
 from datetime import datetime, timezone, tzinfo
+from pathlib import Path
 from typing import Dict, Optional
 
 import requests
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
@@ -20,6 +20,7 @@ from common import (
     slack_webhook_token,
 )
 from common.db import DatabaseEngine
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dateutil import tz
 from more_ds.network.url import URL
@@ -98,7 +99,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(Path(tmp_dir))
 
     # 3. Download data
     download_data = PythonOperator(task_id="download_data", python_callable=get_data)
