@@ -1,14 +1,12 @@
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 from typing import Dict, Iterator, Optional, Union
 
+import pendulum
 from airflow.exceptions import AirflowException
 from airflow.hooks.base import BaseHook
-from dateutil import tz
+from airflow.settings import TIMEZONE
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
-
-to_zone: Optional[tzinfo] = tz.gettz("Europe/Amsterdam")
 
 
 class SwiftHook(BaseHook):
@@ -167,14 +165,12 @@ class SwiftHook(BaseHook):
             Iterator: name of file that have a modification date that is older then given time
                 window
         """
-        start_date: datetime = datetime.now(timezone.utc).astimezone(to_zone) - timedelta(
-            days=time_window_in_days
-        )
+        start_date = pendulum.now(TIMEZONE).subtract(days=time_window_in_days)
         contents_of_container = self.list_container(container)
         for file in contents_of_container:
-            modification_date = datetime.strptime(
-                file["last_modified"], "%Y-%m-%dT%H:%M:%S.%f"
-            ).astimezone(to_zone)
+            modification_date = pendulum.from_format(
+                file["last_modified"], "YYYY-MM-DDTHH:mm:ss.SSSSSS"
+            ).in_tz(TIMEZONE)
             if modification_date < start_date:
                 yield file["name"]
 
