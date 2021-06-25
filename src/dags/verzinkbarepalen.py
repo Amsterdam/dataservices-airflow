@@ -1,9 +1,8 @@
 import operator
-import pathlib
+from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
@@ -12,6 +11,7 @@ from common import (
     quote_string,
     slack_webhook_token,
 )
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -22,7 +22,7 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 
 dag_id = "verzinkbarepalen"
-data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
+data_path = Path(__file__).resolve().parents[1] / "data" / dag_id
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 variables = Variable.get(dag_id, deserialize_json=True)
 data_endpoints = variables["data_endpoints"]
@@ -54,7 +54,7 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(Path(tmp_dir))
 
     # 3. Download data
     fetch_json = HttpFetchOperator(
