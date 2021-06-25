@@ -21,6 +21,7 @@ class SwiftHook(BaseHook):
     """
 
     def __init__(self, swift_conn_id: str = "swift_default") -> None:  # noqa: D107
+        super().__init__()
         self.swift_conn_id = swift_conn_id
 
     @contextmanager
