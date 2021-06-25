@@ -12,6 +12,7 @@ from airflow.hooks.base import BaseHook
 from airflow.models.taskinstance import Context
 from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
 from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.settings import TIMEZONE
 from environs import Env
 from log_message_operator import LogMessageOperator
 from requests.exceptions import ConnectionError
@@ -139,7 +140,7 @@ def slack_failed_task(context: Context) -> None:
 default_args: Context = {
     "owner": "dataservices",
     "depends_on_past": False,
-    "start_date": pendulum.yesterday("Europe/Amsterdam"),
+    "start_date": pendulum.yesterday(TIMEZONE),
     "email": "example@airflow.com",
     "email_on_failure": False,
     "email_on_retry": False,
