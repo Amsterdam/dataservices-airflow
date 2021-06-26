@@ -245,11 +245,11 @@ with DAG(
         for file_stem, url_path in data_endpoints.items()
     ]
 
-    def rm_tmp_tables(postfix: str) -> PostgresOperator:
+    def rm_tmp_tables(task_id_postfix: str) -> PostgresOperator:
         return PostgresOperator(
-            task_id=f"rm_tmp_tables{postfix}",
+            task_id=f"rm_tmp_tables{task_id_postfix}",
             sql="DROP TABLE IF EXISTS {tables}".format(
-                tables=", ".join(map(lambda s: f"{TMP_TABLE_PREFIX}{s}", table_mappings.values()))
+                tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", table_mappings.values()))
             ),
         )
 
