@@ -74,8 +74,8 @@ CONFIG: Final = {
 }
 
 # Table names to write new IoT data to
-THINGS_TABLE: Final = "cmsa_sensor_new"
-LOCATIONS_TABLE: Final = "cmsa_locatie_new"
+THINGS_TABLE: Final = "tmp_cmsa_sensor"
+LOCATIONS_TABLE: Final = "tmp_cmsa_locatie"
 # OWNERS_TABLE = "iot_owners_new"
 
 
