@@ -91,7 +91,7 @@ with DAG(
     drop_identity_from_table = PostgresOperator(
         task_id="drop_identity_from_table",
         sql="""
-            ALTER TABLE {{ params.table_id }}
+            ALTER TABLE IF EXISTS {{ params.table_id }}
                 ALTER COLUMN id DROP IDENTITY IF EXISTS;
         """,
         params={"table_id": TABLE_ID},
