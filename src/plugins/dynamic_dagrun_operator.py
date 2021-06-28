@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 from airflow.models.dag import DagModel, DagRun
-from airflow.operators.dagrun_operator import TriggerDagRunOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.settings import Session
 from airflow.utils.decorators import apply_defaults
 from airflow.utils.state import State
@@ -46,7 +44,7 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
         """
         super().__init__(
             trigger_dag_id=None,
-            execution_date=None,
+            execution_date=execution_date,
             *args,
             **kwargs,
         )
