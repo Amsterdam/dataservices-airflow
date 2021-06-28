@@ -29,6 +29,7 @@ class Ogr2OgrOperator(BaseOperator):
         mode: str = "PGDump",
         db_conn: Optional[DatabaseEngine] = None,
         encoding_schema: str = "UTF-8",
+        promote_to_multi: Optional[bool] = False,
         **kwargs: Any,
     ) -> None:
         """Setup params.
@@ -49,6 +50,9 @@ class Ogr2OgrOperator(BaseOperator):
                 Defaults to "PGDump" which output a file.
             db_conn: Database engine instance. Defaults to None.
             encoding_schema: Source character schema. Defaults to "UTF-8".
+            promote_to_multi: Optional choice for converting geometry to an multigeometry object.
+                This can be needed if the source has e.g. points and multipoints. With this option
+                set to True all points are set to multipoints as well.
         """
         super().__init__(**kwargs)
         self.conn_id = conn_id
@@ -65,6 +69,7 @@ class Ogr2OgrOperator(BaseOperator):
         self.mode = mode
         self.db_conn = db_conn
         self.encoding_schema = encoding_schema
+        self.promote_to_multi = promote_to_multi
 
     def execute(self, context: Optional[Dict[str, Any]] = None) -> None:
         """Proces the input file with OGR2OGR to SQL output.
@@ -116,10 +121,13 @@ class Ogr2OgrOperator(BaseOperator):
         ogr2ogr_cmd.append(f"-oo AUTODETECT_TYPE={self.auto_detect_type} ")
         ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
         ogr2ogr_cmd.append(f"-lco ENCODING={self.encoding_schema} ")
-        ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
         ogr2ogr_cmd.append("-lco precision=NO ")
+
+        # generic optional parameters
         if self.sql_statement:
             ogr2ogr_cmd.append(f"-sql {self.sql_statement}")
+        if self.promote_to_multi:
+            ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
 
         # execute cmd string
         try:
