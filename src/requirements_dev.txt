@@ -17,3 +17,5 @@ black
 isort
 
 mypy==0.812
+
+pyupgrade
