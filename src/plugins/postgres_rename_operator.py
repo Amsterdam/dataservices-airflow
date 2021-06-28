@@ -1,5 +1,7 @@
 import re
+from typing import Any
 
+from airflow.models.taskinstance import Context
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.decorators import apply_defaults
@@ -9,24 +11,24 @@ from check_helpers import check_safe_name
 class PostgresTableRenameOperator(PostgresOperator):
     """Rename a table."""
 
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         old_table_name: str,
         new_table_name: str,
-        postgres_conn_id="postgres_default",
-        task_id="rename_table",
+        postgres_conn_id: str = "postgres_default",
+        task_id: str = "rename_table",
         cascade: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         check_safe_name(old_table_name)
         check_safe_name(new_table_name)
-        super().__init__(task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs)
+        super().__init__(task_id=task_id, sql="", postgres_conn_id=postgres_conn_id, **kwargs)
         self.old_table_name = old_table_name
         self.new_table_name = new_table_name
         self.cascade = cascade
 
-    def execute(self, context):
+    def execute(self, context: Context) -> None:
         # First get all index names, so it's known which indices to rename
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
@@ -105,6 +107,6 @@ class PostgresTableRenameOperator(PostgresOperator):
         super().execute(context)
 
 
-def _get_complete_word_pattern(word):
+def _get_complete_word_pattern(word: str) -> str:
     """Create a search pattern that looks for whole words only."""
     return fr"{re.escape(word)}"
