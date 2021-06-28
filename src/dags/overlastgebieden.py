@@ -74,7 +74,7 @@ with DAG(
             operation="get",
             create_intermediate_dirs=True,
         )
-        for file in files_to_download.keys()
+        for file in files_to_download
     ]
 
     # 4. Dummy operator acts as an interface between parallel tasks
@@ -96,9 +96,7 @@ with DAG(
             db_conn=db_conn,
             geometry_name="geometry",
             promote_to_multi=True,
-            sql_statement=f"""\"SELECT * FROM OOV_gebieden_totaal
-                                WHERE 1=1 AND TYPE = '{code}'\"
-                                """,  # noqa: S608
+            sql_statement=f"\"SELECT * FROM OOV_gebieden_totaal WHERE 1=1 AND TYPE = '{code}'\"",  # noqa: S608
         )
         for key, code in tables_to_create.items()
     ]
