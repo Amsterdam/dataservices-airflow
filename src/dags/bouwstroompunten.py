@@ -121,6 +121,7 @@ with DAG(
         s_srs=None,
         fid="ogc_fid",
         auto_detect_type="YES",
+        promote_to_multi=False,
         mode="PostgreSQL",
         db_conn=db_conn,
     )
