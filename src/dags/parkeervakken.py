@@ -177,16 +177,14 @@ def import_data(shp_file, ids):
         try:
             hook.run(create_parkeervakken_sql)
         except Exception as e:
-            raise Exception("Failed to create parkeervakken: {}".format(str(e)[0:150]))
+            raise Exception(f"Failed to create parkeervakken: {str(e)[0:150]}")
     if len(regimes_sql):
         try:
             hook.run(create_regimes_sql)
         except Exception as e:
-            raise Exception("Failed to create regimes: {}".format(str(e)[0:150]))
+            raise Exception(f"Failed to create regimes: {str(e)[0:150]}")
 
-    print(
-        "Created: {} parkeervakken and {} regimes".format(len(parkeervakken_sql), len(regimes_sql))
-    )
+    print(f"Created: {len(parkeervakken_sql)} parkeervakken and {len(regimes_sql)} regimes")
     return duplicates
 
 
@@ -324,7 +322,7 @@ with DAG(
 def create_parkeervaak(row, soort=None):
     geometry = "''"
     if row.shape.shapeTypeName == "POLYGON":
-        geometry = "ST_GeometryFromText('{}', 28992)".format(str(Polygon(row.shape.points)))
+        geometry = f"ST_GeometryFromText('{str(Polygon(row.shape.points))}', 28992)"
     sql = (
         "("
         "'{parkeer_id}',"

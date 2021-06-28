@@ -17,7 +17,7 @@ def main():
         df = pandas.read_excel(args.xlsx)
 
         # Read SQL data  in shape_map dictionary
-        sql_file = open(args.sql_shape, "r")
+        sql_file = open(args.sql_shape)
         sql = sql_file.readlines()
         shape_map = dict()
         for line in sql:
@@ -154,7 +154,7 @@ def main():
         with open(args.output, "w") as f:
             f.write("\n".join(inserts))
 
-    except IOError as exc:
+    except OSError as exc:
         print(exc)
 
 

@@ -60,7 +60,7 @@ with DAG(
     colname_check = COLNAMES_CHECK.make_check(
         check_id="colname_check",
         parameters=["fietspaaltjes"],
-        pass_value=set(["id"]),
+        pass_value={"id"},
         result_checker=operator.ge,
     )
 

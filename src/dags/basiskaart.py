@@ -96,7 +96,7 @@ def copy_data_in_batch(target_base_table: str, fetch_iterator: Iterator) -> int:
                 target_base_table, items, target_fields=None, commit_every=1000, replace=False
             )
         except Exception as e:
-            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150])) from e
+            raise Exception(f"Failed to insert batch data: {str(e)[0:150]}") from e
 
     return result
 
