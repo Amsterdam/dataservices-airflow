@@ -1,7 +1,6 @@
 from pathlib import Path
 from typing import Final
 
-import pendulum
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
@@ -35,7 +34,6 @@ TMP_TABLE_PREFIX: Final = "tmp_"
 TABLES_WITH_IDENTITY: Final = ("cmsa_locatie", "cmsa_markering")
 TABLES: Final = ("cmsa_sensor", *TABLES_WITH_IDENTITY)
 
-default_args["start_date"] = pendulum.now("Europe/Amsterdam")
 with DAG(
     DAG_ID,
     description="""Crowd Monitoring Systeem Amsterdam:
@@ -226,8 +224,3 @@ dag.doc_md = """
     Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=cmsa/locatie&x=106434&y=488995&radius=10
 """
-if __name__ == "__main__":
-    from airflow.utils.state import State
-
-    dag.clear(dag_run_state=State.NONE)
-    dag.run()
