@@ -1,6 +1,6 @@
 import operator
 from pathlib import Path
-from typing import Dict, Final, List
+from typing import Dict, Final, List, Union, cast
 
 from airflow import DAG
 from airflow.models import Variable
@@ -26,11 +26,11 @@ from provenance_rename_operator import ProvenanceRenameOperator
 
 DAG_ID: Final = "overlastgebieden"
 
-variables_overlastgebieden: Dict[str, str] = Variable.get(
+variables_overlastgebieden: Dict[str, Union[List[str], Dict[str, str]]] = Variable.get(
     "overlastgebieden", deserialize_json=True
 )
-files_to_download: Dict[str, str] = variables_overlastgebieden["files_to_download"]
-tables_to_create: Dict[str, str] = variables_overlastgebieden["tables_to_create"]
+files_to_download = cast(List[str], variables_overlastgebieden["files_to_download"])
+tables_to_create = cast(Dict[str, str], variables_overlastgebieden["tables_to_create"])
 # Note: Vuurwerkvrijezones (VVZ) data is temporaly! not processed due to covid19 national measures
 tables_to_check: Dict[str, str] = {
     k: v for k, v in tables_to_create.items() if k != "vuurwerkvrij"
@@ -39,8 +39,8 @@ TMP_PATH: Final = Path(SHARED_DIR) / DAG_ID
 total_checks: List[int] = []
 count_checks: List[int] = []
 geo_checks: List[int] = []
-check_name: Dict[str, int] = {}
-db_conn: object = DatabaseEngine()
+check_name: Dict[str, List[int]] = {}
+db_conn = DatabaseEngine()
 
 with DAG(
     DAG_ID,
