@@ -18,3 +18,6 @@ e9eacd499e0c53a8cf0dacbc8dad59a6da008f38
 
 # Apply black + isort on entire source tree.
 f85d6e48f38c8cde6c1ad77c4b3ecb4240a672fc
+
+# AB#8704 Some pyugrade code clean-ups.
+a70e25a63391dcbf5d5ecf12a892da0d1edcf92d
