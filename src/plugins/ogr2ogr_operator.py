@@ -125,7 +125,7 @@ class Ogr2OgrOperator(BaseOperator):
 
         # generic optional parameters
         if self.sql_statement:
-            ogr2ogr_cmd.append(f"-sql {self.sql_statement} ")
+            ogr2ogr_cmd.append(f'-sql "{self.sql_statement}" ')
         if self.promote_to_multi:
             ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
 
