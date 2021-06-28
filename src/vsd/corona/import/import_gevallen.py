@@ -19,7 +19,7 @@ subset_amterdam = list()
 def data_parser(file):
     """loading data and parsing json"""
     log.info(f"read file {file}")
-    with open(file, "r") as data:
+    with open(file) as data:
         for row in data:
             jsonized = json.loads(row)
             yield from jsonized

@@ -37,7 +37,7 @@ def first_flattened_record(records):
 
 
 def flattened_records_as_set(records):
-    return set([r[0] for r in records])
+    return {r[0] for r in records}
 
 
 class CheckFactory:

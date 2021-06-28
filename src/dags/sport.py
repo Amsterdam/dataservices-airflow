@@ -89,7 +89,7 @@ def clean_data(file_name: str) -> None:
     TODO: contact data maintainer to ask for encoding schema for
     sportvelden specificly, other datasets can be correctly encoded.
     """
-    data = open(file_name, "r").read()
+    data = open(file_name).read()
     remove_returns = re.sub(r"[\n\r]", "", data)
     remove_double_spaces = re.sub(r"[ ]{2,}", " ", remove_returns)
     remove_unkown_karakter = re.sub("\uFFFD", "\u2014", remove_double_spaces)

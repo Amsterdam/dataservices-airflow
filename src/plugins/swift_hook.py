@@ -56,8 +56,7 @@ class SwiftHook(BaseHook):
             try:
                 for page in swift.list(container=container):
                     if page["success"]:
-                        for item in page["listing"]:
-                            yield item
+                        yield from page["listing"]
             except SwiftError as e:
                 self.log.error(e.value)
                 raise AirflowException("Failed to fetch container listing") from e

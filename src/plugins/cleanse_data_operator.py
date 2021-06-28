@@ -28,15 +28,15 @@ class CleanseDataOperator(BaseOperator):
         # Prepare data: if outputfile is specified
         # then do translation only in output file
         if self.output_file:
-            data = open(self.input_file, "r").read()
+            data = open(self.input_file).read()
             with open(self.output_file, "w") as output:
                 output.write(data)
-            data = open(self.output_file, "r").read()
+            data = open(self.output_file).read()
         else:
-            data = open(self.input_file, "r").read()
+            data = open(self.input_file).read()
 
         # Translate data
         for character, translation in self.character_translation.items():
-            result = re.sub(r"{0}".format(character), translation, data)
+            result = re.sub(fr"{character}", translation, data)
             with open(self.output_file or self.input_file, "w") as output:
                 output.write(result)

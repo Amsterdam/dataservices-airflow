@@ -101,4 +101,4 @@ class PostgresTableRenameOperator(PostgresOperator):
 
 def _get_complete_word_pattern(word):
     """Create a search pattern that looks for whole words only."""
-    return r"{word}".format(word=re.escape(word))
+    return fr"{re.escape(word)}"

@@ -33,7 +33,7 @@ def get_header(file: str) -> List[str]:
 
     """
     dialect = get_dialect(file)
-    with open(file, "r") as src:
+    with open(file) as src:
         data = csv.reader(src, dialect=dialect)
         return next(data)
 
@@ -75,7 +75,7 @@ def read_data(file: str, composite_key: Tuple[str, ...]) -> Iterator[Dict[str, A
 
     """
     dialect = get_dialect(file)
-    with open(file, "r") as src:
+    with open(file) as src:
         data = csv.DictReader(src, dialect=dialect)
         for line in data:
             line["composite_keys"] = composite_key
