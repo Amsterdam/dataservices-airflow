@@ -15,6 +15,7 @@ from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
 from airflow.settings import TIMEZONE
 from environs import Env
 from log_message_operator import LogMessageOperator
+from psycopg2.extensions import QuotedString
 from requests.exceptions import ConnectionError
 
 env: Env = Env()
@@ -181,9 +182,27 @@ def addloopvariables(iterable: Iterable) -> Iterable:
     yield current, False, True
 
 
-def quote_string(instr: str) -> str:
-    """Needed to put quotes on elements in geotypes for SQL_CHECK_GEO."""
-    return f"'{instr}'"
+def quote_string(val: str) -> str:
+    """Return properly quoted and escaped string value for usage in PostgreSQL SQL queries.
+
+    Return the string enclosed in single quotes.
+    Any single quote appearing in the string
+    is escaped by doubling it according to SQL string constants syntax.
+    Backslashes are escaped too.
+
+    Args:
+        val: string value to be quoted and escaped
+
+    Returns:
+        Escaped and quoted string value.
+
+    """
+    # This function uses extension functions from Pyscopg2. Normally Pscycopg2 has a
+    # connection (to a DB) it can derive the encoding from. Here we are using the functions
+    # without a connection present. Hence Psycopg2 uses the default encoding of latin-1.
+    # Rather then modifying the encoding globally to utf-8 and causing unintended side-effects,
+    # we accept the default encoding and encode and decode our utf-8 string accordingly.
+    return cast(str, QuotedString(val.encode()).getquoted().decode())
 
 
 def make_hash(composite_values: List[str], digest_size: int = 5) -> int:
