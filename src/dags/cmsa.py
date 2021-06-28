@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Final
 
+import pendulum
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
@@ -19,6 +20,7 @@ from http_fetch_operator import HttpFetchOperator
 from importscripts.import_cmsa import import_cmsa
 from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
@@ -33,6 +35,7 @@ TMP_TABLE_PREFIX: Final = "tmp_"
 TABLES_WITH_IDENTITY: Final = ("cmsa_locatie", "cmsa_markering")
 TABLES: Final = ("cmsa_sensor", *TABLES_WITH_IDENTITY)
 
+default_args["start_date"] = pendulum.now("Europe/Amsterdam")
 with DAG(
     DAG_ID,
     description="""Crowd Monitoring Systeem Amsterdam:
@@ -176,16 +179,11 @@ with DAG(
     # cascade it, reuse the existing `drop_identity_to_tables` task by wrapping it in a
     # function and call it just before renaming the tables.
     rename_tables = [
-        PostgresOperator(
+        PostgresTableRenameOperator(
             task_id=f"rename_tables_for_{table}",
-            sql="""
-                ALTER TABLE IF EXISTS {{ params.table }}
-                    RENAME TO {{ params.table }}_old;
-                ALTER TABLE {{ params.tmp_table_prefix }}{{ params.table }}
-                    RENAME TO {{ params.table }};
-                DROP TABLE IF EXISTS {{ params.table }}_old CASCADE;
-            """,
-            params={"tmp_table_prefix": TMP_TABLE_PREFIX, "table": table},
+            new_table_name=table,
+            old_table_name=f"{TMP_TABLE_PREFIX}{table}",
+            cascade=True,
         )
         for table in TABLES
     ]
@@ -228,3 +226,8 @@ dag.doc_md = """
     Example geosearch:
     https://api.data.amsterdam.nl/geosearch?datasets=cmsa/locatie&x=106434&y=488995&radius=10
 """
+if __name__ == "__main__":
+    from airflow.utils.state import State
+
+    dag.clear(dag_run_state=State.NONE)
+    dag.run()
