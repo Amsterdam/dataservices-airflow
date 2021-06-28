@@ -102,7 +102,7 @@ class PostgresTableRenameOperator(PostgresOperator):
         for old_name, new_name in idx_renames:
             self.sql.append(f"ALTER INDEX IF EXISTS {old_name} RENAME TO {new_name}")
 
-        return super().execute(context)
+        super().execute(context)
 
 
 def _get_complete_word_pattern(word):
