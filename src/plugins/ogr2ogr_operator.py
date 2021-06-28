@@ -125,21 +125,13 @@ class Ogr2OgrOperator(BaseOperator):
 
         # generic optional parameters
         if self.sql_statement:
-            logger.error(
-                """***********************************************YES1!""",
-            )
             ogr2ogr_cmd.append(f"-sql {self.sql_statement} ")
         if self.promote_to_multi:
-            logger.error(
-                """***********************************************YES2!""",
-            )
             ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
 
         # execute cmd string
         try:
             subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)  # noqa: S602
-            logger.error("******")
-            logger.error("".join(ogr2ogr_cmd))
         except subprocess.CalledProcessError as err:
             logger.error(
                 """Something went wrong, cannot execute subproces.
