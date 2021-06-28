@@ -1,9 +1,10 @@
 import logging
 import subprocess  # noqa: S404
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from airflow.models.baseoperator import BaseOperator
+from airflow.models.taskinstance import Context
 from common.db import DatabaseEngine
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class Ogr2OgrOperator(BaseOperator):
         mode: str = "PGDump",
         db_conn: Optional[DatabaseEngine] = None,
         encoding_schema: str = "UTF-8",
-        promote_to_multi: Optional[bool] = False,
+        promote_to_multi: bool = False,
         **kwargs: Any,
     ) -> None:
         """Setup params.
@@ -50,7 +51,7 @@ class Ogr2OgrOperator(BaseOperator):
                 Defaults to "PGDump" which output a file.
             db_conn: Database engine instance. Defaults to None.
             encoding_schema: Source character schema. Defaults to "UTF-8".
-            promote_to_multi: Optional choice for converting geometry to an multigeometry object.
+            promote_to_multi: Should geometry be converted to an multigeometry object?
                 This can be needed if the source has e.g. points and multipoints. With this option
                 set to True all points are set to multipoints as well.
         """
@@ -71,7 +72,7 @@ class Ogr2OgrOperator(BaseOperator):
         self.encoding_schema = encoding_schema
         self.promote_to_multi = promote_to_multi
 
-    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:
+    def execute(self, context: Context) -> None:
         """Proces the input file with OGR2OGR to SQL output.
 
         Args:
@@ -84,8 +85,7 @@ class Ogr2OgrOperator(BaseOperator):
         input_file.parents[0].mkdir(parents=True, exist_ok=True)
 
         # setup the cmd to execute
-        ogr2ogr_cmd: List = []
-        ogr2ogr_cmd.append(f"ogr2ogr -f '{self.mode}' ")
+        ogr2ogr_cmd: List[str] = [f"ogr2ogr -f '{self.mode}' "]
 
         # Option 1 SQL (default): create sql file
         if self.mode == "PGDump":
