@@ -185,19 +185,19 @@ if [ ! -f """
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type f -mtime \
      +${MAX_LOG_AGE_IN_DAYS}"
-    DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \;"
+    DELETE_STMT="${FIND_STATEMENT} -exec rm -f {} \\;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/*/* -type d -empty"
-    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \\;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?
 
     FIND_STATEMENT="find ${BASE_LOG_FOLDER}/* -type d -empty"
-    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \;"
+    DELETE_STMT="${FIND_STATEMENT} -prune -exec rm -rf {} \\;"
 
     cleanup "${FIND_STATEMENT}" "${DELETE_STMT}"
     CLEANUP_EXIT_CODE=$?

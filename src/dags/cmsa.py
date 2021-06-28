@@ -3,7 +3,7 @@ from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
+from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
@@ -13,143 +13,198 @@ from common import (
     default_args,
     slack_webhook_token,
 )
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_cmsa import import_cmsa
 from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
-dag_id = "cmsa"
-variables = Variable.get(dag_id, deserialize_json=True)
-files_to_download = variables["files_to_download"]
-tmp_dir = Path(SHARED_DIR) / dag_id
-sql_path = Path(__file__).resolve().parents[0] / "sql"
-fetch_jsons = []
+DAG_ID: Final = "cmsa"
+VARIABLES: Final = Variable.get(DAG_ID, deserialize_json=True)
+FILES_TO_DOWNLOAD: Final = VARIABLES["files_to_download"]
+TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
+SQL_PATH: Final = Path(__file__).resolve().parents[0] / "sql"
 
-
-SQL_TABLE_RENAMES: Final = """
-    ALTER TABLE IF EXISTS cmsa_sensor RENAME TO cmsa_sensor_old;
-    ALTER TABLE IF EXISTS cmsa_locatie RENAME TO cmsa_locatie_old;
-    ALTER TABLE IF EXISTS cmsa_markering RENAME TO cmsa_markering_old;
-
-    ALTER TABLE cmsa_sensor_new RENAME TO cmsa_sensor;
-    ALTER TABLE cmsa_locatie_new RENAME TO cmsa_locatie;
-    ALTER TABLE cmsa_markering_new RENAME TO cmsa_markering;
-
-    DROP TABLE IF EXISTS cmsa_sensor_old CASCADE;
-    DROP TABLE IF EXISTS cmsa_locatie_old CASCADE;
-    DROP TABLE IF EXISTS cmsa_markering_old;
-"""
-
+TMP_TABLE_PREFIX: Final = "tmp_"
+TABLES_WITH_IDENTITY: Final = ("cmsa_locatie", "cmsa_markering")
+TABLES: Final = ("cmsa_sensor", *TABLES_WITH_IDENTITY)
 
 with DAG(
-    dag_id,
+    DAG_ID,
     description="""Crowd Monitoring Systeem Amsterdam:
                 3D sensoren, wifi sensoren, (tel)camera's en beacons""",
     default_args=default_args,
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
-
-    # 1. Post info message on slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
-    # 2. Create temp directory to store files
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(TMP_DIR, clean_if_exists=True)
 
-    # 3. Download sensor data (geojson) from maps.amsterdam.nl
     download_geojson = HttpFetchOperator(
         task_id="download_geojson",
         endpoint="open_geodata/geojson.php?KAARTLAAG=CROWDSENSOREN&THEMA=cmsa",
         http_conn_id="ams_maps_conn_id",
-        tmp_file=tmp_dir / "sensors.geojson",
+        tmp_file=TMP_DIR / "sensors.geojson",
     )
 
-    # 4. Download additional data (beacons.csv, cameras.xlsx)
     fetch_files = [
         SwiftOperator(
             task_id=f"download_{file}",
-            # if conn is ommitted, it defaults to Objecstore Various Small Datasets
+            # if conn is omitted, it defaults to Objecstore Various Small Datasets
             # swift_conn_id="SWIFT_DEFAULT",
             container="cmsa",
             object_id=file,
-            output_path=tmp_dir / file,
+            output_path=TMP_DIR / file,
         )
-        for file in files_to_download
+        for file in FILES_TO_DOWNLOAD
     ]
 
-    # 5. Create SQL insert statements out of downloaded data
     proces_cmsa = PythonOperator(
         task_id="proces_sensor_data",
         python_callable=import_cmsa,
         op_args=[
-            tmp_dir / "cameras.xlsx",
-            tmp_dir / "beacons.csv",
-            tmp_dir / "sensors.geojson",
-            tmp_dir,
+            TMP_DIR / "cameras.xlsx",
+            TMP_DIR / "beacons.csv",
+            TMP_DIR / "sensors.geojson",
+            TMP_DIR,
         ],
     )
 
-    # 6. Create target tables: Sensor en Locatie
-    create_tables = PostgresFilesOperator(
-        task_id="create_target_tables",
-        sql_files=[f"{sql_path}/cmsa_data_create.sql"],
+    rm_tmp_tables = PostgresOperator(
+        task_id="rm_tmp_tables",
+        sql="DROP TABLE IF EXISTS {tables} CASCADE".format(
+            tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", TABLES))
+        ),
     )
 
-    # 7. Insert data into DB
+    # Drop the identity on the `id` column, otherwise SqlAlchemyCreateObjectOperator
+    # gets seriously confused; as in: its finds something it didn't create and errors out.
+    drop_identity_from_tables = [
+        PostgresOperator(
+            task_id=f"drop_identity_from_table_{table}",
+            sql="""
+                ALTER TABLE IF EXISTS {{ params.table }}
+                    ALTER COLUMN id DROP IDENTITY IF EXISTS;
+            """,
+            params={"table": table},
+        )
+        for table in TABLES_WITH_IDENTITY
+    ]
+
+    sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
+        task_id="sqlalchemy_create_objects_from_schema",
+        data_schema_name=DAG_ID,
+        ind_extra_index=False,
+    )
+
+    add_identity_to_tables = [
+        PostgresOperator(
+            task_id=f"add_identity_to_table_{table}",
+            sql="""
+                ALTER TABLE {{ params.table }}
+                    ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY;
+            """,
+            params={"table": table},
+        )
+        for table in TABLES_WITH_IDENTITY
+    ]
+
+    join_parallel_tasks = DummyOperator(task_id="join_parallel_tasks")
+
+    postgres_create_tables_like = [
+        PostgresTableCopyOperator(
+            task_id=f"postgres_create_tables_like_{table}",
+            source_table_name=table,
+            target_table_name=f"{TMP_TABLE_PREFIX}{table}",
+            # Only copy table definitions. Don't do anything else.
+            truncate_target=False,
+            copy_data=False,
+            drop_source=False,
+        )
+        for table in TABLES
+    ]
+
     import_data = PostgresFilesOperator(
-        task_id="import_data_into_DB",
+        task_id="import_data_into_db",
         sql_files=[
-            tmp_dir / "cmsa_sensor_new.sql",
-            tmp_dir / "cmsa_locatie_new.sql",
+            TMP_DIR / f"{TMP_TABLE_PREFIX}cmsa_sensor.sql",
+            TMP_DIR / f"{TMP_TABLE_PREFIX}cmsa_locatie.sql",
         ],
     )
 
-    # 8. Create target tables: Markering (join between Sensor en Locatie)
-    fill_markering = PostgresFilesOperator(
-        task_id="insert_into_table_markering",
-        sql_files=[f"{sql_path}/cmsa_data_insert_markering.sql"],
+    fill_markering = PostgresOperator(
+        task_id="fill_markering",
+        sql="""
+            INSERT INTO {{ params.tmp_table_prefix }}cmsa_markering (sensor_id,
+                                                                     locatie_id,
+                                                                     sensornaam,
+                                                                     sensortype,
+                                                                     geometry)
+                (SELECT sensor.id,
+                        locatie.id,
+                        sensor.naam,
+                        sensor.type,
+                        locatie.geometry
+                 FROM {{ params.tmp_table_prefix }}cmsa_sensor AS sensor
+                          INNER JOIN {{ params.tmp_table_prefix }}cmsa_locatie AS locatie
+                                     ON locatie.sensor_id = sensor.id
+                );
+        """,
+        params={"tmp_table_prefix": TMP_TABLE_PREFIX},
     )
 
-    # 9. RENAME columns based on PROVENANCE
-    provenance_translation = ProvenanceRenameOperator(
-        task_id="provenance_rename",
-        dataset_name=dag_id,
-        prefix_table_name=f"{dag_id}_",
-        postfix_table_name="_new",
-        rename_indexes=False,
-        pg_schema="public",
+    # Though identity columns are much more convenient than the old style serial columns, the
+    # sequences associated with them are not renamed automatically when the table with the
+    # identity columns is renamed. Hence, when renaming a table `tmp_fubar`, with identity column
+    # `id`, to `fubar`, the associated sequence will still be named `tmp_fubar_id_seq`.
+    #
+    # This is not a problem, unless we suffer from certain OCD tendencies. Hence, we leave the
+    # slight naming inconsistency as-is. Should you want to address it, don't rename the
+    # sequence. Simply drop cascade it instead. After all, the identity column is only required
+    # for the duration of the import; we don't need it afterwards. And when you do want to drop
+    # cascade it, reuse the existing `drop_identity_to_tables` task by wrapping it in a
+    # function and call it just before renaming the tables.
+    rename_tables = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_tables_for_{table}",
+            new_table_name=table,
+            old_table_name=f"{TMP_TABLE_PREFIX}{table}",
+            cascade=True,
+        )
+        for table in TABLES
+    ]
+
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
+
+    (
+        slack_at_start
+        >> mkdir
+        >> download_geojson
+        >> fetch_files
+        >> proces_cmsa
+        >> rm_tmp_tables
+        >> drop_identity_from_tables
+        >> sqlalchemy_create_objects_from_schema
+        >> add_identity_to_tables
+        >> join_parallel_tasks
+        >> postgres_create_tables_like
+        >> import_data
+        >> fill_markering
+        >> rename_tables
+        >> grant_db_permissions
     )
-
-    # 10. Rename temp named tables to final names
-    rename_tables = PostgresOperator(task_id="rename_tables", sql=SQL_TABLE_RENAMES)
-
-    # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
-
-
-(
-    slack_at_start
-    >> mkdir
-    >> download_geojson
-    >> fetch_files
-    >> proces_cmsa
-    >> create_tables
-    >> import_data
-    >> fill_markering
-    >> provenance_translation
-    >> rename_tables
-    >> grant_db_permissions
-)
-
 
 dag.doc_md = """
     #### DAG summary

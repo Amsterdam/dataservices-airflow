@@ -1,4 +1,4 @@
-import pathlib
+from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -10,6 +10,7 @@ from common import (
     slack_webhook_token,
     vsd_default_args,
 )
+from common.path import mk_dir
 from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_TABLE_RENAMES
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
@@ -17,11 +18,11 @@ from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "trm"
-data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
+data_path = Path(__file__).resolve().parents[1] / "data" / dag_id
 
 
 def checker(records, pass_value):
-    found_colnames = set(r[0] for r in records)
+    found_colnames = {r[0] for r in records}
     return found_colnames >= set(pass_value)
 
 
@@ -52,7 +53,7 @@ with DAG(
         username="admin",
     )
 
-    mkdir = BashOperator(task_id="mkdir", bash_command=f"mkdir -p {tmp_dir}")
+    mkdir = mk_dir(Path(tmp_dir))
 
     for name, zip_name, shp_name, mincount, colnames in (
         (

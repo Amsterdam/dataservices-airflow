@@ -21,7 +21,7 @@ data_path = pathlib.Path(__file__).resolve().parents[1] / "data" / dag_id
 
 
 def checker(records, pass_value):
-    found_colnames = set(r[0] for r in records)
+    found_colnames = {r[0] for r in records}
     return found_colnames == set(pass_value)
 
 

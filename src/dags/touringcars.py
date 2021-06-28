@@ -37,7 +37,7 @@ check_name = {}
 
 # remove space hyphen characters
 def clean_data(file_name):
-    data = open(file_name, "r").read()
+    data = open(file_name).read()
     result = re.sub(r"[\xc2\xad]", "", data)
     with open(file_name, "w") as output:
         output.write(result)

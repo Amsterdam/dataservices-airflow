@@ -143,9 +143,9 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
         try:
             masterdb_hook.run(insert_sql)
         except Exception as e:
-            raise Exception("Failed to insert batch data: {}".format(str(e)[0:150]))
+            raise Exception(f"Failed to insert batch data: {str(e)[0:150]}")
         else:
-            print("Created {} records.".format(result))
+            print(f"Created {result} records.")
     return result
 
 

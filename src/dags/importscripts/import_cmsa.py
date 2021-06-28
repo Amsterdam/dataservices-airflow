@@ -1,14 +1,14 @@
 import csv
 import json
+import logging
 import math
-import pprint
 import re
 from pathlib import Path
 from typing import Final
 
 import pandas as pd
 
-pp = pprint.PrettyPrinter()
+logger = logging.getLogger(__name__)
 
 # Configuration
 CONFIG: Final = {
@@ -74,8 +74,8 @@ CONFIG: Final = {
 }
 
 # Table names to write new IoT data to
-THINGS_TABLE: Final = "cmsa_sensor_new"
-LOCATIONS_TABLE: Final = "cmsa_locatie_new"
+THINGS_TABLE: Final = "tmp_cmsa_sensor"
+LOCATIONS_TABLE: Final = "tmp_cmsa_locatie"
 # OWNERS_TABLE = "iot_owners_new"
 
 
@@ -113,12 +113,8 @@ def location(sensor, referentie_code, naam, rd_x, rd_y, wgs84_lat, wgs84_lon):
     }
 
 
-def print_summary(id, things, locations):
-    print(
-        f"""{id}
-  Total things {len(things)}
-  Total locations {len(locations)}"""
-    )
+def log_summary(id, things, locations):
+    logger.info("%s, total things: %d, total locations: %d.", id, len(things), len(locations))
 
 
 def import_sensors(filename):
@@ -149,8 +145,8 @@ def import_sensors(filename):
                     wgs84_lon=row["geometry"]["coordinates"][1],
                 )
             )
-    print_summary(id="Sensors", things=things, locations=locations)
-    return (things, locations)
+    log_summary(id="Sensors", things=things, locations=locations)
+    return things, locations
 
 
 def beacon_value(row, entity, key):
@@ -190,17 +186,17 @@ def import_beacons(filename):
                         wgs84_lon=beacon_value(row, "location", "wgs84_lon"),
                     )
                 )
-    print_summary(id="Beacons", things=things, locations=locations)
-    return (things, locations)
+    log_summary(id="Beacons", things=things, locations=locations)
+    return things, locations
 
 
 def camera_value(sheet, series, entity, key):
     try:
         value = CONFIG["cameras"][sheet][entity][key]
-        print("try value", value)
+        logger.info("Try value: %r", value)
     except KeyError:
         value = CONFIG["cameras"]["default"][entity][key]
-        print("except value", value)
+        logger.warning("Except value: %r", value)
     value = series[value]
     try:
         if math.isnan(value):
@@ -217,11 +213,11 @@ def import_cameras(filename):
     things = []
     locations = []
     for sheet in sheet_names:
-        print("sheet:", sheet)
+        logger.info("Sheet: %r", sheet)
         for row in df[sheet].iterrows():
-            print("row:", row)
+            logger.info("Row: %r", row)
             id, series = row
-            print("id:", id, "series:", series)
+            logger.info("Id: %r, series: %r", id, series)
             try:
                 id = f"cameras.{sheet}.{int(id)}"
             except ValueError:
@@ -249,8 +245,8 @@ def import_cameras(filename):
                     wgs84_lon=camera_value(sheet, series, "location", "wgs84_lon"),
                 )
             )
-    print_summary(id="Cameras", things=things, locations=locations)
-    return (things, locations)
+    log_summary(id="Cameras", things=things, locations=locations)
+    return things, locations
 
 
 def get_value(item, field):
@@ -296,11 +292,7 @@ VALUES"""
 def import_cmsa(cameras: Path, beacons: Path, sensors: Path, out_dir: Path) -> None:
 
     for f in out_dir.glob("*.sql"):
-        # f.unlink(missing_ok=True)  # only for python 3.8, airflow now needs 3.7
-        try:
-            f.unlink()
-        except FileNotFoundError:
-            pass
+        f.unlink(missing_ok=True)
 
     for arg, func in zip(
         map(str, (cameras, beacons, sensors)), (import_cameras, import_beacons, import_sensors)

@@ -171,7 +171,7 @@ def import_file(filename):
 
     # Report summary; unique property values, #items and #properties
     for (name, _) in PROPERTIES:
-        values = set([property["value"] for property in properties if property["name"] == name])
+        values = {property["value"] for property in properties if property["name"] == name}
         pp.pprint(f"{name} - {len(values)} values")
 
     pp.pprint(f"Total items {len(items)}")

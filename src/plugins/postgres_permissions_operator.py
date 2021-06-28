@@ -5,7 +5,7 @@ from typing import Any, Dict, Final, Optional, Union
 import pendulum
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.dagrun import DagRun
-from airflow.settings import Session
+from airflow.settings import TIMEZONE, Session
 from environs import Env
 from requests.exceptions import HTTPError
 from schematools.cli import _get_engine
@@ -118,7 +118,7 @@ class PostgresPermissionsOperator(BaseOperator):
         if self.batch_ind:
 
             # get current datetime and make it aware of the TZ (mandatory)
-            now = pendulum.now("Europe/Amsterdam")
+            now = pendulum.now(TIMEZONE)
 
             # calculate the delta between current datetime and specified time window
             time_window_hour = int(self.batch_timewindow.split(":")[0])
@@ -138,11 +138,11 @@ class PostgresPermissionsOperator(BaseOperator):
                 .filter(DagRun.end_date > delta)
                 .filter(DagRun._state == "success")
                 # exclude the dag itself that calls this batch grant method
-                .filter((DagRun.dag_id != "airflow_db_permissions"))
+                .filter(DagRun.dag_id != "airflow_db_permissions")
                 # exclude the update_dag, it does not contain DB objects to grant
-                .filter((DagRun.dag_id != "update_dags"))
+                .filter(DagRun.dag_id != "update_dags")
                 # exclude the log_cleanup dag, it does not contain DB objects to grant
-                .filter((DagRun.dag_id != "airflow_log_cleanup"))
+                .filter(DagRun.dag_id != "airflow_log_cleanup")
             ]
 
             if executed_dags_after_delta:

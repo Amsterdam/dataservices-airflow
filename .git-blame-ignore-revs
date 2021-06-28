@@ -1,0 +1,23 @@
+# See: https://akrabat.com/ignoring-revisions-with-git-blame/
+#
+# List commit hashes (full 40 characters) of commits to be ignore when using
+# git blame. We generally want to exclude commits that solely formatted parts or
+# the entire code base (another reason to use atomic commits). In order for
+# this file to be taken into consideration by git run the following command:
+#
+# git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# To update this file, simply _append_ a commit to it including the first line
+# of the commit message.
+
+# Applied black formatting
+e9eacd499e0c53a8cf0dacbc8dad59a6da008f38
+
+#  Apply black in separate commit
+6fb089865e552e903cc6e22c96f03431327b94dc
+
+# Apply black + isort on entire source tree.
+f85d6e48f38c8cde6c1ad77c4b3ecb4240a672fc
+
+# AB#8704 Some pyugrade code clean-ups.
+a70e25a63391dcbf5d5ecf12a892da0d1edcf92d

@@ -43,7 +43,7 @@ def clean_data(file_name: str) -> None:
     Args:
         file_name: Name of file to clean data
     """
-    data = open(file_name, "r").read()
+    data = open(file_name).read()
     result = re.sub(r"[\xc2\xad]", "", data)
     with open(file_name, "w") as output:
         output.write(result)

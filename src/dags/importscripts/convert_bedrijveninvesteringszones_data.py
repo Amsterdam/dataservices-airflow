@@ -11,7 +11,7 @@ def convert_biz_data(table_name, sql_shape_file, xlsx_file, output_file):
         df = pandas.read_excel(xlsx_file)
 
         # Read SQL data  in shape_map dictionary
-        with open(sql_shape_file, "r") as fd:
+        with open(sql_shape_file) as fd:
             sql = fd.readlines()
         shape_map = dict()
         for line in sql:
@@ -153,5 +153,5 @@ def convert_biz_data(table_name, sql_shape_file, xlsx_file, output_file):
         with open(output_file, "w") as f:
             f.write("\n".join(inserts))
 
-    except IOError as exc:
+    except OSError as exc:
         print(exc)

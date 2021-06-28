@@ -47,12 +47,17 @@ repos:
     hooks:
       - id: mypy
         language_version: python3
-  -   repo: https://github.com/pre-commit/pygrep-hooks
-      rev: v1.8.0  # Use the ref you want to point at
-      hooks:
-        - id: python-check-blanket-noqa  # Enforce that noqa annotations always occur with specific codes
-        - id: python-no-eval  # A quick check for the eval() built-in function
-        - id: python-no-log-warn  # A quick check for the deprecated .warn() method of python loggers
-        - id: rst-backticks  # Detect common mistake of using single backticks when writing rst
-        - id: rst-directive-colons  # Detect mistake of rst directive not ending with double colon
-        - id: rst-inline-touching-normal  # Detect mistake of inline code touching normal text in rst
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.8.0  # Use the ref you want to point at
+    hooks:
+      - id: python-check-blanket-noqa  # Enforce that noqa annotations always occur with specific codes
+      - id: python-no-eval  # A quick check for the eval() built-in function
+      - id: python-no-log-warn  # A quick check for the deprecated .warn() method of python loggers
+      - id: rst-backticks  # Detect common mistake of using single backticks when writing rst
+      - id: rst-directive-colons  # Detect mistake of rst directive not ending with double colon
+      - id: rst-inline-touching-normal  # Detect mistake of inline code touching normal text in rst
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.19.4
+    hooks:
+      - id: pyupgrade
+        args: [--py38-plus]

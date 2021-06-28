@@ -120,7 +120,7 @@ def _make_oplaadpaal_args(opl: dict):
         if charging_cap > charging_cap_max:
             charging_cap_max = charging_cap
         charging_capability_list.append(str(charging_cap))
-        identification_type_list.append((evse["displayName"]))
+        identification_type_list.append(evse["displayName"])
 
     connectivityStatus = opl["connectivityStatus"]
     if connectivityStatus == "Offline":

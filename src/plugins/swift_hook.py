@@ -1,31 +1,30 @@
-import ntpath
 from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
-from typing import Dict, Iterator, Optional
+from typing import Dict, Iterator, Optional, Union
 
+import pendulum
 from airflow.exceptions import AirflowException
 from airflow.hooks.base import BaseHook
-from dateutil import tz
+from airflow.settings import TIMEZONE
 from swiftclient.service import SwiftError, SwiftService, SwiftUploadObject
-
-to_zone: Optional[tzinfo] = tz.gettz("Europe/Amsterdam")
 
 
 class SwiftHook(BaseHook):
     """A Swift hook to interact with the objectstore.
+
     If no swift_conn_id is provided, the default
     connection is used. The default connection
     is defined in OS_USERNAME, OS_PASSWORD, OS_TENANT_NAME
     and OS_AUTH_URL, as requested by the SwiftService
     """
 
-    def __init__(self, swift_conn_id: str = "swift_default") -> None:
+    def __init__(self, swift_conn_id: str = "swift_default") -> None:  # noqa: D107
+        super().__init__()
         self.swift_conn_id = swift_conn_id
 
     @contextmanager
     def connection(self) -> Iterator[SwiftService]:
-        """Setup the objectstore connection
+        """Setup the objectstore connection.
 
         Yields:
             Iterator: An objectstore connection
@@ -41,7 +40,7 @@ class SwiftHook(BaseHook):
         yield SwiftService(options=options)
 
     def list_container(self, container: str) -> Iterator[Dict]:
-        """Returns the items in the objectstore folder (container)
+        """Returns the items in the objectstore folder (container).
 
         Args:
             container: The objectstore folder to retreive the files
@@ -57,14 +56,13 @@ class SwiftHook(BaseHook):
             try:
                 for page in swift.list(container=container):
                     if page["success"]:
-                        for item in page["listing"]:
-                            yield item
+                        yield from page["listing"]
             except SwiftError as e:
                 self.log.error(e.value)
                 raise AirflowException("Failed to fetch container listing") from e
 
-    def download(self, container: str, object_id: str, output_path: str) -> None:
-        """Downloads a file from the given folder (container)
+    def download(self, container: str, object_id: str, output_path: Union[Path, str]) -> None:
+        """Downloads a file from the given folder (container).
 
         Args:
             container: Name of container of the objectstore to download to
@@ -74,9 +72,10 @@ class SwiftHook(BaseHook):
         Raises:
             AirflowException: Download cannot be executed
         """
-        Path(output_path).parents[0].mkdir(parents=True, exist_ok=True)
+        opath = Path(output_path)
+        opath.parents[0].mkdir(parents=True, exist_ok=True)
         download_options = {
-            "out_file": output_path,
+            "out_file": opath.as_posix(),
         }
         with self.connection() as swift:
             try:
@@ -95,8 +94,8 @@ class SwiftHook(BaseHook):
                 self.log.error(e.value)
                 raise AirflowException("Failed to fetch file") from e
 
-    def upload(self, container: str, local_path: str, object_id: str) -> None:  # noqa C901
-        """Upload file to given folder (container)
+    def upload(self, container: str, local_path: Union[Path, str], object_id: str) -> None:
+        """Upload file to given folder (container).
 
         Args:
             container: Name of container of the objectstore to download to
@@ -106,41 +105,44 @@ class SwiftHook(BaseHook):
         Raises:
             AirflowException: Upload cannot be executed
         """
-        filename = ntpath.basename(local_path)
+        lpath = Path(local_path)
+        filename = lpath.name
         with self.connection() as swift:
             try:
                 for r in swift.upload(
                     container,
                     [
                         SwiftUploadObject(
-                            local_path,
+                            lpath.as_posix(),
                             object_name=object_id,
                             options={
                                 "header": [
                                     f'content-disposition: attachment; filename="{filename}"'
-                                ]  # noqa
+                                ]
                             },
                         )
                     ],
                 ):
                     if r["success"]:
                         if "object" in r:
-                            self.log.info(f"uploaded: {r['object']}")
+                            self.log.info("uploaded: %r", r["object"])
                         elif "for_object" in r:
-                            self.log.info(f"{r['for_object']} segment {r['segment_index']}")
+                            self.log.info("%r segment %r", r["for_object"], r["segment_index"])
                     else:
                         error = r["error"]
                         if r["action"] == "create_container":
                             self.log.warning(
-                                "Warning: failed to create container " "'%s'%s", container, error
+                                "Warning: failed to create container '%s': %s", container, error
                             )
                         elif r["action"] == "upload_object":
                             self.log.error(
-                                "Failed to upload object %s to container %s: %s"
-                                % (container, r["object"], error)
+                                "Failed to upload object %s to container %s: %s",
+                                container,
+                                r["object"],
+                                error,
                             )
                         else:
-                            self.log.error("%s" % error)
+                            self.log.error("%s", error)
                         raise AirflowException(f"Failed to upload file: {r['object']} ({error})")
 
             except SwiftError as e:
@@ -150,7 +152,7 @@ class SwiftHook(BaseHook):
     def identify_files_not_in_timewindow(
         self, container: str, time_window_in_days: int
     ) -> Iterator[str]:
-        """identifies files in given container that falls out of given time window
+        """Identifies files in given container that falls out of given time window.
 
         Args:
             container: name of container that contains the files
@@ -159,24 +161,24 @@ class SwiftHook(BaseHook):
             and retention span in days, will be deleted.
 
         Yields:
-            Iterator: name of file that have a modification date that is older then given time window
+            Iterator: name of file that have a modification date that is older then given time
+                window
         """
-
-        start_date: datetime = datetime.now(timezone.utc).astimezone(to_zone) - timedelta(
-            days=time_window_in_days
-        )
+        start_date = pendulum.now(TIMEZONE).subtract(days=time_window_in_days)
         contents_of_container = self.list_container(container)
         for file in contents_of_container:
-            modification_date = datetime.strptime(
-                file["last_modified"], "%Y-%m-%dT%H:%M:%S.%f"
-            ).astimezone(to_zone)
+            modification_date = pendulum.from_format(
+                file["last_modified"], "YYYY-MM-DDTHH:mm:ss.SSSSSS"
+            ).in_tz(TIMEZONE)
             if modification_date < start_date:
                 yield file["name"]
 
     def delete(
         self, container: str, objects: list, time_window_in_days: Optional[int] = None
     ) -> None:
-        """Deletes file(s) from the specified objectstore container based on:
+        """Deletes file(s) from the specified objectstore container.
+
+        This is based on:
 
         - time window (days of retention span), or if not specified then
         - list of files to delete
@@ -192,12 +194,8 @@ class SwiftHook(BaseHook):
         Raises:
             AirflowException: Raising error on issues while deleting files.
         """
-
         files_to_delete = (
-            [
-                file
-                for file in self.identify_files_not_in_timewindow(container, time_window_in_days)
-            ]
+            list(self.identify_files_not_in_timewindow(container, time_window_in_days))
             if time_window_in_days
             else objects
         )
@@ -218,14 +216,15 @@ class SwiftHook(BaseHook):
                             t = dict(rd.get("headers", {}))
                             if t:
                                 self.log.info(
-                                    "Successfully deleted {0}/{1} in {2} attempts "
-                                    "(transaction id: {3})".format(c, o, a, t)
+                                    "Successfully deleted %s/%s in %d attempts "
+                                    "(transaction id: %s)",
+                                    c,
+                                    o,
+                                    a,
+                                    t,
                                 )
                             else:
-                                self.log.info(
-                                    "Successfully deleted {0}/{1} in {2} "
-                                    "attempts".format(c, o, a)
-                                )
+                                self.log.info("Successfully deleted %s/%s in %d attempts", c, o, a)
             except SwiftError as e:
                 self.log.error(e.value)
                 raise AirflowException("Failed to delete file(s):", objects) from e

@@ -1,10 +1,8 @@
-from __future__ import annotations
-
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from airflow.models.dag import DagModel, DagRun
-from airflow.operators.dagrun_operator import TriggerDagRunOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.settings import Session
 from airflow.utils.decorators import apply_defaults
 from airflow.utils.state import State
@@ -46,14 +44,14 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
         """
         super().__init__(
             trigger_dag_id=None,
-            execution_date=None,
+            execution_date=execution_date,
             *args,
             **kwargs,
         )
         assert len(dag_id_prefix) > 0, "A dag_id_prefix is mandatory to use this Operator."
         self.dag_id_prefix = dag_id_prefix
 
-    def execute(self, context: dict[str, Any]) -> None:
+    def execute(self, context: Dict[str, Any]) -> None:
         # Do not trigger next dag when param no_next_dag is available
         # Due to bug in Airflow, dagrun misses 'conf' attribute
         # when DAG is triggered from another DAG

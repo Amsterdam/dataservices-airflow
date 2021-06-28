@@ -49,7 +49,7 @@ class ProvenanceRenameOperator(BaseOperator):
             tuple of snaked cased table names of type string
 
         """
-        return ", ".join((f"'{to_snake_case(tn)}'" for tn in tablenames))
+        return ", ".join(f"'{to_snake_case(tn)}'" for tn in tablenames)
 
     def _get_existing_tables(
         self, pg_hook: PostgresHook, tables: List, pg_schema: str = "public"
