@@ -135,7 +135,7 @@ with DAG(
         fid="fid",
         mode="PostgreSQL",
         db_conn=db_conn,
-        sql_statement=f"\"SELECT * FROM {dag_id} WHERE hoofdstatus NOT ILIKE '%intake%'\"",
+        sql_statement=f"SELECT * FROM {dag_id} WHERE hoofdstatus NOT ILIKE '%intake%'",
     )
 
     # 7. Drop unnecessary cols
