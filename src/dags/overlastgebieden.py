@@ -69,7 +69,7 @@ with DAG(
         SFTPOperator(
             task_id=f"download_{file}",
             ssh_conn_id="OOV_BRIEVENBUS_GEBIEDEN",
-            local_filepath=f"{TMP_PATH}/{file}",
+            local_filepath=TMP_PATH / file,
             remote_filepath=file,
             operation="get",
             create_intermediate_dirs=True,
@@ -87,7 +87,7 @@ with DAG(
         Ogr2OgrOperator(
             task_id=f"create_SQL_{key}",
             target_table_name=f"{DAG_ID}_{key}_new",
-            input_file=f"{TMP_PATH}/OOV_gebieden_totaal.shp",
+            input_file=TMP_PATH / "OOV_gebieden_totaal.shp",
             s_srs="EPSG:28992",
             t_srs="EPSG:28992",
             auto_detect_type="YES",
