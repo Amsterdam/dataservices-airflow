@@ -1,6 +1,6 @@
 import operator
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, Final, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -24,14 +24,18 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 
-dag_id: str = "overlastgebieden"
+DAG_ID: Final = "overlastgebieden"
 
-variables_overlastgebieden: Dict[str,str] = Variable.get("overlastgebieden", deserialize_json=True)
-files_to_download: Dict[str,str] = variables_overlastgebieden["files_to_download"]
-tables_to_create: Dict[str,str] = variables_overlastgebieden["tables_to_create"]
+variables_overlastgebieden: Dict[str, str] = Variable.get(
+    "overlastgebieden", deserialize_json=True
+)
+files_to_download: Dict[str, str] = variables_overlastgebieden["files_to_download"]
+tables_to_create: Dict[str, str] = variables_overlastgebieden["tables_to_create"]
 # Note: Vuurwerkvrijezones (VVZ) data is temporaly! not processed due to covid19 national measures
-tables_to_check: Dict[str,str] = {k: v for k, v in tables_to_create.items() if k != "vuurwerkvrij"}
-TMP_PATH: Path = Path(SHARED_DIR) / dag_id
+tables_to_check: Dict[str, str] = {
+    k: v for k, v in tables_to_create.items() if k != "vuurwerkvrij"
+}
+TMP_PATH: Final = Path(SHARED_DIR) / DAG_ID
 total_checks: List[int] = []
 count_checks: List[int] = []
 geo_checks: List[int] = []
@@ -39,13 +43,13 @@ check_name: Dict[str, int] = {}
 db_conn: object = DatabaseEngine()
 
 with DAG(
-    dag_id,
+    DAG_ID,
     description="""alcohol-, straatartiest-, aanleg- en parkenverbodsgebieden,
         mondmaskerverplichtinggebieden, e.d.""",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -53,7 +57,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
@@ -70,7 +74,7 @@ with DAG(
             operation="get",
             create_intermediate_dirs=True,
         )
-        for file in files_to_download
+        for file in files_to_download.keys()
     ]
 
     # 4. Dummy operator acts as an interface between parallel tasks
@@ -82,7 +86,7 @@ with DAG(
     SHP_to_SQL = [
         Ogr2OgrOperator(
             task_id=f"create_SQL_{key}",
-            target_table_name=f"{dag_id}_{key}_new",
+            target_table_name=f"{DAG_ID}_{key}_new",
             input_file=f"{TMP_PATH}/OOV_gebieden_totaal.shp",
             s_srs="EPSG:28992",
             t_srs="EPSG:28992",
@@ -91,7 +95,10 @@ with DAG(
             fid="id",
             db_conn=db_conn,
             geometry_name="geometry",
-            sql_statement=f"\"SELECT * FROM OOV_gebieden_totaal WHERE 1=1 AND TYPE = '{code}'\" ",
+            promote_to_multi=True,
+            sql_statement=f"""\"SELECT * FROM OOV_gebieden_totaal
+                                WHERE 1=1 AND TYPE = '{code}'\"
+                                """,  # noqa: S608
         )
         for key, code in tables_to_create.items()
     ]
@@ -99,8 +106,8 @@ with DAG(
     # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=dag_id,
-        prefix_table_name=f"{dag_id}_",
+        dataset_name=DAG_ID,
+        prefix_table_name=f"{DAG_ID}_",
         postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
@@ -116,7 +123,7 @@ with DAG(
                     SET geometry = ST_CollectionExtract((st_makevalid(geometry)),3)
                     WHERE ST_IsValid(geometry) is false;
                     COMMIT;""",
-            params={"table_id": f"{dag_id}_{key}_new"},
+            params={"table_id": f"{DAG_ID}_{key}_new"},
         )
         for key in tables_to_create.keys()
     ]
@@ -132,7 +139,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=2,
-                params={"table_name": f"{dag_id}_{key}_new"},
+                params={"table_name": f"{DAG_ID}_{key}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -141,7 +148,7 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
                 params={
-                    "table_name": f"{dag_id}_{key}_new",
+                    "table_name": f"{DAG_ID}_{key}_new",
                     "geotype": ["MULTIPOLYGON"],
                 },
                 pass_value=1,
@@ -166,14 +173,14 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
-            old_table_name=f"{dag_id}_{key}_new",
-            new_table_name=f"{dag_id}_{key}",
+            old_table_name=f"{DAG_ID}_{key}_new",
+            new_table_name=f"{DAG_ID}_{key}",
         )
         for key in tables_to_create.keys()
     ]
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 slack_at_start >> mkdir >> download_data
 
