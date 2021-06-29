@@ -82,7 +82,7 @@ def convert_biz_data(table_name, sql_shape_file, xlsx_file, output_file):
         # df1[df1['geometry'].isnull()]
 
         def makequotedlink(s):
-            s = s.lstrip("#").rstrip("#")
+            s = s.strip("#")
             regex = re.compile(
                 r"^(?:(?:http)s?://)?"  # http:// or https://
                 r"(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)"  # domain...
