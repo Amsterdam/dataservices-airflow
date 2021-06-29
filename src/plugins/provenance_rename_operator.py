@@ -2,18 +2,22 @@ from collections import defaultdict
 from typing import Any, Dict, Final, Iterable, List, Optional, Set
 
 from airflow.models.baseoperator import BaseOperator
+from airflow.models.taskinstance import Context
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
+from more_ds.network.url import URL
 from schematools.utils import schema_def_from_url, to_snake_case
 
 env = Env()
-SCHEMA_URL: Final = env("SCHEMA_URL")
+SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 
 
 class ProvenanceRenameOperator(BaseOperator):
-    @apply_defaults
-    def __init__(
+    """Rename columns and indices according to the provenance field in the schema."""
+
+    @apply_defaults  # type: ignore [misc]
+    def __init__(  # noqa: D107
         self,
         dataset_name: str,
         pg_schema: str = "public",
@@ -23,7 +27,7 @@ class ProvenanceRenameOperator(BaseOperator):
         postfix_table_name: str = "",
         subset_tables: Optional[List] = None,
         *args: Any,
-        **kwargs: Dict,
+        **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.postgres_conn_id: str = postgres_conn_id
@@ -40,7 +44,7 @@ class ProvenanceRenameOperator(BaseOperator):
         self.subset_tables: Optional[List] = subset_tables
 
     def _snake_tablenames(self, tablenames: Iterable[str]) -> str:
-        """Translates tablenames to snake case
+        """Translates tablenames to snake case.
 
         Args:
             tablenames: list of table names of type string
@@ -54,8 +58,10 @@ class ProvenanceRenameOperator(BaseOperator):
     def _get_existing_tables(
         self, pg_hook: PostgresHook, tables: List, pg_schema: str = "public"
     ) -> Dict[str, Any]:
-        """Looks up the table name in schema (provenance can contain the orginal (real) name)
-        and relates them to existing table in database
+        """Looks up the table name in schema.
+
+        Taking into account the provenance (it can contain the orginal (real) name) and relates
+        them to existing table in database.
 
         Args:
             pg_hook: Postgres connection
@@ -64,9 +70,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
         Return:
             dictionary of tables as objects
-
         """
-
         if not tables:
             return {}
 
@@ -95,7 +99,7 @@ class ProvenanceRenameOperator(BaseOperator):
     def _get_existing_columns(
         self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
     ) -> Dict[str, Set[str]]:
-        """Looks up the column name of table in database
+        """Looks up the column name of table in database.
 
         Args:
             pg_hook: Postgres connection
@@ -120,7 +124,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
     def _get_existing_indexes(
         self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
-    ) -> Dict[str, Set[str]]:
+    ) -> Dict[str, List[str]]:
         """Looks up the index name of table in database
 
         Args:
@@ -130,9 +134,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
         Return:
             dictionary containg a set of table indexes of type string
-
         """
-
         tables_query_str = "|".join(f"{tn}%" for tn in snaked_tablenames)
         rows = pg_hook.get_records(
             f"""
@@ -146,9 +148,8 @@ class ProvenanceRenameOperator(BaseOperator):
             idx_per_table[row["tablename"]].append(row["indexname"])
         return idx_per_table
 
-    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:  # NoQA C901
-        """translates table, column and index names based on provenance
-         specification in schema
+    def execute(self, context: Context) -> None:
+        """Translates table, column and index names based on provenance specification in schema.
 
         Args:
             context: When this operator is created the context parameter is used
