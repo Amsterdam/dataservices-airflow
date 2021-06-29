@@ -7,6 +7,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
+from psycopg2 import sql
 from schematools.utils import schema_def_from_url, to_snake_case
 
 env = Env()
@@ -43,18 +44,6 @@ class ProvenanceRenameOperator(BaseOperator):
         # set table name for getting provenance for specific table
         self.subset_tables: Optional[List] = subset_tables
 
-    def _snake_tablenames(self, tablenames: Iterable[str]) -> str:
-        """Translates tablenames to snake case.
-
-        Args:
-            tablenames: list of table names of type string
-
-        Return:
-            tuple of snaked cased table names of type string
-
-        """
-        return ", ".join(f"'{to_snake_case(tn)}'" for tn in tablenames)
-
     def _get_existing_tables(
         self, pg_hook: PostgresHook, tables: List, pg_schema: str = "public"
     ) -> Dict[str, Any]:
@@ -86,12 +75,16 @@ class ProvenanceRenameOperator(BaseOperator):
             )
             table_lookup[to_snake_case(real_tablename)] = table
 
-        snaked_tablenames_str = self._snake_tablenames(table_lookup.keys())
+        if not table_lookup:
+            return {}
+
         rows = pg_hook.get_records(
-            f"""
-                SELECT tablename FROM pg_tables
-                WHERE schemaname = '{pg_schema}' AND tablename IN ({snaked_tablenames_str})
             """
+            SELECT tablename FROM pg_tables
+             WHERE schemaname = %(schema)s
+               AND tablename IN %(tables)s
+        """,
+            {"schema": pg_schema, "tables": tuple(table_lookup.keys())},
         )
 
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
@@ -110,12 +103,14 @@ class ProvenanceRenameOperator(BaseOperator):
             dictionary containg a set of table columns of type string
 
         """
-        snaked_tablenames_str = self._snake_tablenames(snaked_tablenames)
         rows = pg_hook.get_records(
-            f"""
-                SELECT table_name, column_name FROM information_schema.columns
-                WHERE table_schema = '{pg_schema}' AND table_name IN ({snaked_tablenames_str})
             """
+            SELECT table_name, column_name
+              FROM information_schema.columns
+             WHERE table_schema = %(schema)s
+               AND table_name IN %(tables)s
+        """,
+            {"schema": pg_schema, "tables": tuple(snaked_tablenames)},
         )
         table_columns = defaultdict(set)
         for row in rows:
@@ -125,7 +120,7 @@ class ProvenanceRenameOperator(BaseOperator):
     def _get_existing_indexes(
         self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
     ) -> Dict[str, List[str]]:
-        """Looks up the index name of table in database
+        """Looks up the index name of table in database.
 
         Args:
             pg_hook: Postgres connection
@@ -133,15 +128,17 @@ class ProvenanceRenameOperator(BaseOperator):
             pg_schema: name of database schema where table are located
 
         Return:
-            dictionary containg a set of table indexes of type string
+            dictionary containing a set of table indexes of type string
         """
-        tables_query_str = "|".join(f"{tn}%" for tn in snaked_tablenames)
+        indices_pattern = "|".join(f"{tn}%" for tn in snaked_tablenames)
         rows = pg_hook.get_records(
-            f"""
-                SELECT tablename, indexname FROM pg_indexes
-                WHERE schemaname = '{pg_schema}' AND indexname SIMILAR TO '{tables_query_str}'
-                ORDER BY indexname
             """
+              SELECT tablename, indexname FROM pg_indexes
+               WHERE schemaname = %(schema)s
+                 AND indexname SIMILAR TO %(indices_pattern)s
+            ORDER BY indexname
+        """,
+            {"schema": pg_schema, "indices_pattern": indices_pattern},
         )
         idx_per_table = defaultdict(list)
         for row in rows:
@@ -184,8 +181,15 @@ class ProvenanceRenameOperator(BaseOperator):
                     )
                     if index_name != new_index_name:
                         sqls.append(
-                            f"""ALTER INDEX {self.pg_schema}.{index_name}
-                                RENAME TO {new_index_name}"""
+                            sql.SQL(
+                                """
+                                ALTER INDEX {old_index_name}
+                                    RENAME TO {new_index_name}
+                            """.format(
+                                    old_index_name=sql.Identifier(self.pg_schema, index_name),
+                                    new_index_name=sql.Identifier(new_index_name),
+                                )
+                            )
                         )
 
         for snaked_tablename, table in existing_tables_lookup.items():
@@ -199,15 +203,30 @@ class ProvenanceRenameOperator(BaseOperator):
                         # quotes are applied on the provenance name in case the
                         # source uses a space in the name
                         sqls.append(
-                            f"""ALTER TABLE {self.pg_schema}.{snaked_tablename}
-                                RENAME COLUMN "{provenance}" TO {snaked_field_name}"""
+                            sql.SQL(
+                                """
+                                ALTER TABLE {table_name}
+                                    RENAME COLUMN {provenance} TO {snaked_field_name}
+                            """.format(
+                                    table_name=sql.Identifier(self.pg_schema, snaked_tablename),
+                                    provenance=sql.Identifier(provenance),
+                                    snaked_field_name=sql.Identifier(snaked_field_name),
+                                )
+                            )
                         )
 
             provenance = table.get("provenance")
             if provenance is not None:
                 sqls.append(
-                    f"""ALTER TABLE IF EXISTS {self.pg_schema}.{snaked_tablename}
-                            RENAME TO {to_snake_case(table.id)}"""
+                    sql.SQL(
+                        """
+                        ALTER TABLE IF EXISTS {old_table_name}
+                            RENAME TO {new_table_name}
+                    """.format(
+                            old_table_name=sql.Identifier(self.pg_schema, snaked_tablename),
+                            new_table_name=sql.Identifier(to_snake_case(table.id)),
+                        )
+                    )
                 )
 
         pg_hook.run(sqls)
