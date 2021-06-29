@@ -1,4 +1,5 @@
-import pathlib
+from pathlib import Path
+from typing import Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -18,25 +19,22 @@ from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 
-dag_id = "fietspaaltjes"
-sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
-# dag_config = Variable.get(dag_id, deserialize_json=True)
-
+DAG_ID: Final = "fietspaaltjes"
+TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
+SQL_PATH: Final = Path(__file__).resolve().parents[0] / "sql"
 
 with DAG(
-    dag_id,
+    DAG_ID,
     default_args=default_args,
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
-
-    tmp_dir = f"{SHARED_DIR}/{dag_id}"
 
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
@@ -44,39 +42,42 @@ with DAG(
         task_id="fetch_json",
         endpoint="mladvies/data_export.json",
         http_conn_id="fietspaaltjes_conn_id",
-        tmp_file=f"{tmp_dir}/{dag_id}.json",
+        tmp_file=TMP_DIR.joinpath(DAG_ID).with_suffix(".json").as_posix(),
     )
 
     create_sql = PythonOperator(
         task_id="create_sql",
         python_callable=import_fietspaaltjes,
         op_args=[
-            f"{tmp_dir}/{dag_id}.json",
-            f"{tmp_dir}/{dag_id}.sql",
+            TMP_DIR.joinpath(DAG_ID).with_suffix(".json").as_posix(),
+            TMP_DIR.joinpath(DAG_ID).with_suffix(".sql").as_posix(),
         ],
     )
 
     create_and_fill_table = PostgresFilesOperator(
         task_id="create_and_fill_table",
-        sql_files=[f"{sql_path}/fietspaaltjes_create.sql", f"{tmp_dir}/{dag_id}.sql"],
+        sql_files=[
+            SQL_PATH.joinpath("fietspaaltjes_create.sql").as_posix(),
+            TMP_DIR.joinpath(DAG_ID).with_suffix(".sql").as_posix(),
+        ],
     )
 
     rename_table = PostgresOperator(
         task_id="rename_table",
         sql=SQL_TABLE_RENAME,
-        params=dict(tablename=f"{dag_id}_{dag_id}", pk="pkey"),
+        params={"tablename": f"{DAG_ID}_{DAG_ID}", "pk": "pkey"},
     )
 
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=f"{dag_id}",
-        prefix_table_name=f"{dag_id}_",
+        dataset_name=DAG_ID,
+        prefix_table_name=f"{DAG_ID}_",
         rename_indexes=False,
         pg_schema="public",
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 (
     slack_at_start
