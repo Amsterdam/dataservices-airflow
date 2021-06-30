@@ -38,6 +38,7 @@ ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_service_update TYPE TIME
 ALTER TABLE {{ params.tablename }} ALTER COLUMN log_date TYPE TIMESTAMP
     WITH TIME zone using TO_TIMESTAMP(log_date::int/1000);
 COMMIT;
+"""
 
 # Due to the nature of the data, it can happen that there are no electric
 # blackouts present at the current time (polling every day every 10 minutes).
