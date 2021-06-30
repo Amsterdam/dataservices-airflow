@@ -1,0 +1,61 @@
+{
+  hrLocaties(active: false) {
+    edges {
+      node {
+        identificatie
+        cursor
+        volgnummer
+        registratiedatum
+        tijdstipRegistratie
+        datumAanvang
+        datumEinde
+        afgeschermd
+        toevoegingAdres
+        volledigAdres
+        heeftNummeraanduiding {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        heeftVerblijfsobject {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        heeftLigplaats {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        heeftStandplaats {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        straatnaam
+        huisnummer
+        huisletter
+        huisnummerToevoeging
+        postbusnummer
+        postcode
+        plaats
+        straatHuisnummerBuitenland
+        postcodePlaatsBuitenland
+        regioBuitenland
+        landBuitenland
+      }
+    }
+  }
+}
