@@ -20,23 +20,23 @@ SELECT storing_nummer FROM {{ params.tablename }};
 # The dates are stored in millseconds.
 # Because Unix timestamps measures time with seconds, and not milliseconds (in Postgres too),
 # the values must be devided by 1000 before converting to timestamp.
-# Casting to ::int is used to prevent an error when there is null value present and the
+# Casting to ::bigint is used to prevent an error when there is null value present and the
 # ogr2ogr import interpret this a char datatype.
 CONVERT_DATE_TIME: Final = """
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_datum_gemeld TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(storing_datum_gemeld::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(storing_datum_gemeld::bigint/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_datum_schatting TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(storing_datum_schatting::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(storing_datum_schatting::bigint/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_datum_eind TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(storing_datum_eind::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(storing_datum_eind::bigint/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN date_end TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(date_end::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(date_end::bigint/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_datum_change TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(storing_datum_change::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(storing_datum_change::bigint/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN storing_service_update TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(storing_service_update::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(storing_service_update::bigint/1000);
 ALTER TABLE {{ params.tablename }} ALTER COLUMN log_date TYPE TIMESTAMP
-    WITH TIME zone using TO_TIMESTAMP(log_date::int/1000);
+    WITH TIME zone using TO_TIMESTAMP(log_date::bigint/1000);
 COMMIT;
 """
 
