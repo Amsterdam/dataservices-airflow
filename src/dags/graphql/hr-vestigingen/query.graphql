@@ -1,0 +1,66 @@
+{
+  hrVestigingen(active: false) {
+    edges {
+      node {
+        vestigingsnummer
+        cursor
+        tijdstipRegistratie
+        datumAanvang
+        datumEinde
+        datumVoortzetting
+        isCommercieleVestiging
+        eersteHandelsnaam
+        heeftAlsPostadres {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        heeftAlsBezoekadres {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        communicatienummer
+        domeinnaam
+        emailadres
+        naam
+        verkorteNaam
+        ookGenoemd
+        handeltOnderHandelsnamen
+        totaalWerkzamePersonen
+        voltijdWerkzamePersonen
+        deeltijdWerkzamePersonen
+        importeert
+        exporteert
+        activiteitenOmschrijving
+        heeftSbiActiviteiten {
+          edges {
+            node {
+              sbi_activiteit_nummer
+            }
+          }
+        }
+        isOvergegaanInVestiging {
+          edges {
+            node {
+              vestigingsnummer
+            }
+          }
+        }
+        isEenUitoefeningVan {
+          edges {
+            node {
+              kvknummer
+            }
+          }
+        }
+      }
+    }
+  }
+}

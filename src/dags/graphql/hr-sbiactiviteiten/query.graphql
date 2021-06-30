@@ -1,0 +1,33 @@
+{
+  hrSbiactiviteiten(active: false) {
+    edges {
+      node {
+        sbi_activiteit_nummer
+        cursor
+        sbiActiviteitNummer
+        sbiCode
+        omschrijving
+        isHoofdactiviteit
+        volgorde
+        datumAanvangSbiactiviteit
+        datumEindeSbiactiviteit
+        tijdstipRegistratie
+        heeftAlsMaatschappelijkactiviteit {
+          edges {
+            node {
+              kvknummer
+            }
+          }
+        }
+        heeftAlsVestiging {
+          edges {
+            node {
+              vestigingsnummer
+            }
+          }
+        }
+        heeftAlsRechtspersoon
+      }
+    }
+  }
+}
