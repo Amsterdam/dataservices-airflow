@@ -5,7 +5,7 @@ import requests
 from jsonpointer import resolve_pointer
 
 INSERT_TMPL: Final = """
-    INSERT INTO fietspaaltjes_fietspaaltjes_new (
+    INSERT INTO tmp_fietspaaltjes_fietspaaltjes (
         {names}
     )
     VALUES
@@ -148,4 +148,6 @@ def import_fietspaaltjes(file_path, output_path):
 
 if __name__ == "__main__":
     fetch_json()
-    import_fietspaaltjes("/tmp/fietspaaltjes.json")
+    import_fietspaaltjes(
+        "/tmp/fietspaaltjes/fietspaaltjes.json", "/tmp/fietspaaltjes/fietspaaltjes.sql"
+    )
