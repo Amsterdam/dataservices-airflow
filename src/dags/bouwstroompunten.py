@@ -55,6 +55,9 @@ def get_token() -> Union[str, Any]:
     `AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL` the scheme en host must be extracted
     and merged into a base endpoint.
     """
+    if not user or not password:
+        raise ValueError("no credentials available")
+
     scheme = dsnparse.parse(base_url).scheme
     host = dsnparse.parse(base_url).hostloc
     base_endpoint = "".join([scheme, "://", host])
