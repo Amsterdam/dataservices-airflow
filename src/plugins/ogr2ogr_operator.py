@@ -85,7 +85,7 @@ class Ogr2OgrOperator(BaseOperator):
         input_file.parents[0].mkdir(parents=True, exist_ok=True)
 
         # setup the cmd to execute
-        ogr2ogr_cmd: List[str] = [f"ogr2ogr -f '{self.mode}' "]
+        ogr2ogr_cmd: List[str] = ["ogr2ogr", "-f", self.mode]
 
         # Option 1 SQL (default): create sql file
         if self.mode == "PGDump":
@@ -94,44 +94,44 @@ class Ogr2OgrOperator(BaseOperator):
             sql_output_file.parents[0].mkdir(parents=True, exist_ok=True)
 
             # mandatory
-            ogr2ogr_cmd.append(f"-nln {self.target_table_name} ")
-            ogr2ogr_cmd.append(f"{self.sql_output_file} {self.input_file} ")
+            ogr2ogr_cmd.extend(["-nln", self.target_table_name])
+            ogr2ogr_cmd.extend([self.sql_output_file, input_file.as_posix()])
 
             # optionals
             if self.input_file_sep:
-                ogr2ogr_cmd.append(f"-lco SEPARATOR={self.input_file_sep} ")
+                ogr2ogr_cmd.extend(["-lco", f"SEPARATOR={self.input_file_sep}"])
 
         # Option 2 DIRECT LOAD: load data directly into DB; no file created in between
         else:
 
             # mandatory
             ogr2ogr_cmd.append(
-                f"PG:'host={getattr(self.db_conn, 'host')} "  # noqa: B009
+                f"PG:host={getattr(self.db_conn, 'host')} "  # noqa: B009
                 f"dbname={getattr(self.db_conn, 'db')} "  # noqa: B009
                 f"user={getattr(self.db_conn, 'user')} "  # noqa: B009
                 f"password={getattr(self.db_conn, 'password')} "  # noqa: B009
-                f"port={getattr(self.db_conn, 'port')}' "  # noqa: B009
+                f"port={getattr(self.db_conn, 'port')}"  # noqa: B009
             )
-            ogr2ogr_cmd.append(f"{self.input_file} ")
-            ogr2ogr_cmd.append(f"-nln {self.target_table_name} -overwrite ")
+            ogr2ogr_cmd.append(input_file.as_posix())
+            ogr2ogr_cmd.extend(["-nln", self.target_table_name, "-overwrite"])
 
         # generic parameters for all options
-        ogr2ogr_cmd.append(f"{'-s_srs ' + self.s_srs if self.s_srs else ''} -t_srs {self.t_srs} ")
-        ogr2ogr_cmd.append(f"-lco FID={self.fid} ")
-        ogr2ogr_cmd.append(f"-oo AUTODETECT_TYPE={self.auto_detect_type} ")
-        ogr2ogr_cmd.append(f"-lco GEOMETRY_NAME={self.geometry_name} ")
-        ogr2ogr_cmd.append(f"-lco ENCODING={self.encoding_schema} ")
-        ogr2ogr_cmd.append("-lco precision=NO ")
+        ogr2ogr_cmd.extend(["-s_srs", self.s_srs if self.s_srs else "", "-t_srs", self.t_srs])
+        ogr2ogr_cmd.extend(["-lco", f"FID={self.fid}"])
+        ogr2ogr_cmd.extend(["-oo", f"AUTODETECT_TYPE={self.auto_detect_type}"])
+        ogr2ogr_cmd.extend(["-lco", f"GEOMETRY_NAME={self.geometry_name}"])
+        ogr2ogr_cmd.extend(["-lco", f"ENCODING={self.encoding_schema}"])
+        ogr2ogr_cmd.extend(["-lco", "precision=NO"])
 
         # generic optional parameters
         if self.sql_statement:
-            ogr2ogr_cmd.append(f'-sql "{self.sql_statement}" ')
+            ogr2ogr_cmd.extend(["-sql", self.sql_statement])
         if self.promote_to_multi:
-            ogr2ogr_cmd.append("-nlt PROMOTE_TO_MULTI ")
+            ogr2ogr_cmd.extend(["-nlt", "PROMOTE_TO_MULTI"])
 
         # execute cmd string
         try:
-            subprocess.run("".join(ogr2ogr_cmd), shell=True, check=True)  # noqa: S602
+            subprocess.run(ogr2ogr_cmd, check=True)  # noqa: S603
         except subprocess.CalledProcessError as err:
             logger.error(
                 """Something went wrong, cannot execute subproces.
