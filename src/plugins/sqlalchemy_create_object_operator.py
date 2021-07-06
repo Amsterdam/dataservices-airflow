@@ -9,7 +9,7 @@ from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
-from schematools.utils import schema_def_from_url
+from schematools.utils import schema_def_from_url, to_snake_case
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
@@ -36,7 +36,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         "data_table_name",
     ]
 
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         data_schema_name: str,
@@ -135,7 +135,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
             self.log.info("Considering table '%s'.", table.name)
             cur_table = f"{self.data_schema_name}_{table.name}"
 
-            if re.fullmatch(self.data_table_name, cur_table):
+            if re.fullmatch(self.data_table_name, to_snake_case(cur_table)):
                 self.log.info(
                     "Generating PostgreSQL objects for table: '%s' in DB schema: '%s'",
                     table.name,
