@@ -6,7 +6,7 @@
 #
 alembic==1.5.5
     # via apache-airflow
-amsterdam-schema-tools==0.21.7
+amsterdam-schema-tools==0.21.9
     # via -r requirements.in
 apache-airflow-providers-ftp==1.0.1
     # via apache-airflow
@@ -320,9 +320,13 @@ mccabe==0.6.1
 methodtools==0.4.2
     # via amsterdam-schema-tools
 more-ds==0.0.4
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   amsterdam-schema-tools
 more-itertools==8.8.0
-    # via flake8-implicit-str-concat
+    # via
+    #   amsterdam-schema-tools
+    #   flake8-implicit-str-concat
 msgpack==1.0.2
     # via oslo.serialization
 natsort==7.1.1
