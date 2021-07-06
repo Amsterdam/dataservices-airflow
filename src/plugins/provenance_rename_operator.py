@@ -159,7 +159,6 @@ class ProvenanceRenameOperator(BaseOperator):
         """
         dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
         pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
-        connection = pg_hook.get_conn()
         sqls = []
         existing_tables_lookup = self._get_existing_tables(
             pg_hook, dataset.tables, pg_schema=self.pg_schema
@@ -186,14 +185,10 @@ class ProvenanceRenameOperator(BaseOperator):
                                 """
                                 ALTER INDEX {old_index_name}
                                     RENAME TO {new_index_name}
-                            """.format(
-                                    old_index_name=sql.Identifier(
-                                        self.pg_schema, index_name
-                                    ).as_string(connection),
-                                    new_index_name=sql.Identifier(new_index_name).as_string(
-                                        connection
-                                    ),
-                                )
+                            """
+                            ).format(
+                                old_index_name=sql.Identifier(self.pg_schema, index_name),
+                                new_index_name=sql.Identifier(new_index_name),
                             )
                         )
 
@@ -212,15 +207,11 @@ class ProvenanceRenameOperator(BaseOperator):
                                 """
                                 ALTER TABLE {table_name}
                                     RENAME COLUMN {provenance} TO {snaked_field_name}
-                            """.format(
-                                    table_name=sql.Identifier(
-                                        self.pg_schema, snaked_tablename
-                                    ).as_string(connection),
-                                    provenance=sql.Identifier(provenance).as_string(connection),
-                                    snaked_field_name=sql.Identifier(snaked_field_name).as_string(
-                                        connection
-                                    ),
-                                )
+                            """
+                            ).format(
+                                table_name=sql.Identifier(self.pg_schema, snaked_tablename),
+                                provenance=sql.Identifier(provenance),
+                                snaked_field_name=sql.Identifier(snaked_field_name),
                             )
                         )
 
@@ -231,14 +222,10 @@ class ProvenanceRenameOperator(BaseOperator):
                         """
                         ALTER TABLE IF EXISTS {old_table_name}
                             RENAME TO {new_table_name}
-                    """.format(
-                            old_table_name=sql.Identifier(
-                                self.pg_schema, snaked_tablename
-                            ).as_string(connection),
-                            new_table_name=sql.Identifier(to_snake_case(table.id)).as_string(
-                                connection
-                            ),
-                        )
+                    """
+                    ).format(
+                        old_table_name=sql.Identifier(self.pg_schema, snaked_tablename),
+                        new_table_name=sql.Identifier(to_snake_case(table.id)),
                     )
                 )
 
