@@ -34,6 +34,7 @@ DAG_DATASET: Final = {
     "nap_": "nap",
     "meetbouten_": "meetbouten",
     "woz_": "woz",
+    "hr_": "hr",
     "horeca_": "horeca",
     "beschermde_": "beschermdestadsdorpsgezichten",
     "hoofdroutes_": "hoofdroutes",
