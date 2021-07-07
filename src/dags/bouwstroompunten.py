@@ -7,6 +7,7 @@ import dsnparse
 import requests
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
@@ -45,7 +46,7 @@ geo_checks = []
 db_conn: object = DatabaseEngine()
 
 
-def get_token() -> Union[str, Any]:
+def _get_token() -> Union[str, Any]:
     """Getting the access token for calling the data endpoint.
 
     Returns:
@@ -55,9 +56,6 @@ def get_token() -> Union[str, Any]:
     `AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL` the scheme en host must be extracted
     and merged into a base endpoint.
     """
-    if not user or not password:
-        raise ValueError("no credentials available")
-
     scheme = dsnparse.parse(base_url).scheme
     host = dsnparse.parse(base_url).hostloc
     base_endpoint = "".join([scheme, "://", host])
@@ -102,15 +100,22 @@ with DAG(
     # 2. Create temp directory to store files
     mkdir = mk_dir(tmp_dir, clean_if_exists=False)
 
+    # GET TOKEN
+    get_token = PythonOperator(
+        # The resulting get_token is returned via XCom using the task_id
+        task_id="get_token",
+        python_callable=_get_token,
+    )
+
     # 3. Download data
-    download_data = HttpFetchOperator(
+    download_data = HttpFetchOperator(  # noqa: S106
         task_id="download",
         endpoint=data_endpoint,
         http_conn_id="BOUWSTROOMPUNTEN_BASE_URL",
         tmp_file=data_file,
+        xcom_token_task_ids="get_token",
         headers={
             "content-type": "application/json",
-            "Authorization": f"Bearer {get_token()}",
         },
     )
 
@@ -191,6 +196,7 @@ with DAG(
     (
         slack_at_start
         >> mkdir
+        >> get_token
         >> download_data
         >> import_data
         >> drop_tables
