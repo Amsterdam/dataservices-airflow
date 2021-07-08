@@ -116,7 +116,9 @@ class Ogr2OgrOperator(BaseOperator):
             ogr2ogr_cmd.extend(["-nln", self.target_table_name, "-overwrite"])
 
         # generic parameters for all options
-        ogr2ogr_cmd.extend(["-s_srs", self.s_srs if self.s_srs else "", "-t_srs", self.t_srs])
+        if self.s_srs:
+            ogr2ogr_cmd.extend(["-s_srs", self.s_srs])
+        ogr2ogr_cmd.extend(["-t_srs", self.t_srs])
         ogr2ogr_cmd.extend(["-lco", f"FID={self.fid}"])
         ogr2ogr_cmd.extend(["-oo", f"AUTODETECT_TYPE={self.auto_detect_type}"])
         ogr2ogr_cmd.extend(["-lco", f"GEOMETRY_NAME={self.geometry_name}"])
@@ -134,8 +136,9 @@ class Ogr2OgrOperator(BaseOperator):
             subprocess.run(ogr2ogr_cmd, check=True)  # noqa: S603
         except subprocess.CalledProcessError as err:
             logger.error(
-                """Something went wrong, cannot execute subproces.
-              Please check the ogr2ogr cmd %s
+                """Something went wrong..., cannot execute subproces.
+              Please check the ogr2ogr cmd %s. Error: %s
             """,
+                ogr2ogr_cmd,
                 err.output,
             )
