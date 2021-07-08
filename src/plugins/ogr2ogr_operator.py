@@ -85,7 +85,7 @@ class Ogr2OgrOperator(BaseOperator):
         input_file.parents[0].mkdir(parents=True, exist_ok=True)
 
         # setup the cmd to execute
-        ogr2ogr_cmd: List[str] = ["ogr2ogr", "-f", self.mode]
+        ogr2ogr_cmd: List[str] = ["ogr2ogr", "-f", f"'{self.mode}'"]
 
         # Option 1 SQL (default): create sql file
         if self.mode == "PGDump":
@@ -105,18 +105,16 @@ class Ogr2OgrOperator(BaseOperator):
         else:
 
             # mandatory
-            ogr2ogr_cmd.append(
-                f"PG:host={getattr(self.db_conn, 'host')} "  # noqa: B009
-                f"dbname={getattr(self.db_conn, 'db')} "  # noqa: B009
-                f"user={getattr(self.db_conn, 'user')} "  # noqa: B009
-                f"password={getattr(self.db_conn, 'password')} "  # noqa: B009
-                f"port={getattr(self.db_conn, 'port')}"  # noqa: B009
-            )
+            ogr2ogr_cmd.append(f"'PG:host={getattr(self.db_conn, 'host')}")  # noqa: B009
+            ogr2ogr_cmd.append(f"dbname={getattr(self.db_conn, 'db')}")  # noqa: B009
+            ogr2ogr_cmd.append(f"user={getattr(self.db_conn, 'user')}")  # noqa: B009
+            ogr2ogr_cmd.append(f"password={getattr(self.db_conn, 'password')}")  # noqa: B009
+            ogr2ogr_cmd.append(f"port={getattr(self.db_conn, 'port')}'")  # noqa: B009
             ogr2ogr_cmd.append(input_file.as_posix())
             ogr2ogr_cmd.extend(["-nln", self.target_table_name, "-overwrite"])
 
         # generic parameters for all options
-        ogr2ogr_cmd.extend(["-s_srs", self.s_srs if self.s_srs else "", "-t_srs", self.t_srs])
+        ogr2ogr_cmd.extend(["-s_srs {self.s_srs}" if self.s_srs else "", "-t_srs", self.t_srs])
         ogr2ogr_cmd.extend(["-lco", f"FID={self.fid}"])
         ogr2ogr_cmd.extend(["-oo", f"AUTODETECT_TYPE={self.auto_detect_type}"])
         ogr2ogr_cmd.extend(["-lco", f"GEOMETRY_NAME={self.geometry_name}"])
@@ -135,7 +133,8 @@ class Ogr2OgrOperator(BaseOperator):
         except subprocess.CalledProcessError as err:
             logger.error(
                 """Something went wrong, cannot execute subproces.
-              Please check the ogr2ogr cmd %s
+              Please check the ogr2ogr cmd %s. Error: %s
             """,
+                ogr2ogr_cmd,
                 err.output,
             )
