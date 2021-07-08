@@ -90,7 +90,7 @@ def main():
         postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
-    ).execute()
+    ).execute(None)
     log.info("Renamed columns based on provenance.")
 
 
