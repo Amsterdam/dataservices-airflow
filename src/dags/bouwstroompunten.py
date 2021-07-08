@@ -1,13 +1,13 @@
 import json
 import operator
 from pathlib import Path
-from typing import Any, Union
+from typing import cast
 
 import dsnparse
 import requests
 from airflow import DAG
+from airflow.decorators import task
 from airflow.models import Variable
-from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
@@ -46,7 +46,8 @@ geo_checks = []
 db_conn: object = DatabaseEngine()
 
 
-def _get_token() -> Union[str, Any]:
+@task  # type: ignore[misc]
+def get_token() -> str:
     """Getting the access token for calling the data endpoint.
 
     Returns:
@@ -76,8 +77,12 @@ def _get_token() -> Union[str, Any]:
             "Something went wrong, please check the get_token function.", err.response.text
         )
 
+    # `json.loads` can return any JSON like Python datatype (int, float, str, bool, dict),
+    # but we know it to be a `str` as the final value in this specific case. To provide some
+    # more meaningful type checking to callers of `get_token` we want to be very expliciet in
+    # what we return. Hence a cast is needed here.
     token_load = json.loads(token_request.text)
-    return token_load["jwt"]
+    return cast(str, token_load["jwt"])
 
 
 with DAG(
@@ -100,14 +105,8 @@ with DAG(
     # 2. Create temp directory to store files
     mkdir = mk_dir(tmp_dir, clean_if_exists=False)
 
-    # GET TOKEN
-    get_token = PythonOperator(
-        # The resulting get_token is returned via XCom using the task_id
-        task_id="get_token",
-        python_callable=_get_token,
-    )
-
     # 3. Download data
+    get_jwt_token = get_token()
     download_data = HttpFetchOperator(  # noqa: S106
         task_id="download",
         endpoint=data_endpoint,
@@ -196,7 +195,7 @@ with DAG(
     (
         slack_at_start
         >> mkdir
-        >> get_token
+        >> get_jwt_token
         >> download_data
         >> import_data
         >> drop_tables

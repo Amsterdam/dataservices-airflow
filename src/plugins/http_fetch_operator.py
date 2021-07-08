@@ -7,6 +7,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.hooks.http_hook import HttpHook
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
+from airflow.models.taskinstance import Context
 from airflow.utils.decorators import apply_defaults
 
 
@@ -23,7 +24,7 @@ class HttpFetchOperator(BaseOperator):
         "headers",
     ]
 
-    @apply_defaults
+    @apply_defaults  # type: ignore[misc]
     def __init__(
         self,
         endpoint: str,
@@ -80,7 +81,7 @@ class HttpFetchOperator(BaseOperator):
 
         super().__init__(*args, **kwargs)
 
-    def execute(self, context: Dict) -> None:  # noqa: C901
+    def execute(self, context: Context) -> None:  # noqa: C901
         """Main execution function.
 
         Args:
