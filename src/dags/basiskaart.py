@@ -1,5 +1,5 @@
 import logging
-from typing import Iterator
+from typing import Final, Iterator
 
 from airflow import DAG
 from airflow.models import Variable
@@ -36,12 +36,12 @@ from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL  # n
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
-dag_id = "basiskaart"
-owner = "dataservices"
-variables = Variable.get(dag_id, deserialize_json=True)
-tables_to_create = variables["tables_to_create"]
-source_connection = "AIRFLOW_CONN_POSTGRES_BASISKAART"
-import_step = 10000
+DAG_ID: Final = "basiskaart"
+OWNER: Final = "dataservices"
+VARIABLES: Final = Variable.get(DAG_ID, deserialize_json=True)
+TABLES_TO_CREATE: Final = VARIABLES["tables_to_create"]
+SOURCE_CONNECTION: Final = "AIRFLOW_CONN_POSTGRES_BASISKAART"
+IMPORT_STEP: Final = 10_000
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +56,6 @@ def create_tables_from_basiskaartdb_to_masterdb(
     DB. Target_base_table contains the table in master DB where the data (the result of
     source_select_statement execution) is inserted into.
     """
-
     try:
         # setup the DB source connection
         source_engine = create_engine(env(source_connection).split("?")[0])
@@ -68,16 +67,16 @@ def create_tables_from_basiskaartdb_to_masterdb(
         count = 0
         cursor = src_conn.execute(source_select_statement)
         while True:
-            fetch_iterator = cursor.fetchmany(size=import_step)
+            fetch_iterator = cursor.fetchmany(size=IMPORT_STEP)
             batch_count = copy_data_in_batch(target_base_table, fetch_iterator)
             count += batch_count
-            if batch_count < import_step:
+            if batch_count < IMPORT_STEP:
                 break
-    logger.info(f"Total records imported: {count}")
+    logger.info("Total records imported: %d", count)
 
 
 def copy_data_in_batch(target_base_table: str, fetch_iterator: Iterator) -> int:
-
+    """Insert data from iterator into target table."""
     masterdb_hook = PostgresHook()
     items = []
 
@@ -114,8 +113,8 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
     schedule_start_hour = 7
 
     dag = DAG(
-        f"{dag_id}_{table_name}",
-        default_args={"owner": owner, **default_args},
+        f"{DAG_ID}_{table_name}",
+        default_args={"owner": OWNER, **default_args},
         # the first DAG will have the is_first boolean set to True
         # the other DAG's will be triggered to start when the previous DAG is finished
         # (estafette run / relay run)
@@ -124,7 +123,7 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
         basisregistratie grootschalige topologie (BGT) en kleinschalige basiskaart (KBK10 en 50).
         The basiskaart data is collected from basiskaart DB.""",
         tags=["basiskaart"],
-        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+        on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
     )
 
     with dag:
@@ -134,7 +133,7 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
             task_id="slack_at_start",
             http_conn_id="slack",
             webhook_token=slack_webhook_token,
-            message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+            message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
             username="admin",
         )
 
@@ -142,7 +141,7 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
         create_tables = PostgresOperator(
             task_id="create_tables",
             sql=CREATE_TABLES,
-            params=dict(base_table=table_name, dag_id=dag_id),
+            params={"base_table": table_name, "dag_id": DAG_ID},
         )
 
         # 3. Copy data into temp table
@@ -150,9 +149,9 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
             task_id="insert_data",
             python_callable=create_tables_from_basiskaartdb_to_masterdb,
             op_kwargs={
-                "source_connection": source_connection,
+                "source_connection": SOURCE_CONNECTION,
                 "source_select_statement": globals()[select_statement],
-                "target_base_table": f"{dag_id}_{table_name}_temp",
+                "target_base_table": f"{DAG_ID}_{table_name}_temp",
             },
             dag=dag,
         )
@@ -160,22 +159,22 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
         # 4. Check for changes in temp table to merge in target table
         change_data_capture = PgComparatorCDCOperator(
             task_id="change_data_capture",
-            source_table=f"{dag_id}_{table_name}_temp",
-            target_table=f"{dag_id}_{table_name}",
+            source_table=f"{DAG_ID}_{table_name}_temp",
+            target_table=f"{DAG_ID}_{table_name}",
         )
 
         # 5. Create mviews for T-REX tile server
         create_mviews = PostgresOperator(
             task_id="create_mviews",
             sql=CREATE_MVIEWS,
-            params=dict(base_table=table_name, dag_id=dag_id),
+            params={"base_table": table_name, "dag_id": DAG_ID},
         )
 
         # 6. Rename COLUMNS based on Provenance
         provenance_translation = ProvenanceRenameOperator(
             task_id="rename_columns",
-            dataset_name=dag_id,
-            prefix_table_name=f"{dag_id}_",
+            dataset_name=DAG_ID,
+            prefix_table_name=f"{DAG_ID}_",
             rename_indexes=False,
             pg_schema="public",
         )
@@ -184,19 +183,19 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
         clean_up = PostgresOperator(
             task_id="drop_temp_table",
             sql=[
-                f"DROP TABLE IF EXISTS {dag_id}_{table_name}_temp CASCADE",
+                f"DROP TABLE IF EXISTS {DAG_ID}_{table_name}_temp CASCADE",
             ],
         )
 
         # 8. Trigger next DAG to run (estafette)
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag",
-            dag_id_prefix=f"{dag_id}_",
+            dag_id_prefix=f"{DAG_ID}_",
             trigger_rule="all_done",
         )
 
         # 9. Grant database permissions
-        grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+        grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     # Flow
     (
@@ -235,5 +234,5 @@ def create_basiskaart_dag(is_first: bool, table_name: str, select_statement: str
     return dag
 
 
-for i, (table, select_statement) in enumerate(tables_to_create.items()):
-    globals()[f"{dag_id}_{table}"] = create_basiskaart_dag(i == 0, table, select_statement)
+for i, (table, select_statement) in enumerate(TABLES_TO_CREATE.items()):
+    globals()[f"{DAG_ID}_{table}"] = create_basiskaart_dag(i == 0, table, select_statement)
