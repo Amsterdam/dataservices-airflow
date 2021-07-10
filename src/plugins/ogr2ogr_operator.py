@@ -1,4 +1,3 @@
-import logging
 import subprocess  # noqa: S404
 from pathlib import Path
 from typing import Any, List, Optional, Union
@@ -6,8 +5,6 @@ from typing import Any, List, Optional, Union
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
 from common.db import DatabaseEngine
-
-logger = logging.getLogger(__name__)
 
 
 class Ogr2OgrOperator(BaseOperator):
@@ -137,7 +134,7 @@ class Ogr2OgrOperator(BaseOperator):
             result = subprocess.run(  # noqa: S603
                 ogr2ogr_cmd, capture_output=True, check=True, text=True
             )
-            logger.debug(result.stdout)
+            self.log.debug(result.stdout)
         except subprocess.CalledProcessError as cpe:
-            logger.error(cpe.stderr)
-            logger.exception("Failed to run %r.", program)
+            self.log.error(cpe.stderr)
+            self.log.exception("Failed to run %r.", program)
