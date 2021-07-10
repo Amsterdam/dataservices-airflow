@@ -1,10 +1,13 @@
-import subprocess
-from typing import Any, Dict, Optional
+import subprocess  # noqa: S404
+from pathlib import Path
+from typing import Any, Optional
 
 import dsnparse
 from airflow.models.baseoperator import BaseOperator
+from airflow.models.taskinstance import Context
 from airflow.utils.decorators import apply_defaults
 from environs import Env
+from more_itertools import first_true
 
 
 class PgComparatorCDCOperator(BaseOperator):
@@ -30,7 +33,7 @@ class PgComparatorCDCOperator(BaseOperator):
     it will stop ``pg_comparator`` from needlessly hashing the key and *use the key* as-is.
     """
 
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         source_table: str,
@@ -68,7 +71,7 @@ class PgComparatorCDCOperator(BaseOperator):
         self.db_conn_id = db_conn_id if db_conn_id else "AIRFLOW_CONN_POSTGRES_DEFAULT"
         self.no_deletes = no_deletes
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: Context) -> None:  # noqa: D102
         env = Env()
         db_connection, _ = env(self.db_conn_id).split("?")
         scheme = dsnparse.parse(db_connection).scheme.replace("postgresql", "pgsql")
@@ -85,14 +88,17 @@ class PgComparatorCDCOperator(BaseOperator):
             # first query parameter and has no value.
             source_url += f"?{self.key_column}"
         target_url = f"{db_url}/{self.target_table}"
-
+        program_path = first_true(
+            (Path("/usr/bin/pg_comparator"), Path("/usr/local/bin/pg_comparator")),
+            pred=lambda p: p.exists(),
+        )
         self.log.info(
-            "Start change data capture (with pg_comparator) from: '%s' to: '%s" ".",
+            "Start change data capture (with pg_comparator) from: '%s' to: '%s.",
             source_url,
             target_url,
         )
         arguments = [
-            "/usr/bin/pg_comparator",
+            program_path.as_posix(),
             "--do-it",
             "--synchronize",
             "--max-ratio=2.0",
@@ -108,5 +114,11 @@ class PgComparatorCDCOperator(BaseOperator):
         db_pass_env_var = {"db_pass_env_var": password}
         arguments.extend([source_url, target_url])
         self.log.info("Executing: '%s'.", " ".join(arguments))
-        result = subprocess.run(arguments, capture_output=True, check=True, env=db_pass_env_var)
-        self.log.debug(result.stdout)
+        try:
+            result = subprocess.run(  # noqa: S603
+                arguments, capture_output=True, check=True, text=True, env=db_pass_env_var
+            )
+            self.log.debug(result.stdout)
+        except subprocess.CalledProcessError as cpe:
+            self.log.error(cpe.stderr)
+            self.log.exception("Failed to run %r.", program_path.name)
