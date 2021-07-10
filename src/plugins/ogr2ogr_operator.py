@@ -85,7 +85,8 @@ class Ogr2OgrOperator(BaseOperator):
         input_file.parents[0].mkdir(parents=True, exist_ok=True)
 
         # setup the cmd to execute
-        ogr2ogr_cmd: List[str] = ["ogr2ogr", "-f", self.mode]
+        program = "ogr2ogr"
+        ogr2ogr_cmd: List[str] = [program, "-f", self.mode]
 
         # Option 1 SQL (default): create sql file
         if self.mode == "PGDump":
@@ -133,12 +134,10 @@ class Ogr2OgrOperator(BaseOperator):
 
         # execute cmd string
         try:
-            subprocess.run(ogr2ogr_cmd, check=True)  # noqa: S603
-        except subprocess.CalledProcessError as err:
-            logger.error(
-                """Something went wrong..., cannot execute subproces.
-              Please check the ogr2ogr cmd %s. Error: %s
-            """,
-                ogr2ogr_cmd,
-                err.output,
+            result = subprocess.run(  # noqa: S603
+                ogr2ogr_cmd, capture_output=True, check=True, text=True
             )
+            logger.debug(result.stdout)
+        except subprocess.CalledProcessError as cpe:
+            logger.error(cpe.stderr)
+            logger.exception("Failed to run %r.", program)
