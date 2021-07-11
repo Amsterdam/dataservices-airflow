@@ -1,5 +1,7 @@
 import logging
-from typing import Final, Iterator
+import operator
+from dataclasses import dataclass
+from typing import Final, Iterable, Iterator, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -11,11 +13,11 @@ from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, sla
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from provenance_rename_operator import ProvenanceRenameOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 
 # These seemingly unused imports are actually used, albeit indirectly. See the code with
 # `globals()[select_statement]`. Hence the `noqa: F401` comments.
-from sql.basiskaart import CREATE_MVIEWS, CREATE_TABLES
+from sql.basiskaart import CREATE_MVIEWS
 from sql.basiskaart import SELECT_GEBOUWVLAK_SQL as SELECT_GEBOUWVLAK_SQL  # noqa: F401
 from sql.basiskaart import (  # noqa: F401
     SELECT_INRICHTINGSELEMENTLIJN_SQL as SELECT_INRICHTINGSELEMENTLIJN_SQL,
@@ -36,14 +38,37 @@ from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL  # n
 from sqlalchemy import create_engine
 from sqlalchemy.engine import ResultProxy
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 DAG_ID: Final = "basiskaart"
 VARIABLES: Final = Variable.get(DAG_ID, deserialize_json=True)
-TABLES_TO_CREATE: Final = VARIABLES["tables_to_create"]
+TABLE_TO_SELECT: Final = VARIABLES["tables_to_create"]
 SOURCE_CONNECTION: Final = "AIRFLOW_CONN_POSTGRES_BASISKAART"
 IMPORT_STEP: Final = 10_000
+TMP_TABLE_POSTFIX: Final = "_temp"
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class Table:
+    """Simple dataclass to represent various table ids and a select statement."""
+
+    id: str  # noqa: A003
+    base_id: str
+    tmp_id: str
+    select: str
+
+
+TABLES: Final[List[Table]] = [
+    Table(
+        id=f"{DAG_ID}_{base_id}",
+        base_id=base_id,
+        tmp_id=f"{DAG_ID}_{base_id}{TMP_TABLE_POSTFIX}",
+        select=select,
+    )
+    for base_id, select in TABLE_TO_SELECT.items()
+]
 
 
 def create_tables_from_basiskaartdb_to_masterdb(
@@ -109,6 +134,16 @@ def join(number: int) -> DummyOperator:
     return DummyOperator(task_id=f"join_parallel_tasks_{number}")
 
 
+def rm_tmp_tables(task_id_postfix: str, tables: Iterable[Table]) -> PostgresOperator:
+    """Remove tmp tables."""
+    return PostgresOperator(
+        task_id=f"rm_tmp_tables{task_id_postfix}",
+        sql="DROP TABLE IF EXISTS {tables}".format(
+            tables=", ".join(map(operator.attrgetter("tmp_id"), tables))
+        ),
+    )
+
+
 with DAG(
     dag_id=DAG_ID,
     default_args=default_args,
@@ -121,6 +156,7 @@ with DAG(
     tags=["basiskaart"],
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
+
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -129,40 +165,52 @@ with DAG(
         username="admin",
     )
 
-    create_tables = [
-        PostgresOperator(
-            task_id=f"create_table_{table_name}",
-            sql=CREATE_TABLES,
-            params={"base_table": table_name, "dag_id": DAG_ID},
+    rm_tmp_tables_pre = rm_tmp_tables("_pre", TABLES)
+
+    sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
+        task_id="sqlalchemy_create_objects_from_schema",
+        data_schema_name=DAG_ID,
+        ind_extra_index=True,
+    )
+
+    create_temp_tables = [
+        PostgresTableCopyOperator(
+            task_id=f"create_temp_table_{table.tmp_id}",
+            source_table_name=table.id,
+            target_table_name=table.tmp_id,
+            # Only copy table definitions. Don't do anything else.
+            truncate_target=False,
+            copy_data=False,
+            drop_source=False,
         )
-        for table_name in TABLES_TO_CREATE.keys()
+        for table in TABLES
     ]
 
     join_1 = join(1)
 
     copy_data = [
         PythonOperator(
-            task_id=f"insert_data_into_{table_name}",
+            task_id=f"insert_data_into_{table.id}",
             python_callable=create_tables_from_basiskaartdb_to_masterdb,
             op_kwargs={
                 "source_connection": SOURCE_CONNECTION,
-                "source_select_statement": globals()[select_statement],
-                "target_base_table": f"{DAG_ID}_{table_name}_temp",
+                "source_select_statement": globals()[table.select],
+                "target_base_table": table.tmp_id,
             },
             dag=dag,
         )
-        for table_name, select_statement in TABLES_TO_CREATE.items()
+        for table in TABLES
     ]
 
     join_2 = join(2)
 
     change_data_capture = [
         PgComparatorCDCOperator(
-            task_id=f"change_data_capture_for_{table_name}",
-            source_table=f"{DAG_ID}_{table_name}_temp",
-            target_table=f"{DAG_ID}_{table_name}",
+            task_id=f"change_data_capture_for_{table.id}",
+            source_table=table.tmp_id,
+            target_table=table.id,
         )
-        for table_name in TABLES_TO_CREATE.keys()
+        for table in TABLES
     ]
 
     join_3 = join(3)
@@ -170,45 +218,30 @@ with DAG(
     # Create mviews for T-REX tile server
     create_mviews = [
         PostgresOperator(
-            task_id=f"create_mviews_for_{table_name}",
+            task_id=f"create_mviews_for_{table.id}",
             sql=CREATE_MVIEWS,
-            params={"base_table": table_name, "dag_id": DAG_ID},
+            params={"base_table": table.base_id, "dag_id": DAG_ID},
         )
-        for table_name in TABLES_TO_CREATE.keys()
+        for table in TABLES
     ]
 
-    provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns",
-        dataset_name=DAG_ID,
-        prefix_table_name=f"{DAG_ID}_",
-        rename_indexes=False,
-        pg_schema="public",
-    )
-
-    clean_up = [
-        PostgresOperator(
-            task_id=f"drop_temp_table_{table_name}",
-            sql=[
-                f"DROP TABLE IF EXISTS {DAG_ID}_{table_name}_temp CASCADE",
-            ],
-        )
-        for table_name in TABLES_TO_CREATE.keys()
-    ]
+    rm_tmp_tables_post = rm_tmp_tables("_post", TABLES)
 
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     # Flow
     (
         slack_at_start
-        >> create_tables
+        >> rm_tmp_tables_pre
+        >> sqlalchemy_create_objects_from_schema
+        >> create_temp_tables
         >> join_1
         >> copy_data
         >> join_2
         >> change_data_capture
         >> join_3
         >> create_mviews
-        >> provenance_translation
-        >> clean_up
+        >> rm_tmp_tables_post
         >> grant_db_permissions
     )
 
