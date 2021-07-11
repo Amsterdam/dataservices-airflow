@@ -16,7 +16,6 @@ FROM (SELECT bbox AS arr, id FROM {{ params.tablename }}  ) as subquery
 UPDATE {{ params.tablename }}
 SET bbox_new = bbox_geom
 FROM bbox_to_geo
-WHERE 1=1
 AND {{ params.tablename }}.ID = bbox_to_geo.ID;
 ALTER TABLE {{ params.tablename }} DROP COLUMN bbox;
 ALTER TABLE {{ params.tablename }} RENAME bbox_new TO bbox;

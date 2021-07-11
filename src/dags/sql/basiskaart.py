@@ -128,7 +128,6 @@ SELECT
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_GISE_bordes"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_GISE_luifel".identificatie_lokaalid || 'BGTPLUS_GISE_luifel' as id,
@@ -139,7 +138,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_GISE_luifel"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_GISE_onbekend".identificatie_lokaalid || 'BGTPLUS_GISE_onbekend' as id,
@@ -150,7 +148,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_GISE_onbekend"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_GISE_toegangstrap".identificatie_lokaalid || 'BGTPLUS_GISE_toegangstrap' as id,
@@ -161,7 +158,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_GISE_toegangstrap"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OBW_bunker".identificatie_lokaalid || 'BGTPLUS_OBW_bunker' as id,
@@ -172,7 +168,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_OBW_bunker"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OBW_onbekend".identificatie_lokaalid || 'BGTPLUS_OBW_onbekend' as id,
@@ -183,7 +178,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_OBW_onbekend"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OBW_schuur".identificatie_lokaalid || 'BGTPLUS_OBW_schuur' as id,
@@ -194,7 +188,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_OBW_schuur"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OBW_voedersilo".identificatie_lokaalid || 'BGTPLUS_OBW_voedersilo' as id,
@@ -205,7 +198,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGTPLUS_OBW_voedersilo"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_bassin".identificatie_lokaalid || 'BGT_OBW_bassin' as id,
@@ -216,7 +208,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_bassin"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_bezinkbak".identificatie_lokaalid || 'BGT_OBW_bezinkbak' as id,
@@ -227,7 +218,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_bezinkbak"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_lage_trafo".identificatie_lokaalid || 'BGT_OBW_lage_trafo' as id,
@@ -238,7 +228,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_lage_trafo"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_open_loods".identificatie_lokaalid || 'BGT_OBW_open_loods' as id,
@@ -249,7 +238,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_open_loods"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_opslagtank".identificatie_lokaalid || 'BGT_OBW_opslagtank' as id,
@@ -260,7 +248,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_opslagtank"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_overkapping".identificatie_lokaalid || 'BGT_OBW_overkapping' as id,
@@ -271,7 +258,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_overkapping"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_transitie".identificatie_lokaalid || 'BGT_OBW_transitie' as id,
@@ -282,7 +268,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_transitie"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_OBW_windturbine".identificatie_lokaalid || 'BGT_OBW_windturbine' as id,
@@ -293,7 +278,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_OBW_windturbine"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_PND_pand".identificatie_lokaalid ||'-'|| row_number() over (partition by "BGT_PND_pand".identificatie_lokaalid order by tijdstipregistratie desc ) ||'-'|| 'BGT_PND_pand' as id,
@@ -304,7 +288,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BGT_PND_pand"
-  WHERE 1=1
 UNION
  SELECT
 	"CFT_Onderbouw".guid || 'CFT_Onderbouw' AS identificatie_lokaalid,
@@ -315,7 +298,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."CFT_Onderbouw"
-  WHERE 1=1
 UNION
  SELECT
 	"CFT_Overbouw".guid || 'CFT_Overbouw' AS identificatie_lokaalid,
@@ -326,7 +308,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."CFT_Overbouw"
-  WHERE 1=1
 
 /* BAG (uit BGT dataset) */
 UNION
@@ -339,7 +320,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BAG_Standplaats"
-  WHERE 1=1
 UNION
  SELECT
 	"BAG_Ligplaats"."BAG_identificatie" || 'BAG_Ligplaats' AS identificatie_lokaalid,
@@ -350,7 +330,6 @@ UNION
  	16  as minzoom,
  	22 as maxzoom
    FROM bgt."BAG_Ligplaats"
-  WHERE 1=1
 UNION
   SELECT
 	"GBW_overdekt".ogc_fid::text || 'GBW_overdekt_kbk10' as identificatie_lokaal_id,
@@ -425,7 +404,6 @@ SELECT
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_OSDG_damwand"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OSDG_geluidsscherm".identificatie_lokaalid || 'BGTPLUS_OSDG_geluidsscherm' as id,
@@ -436,7 +414,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_OSDG_geluidsscherm"
-  WHERE 1=1
 UNION
 */
  SELECT
@@ -448,7 +425,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_OSDG_hek"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OSDG_kademuur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_kademuur_L' as id,
@@ -459,7 +435,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_OSDG_kademuur_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OSDG_muur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_L' as id,
@@ -470,7 +445,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_OSDG_muur_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_OSDG_walbescherming".identificatie_lokaalid || 'BGTPLUS_OSDG_walbescherming' as id,
@@ -481,7 +455,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_OSDG_walbescherming"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_SDG_draadraster".identificatie_lokaalid || 'BGTPLUS_SDG_draadraster' as id,
@@ -492,7 +465,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_SDG_draadraster"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_SDG_faunaraster".identificatie_lokaalid || 'BGTPLUS_SDG_faunaraster' as id,
@@ -503,7 +475,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_SDG_faunaraster"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_VGT_haag_L".identificatie_lokaalid || 'BGTPLUS_VGT_haag_L' as id,
@@ -514,7 +485,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_VGT_haag_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WDI_geleidewerk".identificatie_lokaalid || 'BGTPLUS_WDI_geleidewerk' as id,
@@ -525,7 +495,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WDI_geleidewerk"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WDI_remmingswerk".identificatie_lokaalid || 'BGTPLUS_WDI_remmingswerk' as id,
@@ -536,7 +505,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WDI_remmingswerk"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WGI_balustrade".identificatie_lokaalid || 'BGTPLUS_WGI_balustrade' as id,
@@ -547,7 +515,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_balustrade"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WGI_geleideconstructie_L".identificatie_lokaalid || 'BGTPLUS_WGI_geleideconstructie_L' as id,
@@ -558,7 +525,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_geleideconstructie_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WGI_rooster_L".identificatie_lokaalid || 'BGTPLUS_WGI_rooster_L' as id,
@@ -569,7 +535,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_rooster_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WGI_wildrooster_L".identificatie_lokaalid || 'BGTPLUS_WGI_wildrooster_L' as id,
@@ -580,7 +545,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_wildrooster_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_KDL_stuw_L".identificatie_lokaalid || 'BGT_KDL_stuw_L' as id,
@@ -591,7 +555,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_KDL_stuw_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_SDG_damwand".identificatie_lokaalid || 'BGT_SDG_damwand' as id,
@@ -602,7 +565,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_SDG_damwand"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_SDG_geluidsscherm".identificatie_lokaalid || 'BGT_SDG_geluidsscherm' as id,
@@ -613,7 +575,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_SDG_geluidsscherm"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_SDG_hek".identificatie_lokaalid || 'BGT_SDG_hek' as id,
@@ -624,7 +585,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_SDG_hek"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_SDG_kademuur_L".identificatie_lokaalid || 'BGT_SDG_kademuur_L' as id,
@@ -635,7 +595,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_SDG_kademuur_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_SDG_muur_L".identificatie_lokaalid || 'BGT_SDG_muur_L' as id,
@@ -646,7 +605,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_SDG_muur_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGT_SDG_walbescherming".identificatie_lokaalid || 'BGT_SDG_walbescherming' as id,
@@ -657,7 +615,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGT_SDG_walbescherming"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_KDL_onbekend_L".identificatie_lokaalid || 'BGTPLUS_KDL_onbekend_L' as id,
@@ -668,7 +625,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_KDL_onbekend_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_SDG_onbekend_L".identificatie_lokaalid || 'BGTPLUS_SDG_onbekend_L' as id,
@@ -679,7 +635,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_SDG_onbekend_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_VGT_onbekend_L".identificatie_lokaalid || 'BGTPLUS_VGT_onbekend_L' as id,
@@ -690,7 +645,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_VGT_onbekend_L"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WGI_lijnafwatering".identificatie_lokaalid || 'BGTPLUS_WGI_lijnafwatering' as id,
@@ -701,7 +655,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_lijnafwatering"
-  WHERE 1=1
 UNION
  SELECT
 	"BGTPLUS_WGI_molgoot".identificatie_lokaalid || 'BGTPLUS_WGI_molgoot' as id,
@@ -712,7 +665,6 @@ UNION
  	16  as minzoom,
  	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_molgoot"
-  WHERE 1=1
 
 /* ---- KBK10 ---- */
  UNION
@@ -768,7 +720,7 @@ SELECT
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BAK_afvalbak"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BAK_afval_apart_plaats".identificatie_lokaalid || 'BGTPLUS_BAK_afval_apart_plaats' as id,
@@ -779,7 +731,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BAK_afval_apart_plaats"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_ISE_onbekend".identificatie_lokaalid || 'BGTPLUS_ISE_onbekend' as id,
@@ -790,7 +742,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_ISE_onbekend"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_ISE_pomp".identificatie_lokaalid || 'BGTPLUS_ISE_pomp' as id,
@@ -801,7 +753,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_ISE_pomp"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_cai-kast".identificatie_lokaalid || 'BGTPLUS_KST_cai-kast' as id,
@@ -812,7 +764,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_cai-kast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_elektrakast".identificatie_lokaalid || 'BGTPLUS_KST_elektrakast' as id,
@@ -823,7 +775,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_elektrakast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_onbekend".identificatie_lokaalid || 'BGTPLUS_KST_onbekend' as id,
@@ -834,7 +786,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_onbekend"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_lichtmast".identificatie_lokaalid || 'BGTPLUS_PAL_lichtmast' as id,
@@ -845,7 +797,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_lichtmast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_brandkraan_-put".identificatie_lokaalid || 'BGTPLUS_PUT_brandkraan_-put' as id,
@@ -856,7 +808,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_brandkraan_-put"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_inspectie-_rioolput".identificatie_lokaalid || 'BGTPLUS_PUT_inspectie-_rioolput' as id,
@@ -867,7 +819,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_inspectie-_rioolput"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_kolk".identificatie_lokaalid || 'BGTPLUS_PUT_kolk' as id,
@@ -878,7 +830,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_kolk"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_abri".identificatie_lokaalid || 'BGTPLUS_SMR_abri' as id,
@@ -889,7 +841,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_abri"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_betaalautomaat".identificatie_lokaalid || 'BGTPLUS_SMR_betaalautomaat' as id,
@@ -900,7 +852,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_betaalautomaat"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_fietsenrek".identificatie_lokaalid || 'BGTPLUS_SMR_fietsenrek' as id,
@@ -911,7 +863,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_fietsenrek"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_herdenkingsmonument".identificatie_lokaalid || 'BGTPLUS_SMR_herdenkingsmonument' as id,
@@ -922,7 +874,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_herdenkingsmonument"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_kunstobject".identificatie_lokaalid || 'BGTPLUS_SMR_kunstobject' as id,
@@ -933,7 +885,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_kunstobject"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_openbaar_toilet".identificatie_lokaalid || 'BGTPLUS_SMR_openbaar_toilet' as id,
@@ -944,7 +896,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_openbaar_toilet"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_reclamezuil".identificatie_lokaalid || 'BGTPLUS_SMR_reclamezuil' as id,
@@ -955,7 +907,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_reclamezuil"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_telefooncel".identificatie_lokaalid || 'BGTPLUS_SMR_telefooncel' as id,
@@ -966,7 +918,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_telefooncel"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_VGT_boom".identificatie_lokaalid || 'BGTPLUS_VGT_boom' as id,
@@ -977,7 +929,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_VGT_boom"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGT_KDL_hoogspanningsmast_P".identificatie_lokaalid || 'BGT_KDL_hoogspanningsmast_P' as id,
@@ -988,7 +940,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGT_KDL_hoogspanningsmast_P"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BRD_informatiebord".identificatie_lokaalid || 'BGTPLUS_BRD_informatiebord' as id,
@@ -999,7 +951,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BRD_informatiebord"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BRD_reclamebord".identificatie_lokaalid || 'BGTPLUS_BRD_reclamebord' as id,
@@ -1010,7 +962,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BRD_reclamebord"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BRD_straatnaambord".identificatie_lokaalid || 'BGTPLUS_BRD_straatnaambord' as id,
@@ -1021,7 +973,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BRD_straatnaambord"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BRD_verkeersbord".identificatie_lokaalid || 'BGTPLUS_BRD_verkeersbord' as id,
@@ -1032,7 +984,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BRD_verkeersbord"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BRD_verklikker_transportleiding".identificatie_lokaalid || 'BGTPLUS_BRD_verklikker_transportleiding' as id,
@@ -1043,7 +995,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BRD_verklikker_transportleiding"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_BRD_wegwijzer".identificatie_lokaalid || 'BGTPLUS_BRD_wegwijzer' as id,
@@ -1054,7 +1006,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_BRD_wegwijzer"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_gaskast".identificatie_lokaalid || 'BGTPLUS_KST_gaskast' as id,
@@ -1065,7 +1017,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_gaskast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_gms_kast".identificatie_lokaalid || 'BGTPLUS_KST_gms_kast' as id,
@@ -1076,7 +1028,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_gms_kast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_openbare_verlichtingkast".identificatie_lokaalid || 'BGTPLUS_KST_openbare_verlichtingkast' as id,
@@ -1087,7 +1039,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_openbare_verlichtingkast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_rioolkast".identificatie_lokaalid || 'BGTPLUS_KST_rioolkast' as id,
@@ -1098,7 +1050,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_rioolkast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_telecom_kast".identificatie_lokaalid || 'BGTPLUS_KST_telecom_kast' as id,
@@ -1109,7 +1061,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_telecom_kast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_telkast".identificatie_lokaalid || 'BGTPLUS_KST_telkast' as id,
@@ -1120,7 +1072,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_telkast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_KST_verkeersregelinstallatiekast".identificatie_lokaalid || 'BGTPLUS_KST_verkeersregelinstallatiekast' as id,
@@ -1131,7 +1083,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_KST_verkeersregelinstallatiekast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_MST_onbekend".identificatie_lokaalid || 'BGTPLUS_MST_onbekend' as id,
@@ -1142,7 +1094,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_MST_onbekend"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_MST_zendmast".identificatie_lokaalid || 'BGTPLUS_MST_zendmast' as id,
@@ -1153,7 +1105,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_MST_zendmast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_afsluitpaal".identificatie_lokaalid || 'BGTPLUS_PAL_afsluitpaal' as id,
@@ -1164,7 +1116,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_afsluitpaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_drukknoppaal".identificatie_lokaalid || 'BGTPLUS_PAL_drukknoppaal' as id,
@@ -1175,7 +1127,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_drukknoppaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_haltepaal".identificatie_lokaalid || 'BGTPLUS_PAL_haltepaal' as id,
@@ -1186,7 +1138,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_haltepaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_hectometerpaal".identificatie_lokaalid || 'BGTPLUS_PAL_hectometerpaal' as id,
@@ -1197,7 +1149,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_hectometerpaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_poller".identificatie_lokaalid || 'BGTPLUS_PAL_poller' as id,
@@ -1208,7 +1160,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_poller"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_telpaal".identificatie_lokaalid || 'BGTPLUS_PAL_telpaal' as id,
@@ -1219,7 +1171,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_telpaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_verkeersbordpaal".identificatie_lokaalid || 'BGTPLUS_PAL_verkeersbordpaal' as id,
@@ -1230,7 +1182,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_verkeersbordpaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_verkeersregelinstallatiepaal".identificatie_lokaalid || 'BGTPLUS_PAL_verkeersregelinstallatiepaal' as id,
@@ -1241,7 +1193,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_verkeersregelinstallatiepaal"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PAL_vlaggenmast".identificatie_lokaalid || 'BGTPLUS_PAL_vlaggenmast' as id,
@@ -1252,7 +1204,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PAL_vlaggenmast"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_benzine-_olieput".identificatie_lokaalid || 'BGTPLUS_PUT_benzine-_olieput' as id,
@@ -1263,7 +1215,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_benzine-_olieput"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_drainageput".identificatie_lokaalid || 'BGTPLUS_PUT_drainageput' as id,
@@ -1274,7 +1226,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_drainageput"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_gasput".identificatie_lokaalid || 'BGTPLUS_PUT_gasput' as id,
@@ -1285,7 +1237,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_gasput"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_onbekend".identificatie_lokaalid || 'BGTPLUS_PUT_onbekend' as id,
@@ -1296,7 +1248,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_onbekend"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_PUT_waterleidingput".identificatie_lokaalid || 'BGTPLUS_PUT_waterleidingput' as id,
@@ -1307,7 +1259,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_PUT_waterleidingput"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_bank".identificatie_lokaalid || 'BGTPLUS_SMR_bank' as id,
@@ -1318,7 +1270,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_bank"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_brievenbus".identificatie_lokaalid || 'BGTPLUS_SMR_brievenbus' as id,
@@ -1329,7 +1281,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_brievenbus"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_fietsenkluis".identificatie_lokaalid || 'BGTPLUS_SMR_fietsenkluis' as id,
@@ -1340,7 +1292,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_fietsenkluis"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_lichtpunt".identificatie_lokaalid || 'BGTPLUS_SMR_lichtpunt' as id,
@@ -1351,7 +1303,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_lichtpunt"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_slagboom".identificatie_lokaalid || 'BGTPLUS_SMR_slagboom' as id,
@@ -1362,7 +1314,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_slagboom"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SMR_speelvoorziening".identificatie_lokaalid || 'BGTPLUS_SMR_speelvoorziening' as id,
@@ -1373,7 +1325,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SMR_speelvoorziening"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SSR_camera".identificatie_lokaalid || 'BGTPLUS_SSR_camera' as id,
@@ -1384,7 +1336,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SSR_camera"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SSR_flitser".identificatie_lokaalid || 'BGTPLUS_SSR_flitser' as id,
@@ -1395,7 +1347,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SSR_flitser"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_SSR_waterstandmeter".identificatie_lokaalid || 'BGTPLUS_SSR_waterstandmeter' as id,
@@ -1406,7 +1358,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_SSR_waterstandmeter"
-  WHERE 1 = 1
+
 UNION
  SELECT
 		"BGTPLUS_WDI_meerpaal".identificatie_lokaalid || 'BGTPLUS_WDI_meerpaal' as id,
@@ -1417,7 +1369,7 @@ UNION
  	 	16  as minzoom,
  	 	NULL  as maxzoom
    FROM bgt."BGTPLUS_WDI_meerpaal"
-  WHERE 1 = 1
+
 """
 
 
@@ -1431,7 +1383,6 @@ SELECT
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGTPLUS_KDL_keermuur"
-  WHERE 1=1
 UNION
  SELECT
 		"BGTPLUS_OSDG_muur_V".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_V' as id,
@@ -1442,7 +1393,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGTPLUS_OSDG_muur_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGTPLUS_VGT_haag_V".identificatie_lokaalid || 'BGTPLUS_VGT_haag_V' as id,
@@ -1453,7 +1403,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGTPLUS_VGT_haag_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGTPLUS_WGI_boomspiegel_V".identificatie_lokaalid || 'BGTPLUS_WGI_boomspiegel_V' as id,
@@ -1464,7 +1413,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGTPLUS_WGI_boomspiegel_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGTPLUS_WGI_rooster_V".identificatie_lokaalid || 'BGTPLUS_WGI_rooster_V' as id,
@@ -1475,7 +1423,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
    FROM bgt."BGTPLUS_WGI_rooster_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGTPLUS_WGI_wildrooster_V".identificatie_lokaalid || 'BGTPLUS_WGI_wildrooster_V' as id,
@@ -1486,7 +1433,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGTPLUS_WGI_wildrooster_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_KDL_gemaal".identificatie_lokaalid || 'BGT_KDL_gemaal' as id,
@@ -1497,7 +1443,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_KDL_gemaal"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_KDL_hoogspanningsmast_V".identificatie_lokaalid || 'BGT_KDL_hoogspanningsmast_V' as id,
@@ -1508,7 +1453,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_KDL_hoogspanningsmast_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_KDL_sluis".identificatie_lokaalid || 'BGT_KDL_sluis' as id,
@@ -1519,7 +1463,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_KDL_sluis"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_KDL_steiger".identificatie_lokaalid || 'BGT_KDL_steiger' as id,
@@ -1530,7 +1473,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_KDL_steiger"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_KDL_stuw_V".identificatie_lokaalid || 'BGT_KDL_stuw_V' as id,
@@ -1541,7 +1483,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_KDL_stuw_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_SDG_kademuur_V".identificatie_lokaalid || 'BGT_SDG_kademuur_V' as id,
@@ -1552,7 +1493,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_SDG_kademuur_V"
-  WHERE 1=1
 UNION
  SELECT
 		"BGT_SDG_muur_V".identificatie_lokaalid || 'BGT_SDG_muur_V' as id,
@@ -1563,7 +1503,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_SDG_muur_V"
-  WHERE 1=1
 
     /* KBK10 */
   UNION
@@ -1576,7 +1515,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
   FROM kbk10."WDL_waterbassin"
-  WHERE 1=1
   UNION
    SELECT
 		"TRN_aanlegsteiger".ogc_fid::text || 'TRN_aanlegsteiger_kbk10' as identificatie_lokaal_id,
@@ -1587,7 +1525,6 @@ UNION
  	 	13  as minzoom,
  	 	15 as maxzoom
    FROM kbk10."TRN_aanlegsteiger"
-  WHERE 1=1
 """
 
 SELECT_SPOORLIJN_SQL: Final = """
@@ -1611,7 +1548,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_SPR_tram"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_SPR_trein".identificatie_lokaalid || 'BGT_SPR_trein' as id,
@@ -1622,7 +1558,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_SPR_trein"
-    WHERE 1=1
 
 UNION
 
@@ -1636,7 +1571,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_metro_overdekt"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_overdekt_1sp".ogc_fid::text || 'SBL_trein_overdekt_1sp' as identificatie_lokaal_id,
@@ -1647,7 +1581,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_trein_overdekt_1sp"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_overdekt_nsp".ogc_fid::text || 'SBL_trein_overdekt_nsp' as identificatie_lokaal_id,
@@ -1658,7 +1591,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_trein_overdekt_nsp"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_metro_nietoverdekt_1sp".ogc_fid::text || 'SBL_metro_nietoverdekt_1sp' as identificatie_lokaal_id,
@@ -1669,7 +1601,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_metro_nietoverdekt_1sp"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_metro_nietoverdekt_nsp".ogc_fid::text || 'SBL_metro_nietoverdekt_nsp' as identificatie_lokaal_id,
@@ -1680,7 +1611,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_metro_nietoverdekt_nsp"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_ongeelektrificeerd".ogc_fid::text || 'SBL_trein_ongeelektrificeerd_kbk10' as identificatie_lokaal_id,
@@ -1691,7 +1621,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_trein_ongeelektrificeerd"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_nietoverdekt_1sp".ogc_fid::text || 'SBL_trein_nietoverdekt_1sp' as identificatie_lokaal_id,
@@ -1702,7 +1631,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_trein_nietoverdekt_1sp"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_nietoverdekt_nsp".ogc_fid::text || 'SBL_trein_nietoverdekt_nsp' as identificatie_lokaal_id,
@@ -1713,7 +1641,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."SBL_trein_nietoverdekt_nsp"
-    WHERE 1=1
 
 /* KBK50 */
 UNION
@@ -1726,7 +1653,6 @@ UNION
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
     FROM kbk50."SBL_metro_sneltram_in_tunnel"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_in_tunnel".ogc_fid::text || 'SBL_trein_in_tunnel' as identificatie_lokaal_id,
@@ -1737,7 +1663,6 @@ UNION
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
     FROM kbk50."SBL_trein_in_tunnel"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_metro_sneltram".ogc_fid::text || 'SBL_metro_sneltram' as identificatie_lokaal_id,
@@ -1748,7 +1673,6 @@ UNION
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
     FROM kbk50."SBL_metro_sneltram"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein_ongeelektrificeerd".ogc_fid::text || 'SBL_trein_ongeelektrificeerd_kbk50' as identificatie_lokaal_id,
@@ -1759,7 +1683,6 @@ UNION
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
     FROM kbk50."SBL_trein_ongeelektrificeerd"
-    WHERE 1=1
 UNION
     SELECT
  		"SBL_trein".ogc_fid::text || 'SBL_trein' as identificatie_lokaal_id,
@@ -1770,7 +1693,6 @@ UNION
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
     FROM kbk50."SBL_trein"
-    WHERE 1=1
 """
 
 SELECT_TERREINDEELVLAK_SQL: Final = """
@@ -1783,7 +1705,6 @@ SELECT
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_boomteelt"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_bouwland".identificatie_lokaalid || 'BGT_BTRN_bouwland' as id,
@@ -1794,7 +1715,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_bouwland"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_fruitteelt".identificatie_lokaalid || 'BGT_BTRN_fruitteelt' as id,
@@ -1805,7 +1725,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_fruitteelt"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_gemengd_bos".identificatie_lokaalid || 'BGT_BTRN_gemengd_bos' as id,
@@ -1816,7 +1735,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_gemengd_bos"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_grasland_agrarisch".identificatie_lokaalid ||'-'||  "BGT_BTRN_grasland_agrarisch".tijdstipregistratie ||'-'||  'BGT_BTRN_grasland_agrarisch' as id,
@@ -1827,7 +1745,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_grasland_agrarisch"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_grasland_overig".identificatie_lokaalid ||'-'||  "BGT_BTRN_grasland_overig".tijdstipregistratie ||'-'|| 'BGT_BTRN_grasland_overig' as id,
@@ -1838,7 +1755,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_grasland_overig"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_groenvoorziening".identificatie_lokaalid || 'BGT_BTRN_groenvoorziening' as id,
@@ -1849,7 +1765,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_groenvoorziening"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_houtwal".identificatie_lokaalid || 'BGT_BTRN_houtwal' as id,
@@ -1860,7 +1775,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_houtwal"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_loofbos".identificatie_lokaalid || 'BGT_BTRN_loofbos' as id,
@@ -1871,7 +1785,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_loofbos"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_moeras".identificatie_lokaalid || 'BGT_BTRN_moeras' as id,
@@ -1882,7 +1795,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_moeras"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_naaldbos".identificatie_lokaalid || 'BGT_BTRN_naaldbos' as id,
@@ -1893,7 +1805,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_naaldbos"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_rietland".identificatie_lokaalid || 'BGT_BTRN_rietland' as id,
@@ -1904,7 +1815,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_rietland"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_struiken".identificatie_lokaalid || 'BGT_BTRN_struiken' as id,
@@ -1915,7 +1825,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_struiken"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_KDL_perron".identificatie_lokaalid || 'BGT_KDL_perron' as id,
@@ -1926,7 +1835,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_KDL_perron"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_KDL_strekdam".identificatie_lokaalid || 'BGT_KDL_strekdam' as id,
@@ -1937,7 +1845,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_KDL_strekdam"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_OTRN_erf".identificatie_lokaalid ||'-'||  	"BGT_OTRN_erf".tijdstipregistratie ||'-'|| 'BGT_OTRN_erf' as id,
@@ -1948,7 +1855,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OTRN_erf"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_OTRN_gesloten_verharding".identificatie_lokaalid || 'BGT_OTRN_gesloten_verharding' as id,
@@ -1959,7 +1865,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OTRN_gesloten_verharding"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_OTRN_half_verhard".identificatie_lokaalid || 'BGT_OTRN_half_verhard' as id,
@@ -1970,7 +1875,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OTRN_half_verhard"
-  WHERE 1=1
 UNION
  SELECT
  		 "BGT_OTRN_onverhard".identificatie_lokaalid || 'BGT_OTRN_onverhard' as id,
@@ -1981,7 +1885,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OTRN_onverhard"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_OTRN_open_verharding".identificatie_lokaalid || 'BGT_OTRN_open_verharding' as id,
@@ -1992,7 +1895,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OTRN_open_verharding"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_OTRN_zand".identificatie_lokaalid || 'BGT_OTRN_zand' as id,
@@ -2003,7 +1905,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OTRN_zand"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_OWDL_oever_slootkant".identificatie_lokaalid ||'-'||  	"BGT_OWDL_oever_slootkant".tijdstipregistratie ||'-'|| 'BGT_OWDL_oever_slootkant' as id,
@@ -2014,7 +1915,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_OWDL_oever_slootkant"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_WGL_spoorbaan".identificatie_lokaalid || 'BGT_WGL_spoorbaan' as id,
@@ -2025,7 +1925,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_WGL_spoorbaan"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_BTRN_heide".identificatie_lokaalid || 'BGT_BTRN_heide' as id,
@@ -2036,7 +1935,6 @@ UNION
  	 	16  as minzoom,
  	 	22 as maxzoom
    FROM bgt."BGT_BTRN_heide"
-  WHERE 1=1
 
     /* KBK10 */
 
@@ -2287,7 +2185,6 @@ SELECT
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
    FROM kbk50."WDL_brede_waterloop"
-  WHERE 1=1
 
  UNION
  SELECT
@@ -2299,7 +2196,6 @@ SELECT
  	 	NULL::int  as minzoom,
  	 	12  as maxzoom
    FROM kbk50."WDL_smalle_waterloop"
-  WHERE 1=1
 """
 
 SELECT_WATERDEELVLAK_SQL: Final = """
@@ -2312,7 +2208,6 @@ SELECT
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGTPLUS_KDL_duiker_V"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_WDL_greppel_droge_sloot".identificatie_lokaalid || 'BGT_WDL_greppel_droge_sloot' as id,
@@ -2323,7 +2218,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_WDL_greppel_droge_sloot"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_WDL_waterloop".identificatie_lokaalid ||'-'|| "BGT_WDL_waterloop".tijdstipregistratie ||'-'|| 'BGT_WDL_waterloop' as id,
@@ -2334,7 +2228,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_WDL_waterloop"
-  WHERE 1=1
 UNION
  SELECT
  		"BGT_WDL_watervlakte".identificatie_lokaalid || 'BGT_WDL_watervlakte' as id,
@@ -2345,7 +2238,6 @@ UNION
  	 	16  as minzoom,
  	 	22  as maxzoom
    FROM bgt."BGT_WDL_watervlakte"
-  WHERE 1=1
 
   /* KBK10 */
 
@@ -2359,7 +2251,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
    FROM kbk10."WDL_breed_water"
-  WHERE 1=1
   UNION
    SELECT
 		"WDL_haven".ogc_fid::text || 'WDL_haven_kbk10' as identificatie_lokaal_id,
@@ -2370,7 +2261,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
    FROM kbk10."WDL_haven"
-  WHERE 1=1
 
 /* --- KBK50 ---- */
 
@@ -2384,7 +2274,6 @@ UNION
  	 	8  as minzoom,
  	 	12  as maxzoom
    FROM kbk50."WDL_wateroppervlak"
-  WHERE 1=1
 """
 
 
@@ -2400,7 +2289,7 @@ SELECT_WEGDEELLIJN_SQL: Final = """
  	 	15  as maxzoom
     from
         kbk10."WGL_smalle_weg"
-    where 1 = 1
+
     UNION ALL
       select
         "WGL_autoveer".ogc_fid::text ||'-'|| 'WGL_autoveer' as id,
@@ -2412,7 +2301,7 @@ SELECT_WEGDEELLIJN_SQL: Final = """
  	 	15  as maxzoom
     from
         kbk10."WGL_autoveer"
-    where 1 = 1
+
     UNION ALL
       select
         "WGL_hartlijn".ogc_fid::text ||'-'|| 'WGL_hartlijn' as id,
@@ -2424,7 +2313,7 @@ SELECT_WEGDEELLIJN_SQL: Final = """
  	 	15  as maxzoom
     from
         kbk10."WGL_hartlijn"
-    where 1 = 1
+
 UNION
     SELECT
         "WGL_voetveer".ogc_fid::text ||'-'|| 'WGL_voetveer' as id,
@@ -2435,7 +2324,6 @@ UNION
  	 	13 as minzoom,
  	 	15  as maxzoom
     FROM kbk10."WGL_voetveer"
-    WHERE 1=1
 
  /* --- KBK50 ---- */
 UNION
@@ -2448,7 +2336,6 @@ UNION
  	 	8 as minzoom,
  	 	12 as maxzoom
     FROM kbk50."WGL_straat_in_tunnel"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_hoofdweg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_hoofdweg_in_tunnel' as id,
@@ -2459,7 +2346,6 @@ UNION
  	 	8 as minzoom,
  	 	12 as maxzoom
     FROM kbk50."WGL_hoofdweg_in_tunnel"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_regionale_weg".ogc_fid::text ||'-'|| 'WGL_regionale_weg' as id,
@@ -2470,7 +2356,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_regionale_weg"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_regionale_weg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_regionale_weg_in_tunnel' as id,
@@ -2481,7 +2366,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_regionale_weg_in_tunnel"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_autosnelweg_in_tunnel".ogc_fid::text ||'-'|| 'WGL_autosnelweg_in_tunnel' as id,
@@ -2492,7 +2376,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_autosnelweg_in_tunnel"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_straat".ogc_fid::text ||'-'|| 'WGL_straat' as id,
@@ -2503,7 +2386,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_straat"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_hoofdweg".ogc_fid::text ||'-'|| 'WGL_hoofdweg' as id,
@@ -2514,7 +2396,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_hoofdweg"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_autosnelweg".ogc_fid::text ||'-'|| 'WGL_autosnelweg' as id,
@@ -2525,7 +2406,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_autosnelweg"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_veerverbinding".ogc_fid::text ||'-'|| 'WGL_veerverbinding' as id,
@@ -2536,7 +2416,6 @@ UNION
  	 	8 as minzoom,
  	 	12  as maxzoom
     FROM kbk50."WGL_veerverbinding"
-    WHERE 1=1
 """
 
 SELECT_WEGDEELVLAK_SQL: Final = """
@@ -2551,7 +2430,6 @@ SELECT_WEGDEELVLAK_SQL: Final = """
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_OWGL_berm"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_OWGL_verkeerseiland".identificatie_lokaalid || 'BGT_OWGL_verkeerseiland' as id,
@@ -2564,7 +2442,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_OWGL_verkeerseiland"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_baan_voor_vliegverkeer".identificatie_lokaalid || 'BGT_WGL_baan_voor_vliegverkeer' as id,
@@ -2577,7 +2454,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_baan_voor_vliegverkeer"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_fietspad".identificatie_lokaalid ||'-'|| "BGT_WGL_fietspad".tijdstipregistratie ||'-'||  'BGT_WGL_fietspad' as id,
@@ -2590,7 +2466,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_fietspad"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_inrit".identificatie_lokaalid || 'BGT_WGL_inrit' as id,
@@ -2603,7 +2478,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_inrit"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_ov-baan".identificatie_lokaalid || 'BGT_WGL_ov-baan' as id,
@@ -2616,7 +2490,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_ov-baan"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_overweg".identificatie_lokaalid || 'BGT_WGL_overweg' as id,
@@ -2629,7 +2502,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_overweg"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_parkeervlak".identificatie_lokaalid || 'BGT_WGL_parkeervlak' as id,
@@ -2642,7 +2514,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_parkeervlak"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_rijbaan_autosnelweg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_autosnelweg".tijdstipregistratie ||'-'||  'BGT_WGL_rijbaan_autosnelweg' as id,
@@ -2655,7 +2526,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_rijbaan_autosnelweg"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_rijbaan_autoweg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_autoweg".tijdstipregistratie ||'-'||  'BGT_WGL_rijbaan_autoweg' as id,
@@ -2668,7 +2538,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_rijbaan_autoweg"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_rijbaan_lokale_weg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_lokale_weg".tijdstipregistratie ||'-'||   'BGT_WGL_rijbaan_lokale_weg' as id,
@@ -2681,7 +2550,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_rijbaan_lokale_weg"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_rijbaan_regionale_weg".identificatie_lokaalid ||'-'|| "BGT_WGL_rijbaan_regionale_weg".tijdstipregistratie ||'-'|| 'BGT_WGL_rijbaan_regionale_weg' as id,
@@ -2694,7 +2562,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_rijbaan_regionale_weg"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_ruiterpad".identificatie_lokaalid ||'-'|| "BGT_WGL_ruiterpad".tijdstipregistratie ||'-'||  'BGT_WGL_ruiterpad' as id,
@@ -2707,7 +2574,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_ruiterpad"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_voetgangersgebied".identificatie_lokaalid ||'-'|| "BGT_WGL_voetgangersgebied".tijdstipregistratie ||'-'||  'BGT_WGL_voetgangersgebied' as id,
@@ -2720,7 +2586,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_voetgangersgebied"
-    WHERE 1=1
 UNION
     SELECT
  		"BGT_WGL_voetpad".identificatie_lokaalid ||'-'|| "BGT_WGL_voetpad".tijdstipregistratie ||'-'||  'BGT_WGL_voetpad' as id,
@@ -2733,7 +2598,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_voetpad"
-    WHERE 1=1
 UNION
     SELECT
         "BGT_WGL_voetpad_op_trap".identificatie_lokaalid ||'-'|| "BGT_WGL_voetpad_op_trap".tijdstipregistratie ||'-'||  'BGT_WGL_voetpad_op_trap' as id,
@@ -2746,7 +2610,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_voetpad_op_trap"
-    WHERE 1=1
 UNION
     SELECT
         "BGT_WGL_woonerf".identificatie_lokaalid ||'-'|| "BGT_WGL_woonerf".tijdstipregistratie ||'-'||  'BGT_WGL_woonerf' as id,
@@ -2759,7 +2622,6 @@ UNION
  	 	16  as minzoom,
  	 	NULL::int  as maxzoom
     FROM bgt."BGT_WGL_woonerf"
-    WHERE 1=1
 UNION
 
     /* KBK10 */
@@ -2775,7 +2637,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."WGL_startbaan_landingsbaan"
-    WHERE 1=1
 UNION
     SELECT
         "TRN_spoorbaanlichaam".ogc_fid::text ||'-'|| 'TRN_spoorbaanlichaam' as identificatie_lokaal_id,
@@ -2788,7 +2649,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."TRN_spoorbaanlichaam"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_autosnelweg".ogc_fid::text ||'-'|| 'WGL_autosnelweg' as identificatie_lokaal_id,
@@ -2801,7 +2661,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."WGL_autosnelweg"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_autosnelweg".ogc_fid::text ||'-'|| 'WGL_autosnelweg' as identificatie_lokaal_id,
@@ -2814,7 +2673,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."WGL_autosnelweg"
-    WHERE 1=1
 UNION
     SELECT
         "WGL_rolbaan_platform".ogc_fid::text ||'-'|| 'WGL_rolbaan_platform' as identificatie_lokaal_id,
@@ -2827,7 +2685,6 @@ UNION
  	 	13  as minzoom,
  	 	15  as maxzoom
     FROM kbk10."WGL_rolbaan_platform"
-    WHERE 1=1
 """
 
 SELECT_LABELS_SQL: Final = """

@@ -144,7 +144,7 @@ with DAG(
             sql=[
                 f"""UPDATE {dag_id}_{key}_new
                 SET geometry = ST_CollectionExtract((st_makevalid(geometry)),3)
-                WHERE 1=1 AND ST_IsValid(geometry) is false;
+                WHERE ST_IsValid(geometry) is false;
                 COMMIT;""",
             ],
         )

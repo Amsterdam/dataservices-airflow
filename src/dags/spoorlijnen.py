@@ -108,8 +108,8 @@ with DAG(
         PostgresOperator(
             task_id=f"revalidate_remove_geom_{key}",
             sql=[
-                f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract(st_makevalid(geometry),2) WHERE 1=1 AND ST_IsValid(geometry) is false; COMMIT;",
-                f"DELETE FROM {dag_id}_{key}_new WHERE 1=1 AND geometry IS NULL; COMMIT;",
+                f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract(st_makevalid(geometry),2) WHERE ST_IsValid(geometry) is false; COMMIT;",
+                f"DELETE FROM {dag_id}_{key}_new WHERE geometry IS NULL; COMMIT;",
             ],
         )
         for key in files_to_download.keys()
