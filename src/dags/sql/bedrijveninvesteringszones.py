@@ -28,7 +28,6 @@ UPDATE {{ params.tablename }}
 SET heffing_display =
         CASE WHEN heffingstarief IS NULL THEN NULL
         ELSE concat(E'\u20AC', ' ', cast(heffingstarief as character varying(10)))
-        END
-WHERE 1=1;
+        END;
 COMMIT;
 """

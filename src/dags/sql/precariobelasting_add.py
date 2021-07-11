@@ -30,8 +30,7 @@ ADD_GEBIED_COLUMN: Final = """
 RENAME_DATAVALUE_GEBIED: Final = """
 {% for tablename in params.tablenames %}
     UPDATE {{ tablename }}
-    SET gebied = regexp_replace(gebied, 'Gebied', 'Tariefgebied')
-    WHERE 1=1;
+    SET gebied = regexp_replace(gebied, 'Gebied', 'Tariefgebied');
     COMMIT;
 {% endfor %}
 """

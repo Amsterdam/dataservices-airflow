@@ -90,7 +90,7 @@ with DAG(
             "-nlt PROMOTE_TO_MULTI "
             "-lco precision=NO "
             "-lco FID=id "
-            f"-sql \"SELECT * FROM OOV_COVID19_totaal WHERE 1=1 AND TYPE = '{code}'\"",
+            f"-sql \"SELECT * FROM OOV_COVID19_totaal WHERE TYPE = '{code}'\"",
         )
         for key, code in tables_to_create.items()
     ]

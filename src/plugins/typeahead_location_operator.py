@@ -64,7 +64,6 @@ class TypeAHeadLocationOperator(BaseOperator):
                         {self.source_location_column}
                     ,   {self.source_key_column}
                     FROM {self.source_table}
-                    WHERE 1=1
                     AND {self.geometry_column} is NULL
                 """
             )
@@ -167,13 +166,11 @@ class TypeAHeadLocationOperator(BaseOperator):
                         WITH BAG_VBO_GEOM AS (
                         SELECT geometrie
                         FROM public.bag_verblijfsobjecten
-                        WHERE 1=1
                         AND identificatie = %s
                         )
                         UPDATE {self.source_table}
                         SET {self.geometry_column} = BAG_VBO_GEOM.geometrie
                         FROM BAG_VBO_GEOM
-                        WHERE 1=1
                         AND {self.source_key_column} = %s;
                         COMMIT;
                         """,

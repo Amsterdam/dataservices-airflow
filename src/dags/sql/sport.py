@@ -34,7 +34,6 @@ ADD_GEOMETRY_COL: Final = """
         UPDATE {{ params.tablename }}_new
         SET geometry = ST_Transform(ST_SetSRID(ST_MakePoint(REPLACE(x, ',', '.')::double precision,
                 REPLACE(y, ',', '.')::double precision), 4326), 28992)
-        WHERE 1=1
         AND (x !~* '[a-z]+' AND y !~* '[a-z]+')
         AND (length(x) > 0 AND length(y) > 0);
         DROP INDEX IF EXISTS {{ params.tablename }}_new_geom_idx;

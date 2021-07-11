@@ -77,7 +77,7 @@ with DAG(
         "-oo AUTODETECT_TYPE=YES "
         "-lco FID=id "
         # remove empty records
-        f"-sql 'SELECT * FROM {dag_id}_utf8 WHERE 1=1 AND \"bag pand id\" is not NULL '",
+        f"-sql 'SELECT * FROM {dag_id}_utf8 WHERE \"bag pand id\" is not NULL '",
     )
 
     # 6. Create TABLE

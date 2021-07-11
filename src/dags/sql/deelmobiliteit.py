@@ -10,7 +10,6 @@ SQL_SET_GEOM: Final = """
 # Keep a short history time frame of 1 month
 SQL_HISTORY_WINDOW: Final = """
     DELETE FROM {{ params.tablename }}
-    WHERE 1=1
     AND DATUMTIJD_ONTVANGEN < (SELECT now() - INTERVAL '1 month');
     COMMIT;
 """
@@ -26,6 +25,6 @@ SQL_DROP_TMP_TABLE: Final = """
 # This makes it more convenient for the API caller and data analist
 # to select the latest version.
 SQL_FLAG_NOT_RECENT_DATA: Final = """
-    UPDATE  {{ params.tablename }} SET indicatie_actueel = false WHERE 1=1;
+    UPDATE  {{ params.tablename }} SET indicatie_actueel = false;
     COMMIT;
 """
