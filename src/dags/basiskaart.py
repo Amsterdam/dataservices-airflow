@@ -34,6 +34,7 @@ from sql.basiskaart import SELECT_WATERDEELVLAK_SQL as SELECT_WATERDEELVLAK_SQL 
 from sql.basiskaart import SELECT_WEGDEELLIJN_SQL as SELECT_WEGDEELLIJN_SQL  # noqa: F401
 from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL  # noqa: F401
 from sqlalchemy import create_engine
+from sqlalchemy.engine import ResultProxy
 from sqlalchemy.exc import SQLAlchemyError
 
 DAG_ID: Final = "basiskaart"
@@ -65,17 +66,20 @@ def create_tables_from_basiskaartdb_to_masterdb(
     # fetch data from source DB
     with source_engine.connect() as src_conn:
         count = 0
-        cursor = src_conn.execute(source_select_statement)
+        logger.debug("Executing SQL query: %r", source_select_statement)
+        cursor: ResultProxy = src_conn.execute(source_select_statement)
         while True:
             fetch_iterator = cursor.fetchmany(size=IMPORT_STEP)
-            batch_count = copy_data_in_batch(target_base_table, fetch_iterator)
+            batch_count = copy_data_in_batch(target_base_table, fetch_iterator, cursor.keys())
             count += batch_count
             if batch_count < IMPORT_STEP:
                 break
     logger.info("Total records imported: %d", count)
 
 
-def copy_data_in_batch(target_base_table: str, fetch_iterator: Iterator) -> int:
+def copy_data_in_batch(
+    target_base_table: str, fetch_iterator: Iterator, col_names: Iterable[str]
+) -> int:
     """Insert data from iterator into target table."""
     masterdb_hook = PostgresHook()
     items = []
@@ -92,7 +96,7 @@ def copy_data_in_batch(target_base_table: str, fetch_iterator: Iterator) -> int:
     if result:
         try:
             masterdb_hook.insert_rows(
-                target_base_table, items, target_fields=None, commit_every=1000, replace=False
+                target_base_table, items, target_fields=col_names, commit_every=1000, replace=False
             )
         except Exception as e:
             raise Exception(f"Failed to insert batch data: {str(e)[0:150]}") from e
