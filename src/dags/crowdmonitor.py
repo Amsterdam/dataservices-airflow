@@ -10,12 +10,9 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 
-#!/usr/bin/env python3
-
-
-dag_id = "crowdmonitor"
-table_id = f"{dag_id}_passanten"
-import_step = 10000
+DAG_ID = "crowdmonitor"
+TABLE_ID = f"{DAG_ID}_passanten"
+IMPORT_STEP = 10_000
 
 SQL_CREATE_TEMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.base_table }}_temp CASCADE;
@@ -102,10 +99,10 @@ JOIN peoplemeasurement_sensors s ON s.objectnummer::text = v.sensor::text;
 """
         )
         while True:
-            fetch_iterator = cursor.fetchmany(size=import_step)
+            fetch_iterator = cursor.fetchmany(size=IMPORT_STEP)
             batch_count = copy_data_in_batch(fetch_iterator)
             count += batch_count
-            if batch_count < import_step:
+            if batch_count < IMPORT_STEP:
                 break
         print(f"Imported: {count}")
 
@@ -134,7 +131,7 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
     if result:
         items_sql = ",".join(items)
         insert_sql = (
-            f"INSERT INTO {table_id}_temp "
+            f"INSERT INTO {TABLE_ID}_temp "
             "(sensor, naam_locatie, periode, datum_uur, aantal_passanten, gebied, geometrie) "
             f"VALUES {items_sql};"
         )
@@ -152,15 +149,15 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
 args = default_args.copy()
 
 with DAG(
-    dag_id,
+    DAG_ID,
     default_args=args,
     description="Crowd Monitor",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLE,
-        params=dict(base_table=table_id),
+        params={'base_table': TABLE_ID},
     )
 
     copy_data = PythonOperator(
@@ -172,23 +169,23 @@ with DAG(
     add_aggregates_day = PostgresOperator(
         task_id="add_aggregates_day",
         sql=SQL_ADD_AGGREGATES,
-        params=dict(table=f"{table_id}_temp", periode="dag", periode_en="day"),
+        params={'table': f"{TABLE_ID}_temp", 'periode': "dag", 'periode_en': "day"},
     )
 
     add_aggregates_week = PostgresOperator(
         task_id="add_aggregates_week",
         sql=SQL_ADD_AGGREGATES,
-        params=dict(table=f"{table_id}_temp", periode="week", periode_en="week"),
+        params={'table': f"{TABLE_ID}_temp", 'periode': "week", 'periode_en': "week"},
     )
 
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLE,
-        params=dict(base_table=table_id),
+        params={'base_table': TABLE_ID},
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     (
         create_temp_tables
