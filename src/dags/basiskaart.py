@@ -106,27 +106,27 @@ def copy_data_in_batch(
     target_base_table: str, fetch_iterator: Iterator, col_names: Iterable[str]
 ) -> int:
     """Insert data from iterator into target table."""
+    # TODO:
+    # This function is enormously inefficient;
+    # - it reads everything into memory by converting the iterator into a list
+    # - it inserts each row one by one into the database (<- by far slowest part)
+    #
+    # It should have used:
+    # - PostgresHook's `bulk_load` (though that function is rather limited in functionality)
+    # - Or use a prepare statement in conjunction with psycopg2.extras.execute_batch as
+    #   `PostgresInsertCsvOperator` has done
     masterdb_hook = PostgresHook()
-    items = []
 
-    # setup SQL insert values the be executed
-    for row in fetch_iterator:
-        items.append(list(row))
-
-    result = len(items)
-
-    # execute SQL insert statement
-    # the Airflow PostgresHook.insert_rows instance method is used to "executemany" SQL query
-    # which also serializes the data to a save SQL format
-    if result:
+    rows = list(fetch_iterator)
+    if row_count := len(rows):
         try:
             masterdb_hook.insert_rows(
-                target_base_table, items, target_fields=col_names, commit_every=1000, replace=False
+                target_base_table, rows, target_fields=col_names, commit_every=1000, replace=False
             )
         except Exception as e:
             raise Exception(f"Failed to insert batch data: {str(e)[0:150]}") from e
 
-    return result
+    return row_count
 
 
 def join(number: int) -> DummyOperator:
