@@ -1,5 +1,6 @@
 import logging
-from typing import Final, Iterable, List
+from contextlib import closing
+from typing import Final, Iterable, List, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -10,6 +11,8 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
+from psycopg2 import sql
+from psycopg2.extras import execute_values
 from sqlalchemy import create_engine
 from sqlalchemy.engine import RowProxy
 from sqlalchemy.exc import SQLAlchemyError
@@ -50,6 +53,9 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
 
     with waarnemingen_engine.connect() as waarnemingen_connection:
         count = 0
+        # Ensure that the column names in the final SELECT clause match the columns names of the
+        # target table in our reference database. The INSERT statement generation code depends
+        # on it
         cursor = waarnemingen_connection.execute(
             """
             SET TIME ZONE 'Europe/Amsterdam';
@@ -61,64 +67,54 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
                     WHERE timestamp_rounded > TO_DATE('2019-01-01', 'YYYY-MM-DD')
                     GROUP BY sensor, datum_uur)
             SELECT v.sensor,
-                   s.location_name,
+                   'uur' AS periode,
+                   s.location_name AS naam_locatie,
                    v.datum_uur,
                    v.aantal_passanten,
                    s.gebied,
-                   s.geom AS geometrie
+                   ST_Transform(s.geom, 28992) AS geometrie  -- Ref DB only uses SRID 28992
                 FROM cmsa v
                          JOIN peoplemeasurement_sensors s ON s.objectnummer = v.sensor;
             """
         )
         while True:
             rows: List[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
-            batch_count = copy_data_in_batch(rows)
+            batch_count = insert_many(rows, IMPORT_STEP)
             count += batch_count
             if batch_count < IMPORT_STEP:
                 break
         logger.info("Number of records imported: %d", count)
 
 
-def copy_data_in_batch(rows: List[RowProxy], periode: str = "uur") -> int:
-    """Copy data in batches."""
-    row_values: List[str] = []
-    for row in rows:
-        row_values.append(
-            "('{sensor}', "
-            "'{location_name}',"
-            "'{periode}',"
-            "TIMESTAMP '{datum_uur}', "
-            "{aantal_passanten},"
-            "{gebied},"
-            "{geometrie})".format(
-                sensor=row[0],
-                location_name=row[1],
-                periode=periode,
-                datum_uur=row[2].strftime("%Y-%m-%d %H:%M:%S"),
-                aantal_passanten=int(row[3]),
-                gebied=f"'{row[4]}'" if row[4] else "NULL",
-                # Apparently we get the results in SRID 4326, whereas we store everything
-                # exclusively in SRID 28992. Hence we need to apply a transform..
-                geometrie=f"ST_Transform('{row[5]}', 28992)" if row[5] else "NULL",
-            )
+def insert_many(rows: List[RowProxy], batch_size: Optional[int]) -> int:
+    """Insert rows in batches."""
+    if batch_size is None:
+        batch_size = len(rows)
+
+    if rows_count := len(rows):
+        col_names = rows[0].keys()
+        insert_stmt = sql.SQL("INSERT INTO {table_id} ({col_names}) VALUES %s").format(
+            table_id=sql.Identifier(f"{TABLE_ID}{TMP_TABLE_POSTFIX}"),
+            col_names=sql.SQL(", ").join(
+                map(
+                    sql.Identifier,
+                    col_names,
+                )
+            ),
         )
-    row_count = len(row_values)
-    if row_count:
-        items_sql = ",".join(row_values)
-        insert_sql = f"""
-            INSERT INTO {TABLE_ID}{TMP_TABLE_POSTFIX}
-            (sensor, naam_locatie, periode, datum_uur, aantal_passanten, gebied, geometrie)
-                VALUES {items_sql};
-        """
 
         masterdb_hook = PostgresHook()
         try:
-            masterdb_hook.run(insert_sql)
+            with closing(masterdb_hook.get_conn()) as conn, closing(conn.cursor()) as cur:
+                logger.info("Executing SQL statement %s", insert_stmt.as_string(conn))
+                execute_values(cur, insert_stmt, rows, page_size=batch_size)
+                conn.commit()
+
         except Exception as e:
-            raise Exception(f"Failed to insert batch data: {str(e)[0:150]}")
+            raise Exception(f"Failed to insert batch data: {str(e)[0:150]}") from e
         else:
-            logger.info("Number of records created: %d", row_count)
-    return row_count
+            logger.info("Number of records created: %d", rows_count)
+    return rows_count
 
 
 def rm_tmp_tables(
