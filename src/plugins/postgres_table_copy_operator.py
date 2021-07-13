@@ -8,6 +8,7 @@ from airflow.exceptions import AirflowFailException
 from airflow.models import XCOM_RETURN_KEY, BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
+from more_itertools import first
 from psycopg2 import sql
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
@@ -44,12 +45,13 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
        configurable.
     """
 
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         source_table_name: Optional[str] = None,
         target_table_name: Optional[str] = None,
         truncate_target: bool = True,
+        drop_target_if_unequal: bool = False,
         copy_data: bool = True,
         drop_source: bool = True,
         task_id: str = "copy_table",
@@ -68,6 +70,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             source_table_name: Name of the temporary table that needs to be copied.
             target_table_name: Name of the table that needs to be created and data copied to.
             truncate_target: Whether the target table should be truncated before being copied to.
+            drop_target_if_unequal: Whether the target table should be dropped if it is not
+                equal to the source table wrt. column types, names and positions
             copy_data: Whether to copied data. If set to False only the table definition is copied.
             drop_source: Whether to drop the source table after the copy process.
             task_id: Task ID
@@ -86,6 +90,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         self.source_table_name = source_table_name
         self.target_table_name = target_table_name
         self.truncate_target = truncate_target
+        self.drop_target_if_unequal = drop_target_if_unequal
         self.copy_data = copy_data
         self.drop_source = drop_source
         self.postgres_conn_id = postgres_conn_id
@@ -112,6 +117,51 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 "even though source table will be dropped."
             )
 
+    def _drop_tables_if_unequal(self, cursor: Any, all_table_copies: List[TableMapping]) -> None:
+        """Drop the target tables that are unequal to their source table."""
+        for table_mapping in all_table_copies:
+            # First make sure the target table exists
+            cursor.execute(
+                "SELECT to_regclass(%s)",
+                (table_mapping.target,),
+            )
+
+            if first(cursor.fetchone()) is None:
+                self.log.info(
+                    "Target table %s not found, skipping equality check.", table_mapping.target
+                )
+                continue
+            cursor.execute(
+                """
+                    WITH src AS
+                      (SELECT data_type,
+                              ordinal_position,
+                              column_name
+                       FROM information_schema.columns
+                       WHERE table_name = %(source_table_name)s ),
+                         tgt AS
+                      (SELECT data_type,
+                              ordinal_position,
+                              column_name
+                       FROM information_schema.columns
+                       WHERE table_name = %(target_table_name)s )
+                    SELECT COUNT(*) = COUNT(src) AND count(*) = COUNT(tgt)
+                    FROM src NATURAL
+                    FULL OUTER JOIN tgt
+            """,
+                {
+                    "source_table_name": table_mapping.source,
+                    "target_table_name": table_mapping.target,
+                },
+            )
+            if not first(cursor.fetchone()):
+                self.log.info("Dropping table %s", table_mapping.target)
+                cursor.execute(
+                    sql.SQL("DROP TABLE {table_name}").format(
+                        table_name=sql.Identifier(table_mapping.target)
+                    )
+                )
+
     def execute(self, context: Dict[str, Any]) -> None:  # noqa: C901, D102
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
@@ -123,11 +173,14 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 self.log.debug("Setting autocommit to '%s'.", self.autocommit)
                 hook.set_autocommit(conn, self.autocommit)
 
+            # Start a list to hold copy information
+            table_copies: List[TableMapping] = []
             if self.source_table_name is not None and self.target_table_name is not None:
-                # Start a list to hold copy information
-                table_copies: List[TableMapping] = [
-                    TableMapping(source=self.source_table_name, target=self.target_table_name),
-                ]
+                table_copies.extend(
+                    [
+                        TableMapping(source=self.source_table_name, target=self.target_table_name),
+                    ]
+                )
 
             # Find the cross-tables for n-m relations, we assume they have
             # a name that start with f"{source_table_name}_"
@@ -159,6 +212,9 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     junction_table_copies.append(
                         TableMapping(source_table_name, target_table_name)
                     )
+
+                if self.drop_target_if_unequal:
+                    self._drop_tables_if_unequal(cursor, table_copies + junction_table_copies)
 
                 statements: List[Statement] = [
                     Statement(

@@ -9,7 +9,7 @@ from airflow.settings import TIMEZONE, Session
 from environs import Env
 from requests.exceptions import HTTPError
 from schematools.cli import _get_engine
-from schematools.permissions import apply_schema_and_profile_permissions
+from schematools.permissions.db import apply_schema_and_profile_permissions
 from schematools.utils import schema_defs_from_url
 
 env = Env()
