@@ -1,5 +1,5 @@
 import logging
-from typing import Final, Iterable
+from typing import Final, Iterable, List
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -11,6 +11,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy import create_engine
+from sqlalchemy.engine import RowProxy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
@@ -70,19 +71,19 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
             """
         )
         while True:
-            fetch_iterator = cursor.fetchmany(size=IMPORT_STEP)
-            batch_count = copy_data_in_batch(fetch_iterator)
+            rows: List[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
+            batch_count = copy_data_in_batch(rows)
             count += batch_count
             if batch_count < IMPORT_STEP:
                 break
         logger.info("Number of records imported: %d", count)
 
 
-def copy_data_in_batch(fetch_iterator, periode="uur"):
+def copy_data_in_batch(rows: List[RowProxy], periode: str = "uur") -> int:
     """Copy data in batches."""
-    rows = []
-    for row in fetch_iterator:
-        rows.append(
+    row_values: List[str] = []
+    for row in rows:
+        row_values.append(
             "('{sensor}', "
             "'{location_name}',"
             "'{periode}',"
@@ -101,9 +102,9 @@ def copy_data_in_batch(fetch_iterator, periode="uur"):
                 geometrie=f"ST_Transform('{row[5]}', 28992)" if row[5] else "NULL",
             )
         )
-    row_count = len(rows)
+    row_count = len(row_values)
     if row_count:
-        items_sql = ",".join(rows)
+        items_sql = ",".join(row_values)
         insert_sql = f"""
             INSERT INTO {TABLE_ID}{TMP_TABLE_POSTFIX}
             (sensor, naam_locatie, periode, datum_uur, aantal_passanten, gebied, geometrie)
