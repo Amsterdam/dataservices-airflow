@@ -1,14 +1,14 @@
 import logging
 import operator
 from dataclasses import dataclass
-from typing import Final, Iterable, Iterator, List
+from typing import Final, Iterable, List
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.utils.task_group import TaskGroup
 from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from pgcomparator_cdc_operator import PgComparatorCDCOperator
@@ -36,7 +36,7 @@ from sql.basiskaart import SELECT_WATERDEELVLAK_SQL as SELECT_WATERDEELVLAK_SQL 
 from sql.basiskaart import SELECT_WEGDEELLIJN_SQL as SELECT_WEGDEELLIJN_SQL  # noqa: F401
 from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL  # noqa: F401
 from sqlalchemy import create_engine
-from sqlalchemy.engine import ResultProxy
+from sqlalchemy.engine import ResultProxy, RowProxy
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
@@ -71,7 +71,7 @@ TABLES: Final[List[Table]] = [
 ]
 
 
-def create_tables_from_basiskaartdb_to_masterdb(
+def copy_basiskaartdb_to_masterdb(
     source_connection: str, source_select_statement: str, target_base_table: str
 ) -> None:
     """Copy data from basiskaart DB to master DB.
@@ -94,17 +94,15 @@ def create_tables_from_basiskaartdb_to_masterdb(
         logger.debug("Executing SQL query: %r", source_select_statement)
         cursor: ResultProxy = src_conn.execute(source_select_statement)
         while True:
-            fetch_iterator = cursor.fetchmany(size=IMPORT_STEP)
-            batch_count = copy_data_in_batch(target_base_table, fetch_iterator, cursor.keys())
+            rows: List[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
+            batch_count = insert_rows(target_base_table, rows, cursor.keys())
             count += batch_count
             if batch_count < IMPORT_STEP:
                 break
     logger.info("Total records imported: %d", count)
 
 
-def copy_data_in_batch(
-    target_base_table: str, fetch_iterator: Iterator, col_names: Iterable[str]
-) -> int:
+def insert_rows(target_base_table: str, rows: List[RowProxy], col_names: Iterable[str]) -> int:
     """Insert data from iterator into target table."""
     # TODO:
     # This function is enormously inefficient;
@@ -117,7 +115,6 @@ def copy_data_in_batch(
     #   `PostgresInsertCsvOperator` has done
     masterdb_hook = PostgresHook()
 
-    rows = list(fetch_iterator)
     if row_count := len(rows):
         try:
             masterdb_hook.insert_rows(
@@ -129,11 +126,6 @@ def copy_data_in_batch(
     return row_count
 
 
-def join(number: int) -> DummyOperator:
-    """Return numbered DummyOperator to join parallel tasks."""
-    return DummyOperator(task_id=f"join_parallel_tasks_{number}")
-
-
 def rm_tmp_tables(task_id_postfix: str, tables: Iterable[Table]) -> PostgresOperator:
     """Remove tmp tables."""
     return PostgresOperator(
@@ -142,6 +134,48 @@ def rm_tmp_tables(task_id_postfix: str, tables: Iterable[Table]) -> PostgresOper
             tables=", ".join(map(operator.attrgetter("tmp_id"), tables))
         ),
     )
+
+
+def table_task_group(table: Table) -> DAG:
+    """Return TaskGroup with tasks specific for a given table."""
+    with TaskGroup(group_id=table.base_id) as task_group:
+
+        create_temp_table = PostgresTableCopyOperator(
+            task_id=f"create_temp_table_{table.tmp_id}",
+            source_table_name=table.id,
+            target_table_name=table.tmp_id,
+            # Only copy table definitions. Don't do anything else.
+            truncate_target=False,
+            copy_data=False,
+            drop_source=False,
+        )
+
+        copy_basiskaart_to_reference = PythonOperator(
+            task_id=f"insert_data_into_{table.tmp_id}",
+            python_callable=copy_basiskaartdb_to_masterdb,
+            op_kwargs={
+                "source_connection": SOURCE_CONNECTION,
+                "source_select_statement": globals()[table.select],
+                "target_base_table": table.tmp_id,
+            },
+        )
+
+        change_data_capture = PgComparatorCDCOperator(
+            task_id=f"change_data_capture_for_{table.id}",
+            source_table=table.tmp_id,
+            target_table=table.id,
+        )
+
+        # Create mviews for T-REX tile server
+        create_mviews = PostgresOperator(
+            task_id=f"create_mviews_for_{table.id}",
+            sql=CREATE_MVIEWS,
+            params={"base_table": table.base_id, "dag_id": DAG_ID},
+        )
+
+        (create_temp_table >> copy_basiskaart_to_reference >> change_data_capture >> create_mviews)
+
+    return task_group
 
 
 with DAG(
@@ -173,77 +207,29 @@ with DAG(
         ind_extra_index=True,
     )
 
-    create_temp_tables = [
-        PostgresTableCopyOperator(
-            task_id=f"create_temp_table_{table.tmp_id}",
-            source_table_name=table.id,
-            target_table_name=table.tmp_id,
-            # Only copy table definitions. Don't do anything else.
-            truncate_target=False,
-            copy_data=False,
-            drop_source=False,
-        )
-        for table in TABLES
-    ]
-
-    join_1 = join(1)
-
-    copy_data = [
-        PythonOperator(
-            task_id=f"insert_data_into_{table.id}",
-            python_callable=create_tables_from_basiskaartdb_to_masterdb,
-            op_kwargs={
-                "source_connection": SOURCE_CONNECTION,
-                "source_select_statement": globals()[table.select],
-                "target_base_table": table.tmp_id,
-            },
-            dag=dag,
-        )
-        for table in TABLES
-    ]
-
-    join_2 = join(2)
-
-    change_data_capture = [
-        PgComparatorCDCOperator(
-            task_id=f"change_data_capture_for_{table.id}",
-            source_table=table.tmp_id,
-            target_table=table.id,
-        )
-        for table in TABLES
-    ]
-
-    join_3 = join(3)
-
-    # Create mviews for T-REX tile server
-    create_mviews = [
-        PostgresOperator(
-            task_id=f"create_mviews_for_{table.id}",
-            sql=CREATE_MVIEWS,
-            params={"base_table": table.base_id, "dag_id": DAG_ID},
-        )
-        for table in TABLES
-    ]
+    table_task_groups = [table_task_group(table) for table in TABLES]
 
     rm_tmp_tables_post = rm_tmp_tables("_post", TABLES)
 
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
-    # Flow
-    (
-        slack_at_start
-        >> rm_tmp_tables_pre
-        >> sqlalchemy_create_objects_from_schema
-        >> create_temp_tables
-        >> join_1
-        >> copy_data
-        >> join_2
-        >> change_data_capture
-        >> join_3
-        >> create_mviews
-        >> rm_tmp_tables_post
-        >> grant_db_permissions
-    )
+    tasks = [
+        slack_at_start,
+        rm_tmp_tables_pre,
+        sqlalchemy_create_objects_from_schema,
+        *table_task_groups,
+        rm_tmp_tables_post,
+        grant_db_permissions,
+    ]
+    # I would have used Airflow's `chain` function. But in a very successful attempt to thwart
+    # composability that function specifically tests for it arguments to be of type BaseOperator
+    # or a sequence of those. And for what? All it requires from it arguments is that they have
+    # a `set_downstream` and `set_upstream` method. `TaskGroup`s do have that! But no, you can't
+    # use `TaskGroup`s with the `chain` function. Madness. So I have extracted a tiny bit from
+    # `chain`'s body and used it here:
+    for index, up_task in enumerate(tasks[:-1]):
+        down_task = tasks[index + 1]
+        up_task.set_downstream(down_task)
 
     dag.doc_md = """
         #### DAG summary
