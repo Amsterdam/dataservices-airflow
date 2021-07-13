@@ -30,8 +30,10 @@ graphql_path = pathlib.Path(__file__).resolve().parents[0] / "graphql"
 
 @dataclass
 class DatasetInfo:
-    """Dataclass to provide canned infomation about the dataset for
-    other operators to work with."""
+    """Dataclass to provide canned dataset information.
+
+    Information about the dataset for other operators to work with.
+    """
 
     schema_url: str
     dataset_id: str
@@ -41,7 +43,7 @@ class DatasetInfo:
 
 
 def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DAG:
-
+    """Create the DAG."""
     dataset_table_id = f"{gob_dataset_id}_{gob_table_id}"
     graphql_dir_path = graphql_path / f"{gob_dataset_id}-{gob_table_id}"
     graphql_params_path = graphql_dir_path / "args.json"
@@ -63,16 +65,16 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
     )
 
-    kwargs = dict(
-        task_id=f"load_{dataset_table_id}",
-        endpoint=GOB_PUBLIC_ENDPOINT,
-        retries=3,
-        graphql_query_path=graphql_dir_path / "query.graphql",
-        max_records=MAX_RECORDS,
-        http_conn_id="gob_graphql",
-        token_expires_margin=OAUTH_TOKEN_EXPIRES_MARGIN,
-        xcom_table_info_task_ids=f"mkinfo_{dataset_table_id}",
-    )
+    kwargs = {
+        "task_id": f"load_{dataset_table_id}",
+        "endpoint": GOB_PUBLIC_ENDPOINT,
+        "retries": 3,
+        "graphql_query_path": graphql_dir_path / "query.graphql",
+        "max_records": MAX_RECORDS,
+        "http_conn_id": "gob_graphql",
+        "token_expires_margin": OAUTH_TOKEN_EXPIRES_MARGIN,
+        "xcom_table_info_task_ids": f"mkinfo_{dataset_table_id}",
+    }
 
     with dag:
 
@@ -129,6 +131,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
             task_id=f"copy_{dataset_table_id}",
             source_table_name=None,
             target_table_name=None,
+            drop_target_if_unequal=True,
             xcom_task_ids=f"mkinfo_{dataset_table_id}",
             xcom_attr_assigner=copy_assigner,
         )
