@@ -55,11 +55,11 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
             SET TIME ZONE 'Europe/Amsterdam';
             WITH cmsa AS (
                 SELECT sensor,
-                       DATE_TRUNC('hour'::TEXT, timestamp_rounded) AS datum_uur,
+                       DATE_TRUNC('hour', timestamp_rounded) AS datum_uur,
                        SUM(total_count) AS aantal_passanten
                     FROM cmsa_15min_view_v8_materialized
-                    WHERE timestamp_rounded > TO_DATE('2019-01-01'::TEXT, 'YYYY-MM-DD'::TEXT)
-                    GROUP BY sensor, (DATE_TRUNC('hour'::TEXT, timestamp_rounded)))
+                    WHERE timestamp_rounded > TO_DATE('2019-01-01', 'YYYY-MM-DD')
+                    GROUP BY sensor, datum_uur)
             SELECT v.sensor,
                    s.location_name,
                    v.datum_uur,
@@ -67,7 +67,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
                    s.gebied,
                    s.geom AS geometrie
                 FROM cmsa v
-                         JOIN peoplemeasurement_sensors s ON s.objectnummer::TEXT = v.sensor::TEXT;
+                         JOIN peoplemeasurement_sensors s ON s.objectnummer = v.sensor;
             """
         )
         while True:
