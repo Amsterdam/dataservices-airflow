@@ -166,7 +166,7 @@ class TypeAHeadLocationOperator(BaseOperator):
                         WITH BAG_VBO_GEOM AS (
                         SELECT geometrie
                         FROM public.bag_verblijfsobjecten
-                        AND identificatie = %s
+                        WHERE identificatie = %s
                         )
                         UPDATE {self.source_table}
                         SET {self.geometry_column} = BAG_VBO_GEOM.geometrie
