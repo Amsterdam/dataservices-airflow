@@ -1,5 +1,4 @@
 import subprocess  # noqa: S404
-from pathlib import Path
 from typing import Any, Optional
 
 import dsnparse
@@ -7,7 +6,6 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
 from airflow.utils.decorators import apply_defaults
 from environs import Env
-from more_itertools import first_true
 
 
 class PgComparatorCDCOperator(BaseOperator):
@@ -88,17 +86,15 @@ class PgComparatorCDCOperator(BaseOperator):
             # first query parameter and has no value.
             source_url += f"?{self.key_column}"
         target_url = f"{db_url}/{self.target_table}"
-        program_path = first_true(
-            (Path("/usr/bin/pg_comparator"), Path("/usr/local/bin/pg_comparator")),
-            pred=lambda p: p.exists(),
-        )
+        program = "pg_comparator"
         self.log.info(
-            "Start change data capture (with pg_comparator) from: '%s' to: '%s.",
+            "Start change data capture (with %s) from: '%s' to: '%s.",
+            program,
             source_url,
             target_url,
         )
         arguments = [
-            program_path.as_posix(),
+            program,
             "--do-it",
             "--synchronize",
             "--max-ratio=2.0",
@@ -121,4 +117,4 @@ class PgComparatorCDCOperator(BaseOperator):
             self.log.debug(result.stdout)
         except subprocess.CalledProcessError as cpe:
             self.log.error(cpe.stderr)
-            self.log.exception("Failed to run %r.", program_path.name)
+            self.log.exception("Failed to run %r.", program)
