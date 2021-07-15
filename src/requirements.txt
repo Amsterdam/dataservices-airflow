@@ -317,7 +317,7 @@ mccabe==0.6.1
     # via flake8
 methodtools==0.4.2
     # via amsterdam-schema-tools
-more-ds==0.0.4
+more-ds==0.0.5
     # via
     #   -r requirements.in
     #   amsterdam-schema-tools
