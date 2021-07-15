@@ -1,5 +1,6 @@
 import operator
 from pathlib import Path
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -22,8 +23,9 @@ from importscripts.convert_bedrijveninvesteringszones_data import convert_biz_da
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
-from provenance_rename_operator import ProvenanceRenameOperator
-from sql.bedrijveninvesteringszones import CREATE_TABLE, UPDATE_TABLE
+from postgres_table_copy_operator import PostgresTableCopyOperator
+from sql.bedrijveninvesteringszones import UPDATE_TABLE
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
 dag_id = "bedrijveninvesteringszones"
@@ -35,6 +37,9 @@ count_checks = []
 geo_checks = []
 check_name = {}
 
+TABLE_ID: Final = f"{dag_id}_{dag_id}"
+TMP_TABLE_POSTFIX: Final = "_new"
+
 with DAG(
     dag_id,
     description="tariefen, locaties en overige contextuele gegevens over bedrijveninvesteringszones.",
@@ -44,7 +49,6 @@ with DAG(
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
-    # 1. Post info message on slack
     slack_at_start = MessageOperator(
         task_id="slack_at_start",
         http_conn_id="slack",
@@ -53,10 +57,8 @@ with DAG(
         username="admin",
     )
 
-    # 2. Create temp directory to store files
     mkdir = mk_dir(Path(tmp_dir))
 
-    # 3. Download data
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
@@ -70,11 +72,11 @@ with DAG(
         for file in files
     ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks (i.e. lists or tuples) with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
+    # Dummy operator acts as an interface between parallel tasks to another parallel tasks (i.e.
+    # lists or tuples) with different number of lanes (without this intermediar, Airflow will
+    # give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 5. get SQL from SHAPE files
     SHP_to_SQL = [
         BashOperator(
             task_id="SHP_to_SQL",
@@ -85,14 +87,12 @@ with DAG(
         if "shp" in file
     ]
 
-    # 6. Convert SQL to store all karakters between the code points 128 - 255 (wich are different in iso-8859-1) in UTF-8
     SQL_convert_UTF8 = BashOperator(
         task_id="convert_to_UTF8",
         bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{dag_id}.sql > "
         f"{tmp_dir}/{dag_id}.utf8.sql",
     )
 
-    # 7. Update data (source shp) with the content of the separate xslx file
     SQL_update_data = [
         PythonOperator(
             task_id="update_SQL_data",
@@ -109,37 +109,33 @@ with DAG(
         if "xlsx" in file
     ]
 
-    # 8. CREATE target TABLE (the ogr2ogr output is not used to create the table)
-    create_table = PostgresOperator(
-        task_id="create_target_table",
-        sql=CREATE_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+    sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
+        task_id="sqlalchemy_create_objects_from_schema",
+        data_schema_name=dag_id,
+        ind_extra_index=True,
     )
 
-    # 9. Import data
+    create_temp_table = PostgresTableCopyOperator(
+        task_id="create_temp_table",
+        source_table_name=TABLE_ID,
+        target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
+        drop_target_if_unequal=True,
+        truncate_target=True,
+        copy_data=False,
+        drop_source=False,
+    )
+
     import_data = BashOperator(
         task_id="import_data",
         bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}_updated_data_insert.sql",
     )
 
-    # 10. UPDATE target TABLE (add display field content)
     update_table = PostgresOperator(
         task_id="update_target_table",
         sql=UPDATE_TABLE,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),
     )
 
-    # 11. Rename COLUMNS based on Provenance
-    provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns",
-        dataset_name=dag_id,
-        prefix_table_name=f"{dag_id}_",
-        postfix_table_name="_new",
-        rename_indexes=False,
-        pg_schema="public",
-    )
-
-    # PREPARE CHECKS
     count_checks.append(
         COUNT_CHECK.make_check(
             check_id="count_check",
@@ -162,17 +158,14 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 12. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 13. Rename TABLE
-    rename_table = PostgresTableRenameOperator(
-        task_id="rename_table",
-        old_table_name=f"{dag_id}_{dag_id}_new",
-        new_table_name=f"{dag_id}_{dag_id}",
+    rename_temp_table = PostgresTableRenameOperator(
+        task_id=f"rename_tables_for_{TABLE_ID}",
+        new_table_name=TABLE_ID,
+        old_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
+        cascade=True,
     )
-
-    # 14. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
@@ -186,12 +179,12 @@ for data in download_data:
     >> SHP_to_SQL
     >> SQL_convert_UTF8
     >> SQL_update_data
-    >> create_table
+    >> sqlalchemy_create_objects_from_schema
+    >> create_temp_table
     >> import_data
     >> update_table
-    >> provenance_translation
     >> multi_checks
-    >> rename_table
+    >> rename_temp_table
     >> grant_db_permissions
 )
 

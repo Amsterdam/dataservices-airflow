@@ -112,7 +112,7 @@ def convert_biz_data(table_name, sql_shape_file, xlsx_file, output_file):
         , website
         , heffingstarief
         , heffing_valuta_code
-        , heffing_display
+        , heffingstarief_display
         , bijdrageplichtingen
         , verordening
         , geometry)
