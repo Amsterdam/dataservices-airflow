@@ -10,11 +10,11 @@ import dateutil.parser
 import shapefile
 from airflow import DAG
 from airflow.exceptions import AirflowException
-from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import SHARED_DIR, default_args
+from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -251,7 +251,7 @@ with DAG(
 
     source = pathlib.Path(TMP_DIR)
 
-    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_DIR}")
+    mk_tmp_dir = mk_dir(TMP_DIR)
 
     download_and_extract_zip = PythonOperator(
         task_id="download_and_extract_zip",
