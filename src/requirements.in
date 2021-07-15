@@ -36,7 +36,7 @@ geojson == 2.5.0
 pyshp == 2.1.0
 cx-Oracle == 7.3.0
 validator-collection == 1.4.1
-clevercsv==0.1.4
+clevercsv==0.6.8
 more-ds == 0.0.4
 pendulum == 2.1.2
 paramiko==2.6.0
