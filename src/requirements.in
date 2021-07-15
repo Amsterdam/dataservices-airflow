@@ -1,4 +1,4 @@
-amsterdam-schema-tools == 0.22.1
+amsterdam-schema-tools == 0.22.2
 cattrs == 1.1.2
 apache-airflow[crypto,postgres,sentry,sendgrid] == 2.0.2
 apache-airflow-providers-slack[http]==2.0.0
