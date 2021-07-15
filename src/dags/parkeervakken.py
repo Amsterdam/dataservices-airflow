@@ -1,15 +1,16 @@
 import datetime
 import operator
 import os
-import pathlib
 import re
 import subprocess
+from pathlib import Path
 from typing import Final
 
 import dateutil.parser
 import shapefile
 from airflow import DAG
 from airflow.exceptions import AirflowException
+from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
@@ -18,7 +19,10 @@ from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from shapely.geometry import Polygon
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_hook import SwiftHook
 
 DAG_ID: Final = "parkeervakken"
@@ -33,52 +37,9 @@ TABLES: Final = {
     "REGIMES_TEMP": f"{DAG_ID}_{DAG_ID}_regimes_temp",
 }
 WEEK_DAYS: Final = ["ma", "di", "wo", "do", "vr", "za", "zo"]
-
-
-SQL_CREATE_TEMP_TABLES: Final = """
-    DROP TABLE IF EXISTS {{ params.base_table }}_temp;
-    CREATE TABLE {{ params.base_table }}_temp (
-        LIKE {{ params.base_table }} INCLUDING ALL);
-    ALTER TABLE {{ params.base_table }}_temp
-        ALTER COLUMN geometry TYPE geometry(Polygon,28992)
-        USING ST_Transform(geometry, 28992);
-    DROP TABLE IF EXISTS {{ params.base_table }}_regimes_temp;
-    CREATE TABLE {{ params.base_table }}_regimes_temp (
-        LIKE {{ params.base_table }}_regimes INCLUDING ALL);
-    DROP SEQUENCE IF EXISTS {{ params.base_table }}_regimes_temp_id_seq
-       CASCADE;
-    CREATE SEQUENCE {{ params.base_table }}_regimes_temp_id_seq
-        OWNED BY {{ params.base_table }}_regimes_temp.id;
-    ALTER TABLE {{ params.base_table }}_regimes_temp
-        ALTER COLUMN id SET DEFAULT
-        NEXTVAL('{{ params.base_table }}_regimes_temp_id_seq');
-    ALTER TABLE {{ params.base_table }}_regimes_temp
-        ADD COLUMN IF NOT EXISTS e_type_description VARCHAR;
-"""
-
-SQL_RENAME_TEMP_TABLES: Final = """
-    DROP TABLE IF EXISTS {{ params.base_table }}_old;
-    ALTER TABLE IF EXISTS {{ params.base_table }}
-        RENAME TO {{ params.base_table }}_old;
-    ALTER TABLE {{ params.base_table }}_temp
-        RENAME TO {{ params.base_table }};
-    DROP TABLE IF EXISTS {{ params.base_table }}_regimes_old;
-    ALTER TABLE IF EXISTS {{ params.base_table }}_regimes
-        RENAME TO {{ params.base_table }}_regimes_old;
-    ALTER TABLE {{ params.base_table }}_regimes_temp
-        RENAME TO {{ params.base_table }}_regimes;
-    ALTER INDEX IF EXISTS {{ params.base_table }}_regimes_parent_id_idx
-        RENAME TO {{ params.base_table }}_regimes_old_parent_id_idx;
-    CREATE INDEX {{ params.base_table }}_regimes_parent_id_idx
-        ON {{ params.base_table }}_regimes(parent_id);
-    ALTER INDEX IF EXISTS {{ params.base_table }}_geometry_idx
-        RENAME TO {{ params.base_table }}_old_geometry_idx;
-    CREATE INDEX {{ params.base_table }}_geometry_idx
-        ON {{ params.base_table }} USING gist(geometry);
-"""
-
-TMP_DIR: Final = f"{SHARED_DIR}/{DAG_ID}"
-
+TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
+TMP_TABLE_POSTFIX: Final = "_temp"
+TABLE_ID: Final = f"{DAG_ID}_{DAG_ID}"
 E_TYPES: Final = {
     "E1": "Parkeerverbod",
     "E2": "Verbod stil te staan",
@@ -220,7 +181,7 @@ def download_latest_export_file(swift_conn_id, container, name_regex, *args, **k
 
     try:
         subprocess.run(
-            ["unzip", "-o", zip_path, "-d", TMP_DIR], stderr=subprocess.PIPE, check=True
+            ["unzip", "-o", zip_path, "-d", TMP_DIR.as_posix()], stderr=subprocess.PIPE, check=True
         )
     except subprocess.CalledProcessError as e:
         raise AirflowException(f"Failed to extract zip: {e.stderr}")
@@ -228,7 +189,7 @@ def download_latest_export_file(swift_conn_id, container, name_regex, *args, **k
     return latest["name"]
 
 
-def run_imports(*args, **kwargs):
+def run_imports(source: Path) -> None:
     """
     Run imports for all files in zip that match date.
     """
@@ -248,9 +209,6 @@ with DAG(
     description="Parkeervakken",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
-
-    source = pathlib.Path(TMP_DIR)
-
     mk_tmp_dir = mk_dir(TMP_DIR)
 
     download_and_extract_zip = PythonOperator(
@@ -273,15 +231,55 @@ with DAG(
         },
     )
 
-    create_temp_tables = PostgresOperator(
-        task_id="create_temp_tables",
-        sql=SQL_CREATE_TEMP_TABLES,
-        params={"base_table": f"{DAG_ID}_{DAG_ID}"},
+    drop_identity_from_table = [
+        PostgresOperator(
+            task_id="drop_identity_from_table",
+            sql="""
+                    ALTER TABLE IF EXISTS {{ params.table_id }}
+                        ALTER COLUMN id DROP IDENTITY IF EXISTS;
+                """,
+            params={"table_id": table_id},
+        )
+        for table_id in (TABLES["BASE"], TABLES["REGIMES"])
+    ]
+
+    sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
+        task_id="sqlalchemy_create_objects_from_schema",
+        data_schema_name=DAG_ID,
+        ind_extra_index=True,
     )
+
+    add_identity_to_table = [
+        PostgresOperator(
+            task_id="add_identity_to_table",
+            sql="""
+                ALTER TABLE {{ params.table_id }}
+                    ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY;
+            """,
+            params={"table_id": table_id},
+        )
+        for table_id in (TABLES["BASE"], TABLES["REGIMES"])
+    ]
+
+    join = DummyOperator(task_id="join")
+
+    create_temp_table = [
+        PostgresTableCopyOperator(
+            task_id="create_temp_table",
+            source_table_name=table_id,
+            target_table_name=f"{table_id}{TMP_TABLE_POSTFIX}",
+            drop_target_if_unequal=True,
+            truncate_target=False,
+            copy_data=False,
+            drop_source=False,
+        )
+        for table_id in (TABLES["BASE"], TABLES["REGIMES"])
+    ]
 
     run_import_task = PythonOperator(
         task_id="run_import_task",
         python_callable=run_imports,
+        op_kwargs={"source": TMP_DIR},
         dag=dag,
     )
 
@@ -297,11 +295,26 @@ with DAG(
         ],
     )
 
-    rename_temp_tables = PostgresOperator(
-        task_id="rename_temp_tables",
-        sql=SQL_RENAME_TEMP_TABLES,
-        params={"base_table": f"{DAG_ID}_{DAG_ID}"},
-    )
+    # Though identity columns are much more convenient than the old style serial columns, the
+    # sequences associated with them are not renamed automatically when the table with the
+    # identity columns is renamed. Hence, when renaming a table `tmp_fubar`, with identity column
+    # `id`, to `fubar`, the associated sequence will still be named `tmp_fubar_id_seq`.
+    #
+    # This is not a problem, unless we suffer from certain OCD tendencies. Hence, we leave the
+    # slight naming inconsistency as-is. Should you want to address it, don't rename the
+    # sequence. Simply drop cascade it instead. After all, the identity column is only required
+    # for the duration of the import; we don't need it afterwards. And when you do want to drop
+    # cascade it, reuse the existing `drop_identity_to_tables` task by wrapping it in a
+    # function and call it just before renaming the tables.
+    rename_temp_table = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_tables_for_{TABLE_ID}",
+            new_table_name=table_id,
+            old_table_name=f"{table_id}{TMP_TABLE_POSTFIX}",
+            cascade=True,
+        )
+        for table_id in (TABLES["BASE"], TABLES["REGIMES"])
+    ]
 
     # Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
@@ -310,10 +323,14 @@ with DAG(
     mk_tmp_dir
     >> download_and_extract_zip
     >> download_and_extract_nietfiscaal_zip
-    >> create_temp_tables
+    >> drop_identity_from_table
+    >> sqlalchemy_create_objects_from_schema
+    >> add_identity_to_table
+    >> create_temp_table
+    >> join
     >> run_import_task
     >> count_check
-    >> rename_temp_tables
+    >> rename_temp_table
     >> grant_db_permissions
 )
 
