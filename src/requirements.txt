@@ -6,7 +6,7 @@
 #
 alembic==1.5.5
     # via apache-airflow
-amsterdam-schema-tools==0.22.1
+amsterdam-schema-tools==0.22.2
     # via -r requirements.in
 apache-airflow-providers-ftp==1.0.1
     # via apache-airflow
