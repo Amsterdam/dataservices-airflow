@@ -21,17 +21,17 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
 
-dag_id = "parkeervakken"
-postgres_conn_id = "parkeervakken_postgres"
+DAG_ID: Final = "parkeervakken"
+POSTGRES_CONN_ID: Final = "parkeervakken_postgres"
 
 # CONFIG = Variable.get(DAG_ID, deserialize_json=True)
 
-TABLES: Final = dict(
-    BASE=f"{dag_id}_{dag_id}",
-    BASE_TEMP=f"{dag_id}_{dag_id}_temp",
-    REGIMES=f"{dag_id}_{dag_id}_regimes",
-    REGIMES_TEMP=f"{dag_id}_{dag_id}_regimes_temp",
-)
+TABLES: Final = {
+    "BASE": f"{DAG_ID}_{DAG_ID}",
+    "BASE_TEMP": f"{DAG_ID}_{DAG_ID}_temp",
+    "REGIMES": f"{DAG_ID}_{DAG_ID}_regimes",
+    "REGIMES_TEMP": f"{DAG_ID}_{DAG_ID}_regimes_temp",
+}
 WEEK_DAYS: Final = ["ma", "di", "wo", "do", "vr", "za", "zo"]
 
 
@@ -77,28 +77,28 @@ SQL_RENAME_TEMP_TABLES: Final = """
         ON {{ params.base_table }} USING gist(geometry);
 """
 
-TMP_DIR: Final = f"{SHARED_DIR}/{dag_id}"
+TMP_DIR: Final = f"{SHARED_DIR}/{DAG_ID}"
 
-E_TYPES: Final = dict(
-    E1="Parkeerverbod",
-    E2="Verbod stil te staan",
-    E3="Verbod fietsen en bromfietsen te plaatsen",
-    E4="Parkeergelegenheid",
-    E5="Taxistandplaats",
-    E6="Gehandicaptenparkeerplaats",
-    E6a="Gehandicaptenparkeerplaats algemeen",
-    E6b="Gehandicaptenparkeerplaats op kenteken",
-    E7="Gelegenheid bestemd voor het onmiddellijk laden en lossen van goederen",
-    E8="Parkeergelegenheid alleen bestemd voor de voertuigcategorie of groep voertuigen die op het bord is aangegeven",
-    E9="Parkeergelegenheid alleen bestemd voor vergunninghouders",
-    E10=(
+E_TYPES: Final = {
+    "E1": "Parkeerverbod",
+    "E2": "Verbod stil te staan",
+    "E3": "Verbod fietsen en bromfietsen te plaatsen",
+    "E4": "Parkeergelegenheid",
+    "E5": "Taxistandplaats",
+    "E6": "Gehandicaptenparkeerplaats",
+    "E6a": "Gehandicaptenparkeerplaats algemeen",
+    "E6b": "Gehandicaptenparkeerplaats op kenteken",
+    "E7": "Gelegenheid bestemd voor het onmiddellijk laden en lossen van goederen",
+    "E8": "Parkeergelegenheid alleen bestemd voor de voertuigcategorie of groep voertuigen die op het bord is aangegeven",
+    "E9": "Parkeergelegenheid alleen bestemd voor vergunninghouders",
+    "E10": (
         "Parkeerschijf-zone met verplicht gebruik van parkeerschijf, tevens parkeerverbod indien er langer wordt "
         "geparkeerd dan de parkeerduur die op het bord is aangegeven"
     ),
-    E11="Einde parkeerschijf-zone met verplicht gebruik van parkeerschijf",
-    E12="Parkeergelegenheid ten behoeve van overstappers op het openbaar vervoer",
-    E13="Parkeergelegenheid ten behoeve van carpoolers",
-)
+    "E11": "Einde parkeerschijf-zone met verplicht gebruik van parkeerschijf",
+    "E12": "Parkeergelegenheid ten behoeve van overstappers op het openbaar vervoer",
+    "E13": "Parkeergelegenheid ten behoeve van carpoolers",
+}
 
 
 def import_data(shp_file, ids):
@@ -243,10 +243,10 @@ def run_imports(*args, **kwargs):
 args = default_args.copy()
 
 with DAG(
-    dag_id,
+    DAG_ID,
     default_args=args,
     description="Parkeervakken",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     source = pathlib.Path(TMP_DIR)
@@ -256,27 +256,27 @@ with DAG(
     download_and_extract_zip = PythonOperator(
         task_id="download_and_extract_zip",
         python_callable=download_latest_export_file,
-        op_kwargs=dict(
-            swift_conn_id="objectstore_parkeervakken",
-            container="tijdregimes",
-            name_regex=r"^nivo_\d+\.zip",
-        ),
+        op_kwargs={
+            "swift_conn_id": "objectstore_parkeervakken",
+            "container": "tijdregimes",
+            "name_regex": r"^nivo_\d+\.zip",
+        },
     )
 
     download_and_extract_nietfiscaal_zip = PythonOperator(
         task_id="download_and_extract_nietfiscaal_zip",
         python_callable=download_latest_export_file,
-        op_kwargs=dict(
-            swift_conn_id="objectstore_parkeervakken",
-            container="Parkeervakken",
-            name_regex=r"^\d+\_nietfiscaal\.zip",
-        ),
+        op_kwargs={
+            "swift_conn_id": "objectstore_parkeervakken",
+            "container": "Parkeervakken",
+            "name_regex": r"^\d+\_nietfiscaal\.zip",
+        },
     )
 
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLES,
-        params=dict(base_table=f"{dag_id}_{dag_id}"),
+        params={"base_table": f"{DAG_ID}_{DAG_ID}"},
     )
 
     run_import_task = PythonOperator(
@@ -291,7 +291,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id="non_zero_check",
                 pass_value=10,
-                params=dict(table_name=f"{dag_id}_{dag_id}_temp"),
+                params={"table_name": f"{DAG_ID}_{DAG_ID}_temp"},
                 result_checker=operator.ge,
             )
         ],
@@ -300,11 +300,11 @@ with DAG(
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLES,
-        params=dict(base_table=f"{dag_id}_{dag_id}"),
+        params={"base_table": f"{DAG_ID}_{DAG_ID}"},
     )
 
     # Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 (
     mk_tmp_dir
@@ -353,19 +353,19 @@ def create_regimes(row):
 
     days = days_from_row(row)
 
-    base_data = dict(
-        parent_id=row.record.PARKEER_ID or "",
-        soort="FISCAAL",
-        e_type="",
-        bord="",
-        begin_tijd=datetime.time(0, 0),
-        eind_tijd=datetime.time(23, 59),
-        opmerking=row.record.OPMERKING or "",
-        dagen=WEEK_DAYS,
-        kenteken=None,
-        begin_datum=None,
-        eind_datum=None,
-    )
+    base_data = {
+        "parent_id": row.record.PARKEER_ID or "",
+        "soort": "FISCAAL",
+        "e_type": "",
+        "bord": "",
+        "begin_tijd": datetime.time(0, 0),
+        "eind_tijd": datetime.time(23, 59),
+        "opmerking": row.record.OPMERKING or "",
+        "dagen": WEEK_DAYS,
+        "kenteken": None,
+        "begin_datum": None,
+        "eind_datum": None,
+    }
 
     mode_start = datetime.time(0, 0)
     mode_end = datetime.time(23, 59)
@@ -375,12 +375,12 @@ def create_regimes(row):
         # No time modes, but could have full override.
         x = base_data.copy()
         x.update(
-            dict(
-                soort=row.record.SOORT or "FISCAAL",
-                bord=row.record.BORD or "",
-                e_type=row.record.E_TYPE or "",
-                kenteken=row.record.KENTEKEN,
-            )
+            {
+                "soort": row.record.SOORT or "FISCAAL",
+                "bord": row.record.BORD or "",
+                "e_type": row.record.E_TYPE or "",
+                "kenteken": row.record.KENTEKEN,
+            }
         )
         return [x]
 
@@ -423,12 +423,12 @@ def remove_a_minute(time):
 def get_modes(row):
     modes = []
 
-    base = dict(
-        soort=row.record.SOORT or "FISCAAL",
-        bord=row.record.BORD or "",
-        e_type=row.record.E_TYPE or "",
-        kenteken=row.record.KENTEKEN,
-    )
+    base = {
+        "soort": row.record.SOORT or "FISCAAL",
+        "bord": row.record.BORD or "",
+        "e_type": row.record.E_TYPE or "",
+        "kenteken": row.record.KENTEKEN,
+    }
     if any(
         [
             row.record.TVM_BEGINT,
@@ -441,14 +441,14 @@ def get_modes(row):
         # TVM
         tvm_mode = base.copy()
         tvm_mode.update(
-            dict(
-                soort=row.record.E_TYPE or "FISCAAL",
-                begin_datum=row.record.TVM_BEGIND or "",
-                eind_datum=row.record.TVM_EINDD or "",
-                opmerking=(row.record.TVM_OPMERK or "").replace("'", "\\'"),
-                begin_tijd=parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
-                eind_tijd=parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
-            )
+            {
+                "soort": row.record.E_TYPE or "FISCAAL",
+                "begin_datum": row.record.TVM_BEGIND or "",
+                "eind_datum": row.record.TVM_EINDD or "",
+                "opmerking": (row.record.TVM_OPMERK or "").replace("'", "\\'"),
+                "begin_tijd": parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
+                "eind_tijd": parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
+            }
         )
         modes.append(tvm_mode)
 
@@ -457,23 +457,23 @@ def get_modes(row):
         eind_tijd = parse_time(row.record.EINDTIJD1, datetime.time(23, 59))
         if begin_tijd < eind_tijd:
             x = base.copy()
-            x.update(dict(begin_tijd=begin_tijd, eind_tijd=eind_tijd))
+            x.update({"begin_tijd": begin_tijd, "eind_tijd": eind_tijd})
             modes.append(x)
         else:
             # Mode: 20:00, 06:00
             x = base.copy()
-            x.update(dict(begin_tijd=datetime.time(0, 0), eind_tijd=eind_tijd))
+            x.update({"begin_tijd": datetime.time(0, 0), "eind_tijd": eind_tijd})
             y = base.copy()
-            y.update(dict(begin_tijd=begin_tijd, eind_tijd=datetime.time(23, 59)))
+            y.update({"begin_tijd": begin_tijd, "eind_tijd": datetime.time(23, 59)})
             modes.append(x)
             modes.append(y)
     if any([row.record.BEGINTIJD2, row.record.EINDTIJD2]):
         x = base.copy()
         x.update(
-            dict(
-                begin_tijd=parse_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
-                eind_tijd=parse_time(row.record.EINDTIJD2, datetime.time(23, 59)),
-            )
+            {
+                "begin_tijd": parse_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
+                "eind_tijd": parse_time(row.record.EINDTIJD2, datetime.time(23, 59)),
+            }
         )
         modes.append(x)
     return modes
