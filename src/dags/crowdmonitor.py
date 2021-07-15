@@ -123,7 +123,24 @@ def rm_tmp_tables(
     """Remove tmp tables."""
     return PostgresOperator(
         task_id=f"rm_tmp_tables{task_id_postfix}",
-        sql="DROP TABLE IF EXISTS {tables}".format(tables=", ".join(tables)),
+        # Airflow is bizarre in some ways. Its `PostgresOperator` specifies the `sql` argument to
+        # `__init__` to be of solely type `str`. Internally it uses `PostgresHook` to execute
+        # the query. As it turns out `PostgresHook` accepts more types for `sql` than just a
+        # `str`. It also accepts a `psycopg2.sql.Composable` (by virtue of building on top of
+        # `psycopg2`), or a list of `str`s and/or `psycopg2.sql.Composable`s. So why does
+        # PostgresOperator limit `sql` to type `str`? It beats me? And though I am a big
+        # fan of type annotations, I am going to ignore them here, because `PostgresOperator` is
+        # wrong!
+        #
+        # But `PostgresHook` is not without issues either. If the type of `sql` is not a string,
+        # it assumes it to be a list of SQL statements. Well `psycopg2.sql.Composable` is not a
+        # `str`, nor is it a list of SQL statements. By wrapping `psycopg2.sql.Composable` in a
+        # list we work around the wrongful assumption made by `PostgresHook`. *ugh*
+        sql=[
+            sql.SQL("DROP TABLE IF EXISTS {tables}").format(
+                tables=sql.SQL(", ").join(map(sql.Identifier, tables))
+            )
+        ],
     )
 
 
