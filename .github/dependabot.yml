@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: src
+    schedule:
+      interval: daily
+    ignore:
+      # Reason being:
+      #   * there is no patch version available yet
+      #   * there is no option in Flask-Caching to use other serialization methods
+      #     than `pickle`
+      #   * Attacker already needs to have acces to the cache storage for this to
+      #     be an issue. Hence the serverity is rather limited in our use-case.
+      - dependency-name: flask-caching
+        versions: [ "<=1.10.1" ]
