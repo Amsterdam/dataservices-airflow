@@ -58,13 +58,6 @@ openbareverlichting:
   data_endpoints:
     objects: services/rest_sia.php/SIAService/objecten
     objecttypes: services/rest_sia.php/SIAService/types
-trm:
-  - zip: Tram KGEs.zip
-    name: tram
-    shp: KGE_hartlijnen_Amsterdam_2.054.shp
-  - zip: Metro KGEs.zip
-    name: metro
-    shp: Metro KGEs.shp
 winkelgebieden:
   schema_end_point: datasets/winkelgebieden/winkelgebieden
 bouwstroompunten:
