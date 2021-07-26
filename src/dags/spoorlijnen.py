@@ -1,9 +1,9 @@
 import operator
 from pathlib import Path
+from typing import Dict, Final, List, Union, cast
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
@@ -11,35 +11,38 @@ from common import (
     SHARED_DIR,
     MessageOperator,
     default_args,
-    pg_params,
     quote_string,
     slack_webhook_token,
 )
+from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
 
-dag_id = "spoorlijnen"
-variables_spoorlijnen = Variable.get("spoorlijnen", deserialize_json=True)
-files_to_download = variables_spoorlijnen["files_to_download"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
-
+DAG_ID: Final = "spoorlijnen"
+variables: Dict[str, Union[List[str], Dict[str, str]]] = Variable.get(
+    "spoorlijnen", deserialize_json=True
+)
+files_to_download = cast(Dict[str, List[str]], variables["files_to_download"])
+TMP_PATH: Final = f"{SHARED_DIR}/{DAG_ID}"
+total_checks: List[int] = []
+count_checks: List[int] = []
+geo_checks: List[int] = []
+check_name: Dict[str, List[int]] = {}
+db_conn = DatabaseEngine()
 
 with DAG(
-    dag_id,
+    DAG_ID,
     description="spoorlijnen metro en tram",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -47,12 +50,12 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
     # 2. Create temp directory to store files
-    mkdir = mk_dir(Path(tmp_dir))
+    mkdir = mk_dir(Path(TMP_PATH))
 
     # 3. Download data
     download_data = [
@@ -62,41 +65,30 @@ with DAG(
             # swift_conn_id="SWIFT_DEFAULT",
             container="spoorlijnen",
             object_id=str(file),
-            output_path=f"{tmp_dir}/{file}",
+            output_path=f"{TMP_PATH}/{file}",
         )
         for files in files_to_download.values()
         for file in files
     ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks
+    # with different number of lanes (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 5. Create SQL
-    SHP_to_SQL = [
-        BashOperator(
-            task_id=f"create_SQL_{key}",
-            bash_command="ogr2ogr -f 'PGDump' "
-            "-s_srs EPSG:28992 -t_srs EPSG:28992 "
-            f"-nln {dag_id}_{key}_new "
-            f"{tmp_dir}/{key}.sql {tmp_dir}/{file} "
-            "-lco GEOMETRY_NAME=geometry "
-            "-nlt PROMOTE_TO_MULTI "
-            "-lco precision=NO "
-            "-lco FID=id",
+    # 5. Import shape into database
+    import_data = [
+        Ogr2OgrOperator(
+            task_id=f"import_{file}",
+            target_table_name=f"{DAG_ID}_{file}_new",
+            input_file=f"{TMP_PATH}/{file}.shp",
+            s_srs="EPSG:28992",
+            promote_to_multi=True,
+            auto_detect_type="YES",
+            mode="PostgreSQL",
+            fid="id",
+            db_conn=db_conn,
         )
-        for key, files in files_to_download.items()
-        for file in files
-        if "shp" in file
-    ]
-
-    # 6. Create TABLE
-    create_tables = [
-        BashOperator(
-            task_id=f"create_table_{key}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{key}.sql",
-        )
-        for key in files_to_download.keys()
+        for file in files_to_download
     ]
 
     # 7. Revalidate or Remove invalid geometry records
@@ -108,9 +100,11 @@ with DAG(
         PostgresOperator(
             task_id=f"revalidate_remove_geom_{key}",
             sql=[
-                f"UPDATE {dag_id}_{key}_new SET geometry = ST_CollectionExtract(st_makevalid(geometry),2) WHERE ST_IsValid(geometry) is false; COMMIT;",
-                f"DELETE FROM {dag_id}_{key}_new WHERE geometry IS NULL; COMMIT;",
+                """UPDATE {{ params.table_id }} SET geometry = ST_CollectionExtract(st_makevalid(geometry),2)
+                WHERE ST_IsValid(geometry) is false; COMMIT;""",
+                "DELETE FROM {{ params.table_id }} WHERE geometry IS NULL; COMMIT;",
             ],
+            params={"table_id": f"{DAG_ID}_{key}_new"},
         )
         for key in files_to_download.keys()
     ]
@@ -118,8 +112,8 @@ with DAG(
     # 8. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=dag_id,
-        prefix_table_name=f"{dag_id}_",
+        dataset_name=DAG_ID,
+        prefix_table_name=f"{DAG_ID}_",
         postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
@@ -136,7 +130,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=500,
-                params=dict(table_name=f"{dag_id}_{key}_new"),
+                params={"table_name": f"{DAG_ID}_{key}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -144,10 +138,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(
-                    table_name=f"{dag_id}_{key}_new",
-                    geotype=["MULTILINESTRING"],
-                ),
+                params={
+                    "table_name": f"{DAG_ID}_{key}_new",
+                    "geotype": ["MULTILINESTRING"],
+                },
                 pass_value=1,
             )
         )
@@ -165,14 +159,14 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
-            old_table_name=f"{dag_id}_{key}_new",
-            new_table_name=f"{dag_id}_{key}",
+            old_table_name=f"{DAG_ID}_{key}_new",
+            new_table_name=f"{DAG_ID}_{key}",
         )
         for key in files_to_download.keys()
     ]
 
     # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 slack_at_start >> mkdir >> download_data
 
@@ -180,17 +174,16 @@ for data in zip(download_data):
 
     data >> Interface
 
-Interface >> SHP_to_SQL
+Interface >> import_data
 
-for (create_SQL, create_table, revalidate_remove_geom_record, multi_check, rename_table,) in zip(
-    SHP_to_SQL,
-    create_tables,
+for (import_file, revalidate_remove_geom_record, multi_check, rename_table,) in zip(
+    import_data,
     revalidate_remove_null_geometry_records,
     multi_checks,
     rename_tables,
 ):
 
-    [create_SQL >> create_table >> revalidate_remove_geom_record] >> provenance_translation
+    [import_file >> revalidate_remove_geom_record] >> provenance_translation
 
     [multi_check >> rename_table]
 
