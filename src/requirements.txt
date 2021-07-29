@@ -453,7 +453,7 @@ python-editor==1.0.4
     # via alembic
 python-http-client==3.3.2
     # via sendgrid
-python-keystoneclient==4.0.0
+python-keystoneclient==4.2.0
     # via
     #   -r requirements.in
     #   datapunt-objectstore
