@@ -29,7 +29,7 @@ yamlip == 0.0.2
 xlrd == 1.2.0
 python-string-utils == 1.0.0
 jsonpointer == 2.0
-GeoAlchemy2 == 0.7.0
+GeoAlchemy2 == 0.9.3
 Shapely == 1.7.0
 simplejson == 3.17.0
 geojson == 2.5.0
