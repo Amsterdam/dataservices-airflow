@@ -160,7 +160,7 @@ flake8==3.9.2
     #   flake8-string-format
 flake8-bandit==2.1.2
     # via -r requirements.in
-flake8-bugbear==21.3.2
+flake8-bugbear==21.4.3
     # via -r requirements.in
 flake8-builtins==1.5.3
     # via -r requirements.in
@@ -317,7 +317,7 @@ mccabe==0.6.1
     # via flake8
 methodtools==0.4.2
     # via amsterdam-schema-tools
-more-ds==0.0.4
+more-ds==0.0.5
     # via
     #   -r requirements.in
     #   amsterdam-schema-tools
@@ -453,7 +453,7 @@ python-editor==1.0.4
     # via alembic
 python-http-client==3.3.2
     # via sendgrid
-python-keystoneclient==4.0.0
+python-keystoneclient==4.2.0
     # via
     #   -r requirements.in
     #   datapunt-objectstore
