@@ -1407,16 +1407,6 @@ SELECT "SBL_metro_sneltram".ogc_fid::TEXT || 'SBL_metro_sneltram' AS identificat
        12 AS maxzoom
 FROM kbk50."SBL_metro_sneltram"
 UNION
-SELECT "SBL_trein_ongeelektrificeerd".ogc_fid::TEXT ||
-       'SBL_trein_ongeelektrificeerd_kbk50' AS identificatie_lokaal_id,
-       'trein_ongeelektrificeerd' AS type,
-       ST_makeValid("SBL_trein_ongeelektrificeerd".geom) AS geometrie,
-       0 AS relatievehoogteligging,
-       'kbk50' AS bron,
-       NULL::INT AS minzoom,
-       12 AS maxzoom
-FROM kbk50."SBL_trein_ongeelektrificeerd"
-UNION
 SELECT "SBL_trein".ogc_fid::TEXT || 'SBL_trein' AS identificatie_lokaal_id,
        'trein' AS type,
        ST_makeValid("SBL_trein".geom) AS geometrie,
