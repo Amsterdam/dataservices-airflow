@@ -2085,8 +2085,6 @@ SELECT_WEGDEELVLAK_SQL: Final = """
 SELECT "BGT_OWGL_berm".identificatie_lokaalid || '-' || "BGT_OWGL_berm".tijdstipregistratie ||
        '-' || 'BGT_OWGL_berm' AS id,
        "BGT_OWGL_berm".bgt_functie AS type,
-       "BGT_OWGL_berm".bgt_fysiekvoorkomen AS subtype,
-       "BGT_OWGL_berm".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_OWGL_berm".geometrie) AS geometrie,
        "BGT_OWGL_berm".relatievehoogteligging,
        'bgt' AS bron,
@@ -2096,8 +2094,6 @@ FROM bgt."BGT_OWGL_berm"
 UNION
 SELECT "BGT_OWGL_verkeerseiland".identificatie_lokaalid || 'BGT_OWGL_verkeerseiland' AS id,
        "BGT_OWGL_verkeerseiland".bgt_functie AS type,
-       "BGT_OWGL_verkeerseiland".bgt_fysiekvoorkomen AS subtype,
-       "BGT_OWGL_verkeerseiland".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_OWGL_verkeerseiland".geometrie) AS geometrie,
        "BGT_OWGL_verkeerseiland".relatievehoogteligging,
        'bgt' AS bron,
@@ -2108,8 +2104,6 @@ UNION
 SELECT "BGT_WGL_baan_voor_vliegverkeer".identificatie_lokaalid ||
        'BGT_WGL_baan_voor_vliegverkeer' AS id,
        "BGT_WGL_baan_voor_vliegverkeer".bgt_functie AS type,
-       "BGT_WGL_baan_voor_vliegverkeer".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_baan_voor_vliegverkeer".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_baan_voor_vliegverkeer".geometrie) AS geometrie,
        "BGT_WGL_baan_voor_vliegverkeer".relatievehoogteligging,
        'bgt' AS bron,
@@ -2120,8 +2114,6 @@ UNION
 SELECT "BGT_WGL_fietspad".identificatie_lokaalid || '-' ||
        "BGT_WGL_fietspad".tijdstipregistratie || '-' || 'BGT_WGL_fietspad' AS id,
        "BGT_WGL_fietspad".bgt_functie AS type,
-       "BGT_WGL_fietspad".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_fietspad".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_fietspad".geometrie) AS geometrie,
        "BGT_WGL_fietspad".relatievehoogteligging,
        'bgt' AS bron,
@@ -2131,8 +2123,6 @@ FROM bgt."BGT_WGL_fietspad"
 UNION
 SELECT "BGT_WGL_inrit".identificatie_lokaalid || 'BGT_WGL_inrit' AS id,
        "BGT_WGL_inrit".bgt_functie AS type,
-       "BGT_WGL_inrit".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_inrit".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_inrit".geometrie) AS geometrie,
        "BGT_WGL_inrit".relatievehoogteligging,
        'bgt' AS bron,
@@ -2142,8 +2132,6 @@ FROM bgt."BGT_WGL_inrit"
 UNION
 SELECT "BGT_WGL_ov-baan".identificatie_lokaalid || 'BGT_WGL_ov-baan' AS id,
        "BGT_WGL_ov-baan".bgt_functie AS type,
-       "BGT_WGL_ov-baan".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_ov-baan".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_ov-baan".geometrie) AS geometrie,
        "BGT_WGL_ov-baan".relatievehoogteligging,
        'bgt' AS bron,
@@ -2153,8 +2141,6 @@ FROM bgt."BGT_WGL_ov-baan"
 UNION
 SELECT "BGT_WGL_overweg".identificatie_lokaalid || 'BGT_WGL_overweg' AS id,
        "BGT_WGL_overweg".bgt_functie AS type,
-       "BGT_WGL_overweg".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_overweg".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_overweg".geometrie) AS geometrie,
        "BGT_WGL_overweg".relatievehoogteligging,
        'bgt' AS bron,
@@ -2164,8 +2150,6 @@ FROM bgt."BGT_WGL_overweg"
 UNION
 SELECT "BGT_WGL_parkeervlak".identificatie_lokaalid || 'BGT_WGL_parkeervlak' AS id,
        "BGT_WGL_parkeervlak".bgt_functie AS type,
-       "BGT_WGL_parkeervlak".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_parkeervlak".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_parkeervlak".geometrie) AS geometrie,
        "BGT_WGL_parkeervlak".relatievehoogteligging,
        'bgt' AS bron,
@@ -2177,8 +2161,6 @@ SELECT "BGT_WGL_rijbaan_autosnelweg".identificatie_lokaalid || '-' ||
        "BGT_WGL_rijbaan_autosnelweg".tijdstipregistratie || '-' ||
        'BGT_WGL_rijbaan_autosnelweg' AS id,
        "BGT_WGL_rijbaan_autosnelweg".bgt_functie AS type,
-       "BGT_WGL_rijbaan_autosnelweg".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_rijbaan_autosnelweg".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_rijbaan_autosnelweg".geometrie) AS geometrie,
        "BGT_WGL_rijbaan_autosnelweg".relatievehoogteligging,
        'bgt' AS bron,
@@ -2189,8 +2171,6 @@ UNION
 SELECT "BGT_WGL_rijbaan_autoweg".identificatie_lokaalid || '-' ||
        "BGT_WGL_rijbaan_autoweg".tijdstipregistratie || '-' || 'BGT_WGL_rijbaan_autoweg' AS id,
        "BGT_WGL_rijbaan_autoweg".bgt_functie AS type,
-       "BGT_WGL_rijbaan_autoweg".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_rijbaan_autoweg".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_rijbaan_autoweg".geometrie) AS geometrie,
        "BGT_WGL_rijbaan_autoweg".relatievehoogteligging,
        'bgt' AS bron,
@@ -2202,8 +2182,6 @@ SELECT "BGT_WGL_rijbaan_lokale_weg".identificatie_lokaalid || '-' ||
        "BGT_WGL_rijbaan_lokale_weg".tijdstipregistratie || '-' ||
        'BGT_WGL_rijbaan_lokale_weg' AS id,
        "BGT_WGL_rijbaan_lokale_weg".bgt_functie AS type,
-       "BGT_WGL_rijbaan_lokale_weg".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_rijbaan_lokale_weg".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_rijbaan_lokale_weg".geometrie) AS geometrie,
        "BGT_WGL_rijbaan_lokale_weg".relatievehoogteligging,
        'bgt' AS bron,
@@ -2215,8 +2193,6 @@ SELECT "BGT_WGL_rijbaan_regionale_weg".identificatie_lokaalid || '-' ||
        "BGT_WGL_rijbaan_regionale_weg".tijdstipregistratie || '-' ||
        'BGT_WGL_rijbaan_regionale_weg' AS id,
        "BGT_WGL_rijbaan_regionale_weg".bgt_functie AS type,
-       "BGT_WGL_rijbaan_regionale_weg".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_rijbaan_regionale_weg".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_rijbaan_regionale_weg".geometrie) AS geometrie,
        "BGT_WGL_rijbaan_regionale_weg".relatievehoogteligging,
        'bgt' AS bron,
@@ -2227,8 +2203,6 @@ UNION
 SELECT "BGT_WGL_ruiterpad".identificatie_lokaalid || '-' ||
        "BGT_WGL_ruiterpad".tijdstipregistratie || '-' || 'BGT_WGL_ruiterpad' AS id,
        "BGT_WGL_ruiterpad".bgt_functie AS type,
-       "BGT_WGL_ruiterpad".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_ruiterpad".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_ruiterpad".geometrie) AS geometrie,
        "BGT_WGL_ruiterpad".relatievehoogteligging,
        'bgt' AS bron,
@@ -2239,8 +2213,6 @@ UNION
 SELECT "BGT_WGL_voetgangersgebied".identificatie_lokaalid || '-' ||
        "BGT_WGL_voetgangersgebied".tijdstipregistratie || '-' || 'BGT_WGL_voetgangersgebied' AS id,
        "BGT_WGL_voetgangersgebied".bgt_functie AS type,
-       "BGT_WGL_voetgangersgebied".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_voetgangersgebied".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_voetgangersgebied".geometrie) AS geometrie,
        "BGT_WGL_voetgangersgebied".relatievehoogteligging,
        'bgt' AS bron,
@@ -2251,8 +2223,6 @@ UNION
 SELECT "BGT_WGL_voetpad".identificatie_lokaalid || '-' || "BGT_WGL_voetpad".tijdstipregistratie ||
        '-' || 'BGT_WGL_voetpad' AS id,
        "BGT_WGL_voetpad".bgt_functie AS type,
-       "BGT_WGL_voetpad".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_voetpad".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_voetpad".geometrie) AS geometrie,
        "BGT_WGL_voetpad".relatievehoogteligging,
        'bgt' AS bron,
@@ -2263,8 +2233,6 @@ UNION
 SELECT "BGT_WGL_voetpad_op_trap".identificatie_lokaalid || '-' ||
        "BGT_WGL_voetpad_op_trap".tijdstipregistratie || '-' || 'BGT_WGL_voetpad_op_trap' AS id,
        "BGT_WGL_voetpad_op_trap".bgt_functie AS type,
-       "BGT_WGL_voetpad_op_trap".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_voetpad_op_trap".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_voetpad_op_trap".geometrie) AS geometrie,
        "BGT_WGL_voetpad_op_trap".relatievehoogteligging,
        'bgt' AS bron,
@@ -2275,8 +2243,6 @@ UNION
 SELECT "BGT_WGL_woonerf".identificatie_lokaalid || '-' || "BGT_WGL_woonerf".tijdstipregistratie ||
        '-' || 'BGT_WGL_woonerf' AS id,
        "BGT_WGL_woonerf".bgt_functie AS type,
-       "BGT_WGL_woonerf".bgt_fysiekvoorkomen AS subtype,
-       "BGT_WGL_woonerf".plus_fysiekvoorkomen AS subsubtype,
        ST_makeValid("BGT_WGL_woonerf".geometrie) AS geometrie,
        "BGT_WGL_woonerf".relatievehoogteligging,
        'bgt' AS bron,
@@ -2290,8 +2256,6 @@ UNION
 SELECT "WGL_startbaan_landingsbaan".ogc_fid::TEXT || '-' ||
        'WGL_startbaan_landingsbaan' AS identificatie_lokaal_id,
        'startbaan_landingsbaan' AS type,
-       NULL AS subtype,
-       NULL AS subsubtype,
        ST_makeValid("WGL_startbaan_landingsbaan".geom) AS geometrie,
        0 AS relatievehoogteligging,
        'kbk10' AS bron,
@@ -2302,8 +2266,6 @@ UNION
 SELECT "TRN_spoorbaanlichaam".ogc_fid::TEXT || '-' ||
        'TRN_spoorbaanlichaam' AS identificatie_lokaal_id,
        'spoorbaanlichaam' AS type,
-       NULL AS subtype,
-       NULL AS subsubtype,
        ST_makeValid("TRN_spoorbaanlichaam".geom) AS geometrie,
        0 AS relatievehoogteligging,
        'kbk10' AS bron,
@@ -2313,8 +2275,6 @@ FROM kbk10."TRN_spoorbaanlichaam"
 UNION
 SELECT "WGL_autosnelweg".ogc_fid::TEXT || '-' || 'WGL_autosnelweg' AS identificatie_lokaal_id,
        'autosnelweg' AS type,
-       NULL AS subtype,
-       NULL AS subsubtype,
        ST_makeValid("WGL_autosnelweg".geom) AS geometrie,
        0 AS relatievehoogteligging,
        'kbk10' AS bron,
@@ -2324,8 +2284,6 @@ FROM kbk10."WGL_autosnelweg"
 UNION
 SELECT "WGL_autosnelweg".ogc_fid::TEXT || '-' || 'WGL_autosnelweg' AS identificatie_lokaal_id,
        'autosnelweg' AS type,
-       NULL AS subtype,
-       NULL AS subsubtype,
        ST_makeValid("WGL_autosnelweg".geom) AS geometrie,
        0 AS relatievehoogteligging,
        'kbk10' AS bron,
@@ -2336,8 +2294,6 @@ UNION
 SELECT "WGL_rolbaan_platform".ogc_fid::TEXT || '-' ||
        'WGL_rolbaan_platform' AS identificatie_lokaal_id,
        'rolbaan_platform' AS type,
-       NULL AS subtype,
-       NULL AS subsubtype,
        ST_makeValid("WGL_rolbaan_platform".geom) AS geometrie,
        0 AS relatievehoogteligging,
        'kbk10' AS bron,
