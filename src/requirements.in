@@ -20,11 +20,11 @@ flake8-print == 4.0.0
 flake8-rst == 0.8.0
 flake8-string-format == 0.3.0
 python-keystoneclient == 4.0.0
-python-swiftclient == 3.9.0
+python-swiftclient == 3.12.0
 environs == 7.3.1
 flask_bcrypt == 0.7.1
 docker == 4.2.0
-supervisor == 4.1.0
+supervisor == 4.2.2
 yamlip == 0.0.2
 xlrd == 1.2.0
 python-string-utils == 1.0.0
