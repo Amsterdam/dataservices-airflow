@@ -217,7 +217,7 @@ flask-wtf==0.14.3
     # via
     #   apache-airflow
     #   flask-appbuilder
-geoalchemy2==0.7.0
+geoalchemy2==0.9.3
     # via
     #   -r requirements.in
     #   amsterdam-schema-tools
