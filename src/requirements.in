@@ -23,7 +23,7 @@ python-keystoneclient == 4.0.0
 python-swiftclient == 3.9.0
 environs == 7.3.1
 flask_bcrypt == 0.7.1
-docker == 4.2.0
+docker == 5.0.0
 supervisor == 4.1.0
 yamlip == 0.0.2
 xlrd == 1.2.0
