@@ -39,6 +39,6 @@ validator-collection == 1.4.1
 clevercsv==0.1.4
 more-ds == 0.0.4
 pendulum == 2.1.2
-paramiko==2.6.0
+paramiko==2.7.2
 pysftp==0.2.9
 sshtunnel==0.1.4
