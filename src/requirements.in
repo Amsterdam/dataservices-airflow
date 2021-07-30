@@ -31,7 +31,7 @@ python-string-utils == 1.0.0
 jsonpointer == 2.0
 GeoAlchemy2 == 0.7.0
 Shapely == 1.7.0
-simplejson == 3.17.0
+simplejson == 3.17.3
 geojson == 2.5.0
 pyshp == 2.1.0
 cx-Oracle == 7.3.0
