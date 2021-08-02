@@ -60,6 +60,9 @@ services:
         e2e0feab4cd54f7cb0c8517586ac7bb1"
       AIRFLOW_CONN_SWIFT_DEFAULT: "s3://vsd_user:${VSD_PASSWD}@\
         4028c44d91dc48b8990069433c203c1f"
+      AIRFLOW_CONN_OBJECTSTORE_OPENBAREVERLICHTING:
+          "s3://${OPENBAREVERLICHTING_USER}:${OPENBAREVERLICHTING_PASSWD}@\
+          5f0dae75f100401b9f49338747792dce"
       AIRFLOW_CONN_GOB_GRAPHQL: "https://acc.api.data.amsterdam.nl/https"
       AIRFLOW_CONN_OIDC_SERVER: "https://iam.amsterdam.nl/https"
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
