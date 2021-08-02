@@ -8,7 +8,7 @@ from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from psycopg2 import sql
-from schematools.utils import schema_def_from_url, to_snake_case
+from schematools.utils import schema_def_from_url, to_snake_case, toCamelCase
 
 env = Env()
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
@@ -64,7 +64,8 @@ class ProvenanceRenameOperator(BaseOperator):
             return {}
 
         if self.subset_tables:
-            tables = [table for table in tables if table["id"] in self.subset_tables]
+            subset_tables = [toCamelCase(table) for table in self.subset_tables]
+            tables = [table for table in tables if table["id"] in subset_tables]
 
         table_lookup = {}
 

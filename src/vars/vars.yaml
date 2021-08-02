@@ -345,3 +345,8 @@ stroomstoringen:
                     returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&\
                     groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&\
                     returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
+leidingeninfrastuctuur:
+  files_to_download:
+    wibon: Wibon.sqlite
+    source_tables: [mantelbuizen, materiaal, klasse, inwinningstype, mantelbuisdiameter, hoofdcategorie, thema, mantelbuistype, janee, nauwkeurigheid, eigenaar, functie, groep, kabeltype, kabeldiameter, fase, bouwtype, type, kabels]
+    target_tables: [mantelbuizen, kabelsondergronds, kabelsbovengronds]
