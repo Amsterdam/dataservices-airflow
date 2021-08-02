@@ -26,6 +26,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.leidingeninfrastructuur import (
+    SQL_ALTER_DATATYPES,
     SQL_GEOM_CONVERT,
     SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE,
     SQL_MANTELBUIZEN_TABLE,
@@ -142,7 +143,17 @@ with DAG(
         pg_schema="public",
     )
 
-    # 10. CONVERT GEOM
+    # 10. ALTER DATATYPES
+    alter_data_types = [
+        PostgresOperator(
+            task_id=f"alter_data_types_{table}",
+            sql=SQL_ALTER_DATATYPES,
+            params={"tablename": f"{DAG_ID}_{table}_new"},
+        )
+        for table in target_tables
+    ]
+
+    # 11. CONVERT GEOM
     converting_geom = [
         PostgresOperator(
             task_id=f"converting_geom_{table}",
@@ -152,7 +163,7 @@ with DAG(
         for table in target_tables
     ]
 
-    # 11. Drop Exisiting TABLE
+    # 12. Drop Exisiting TABLE
     drop_tables = [
         PostgresOperator(
             task_id=f"drop_existing_table_{table}",
@@ -189,13 +200,13 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[table] = total_checks
 
-    # 12. RUN bundled CHECKS
+    # 13. RUN bundled CHECKS
     multi_checks = [
         PostgresMultiCheckOperator(task_id=f"multi_check_{table}", checks=check_name[table])
         for table in target_tables
     ]
 
-    # 13. Rename TABLE
+    # 14. Rename TABLE
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{table}",
@@ -204,11 +215,11 @@ with DAG(
         )
         for table in target_tables
     ]
-    # 14. Dummy operator acts as an interface between parallel tasks to another parallel tasks
+    # 15. Dummy operator acts as an interface between parallel tasks to another parallel tasks
     # with different number of lanes (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 15. DROP temp tables
+    # 16. DROP temp tables
     # Start Task Group definition, combining tasks into one group for better visualisation
     group_tasks = []
     with TaskGroup(group_id="drop_tables_after") as drop_tables_after:
@@ -223,7 +234,7 @@ with DAG(
             group_tasks.append(task)
         chain(*group_tasks)
 
-    # 16. Grant database permissions
+    # 17. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     # FLOW
@@ -240,12 +251,12 @@ with DAG(
         >> converting_geom
     )
 
-    for geom, target_table, check, temp_table in zip(
-        converting_geom, drop_tables, multi_checks, rename_tables
+    for geom, data_type, target_table, check, temp_table in zip(
+        converting_geom, alter_data_types, drop_tables, multi_checks, rename_tables
     ):
 
         (
-            [geom >> target_table >> check >> temp_table]
+            [geom >> data_type >> target_table >> check >> temp_table]
             >> Interface
             >> drop_tables_after
             >> grant_db_permissions
