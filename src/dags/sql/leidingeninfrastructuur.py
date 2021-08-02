@@ -23,9 +23,7 @@ SQL_MANTELBUIZEN_TABLE: Final = """
     eigenaar.naam as eigenaar,
     jva,
     mantelbuisdiameter.naam as mantelbuisdiameter,
-    lengte,
-    gebruiker,
-    datum
+    lengte
     FROM   mantelbuizen m
     INNER JOIN inwinningstype ON inwinningstype.code = m.wijzeinw
     INNER JOIN hoofdcategorie ON hoofdcategorie.code = m.hoofdcat
@@ -70,9 +68,8 @@ SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE: Final = """
     fase.naam as fase,
     bouwtype.naam as bouwtype,
     bereikbaar,
-    lengte,
-    gebruiker,
-    datum
+    datum,
+    lengte
     FROM  kabels k
     INNER JOIN inwinningstype ON inwinningstype.code = k.wijzeinw
     INNER JOIN hoofdcategorie ON hoofdcategorie.code = k.hoofdcat
@@ -108,5 +105,16 @@ SQL_GEOM_CONVERT: Final = """
     SET GEOMETRY =  ST_CollectionExtract(geometry, 2)
     WHERE GeometryType(geometry) NOT IN ('MULTIPOLYGON', 'MULTILINESTRING');
     COMMIT;
+    {% endif %}
+"""
+
+# ALTER DATAYPES THAT OGR2OGR HAS NOT DONE CORRECTLY
+SQL_ALTER_DATATYPES: Final = """
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN jaar_van_aanleg TYPE integer
+    USING jaar_van_aanleg::integer;
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN diepte TYPE numeric USING diepte::numeric;
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN lengte TYPE numeric USING lengte::numeric;
+    {% if 'kabels' in params.tablename %}
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN hoogte TYPE numeric USING hoogte::numeric;
     {% endif %}
 """
