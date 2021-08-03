@@ -120,16 +120,16 @@ with DAG(
 
     # 7. CREATE KABELSBOVENGRONDS table (composite of multiple tables)
     create_table_kabelsbovengronds = PostgresOperator(
-        task_id="create_table_kabelsbovengronds",
+        task_id="create_table_bovengrondse_kabels",
         sql=SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE,
-        params={"tablename": f"{DAG_ID}_kabelsbovengronds_new", "filter": "bovengronds"},
+        params={"tablename": f"{DAG_ID}_bovengrondse_kabels_new", "filter": "bovengronds"},
     )
 
     # 8. CREATE KABELSONDERGRONDS table (composite of multiple tables)
     create_table_kabelsondergronds = PostgresOperator(
-        task_id="create_table_kabelsondergronds",
+        task_id="create_table_ondergrondse_kabels",
         sql=SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE,
-        params={"tablename": f"{DAG_ID}_kabelsondergronds_new", "filter": "ondergronds"},
+        params={"tablename": f"{DAG_ID}_ondergrondse_kabels_new", "filter": "ondergronds"},
     )
 
     # 9. Rename COLUMNS based on provenance (if specified)
