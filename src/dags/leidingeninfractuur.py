@@ -47,7 +47,6 @@ env = Env()
 total_checks = []
 count_checks = []
 geo_checks = []
-check_name = {}
 
 db_conn: object = DatabaseEngine()
 
@@ -173,40 +172,7 @@ with DAG(
         for table in target_tables
     ]
 
-    # Check minimum number of records
-    # PREPARE CHECKS
-    for table in target_tables:
-        count_checks.append(
-            COUNT_CHECK.make_check(
-                check_id=f"count_check_{table}",
-                pass_value=50,
-                params={"table_name": f"{DAG_ID}_{table}_new"},
-                result_checker=operator.ge,
-            )
-        )
-
-        geo_checks.append(
-            GEO_CHECK.make_check(
-                check_id=f"geo_check_{table}",
-                params={
-                    "table_name": f"{DAG_ID}_{table}_new",
-                    "geotype": ["MULTIPOLYGON", "MULTILINESTRING"],
-                    "geo_column": "geometry",
-                },
-                pass_value=1,
-            )
-        )
-
-        total_checks = count_checks + geo_checks
-        check_name[table] = total_checks
-
-    # 13. RUN bundled CHECKS
-    multi_checks = [
-        PostgresMultiCheckOperator(task_id=f"multi_check_{table}", checks=check_name[table])
-        for table in target_tables
-    ]
-
-    # 14. Rename TABLE
+    # 13. Rename TABLE
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_table_{table}",
@@ -215,11 +181,37 @@ with DAG(
         )
         for table in target_tables
     ]
-    # 15. Dummy operator acts as an interface between parallel tasks to another parallel tasks
-    # with different number of lanes (without this intermediar, Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
 
-    # 16. DROP temp tables
+    # Check minimum number of records
+    # PREPARE CHECKS
+    for table in target_tables:
+        count_checks.append(
+            COUNT_CHECK.make_check(
+                check_id=f"count_check_{table}",
+                pass_value=50,
+                params={"table_name": f"{DAG_ID}_{table}"},
+                result_checker=operator.ge,
+            )
+        )
+
+        geo_checks.append(
+            GEO_CHECK.make_check(
+                check_id=f"geo_check_{table}",
+                params={
+                    "table_name": f"{DAG_ID}_{table}",
+                    "geotype": ["MULTIPOLYGON", "MULTILINESTRING"],
+                    "geo_column": "geometry",
+                },
+                pass_value=1,
+            )
+        )
+
+        total_checks = count_checks + geo_checks
+
+    # 14. RUN bundled CHECKS
+    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
+
+    # 15. DROP temp tables
     # Start Task Group definition, combining tasks into one group for better visualisation
     group_tasks = []
     with TaskGroup(group_id="drop_tables_after") as drop_tables_after:
@@ -234,7 +226,7 @@ with DAG(
             group_tasks.append(task)
         chain(*group_tasks)
 
-    # 17. Grant database permissions
+    # 16. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     # FLOW
@@ -251,13 +243,13 @@ with DAG(
         >> converting_geom
     )
 
-    for geom, data_type, target_table, check, temp_table in zip(
-        converting_geom, alter_data_types, drop_tables, multi_checks, rename_tables
+    for geom, data_type, target_table, temp_table in zip(
+        converting_geom, alter_data_types, drop_tables, rename_tables
     ):
 
         (
-            [geom >> data_type >> target_table >> check >> temp_table]
-            >> Interface
+            [geom >> data_type >> target_table >> temp_table]
+            >> multi_checks
             >> drop_tables_after
             >> grant_db_permissions
         )
