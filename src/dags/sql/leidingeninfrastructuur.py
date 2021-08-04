@@ -116,5 +116,10 @@ SQL_ALTER_DATATYPES: Final = """
     ALTER TABLE {{ params.tablename }} ALTER COLUMN lengte TYPE numeric USING lengte::numeric;
     {% if 'kabels' in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN hoogte TYPE numeric USING hoogte::numeric;
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(MULTILINESTRING, 28992)
+    USING ST_SetSRID(geometry, 28992);
+    {% elif 'mantelbuizen' in params.tablename %}
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 28992)
+    USING ST_SetSRID(geometry, 28992);
     {% endif %}
 """
