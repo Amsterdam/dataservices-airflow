@@ -86,7 +86,7 @@ with DAG(
     provenance_file_data = ProvenanceRenameOperator(
         task_id="provenance_file",
         dataset_name="huishoudelijkafval",
-        subset_tables=[tables['dump_file']],
+        subset_tables=tables['dump_file'],
         pg_schema="pte",
         rename_indexes=True,
     )
