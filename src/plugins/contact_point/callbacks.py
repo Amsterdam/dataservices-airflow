@@ -11,7 +11,7 @@ from environs import Env
 from more_ds.network.url import URL
 from pendulum import DateTime
 from schematools.types import DatasetSchema
-from schematools.utils import def_from_url
+from schematools.utils import schema_from_url
 
 env = Env()
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
@@ -52,7 +52,7 @@ def get_contact_point_on_failure_callback(
         ti = cast(TaskInstance, context["ti"])
         logger.debug("Trying to retrieve contact point.")
 
-        dataset = def_from_url(SCHEMA_URL, DatasetSchema, dataset_id)
+        dataset = schema_from_url(SCHEMA_URL, DatasetSchema, dataset_id)
         if "contactPoint" in dataset:
             cp = dataset["contactPoint"]
             contact_point = ContactPoint(**cp)

@@ -4,7 +4,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
-from schematools.utils import schema_def_from_url, to_snake_case
+from schematools.utils import dataset_schema_from_url, to_snake_case
 
 env = Env()
 SCHEMA_URL: Final = env("SCHEMA_URL")
@@ -42,7 +42,7 @@ class SwapSchemaOperator(BaseOperator):
             table is moved to the defined schema (a.k.a. schema swapping)
 
         """
-        dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
+        dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
         pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
 
         sqls = []

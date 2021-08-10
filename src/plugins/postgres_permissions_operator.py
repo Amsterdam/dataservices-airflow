@@ -10,7 +10,7 @@ from environs import Env
 from requests.exceptions import HTTPError
 from schematools.cli import _get_engine
 from schematools.permissions.db import apply_schema_and_profile_permissions
-from schematools.utils import schema_defs_from_url
+from schematools.utils import dataset_schema_from_url
 
 env = Env()
 
@@ -159,7 +159,7 @@ class PostgresPermissionsOperator(BaseOperator):
                     logger.info("set grants for %s", dataset_name)
 
                     try:
-                        ams_schema = schema_defs_from_url(
+                        ams_schema = dataset_schema_from_url(
                             schemas_url=self.schema_url,
                             dataset_name=dataset_name,
                             prefetch_related=True,
@@ -199,7 +199,7 @@ class PostgresPermissionsOperator(BaseOperator):
             logger.info("set grants for %s", self.dataset_name)
 
             try:
-                ams_schema = schema_defs_from_url(
+                ams_schema = dataset_schema_from_url(
                     schemas_url=self.schema_url,
                     dataset_name=self.dataset_name,
                     prefetch_related=True,
