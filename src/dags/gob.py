@@ -13,7 +13,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from postgres_table_init_operator import PostgresTableInitOperator
 from schematools import TMP_TABLE_POSTFIX
-from schematools.utils import schema_def_from_url
+from schematools.utils import dataset_schema_from_url
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 MAX_RECORDS: Final = 1000 if DATAPUNT_ENVIRONMENT == "development" else None
@@ -88,7 +88,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         )
 
         def _create_dataset_info(dataset_id: str, table_id: str) -> DatasetInfo:
-            dataset = schema_def_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
+            dataset = dataset_schema_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
             # Fetch the db_name for this dataset and table
             db_table_name = dataset.get_table_by_id(table_id).db_name()
 

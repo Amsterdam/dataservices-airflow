@@ -8,7 +8,7 @@ from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from psycopg2 import sql
-from schematools.utils import schema_def_from_url, to_snake_case, toCamelCase
+from schematools.utils import dataset_schema_from_url, to_snake_case, toCamelCase
 
 env = Env()
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
@@ -158,7 +158,7 @@ class ProvenanceRenameOperator(BaseOperator):
             SQL alter statements to change database table names, columns and or indexes
 
         """
-        dataset = schema_def_from_url(SCHEMA_URL, self.dataset_name)
+        dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
         pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
         sqls = []
         existing_tables_lookup = self._get_existing_tables(

@@ -16,7 +16,7 @@ from environs import Env
 from http_params_hook import HttpParamsHook
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import schema_def_from_url, toCamelCase
+from schematools.utils import dataset_schema_from_url, toCamelCase
 from sqlalchemy.exc import SQLAlchemyError
 from urllib3.exceptions import ProtocolError
 
@@ -149,10 +149,10 @@ class HttpGobOperator(BaseOperator):
 
             self.log.info("Calling GOB graphql endpoint")
 
-            # we know the schema, can be an input param (schema_def_from_url function)
+            # we know the schema, can be an input param (dataset_schema_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresHook()
-            dataset = schema_def_from_url(
+            dataset = dataset_schema_from_url(
                 dataset_info.schema_url, dataset_info.dataset_id, prefetch_related=True
             )
             importer = NDJSONImporter(dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log)
