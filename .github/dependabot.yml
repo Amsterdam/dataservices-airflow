@@ -4,6 +4,7 @@ updates:
     directory: src
     schedule:
       interval: daily
+    open-pull-requests-limit: 0
     ignore:
       # Reason being:
       #   * there is no patch version available yet
@@ -11,5 +12,5 @@ updates:
       #     than `pickle`
       #   * Attacker already needs to have acces to the cache storage for this to
       #     be an issue. Hence the serverity is rather limited in our use-case.
-      - dependency-name: flask-caching
+      - dependency-name: Flask-Caching
         versions: [ "<=1.10.1" ]
