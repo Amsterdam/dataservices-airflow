@@ -83,7 +83,7 @@ with DAG(
         PostgresOperator(
             task_id=f"flag_not_recent_{resource}",
             sql=SQL_FLAG_NOT_RECENT_DATA,
-            params=dict(tablename=f"{dag_id}_{resource}"),
+            params={"tablename": f"{dag_id}_{resource}"},
         )
         for resource in variables
     ]
@@ -97,40 +97,40 @@ with DAG(
     import_scooter_data = PythonOperator(
         task_id="import_scooter_data",
         python_callable=import_scooter_data,
-        op_kwargs=dict(
-            table_name=f"{dag_id}_scooters_new",
-            felyx_api_endpoint=f"{felyx_base_url}{endpoint_scooters['felyx']}",
-            felyx_api_header={
+        op_kwargs={
+            "table_name": f"{dag_id}_scooters_new",
+            "felyx_api_endpoint": f"{felyx_base_url}{endpoint_scooters['felyx']}",
+            "felyx_api_header": {
                 "content-type": "application/json",
                 "x-api-key": felyx_api_key,
             },
-            ridecheck_token_endpoint=ridecheck_token_url,
-            ridecheck_token_payload={
+            "ridecheck_token_endpoint": ridecheck_token_url,
+            "ridecheck_token_payload": {
                 "grant_type": "client_credentials",
                 "client_id": ridecheck_token_client_id,
                 "client_secret": ridecheck_token_client_secret,
                 "scope": f"{ridecheck_base_url}/scooter.read",
             },
-            ridecheck_token_header={"content-type": "application/x-www-form-urlencoded"},
-            ridecheck_data_endpoint=f"{ridecheck_base_url}{endpoint_scooters['ridecheck']}",
-            ridecheck_data_header={
+            "ridecheck_token_header": {"content-type": "application/x-www-form-urlencoded"},
+            "ridecheck_data_endpoint": f"{ridecheck_base_url}{endpoint_scooters['ridecheck']}",
+            "ridecheck_data_header": {
                 "content-type": "application/json",
             },
-        ),
+        },
     )
 
     # 6. Load auto data into DB
     import_auto_data = PythonOperator(
         task_id="import_auto_data",
         python_callable=import_auto_data,
-        op_kwargs=dict(
-            table_name=f"{dag_id}_autos_new",
-            mywheels_api_endpoint=f"{mywheels_base_url}{endpoint_autos['mywheels']}",
-            mywheels_api_header={
+        op_kwargs={
+            "table_name": f"{dag_id}_autos_new",
+            "mywheels_api_endpoint": f"{mywheels_base_url}{endpoint_autos['mywheels']}",
+            "mywheels_api_header": {
                 "content-type": "application/json",
                 "X-Simple-Auth-App-Id": mywheels_api_key,
             },
-            mywheels_api_payload={
+            "mywheels_api_payload": {
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "search.map",
@@ -144,7 +144,7 @@ with DAG(
                     "timeFrame": {"startDate": None, "endDate": None},
                 },
             },
-        ),
+        },
     )
 
     # 7. Dummy operator acts as an Interface between parallel tasks
@@ -159,7 +159,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{resource}",
                 pass_value=50,
-                params=dict(table_name=f"{dag_id}_{resource}_new "),
+                params={"table_name": f"{dag_id}_{resource}_new "},
                 result_checker=operator.ge,
             )
         )
@@ -167,11 +167,11 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{resource}",
-                params=dict(
-                    table_name=f"{dag_id}_{resource}_new",
-                    geotype=["POINT"],
-                    geo_column="geometrie",
-                ),
+                params={
+                    "table_name": f"{dag_id}_{resource}_new",
+                    "geotype": ["POINT"],
+                    "geo_column": "geometrie",
+                },
                 pass_value=1,
             )
         )
@@ -199,7 +199,7 @@ with DAG(
         PostgresOperator(
             task_id=f"set_geom_{resource}",
             sql=SQL_SET_GEOM,
-            params=dict(tablename=f"{dag_id}_{resource}_new"),
+            params={"tablename": f"{dag_id}_{resource}_new"},
         )
         for resource in variables
     ]
@@ -223,7 +223,7 @@ with DAG(
         PostgresOperator(
             task_id=f"clean_up_{resource}",
             sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{resource}_new"),
+            params={"tablename": f"{dag_id}_{resource}_new"},
         )
         for resource in variables
     ]
@@ -233,7 +233,7 @@ with DAG(
         PostgresOperator(
             task_id=f"history_window_{resource}",
             sql=SQL_SET_GEOM,
-            params=dict(tablename=f"{dag_id}_{resource}"),
+            params={"tablename": f"{dag_id}_{resource}"},
         )
         for resource in variables
     ]
@@ -250,7 +250,7 @@ Interface2 >> set_geom
 
 for (set_geom, multi_checks) in zip(set_geom, multi_checks):
 
-    [set_geom >> multi_checks] >> provenance
+    [set_geom >> multi_checks] >> provenance  # type: ignore[operator]
 
 provenance >> change_data_capture
 

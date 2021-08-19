@@ -1,5 +1,5 @@
 import operator
-from typing import Final
+from typing import Dict, Final, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -39,10 +39,10 @@ table_source_names = variables["table_source_names"]
 table_target_names = variables["table_target_names"]
 table_renames = list(zip(files_to_download, table_source_names, table_target_names))
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
+total_checks: List[int] = []
+count_checks: List[int] = []
+geo_checks: List[int] = []
+check_name: Dict[str, List[int]] = {}
 
 
 with DAG(
@@ -114,7 +114,7 @@ with DAG(
         PostgresOperator(
             task_id=f"recreate_{target_name}_new",
             sql=SQL_RECREATE_TMP_TABLES,
-            params=dict(tablename=f"{dag_id}_{target_name}"),
+            params={"tablename": f"{dag_id}_{target_name}"},
         )
         for file, _, target_name in table_renames
     ]
@@ -138,7 +138,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{target_name}",
                 pass_value=10,
-                params=dict(table_name=f"{dag_id}_{target_name}_new"),
+                params={"table_name": f"{dag_id}_{target_name}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -146,13 +146,13 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{target_name}",
-                params=dict(
-                    table_name=f"{dag_id}_{target_name}_new",
-                    geotype=[
+                params={
+                    "table_name": f"{dag_id}_{target_name}_new",
+                    "geotype": [
                         "MULTIPOLYGON",
                     ],
-                    geo_column="geometrie",
-                ),
+                    "geo_column": "geometrie",
+                },
                 pass_value=1,
             )
         )
@@ -182,7 +182,7 @@ with DAG(
         PostgresOperator(
             task_id=f"drop_tmp_{target_name}_new",
             sql=SQL_DROP_TMP_TABLES,
-            params=dict(tablename=f"{dag_id}_{target_name}"),
+            params={"tablename": f"{dag_id}_{target_name}"},
         )
         for _, _, target_name in table_renames
     ]

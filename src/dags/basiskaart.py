@@ -3,7 +3,6 @@ import operator
 from dataclasses import dataclass
 from typing import Final, Iterable, List
 
-import pendulum
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
@@ -12,7 +11,6 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
 from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 

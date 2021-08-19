@@ -1,6 +1,6 @@
 import operator
 from pathlib import Path
-from typing import Final
+from typing import Dict, Final, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -30,10 +30,10 @@ variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
 db_conn = DatabaseEngine()
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
+total_checks: List[int] = []
+count_checks: List[int] = []
+geo_checks: List[int] = []
+check_name: Dict[str, List[int]] = {}
 
 
 SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE: Final = """
@@ -55,7 +55,9 @@ SQL_DROP_TMP_TABLE: Final = """
 
 with DAG(
     dag_id,
-    description="uitgevoerde onderzoeken in of op de ondergrond, bijv. Archeologische verwachtingen (A), Bodemkwaliteit (B), Conventionele explosieven (C) kademuren Dateren (D) en Ondergrondse Obstakels (OO).",
+    description="""uitgevoerde onderzoeken in of op de ondergrond,
+        bijv. Archeologische verwachtingen (A), Bodemkwaliteit (B),
+        Conventionele explosieven (C) kademuren Dateren (D) en Ondergrondse Obstakels (OO).""",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
@@ -136,7 +138,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{table_name}",
                 pass_value=10,
-                params=dict(table_name=f"{dag_id}_{table_name}_new"),
+                params={"table_name": f"{dag_id}_{table_name}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -144,13 +146,13 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{table_name}",
-                params=dict(
-                    table_name=f"{dag_id}_{table_name}_new",
-                    geotype=[
+                params={
+                    "table_name": f"{dag_id}_{table_name}_new",
+                    "geotype": [
                         "MULTIPOLYGON",
                     ],
-                    geo_column="geometrie",
-                ),
+                    "geo_column": "geometrie",
+                },
                 pass_value=1,
             )
         )
@@ -177,7 +179,7 @@ with DAG(
         PostgresOperator(
             task_id=f"drop_unnecessary_cols_{dag_id}_{table_name}_new",
             sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{table_name}_new"),
+            params={"tablename": f"{dag_id}_{table_name}_new"},
         )
         for table_name, _ in files_to_download.items()
         if table_name == "historischeonderzoeken"
@@ -203,7 +205,7 @@ with DAG(
         PostgresOperator(
             task_id="clean_up",
             sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{table_name}_new"),
+            params={"tablename": f"{dag_id}_{table_name}_new"},
         )
         for table_name, _ in files_to_download.items()
     ]
