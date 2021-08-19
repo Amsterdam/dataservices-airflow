@@ -74,7 +74,7 @@ with DAG(
     load_file = SwiftLoadSqlOperator(
         task_id="load_dump_file",
         container="Dataservices",
-        object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/" "afval_api.zip",
+        object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/afval_api.zip",
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -86,7 +86,7 @@ with DAG(
     provenance_file_data = ProvenanceRenameOperator(
         task_id="provenance_file",
         dataset_name="huishoudelijkafval",
-        subset_tables=tables['dump_file'],
+        subset_tables=tables["dump_file"],
         pg_schema="pte",
         rename_indexes=True,
     )
@@ -109,9 +109,10 @@ with DAG(
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
-        params=dict(
-            tablename=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new", mincount=1000
-        ),
+        params={
+            "tablename": f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new",
+            "mincount": 1000,
+        },
     )
 
     # 8. DWH STADSDELEN SOURCE
@@ -154,7 +155,7 @@ with DAG(
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"),
+        params={"tablename": f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"},
     )
 
     # 12. Grant database permissions

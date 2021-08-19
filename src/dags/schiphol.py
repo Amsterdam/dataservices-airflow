@@ -1,4 +1,5 @@
 import operator
+from typing import Dict, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -30,10 +31,10 @@ tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 tables_to_proces = [table for table in variables["files_to_download"] if table != "themas"]
 db_conn = DatabaseEngine()
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
+total_checks: List[int] = []
+count_checks: List[int] = []
+geo_checks: List[int] = []
+check_name: Dict[str, List[int]] = {}
 
 
 with DAG(
@@ -111,7 +112,7 @@ with DAG(
         PostgresOperator(
             task_id=f"add_context_{key}",
             sql=ADD_THEMA_CONTEXT,
-            params=dict(tablename=f"{dag_id}_{key}_new", parent_table=f"{dag_id}_themas_new"),
+            params={"tablename": f"{dag_id}_{key}_new", "parent_table": f"{dag_id}_themas_new"},
         )
         for key in files_to_download.keys()
         if "vogelvrijwaringsgebied" in key or "geluidzone" in key
@@ -122,7 +123,7 @@ with DAG(
         PostgresOperator(
             task_id=f"drop_cols_{key}",
             sql=DROP_COLS,
-            params=dict(tablename=f"{dag_id}_{key}_new"),
+            params={"tablename": f"{dag_id}_{key}_new"},
         )
         for key in tables_to_proces
     ]
@@ -132,7 +133,7 @@ with DAG(
         PostgresOperator(
             task_id=f"set_geomtype_{key}",
             sql=SET_GEOM,
-            params=dict(tablename=f"{dag_id}_{key}_new"),
+            params={"tablename": f"{dag_id}_{key}_new"},
         )
         for key in tables_to_proces
     ]
@@ -172,7 +173,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=1,
-                params=dict(table_name=f"{dag_id}_{key}_new"),
+                params={"table_name": f"{dag_id}_{key}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -180,11 +181,11 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params=dict(
-                    table_name=f"{dag_id}_{key}_new",
-                    geotype=["MULTIPOLYGON"],
-                    geo_column="geometrie",
-                ),
+                params={
+                    "table_name": f"{dag_id}_{key}_new",
+                    "geotype": ["MULTIPOLYGON"],
+                    "geo_column": "geometrie",
+                },
                 pass_value=1,
             )
         )
@@ -213,7 +214,7 @@ with DAG(
         PostgresOperator(
             task_id=f"clean_up_{key}",
             sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{key}_new"),
+            params={"tablename": f"{dag_id}_{key}_new"},
         )
         for key in tables_to_proces
     ]

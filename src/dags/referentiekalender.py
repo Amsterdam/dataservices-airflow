@@ -43,7 +43,7 @@ with DAG(
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
-        params=dict(tablename=f"{dag_id}_datum_new", mincount=1000),
+        params={"tablename": f"{dag_id}_datum_new", "mincount": 1000},
     )
 
     # 4.
@@ -85,7 +85,7 @@ with DAG(
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_datum_new"),
+        params={"tablename": f"{dag_id}_datum_new"},
     )
 
     # 8. Grant database permissions

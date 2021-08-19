@@ -56,14 +56,14 @@ to_zone: Optional[tzinfo] = tz.gettz("Europe/Amsterdam")
 
 
 class DataSourceError(Exception):
-    """Custom exeception for not available data source"""
+    """Custom exeception for not available data source."""
 
     pass
 
 
 # data connection
 def get_data() -> None:
-    """calling the data endpoint"""
+    """Calling the data endpoint."""
     data_url = base_url / data_endpoint  # type: ignore
     data_request = requests.get(data_url, auth=HTTPBasicAuth(user, password))
     # store data
@@ -71,12 +71,12 @@ def get_data() -> None:
         try:
             data = data_request.json()
         except json.decoder.JSONDecodeError as jde:
-            logger.exception(f"Failed to convert request output to json for url {data_url}")
+            logger.exception("Failed to convert request output to json for url %s", data_url)
             raise json.decoder.JSONDecodeError from jde
         with open(data_file, "w") as file:
             file.write(json.dumps(data))
     else:
-        logger.exception(f"Failed to call {data_url}")
+        logger.exception("Failed to call %s", data_url)
         raise DataSourceError(f"HTTP status code: {data_request.status_code}")
 
 
@@ -111,7 +111,7 @@ with DAG(
         action_type="upload",
         container="WIOR",
         output_path=f"{tmp_dir}/{dag_id}.geojson",
-        object_id=f"{datetime.now(timezone.utc).astimezone(to_zone).strftime('%Y-%m-%d')}_{dag_id}.geojson",  # noqa E501
+        object_id=f"{datetime.now(timezone.utc).astimezone(to_zone).strftime('%Y-%m-%d')}_{dag_id}.geojson",  # noqa: E501
     )
 
     # 5. Delete files from objectstore (that do not fit given time window)
@@ -135,21 +135,22 @@ with DAG(
         fid="fid",
         mode="PostgreSQL",
         db_conn=db_conn,
-        sql_statement=f"SELECT * FROM {dag_id} WHERE hoofdstatus NOT ILIKE '%intake%'",
+        sql_statement=f"""SELECT * FROM {dag_id}
+                WHERE hoofdstatus NOT ILIKE '%intake%'""",  # noqa: S608
     )
 
     # 7. Drop unnecessary cols
     drop_cols = PostgresOperator(
         task_id="drop_unnecessary_cols",
         sql=DROP_COLS,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # 8. geometry validation
     geom_validation = PostgresOperator(
         task_id="geom_validation",
         sql=SQL_GEOM_VALIDATION,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # 9. Rename COLUMNS based on Provenance
@@ -166,14 +167,14 @@ with DAG(
     add_pk = PostgresOperator(
         task_id="add_pk",
         sql=SQL_ADD_PK,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # 11. Set date datatypes
     set_dates = PostgresOperator(
         task_id="set_dates",
         sql=SQL_SET_DATE_DATA_TYPES,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # PREPARE CHECKS
@@ -181,7 +182,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=25,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
+            params={"table_name": f"{dag_id}_{dag_id}_new"},
             result_checker=operator.ge,
         )
     )
@@ -189,9 +190,9 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}_new",
-                geotype=[
+            params={
+                "table_name": f"{dag_id}_{dag_id}_new",
+                "geotype": [
                     "MULTIPOLYGON",
                     "POLYGON",
                     "POINT",
@@ -199,8 +200,8 @@ with DAG(
                     "LINESTRING",
                     "GEOMETRYCOLLECTION",
                 ],
-                geo_column="geometrie",
-            ),
+                "geo_column": "geometrie",
+            },
             pass_value=1,
         )
     )
@@ -232,7 +233,7 @@ with DAG(
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # 16. Grant database permissions

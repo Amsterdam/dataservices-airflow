@@ -89,7 +89,7 @@ with DAG(
     set_pk = PostgresOperator(
         task_id="set_pk",
         sql=SQL_REDEFINE_PK,
-        params=dict(tablename=f"{schema_name}_{table_name}_new"),
+        params={"tablename": f"{schema_name}_{table_name}_new"},
     )
 
     # 7. RENAME columns based on PROVENANCE
@@ -109,7 +109,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=1,
-            params=dict(table_name=f"{schema_name}_{table_name}_new"),
+            params={"table_name": f"{schema_name}_{table_name}_new"},
             result_checker=operator.ge,
         )
     )
@@ -141,7 +141,7 @@ with DAG(
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{schema_name}_{table_name}_new"),
+        params={"tablename": f"{schema_name}_{table_name}_new"},
     )
 
     # 12. Grant database permissions

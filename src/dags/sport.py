@@ -78,7 +78,7 @@ for resource_type, resources in data_endpoints.items():
 
 
 def clean_data(file_name: str) -> None:
-    """The unicode replacement karakter is translated to the EM DASH sign
+    """The unicode replacement karakter is translated to the EM DASH sign.
 
     Args:
         file_name: Name of file to clean up
@@ -210,7 +210,7 @@ with DAG(
         PostgresOperator(
             task_id=f"add_geom_column_{resource}",
             sql=ADD_GEOMETRY_COL,
-            params=dict(tablename=f"{dag_id}_{resource}"),
+            params={"tablename": f"{dag_id}_{resource}"},
         )
         for resource in files_to_download["csv"].keys()
     ]
@@ -255,7 +255,7 @@ with DAG(
                 COUNT_CHECK.make_check(
                     check_id=f"count_check_{resource}",
                     pass_value=2,
-                    params=dict(table_name=f"{dag_id}_{resource}_new"),
+                    params={"table_name": f"{dag_id}_{resource}_new"},
                     result_checker=operator.ge,
                 )
             )
@@ -263,16 +263,16 @@ with DAG(
             geo_checks.append(
                 GEO_CHECK.make_check(
                     check_id=f"geo_check_{resource}",
-                    params=dict(
-                        table_name=f"{dag_id}_{resource}_new",
-                        geotype=[
+                    params={
+                        "table_name": f"{dag_id}_{resource}_new",
+                        "geotype": [
                             "POINT",
                             "POLYGON",
                             "MULTIPOLYGON",
                             "MULTILINESTRING",
                             "LINESTRING",
                         ],
-                    ),
+                    },
                     pass_value=1,
                 )
             )
@@ -318,7 +318,7 @@ with DAG(
         PostgresOperator(
             task_id=f"clean_up_{resource}",
             sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{resource}_new"),
+            params={"tablename": f"{dag_id}_{resource}_new"},
         )
         for resources in files_to_import.values()
         for resource in resources

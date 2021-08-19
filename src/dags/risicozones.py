@@ -1,4 +1,5 @@
 import operator
+from typing import Dict, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -40,10 +41,10 @@ files_to_union = variables["files_to_union"]
 files_to_cleanse = variables["files_to_cleanse"]
 files_to_fix_geom = variables["files_to_fix_geom"]
 db_conn = DatabaseEngine()
-total_checks = []
-count_checks = []
-geo_checks = []
-check_name = {}
+total_checks: List[int] = []
+count_checks: List[int] = []
+geo_checks: List[int] = []
+check_name: Dict[str, List[int]] = {}
 
 
 with DAG(
@@ -79,7 +80,8 @@ with DAG(
         for file in files
     ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 4. Dummy operator acts as an interface between parallel tasks
+    # to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
@@ -101,7 +103,8 @@ with DAG(
         for subject, params in files_to_merge.items()
     ]
 
-    # 6. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 6. Dummy operator acts as an interface between parallel tasks
+    # to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
@@ -123,7 +126,8 @@ with DAG(
         for subject, params in files_to_union.items()
     ]
 
-    # 8. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 8. Dummy operator acts as an interface between parallel tasks
+    # to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface3 = DummyOperator(task_id="interface3")
 
@@ -142,12 +146,14 @@ with DAG(
         for subject, params in files_to_cleanse.items()
     ]
 
-    # 10. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 10. Dummy operator acts as an interface between parallel tasks
+    # to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface4 = DummyOperator(task_id="interface4")
 
     # 11. Fix geom
-    # Files can contain different geometry types. To proces the geometry to the geometry type in the DB the geometries must be equalized.
+    # Files can contain different geometry types.
+    # To proces the geometry to the geometry type in the DB the geometries must be equalized.
     fix_geometry = [
         PythonOperator(
             task_id=f"fix_geom_{subject}",
@@ -160,7 +166,8 @@ with DAG(
         for subject, params in files_to_fix_geom.items()
     ]
 
-    # 12. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 12. Dummy operator acts as an interface between parallel tasks
+    # to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface5 = DummyOperator(task_id="interface5")
 
@@ -204,7 +211,7 @@ with DAG(
         PostgresOperator(
             task_id=f"set_geomtype_{key}",
             sql=SET_GEOM,
-            params=dict(tablename=f"{dag_id}_{key}_new"),
+            params={"tablename": f"{dag_id}_{key}_new"},
         )
         for key, files in files_to_download.items()
         for file in files
@@ -248,7 +255,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{table_name}",
                 pass_value=1,
-                params=dict(table_name=f"{dag_id}_{table_name}_new"),
+                params={"table_name": f"{dag_id}_{table_name}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -256,11 +263,11 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{table_name}",
-                params=dict(
-                    table_name=f"{dag_id}_{table_name}_new",
-                    geotype=["POLYGON", "MULTIPOLYGON", "MULTILINESTRING", "POINT"],
-                    geo_column="geometrie",
-                ),
+                params={
+                    "table_name": f"{dag_id}_{table_name}_new",
+                    "geotype": ["POLYGON", "MULTIPOLYGON", "MULTILINESTRING", "POINT"],
+                    "geo_column": "geometrie",
+                },
                 pass_value=1,
             )
         )
@@ -291,7 +298,7 @@ with DAG(
         PostgresOperator(
             task_id=f"clean_up_{table_name}",
             sql=SQL_DROP_TMP_TABLE,
-            params=dict(tablename=f"{dag_id}_{table_name}_new"),
+            params={"tablename": f"{dag_id}_{table_name}_new"},
         )
         for table_name in files_to_download.keys()
     ]
@@ -307,11 +314,7 @@ for download in zip(download_data):
 
     download >> Interface
 
-Interface >> merge_data
-
-for merge_data in zip(merge_data):
-
-    merge_data >> Interface2
+Interface >> merge_data >> Interface2
 
 Interface2 >> union_data
 
@@ -337,7 +340,8 @@ for change_seperator, to_sql, set_geom, create_table in zip(
     change_seperator, to_sql, redefine_geoms, create_tables
 ):
 
-    [change_seperator >> to_sql >> set_geom >> create_table] >> provenance_translation
+    op_chain = [change_seperator >> to_sql >> set_geom >> create_table]  # type: ignore[operator]
+    op_chain >> provenance_translation
 
 provenance_translation >> multi_checks
 

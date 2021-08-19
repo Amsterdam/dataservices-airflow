@@ -122,6 +122,8 @@ class FuncCols:
 
 
 class CsvDef(TypedDict):
+    """Helper class to hold csv properties."""
+
     dialect: Type[Dialect]
     fieldnames: Tuple[ColName, ...]
     derived: Dict[ColName, FuncCols]
@@ -246,6 +248,7 @@ with DAG(
     ]
 
     def rm_tmp_tables(task_id_postfix: str) -> PostgresOperator:
+        """Remove temporary tables."""
         return PostgresOperator(
             task_id=f"rm_tmp_tables{task_id_postfix}",
             sql="DROP TABLE IF EXISTS {tables}".format(

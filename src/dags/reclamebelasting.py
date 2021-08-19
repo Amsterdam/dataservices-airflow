@@ -114,7 +114,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=1,
-            params=dict(table_name=f"{schema_name}_{table_name}_new"),
+            params={"table_name": f"{schema_name}_{table_name}_new"},
             result_checker=operator.ge,
         )
     )
@@ -122,13 +122,13 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name=f"{schema_name}_{table_name}_new",
-                geotype=[
+            params={
+                "table_name": f"{schema_name}_{table_name}_new",
+                "geotype": [
                     "POLYGON",
                     "MULTIPOLYGON",
                 ],
-            ),
+            },
             pass_value=1,
         )
     )
@@ -160,7 +160,7 @@ with DAG(
     clean_up = PostgresOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
-        params=dict(tablename=f"{schema_name}_{table_name}_new"),
+        params={"tablename": f"{schema_name}_{table_name}_new"},
     )
 
     # 11. Grant database permissions
