@@ -13,9 +13,9 @@ from common import (
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_afvalinzamelingplanning import load_from_dwh
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import PostgresCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from schematools.utils import to_snake_case
@@ -141,13 +141,11 @@ with DAG(
 
     # 10. DWH STADSDELEN SOURCE
     # Check for changes to merge in target table by using CDC
-    change_data_capture = PgComparatorCDCOperator(
+    change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        source_table=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new",
-        target_table=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}",
-        use_pg_copy=True,
-        key_column="id",
-        use_key=True,
+        source_table_name=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new",
+        target_table_name=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}",
+        drop_target_if_unequal=True,
     )
 
     # 11. DWH STADSDELEN SOURCE

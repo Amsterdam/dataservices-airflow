@@ -23,7 +23,6 @@ from common import (
 )
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_insert_csv_operator import FileTable, PostgresInsertCsvOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
@@ -342,13 +341,11 @@ with DAG(
     )
 
     change_data_capture = [
-        PgComparatorCDCOperator(
+        PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table}",
-            source_table=f"{TMP_TABLE_PREFIX}{table}",
-            target_table=table,
-            use_pg_copy=True,
-            key_column="cdc_id",
-            use_key=True,
+            source_table_name=f"{TMP_TABLE_PREFIX}{table}",
+            target_table_name=table,
+            drop_target_if_unequal=True,
         )
         for table in table_mappings.values()
     ]

@@ -19,11 +19,13 @@ from common import (
 from common.db import DatabaseEngine
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
-from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_geojson  # noqa
+
+# The imported functions are taken from globals(), hence the noqa.
+from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_geojson  # noqa: F401
 from ogr2ogr_operator import Ogr2OgrOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -304,10 +306,11 @@ with DAG(
 
     # 17. Check for changes to merge in target table
     change_data_capture = [
-        PgComparatorCDCOperator(
+        PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource}",
-            source_table=f"{dag_id}_{resource}_new",
-            target_table=f"{dag_id}_{resource}",
+            source_table_name=f"{dag_id}_{resource}_new",
+            target_table_name=f"{dag_id}_{resource}",
+            drop_target_if_unequal=True,
         )
         for resources in files_to_import.values()
         for resource in resources

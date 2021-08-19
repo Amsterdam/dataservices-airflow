@@ -159,10 +159,10 @@ def table_task_group(table: Table) -> DAG:
             },
         )
 
-        change_data_capture = PgComparatorCDCOperator(
+        change_data_capture = PostgresTableCopyOperator(
             task_id=f"change_data_capture_for_{table.id}",
-            source_table=table.tmp_id,
-            target_table=table.id,
+            source_table_name=table.tmp_id,
+            target_table_name=table.id,
         )
 
         # Create mviews for T-REX tile server
