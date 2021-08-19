@@ -14,10 +14,10 @@ from common import (
     slack_webhook_token,
 )
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_files_operator import PostgresFilesOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
@@ -170,10 +170,11 @@ with DAG(
 
     # 9. Check for changes to merge in target table
     change_data_capture = [
-        PgComparatorCDCOperator(
+        PostgresTableCopyOperator(
             task_id=f"change_data_capture_{target_name}",
-            source_table=f"{dag_id}_{target_name}_new",
-            target_table=f"{dag_id}_{target_name}",
+            source_table_name=f"{dag_id}_{target_name}_new",
+            target_table_name=f"{dag_id}_{target_name}",
+            drop_target_if_unequal=True,
         )
         for _, _, target_name in table_renames
     ]

@@ -18,9 +18,9 @@ from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
 from ogr2ogr_operator import Ogr2OgrOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.reclamebelasting import SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -150,10 +150,11 @@ with DAG(
     )
 
     # 9. Check for changes to merge in target table
-    change_data_capture = PgComparatorCDCOperator(
+    change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        source_table=f"{schema_name}_{table_name}_new",
-        target_table=f"{schema_name}_{table_name}",
+        source_table_name=f"{schema_name}_{table_name}_new",
+        target_table_name=f"{schema_name}_{table_name}",
+        drop_target_if_unequal=True,
     )
 
     # 10. Clean up (remove temp table _new)

@@ -24,9 +24,9 @@ from importscripts.import_risicozones import (
     union_files_iter,
 )
 from ogr2ogr_operator import Ogr2OgrOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.risicozones import SET_GEOM, SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -285,10 +285,10 @@ with DAG(
 
     # 19. Check for changes to merge in target table by using CDC
     change_data_capture = [
-        PgComparatorCDCOperator(
+        PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table_name}",
-            source_table=f"{dag_id}_{table_name}_new",
-            target_table=f"{dag_id}_{table_name}",
+            source_table_name=f"{dag_id}_{table_name}_new",
+            target_table_name=f"{dag_id}_{table_name}",
         )
         for table_name in files_to_download.keys()
     ]

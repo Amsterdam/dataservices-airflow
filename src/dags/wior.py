@@ -25,9 +25,9 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from dateutil import tz
 from more_ds.network.url import URL
 from ogr2ogr_operator import Ogr2OgrOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from requests.auth import HTTPBasicAuth
 from sql.wior import (
@@ -223,10 +223,11 @@ with DAG(
     )
 
     # 14. Check for changes to merge in target table
-    change_data_capture = PgComparatorCDCOperator(
+    change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        source_table=f"{dag_id}_{dag_id}_new",
-        target_table=f"{dag_id}_{dag_id}",
+        source_table_name=f"{dag_id}_{dag_id}_new",
+        target_table_name=f"{dag_id}_{dag_id}",
+        drop_target_if_unequal=True,
     )
 
     # 15. Clean up (remove temp table _new)

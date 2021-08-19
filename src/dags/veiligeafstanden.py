@@ -18,9 +18,9 @@ from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.veiligeafstanden import ADD_THEMA_CONTEXT, DROP_COLS, SET_GEOM, SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -194,10 +194,11 @@ with DAG(
 
     # 11. Check for changes to merge in target table
     change_data_capture = [
-        PgComparatorCDCOperator(
+        PostgresTableCopyOperator(
             task_id=f"change_data_capture_{key}",
-            source_table=f"{dag_id}_{key}_new",
-            target_table=f"{dag_id}_{key}",
+            source_table_name=f"{dag_id}_{key}_new",
+            target_table_name=f"{dag_id}_{key}",
+            drop_target_if_unequal=True,
         )
         for key in files_to_download.keys()
         if key == "veiligeafstanden"

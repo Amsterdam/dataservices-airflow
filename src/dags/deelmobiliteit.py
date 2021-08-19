@@ -18,9 +18,9 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
 from importscripts.import_deelmobiliteit import import_auto_data, import_scooter_data
 from more_ds.network.url import URL
-from pgcomparator_cdc_operator import PgComparatorCDCOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.deelmobiliteit import SQL_DROP_TMP_TABLE, SQL_FLAG_NOT_RECENT_DATA, SQL_SET_GEOM
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -206,14 +206,11 @@ with DAG(
 
     # 12. Check for changes to merge in target table by using CDC
     change_data_capture = [
-        PgComparatorCDCOperator(
+        PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource}",
-            source_table=f"{dag_id}_{resource}_new",
-            target_table=f"{dag_id}_{resource}",
-            use_pg_copy=True,
-            key_column="id",
-            use_key=True,
-            no_deletes=True,
+            source_table_name=f"{dag_id}_{resource}_new",
+            target_table_name=f"{dag_id}_{resource}",
+            drop_target_if_unequal=True,
         )
         for resource in variables
     ]
