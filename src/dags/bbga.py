@@ -69,6 +69,9 @@ def int_hash(data: str) -> int:
        dataset PostgreSQL will notify us with a uniqueness constraint error on the column that
        this function is used for. We won't get incorrect results, but things will break.
 
+       Although the ``pg_comparator`` synchronization has been removed, we keep the 8 byte
+       limitation in place as long as it does not cause any troubles.
+
     Args:
         data: String to calculate the hash from.
 
@@ -159,9 +162,9 @@ CSV_DEFINITIONS: Dict[FileStem, CsvDef] = {
             "reference_date",
             "frequency",
         ),
-        # We don't actually need a `cdc_id` derived column for this table. However to ensure we
-        # can call the `PgComparatorCDCOperator` on all tables with the same set of parameters,
-        # they all need a `cdc_id`.
+        # We don't actually need a `cdc_id` derived column for this table.
+        # It was introduced for ``pg_comparator`` synchronization. We leave this column
+        # in place to not break the bbga schema.
         "derived": {"cdc_id": FuncCols(hash_columns, ("variabele",))},
     },
     "bbga_latest_and_greatest": {
@@ -172,11 +175,6 @@ CSV_DEFINITIONS: Dict[FileStem, CsvDef] = {
             "indicator_definitie_id",
             "waarde",
         ),
-        # As this table has over 6 million rows, the `cdc_id` derived column becomes a necessity
-        # for us to be able to call `PgComparatorCDCOperator` with the incredibly faster
-        # `--pg-copy` option. That option requires a key column with an integer value. That is
-        # what we define here.
-        #
         # The `id` column here is by virtue of an `identifier` property in the schema.
         # Schema-tools automatically creates an `id` column of type VARCHAR for us to fill with
         # a value derived from the columns specified in the `identifier` property.
@@ -194,9 +192,9 @@ CSV_DEFINITIONS: Dict[FileStem, CsvDef] = {
             "standaardafwijking",
             "bron",
         ),
-        # We don't actually need a `cdc_id` derived column for this table. However to ensure we
-        # can call the `PgComparatorCDCOperator` on all tables with the same set of parameters,
-        # they all need a `cdc_id`.
+        # We don't actually need a `cdc_id` derived column for this table.
+        # It was introduced for ``pg_comparator`` synchronization. We leave this column
+        # in place to not break the bbga schema.
         #
         # The `id` column here is by virtue of an `identifier` property in the schema.
         # Schema-tools automatically creates an `id` column of type VARCHAR for us to fill with

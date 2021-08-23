@@ -1,12 +1,9 @@
 FROM amsterdam/python:3.8-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
-# Seems that pg_comparator installs full postgresql, that's not what we want
-# RUN apt-get update && apt-get install -y postgresql-comparator
 RUN apt-get update \
  && apt-get install --no-install-recommends -y rsync libaio1 supervisor \
- curl libcurl4 libdbd-pg-perl postgresql-server-dev-all postgresql-common \
- libterm-readpassword-perl zip
+ curl libcurl4 postgresql-server-dev-all postgresql-common zip
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
@@ -14,13 +11,6 @@ WORKDIR /tmp
 RUN wget -nv https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN unzip instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN cp -r  instantclient_19_6/* /usr/local/lib
-
-# Add pg_comparator from sources, installable package has way too much dependencies
-COPY vendor/pg_comparator-2.3.1.tgz /tmp
-WORKDIR /tmp
-RUN tar xzf pg_comparator-2.3.1.tgz
-WORKDIR /tmp/pg_comparator-2.3.1
-RUN make pgsql_install
 
 # Start runtime image,
 FROM amsterdam/python:3.8-slim-buster
@@ -32,18 +22,13 @@ COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libaio* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 COPY --from=builder /usr/bin/ /usr/bin/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl* /usr/lib/x86_64-linux-gnu/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/perl5/. /usr/lib/x86_64-linux-gnu/perl5/
-COPY --from=builder /usr/lib/x86_64-linux-gnu/perl/. /usr/lib/x86_64-linux-gnu/perl/
 COPY --from=builder /usr/lib/postgresql/. /usr/lib/postgresql/
 COPY --from=builder /usr/share/postgresql/. /usr/share/postgresql/
-COPY --from=builder /usr/share/perl/. /usr/share/perl/
 RUN ldconfig
 
 # Copy patch binary, needed to patch airflow bug
 COPY --from=builder /usr/bin/patch /usr/bin/patch
 COPY --from=builder /usr/bin/rsync /usr/bin/rsync
-COPY --from=builder /usr/lib/postgresql/11/bin/pg_comparator /usr/bin/pg_comparator
 
 # Installing postgresql-server-dev-all introduces the lsb-release package
 # However, this is crashing (because of unconfigured python2 environment)
