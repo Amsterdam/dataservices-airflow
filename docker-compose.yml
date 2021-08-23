@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: insecure
 
   dso_database:
-    build: postgres
+    image: amsterdam/postgres11
     ports:
       - "5416:5432"
     environment:
