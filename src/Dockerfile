@@ -3,7 +3,7 @@ MAINTAINER datapunt@amsterdam.nl
 
 RUN apt-get update \
  && apt-get install --no-install-recommends -y rsync libaio1 supervisor \
- curl libcurl4 postgresql-server-dev-all postgresql-common zip
+ curl libcurl4 postgresql-server-dev-all postgresql-common zip libdigest-sha3-perl
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
@@ -11,6 +11,14 @@ WORKDIR /tmp
 RUN wget -nv https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN unzip instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN cp -r  instantclient_19_6/* /usr/local/lib
+
+# Install sqlite3 from source, the default version for this Ubuntu-based image is too old
+RUN wget -c https://www.sqlite.org/2021/sqlite-autoconf-3360000.tar.gz
+# NB. input to sha3sum -c needs to be separated with two spaces!
+RUN bash -c "sha3sum -a 256 -c <(echo 'fdc699685a20284cb72efe3e3ddfac58e94d8ffd5b229a8235d49265aa776678  sqlite-autoconf-3360000.tar.gz')"
+RUN tar xzf sqlite-autoconf-3360000.tar.gz
+WORKDIR /tmp/sqlite-autoconf-3360000
+RUN ./configure --disable-static --disable-static-shell && make install distclean
 
 # Start runtime image,
 FROM amsterdam/python:3.8-slim-buster
