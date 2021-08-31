@@ -57,11 +57,6 @@ class PostgresPermissionsOperator(BaseOperator):
     Caveat:
     When objects are dropped in the DB, the grants to the roles are removed as well.
     This results that grants must be (re)applied again to the roles.
-
-    An other way to deal with is, is to update tables based upon the pgcomparator_cdc_operator.py.
-    Which detects differences between source and target table, and upserts the differences into
-    target table if nessacery. In stead of dropping, recreating the target table and inserting the
-    records on each run.
     """
 
     def __init__(
