@@ -4,7 +4,7 @@ Airflow setup for Dataservices, running in a Docker container.
 
 # Requirements
 
-    Python 3.5 - 3.7
+    Python >= 3.8
 
     python3 -m venv .venv
     source .venv/bin/activate
@@ -124,7 +124,7 @@ is generated from a yaml file in `vars/vars.yaml`.
 In a running containers, the following commands can update the variables:
 
     python scripts/mkvars.py
-    airflow variables -i vars/vars.json
+    airflow variables install vars/vars.json
 
 # Connections
 
