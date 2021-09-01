@@ -124,7 +124,7 @@ is generated from a yaml file in `vars/vars.yaml`.
 In a running containers, the following commands can update the variables:
 
     python scripts/mkvars.py
-    airflow variables install vars/vars.json
+    airflow variables import vars/vars.json
 
 # Connections
 
