@@ -18,11 +18,10 @@ RUN wget -c https://www.sqlite.org/2021/sqlite-autoconf-3360000.tar.gz
 RUN bash -c "sha3sum -a 256 -c <(echo 'fdc699685a20284cb72efe3e3ddfac58e94d8ffd5b229a8235d49265aa776678  sqlite-autoconf-3360000.tar.gz')"
 RUN tar xzf sqlite-autoconf-3360000.tar.gz
 WORKDIR /tmp/sqlite-autoconf-3360000
-RUN ./configure --disable-static --disable-static-shell && make install distclean
+RUN CFLAGS="-DSQLITE_ENABLE_COLUMN_METADATA=1" ./configure --disable-static --disable-static-shell && make install distclean
 
 # Start runtime image,
 FROM amsterdam/python:3.8-slim-buster
-
 
 # Copy python build artifacts from builder image
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
