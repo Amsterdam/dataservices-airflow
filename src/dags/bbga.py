@@ -148,6 +148,7 @@ with DAG(
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_tables_for_{table}",
+            dataset_name=DAG_ID,
             new_table_name=table,
             old_table_name=f"{TMP_TABLE_PREFIX}{table}",
             cascade=True,
