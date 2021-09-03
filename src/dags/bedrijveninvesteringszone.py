@@ -42,7 +42,7 @@ TMP_TABLE_POSTFIX: Final = "_new"
 
 with DAG(
     dag_id,
-    description="tariefen, locaties en overige contextuele gegevens over bedrijveninvesteringszones.",
+    description="tariefen, locaties en overige context bedrijveninvesteringszones.",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
@@ -117,6 +117,7 @@ with DAG(
 
     create_temp_table = PostgresTableCopyOperator(
         task_id="create_temp_table",
+        dataset_name=dag_id,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
         drop_target_if_unequal=True,
@@ -133,14 +134,14 @@ with DAG(
     update_table = PostgresOperator(
         task_id="update_target_table",
         sql=UPDATE_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
+        params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     count_checks.append(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=50,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new "),
+            params={"table_name": f"{dag_id}_{dag_id}_new "},
             result_checker=operator.ge,
         )
     )
@@ -148,10 +149,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}_new",
-                geotype=["POLYGON"],
-            ),
+            params={
+                "table_name": f"{dag_id}_{dag_id}_new",
+                "geotype": ["POLYGON"],
+            },
             pass_value=1,
         )
     )

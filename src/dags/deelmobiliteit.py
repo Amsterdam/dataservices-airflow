@@ -208,6 +208,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource}",
+            dataset_name=dag_id,
             source_table_name=f"{dag_id}_{resource}_new",
             target_table_name=f"{dag_id}_{resource}",
             drop_target_if_unequal=True,

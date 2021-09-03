@@ -143,6 +143,7 @@ with DAG(
     # Check for changes to merge in target table by using CDC
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
+        dataset_name=dag_id,
         source_table_name=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new",
         target_table_name=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}",
         drop_target_if_unequal=True,

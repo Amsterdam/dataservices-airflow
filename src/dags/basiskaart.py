@@ -141,6 +141,7 @@ def table_task_group(table: Table) -> DAG:
 
         create_temp_table = PostgresTableCopyOperator(
             task_id=f"create_temp_table_{table.tmp_id}",
+            dataset_name=DAG_ID,
             source_table_name=table.id,
             target_table_name=table.tmp_id,
             # Only copy table definitions. Don't do anything else.

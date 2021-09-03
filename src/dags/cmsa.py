@@ -126,6 +126,7 @@ with DAG(
     postgres_create_tables_like = [
         PostgresTableCopyOperator(
             task_id=f"postgres_create_tables_like_{table}",
+            dataset_name=DAG_ID,
             source_table_name=table,
             target_table_name=f"{TMP_TABLE_PREFIX}{table}",
             # Only copy table definitions. Don't do anything else.

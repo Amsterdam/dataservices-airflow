@@ -2,15 +2,22 @@ import itertools
 import operator
 from contextlib import closing
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, Final, List, Optional, Tuple, cast
 
 from airflow.exceptions import AirflowFailException
 from airflow.models import XCOM_RETURN_KEY, BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
+from environs import Env
+from more_ds.network.url import URL
 from more_itertools import first
 from psycopg2 import sql
+from schematools.types import DatasetSchema
+from schematools.utils import dataset_schema_from_url, to_snake_case
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
+
+env = Env()
+SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 
 
 @dataclass
@@ -48,6 +55,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
     @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
+        dataset_name: Optional[str] = None,
         source_table_name: Optional[str] = None,
         target_table_name: Optional[str] = None,
         truncate_target: bool = True,
@@ -67,6 +75,9 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         """Initialize PostgresTableCopyOperator.
 
         Args:
+            dataset_name: Name of dataset as defined in Amsterdam schema. Used to do a lookup
+            of the columns to cope with a possible datatype mismatch due to a different
+            column order between target and source table regarding data copy.
             source_table_name: Name of the temporary table that needs to be copied.
             target_table_name: Name of the table that needs to be created and data copied to.
             truncate_target: Whether the target table should be truncated before being copied to.
@@ -87,6 +98,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             **kwargs:
         """
         super().__init__(*args, task_id=task_id, **kwargs)
+        self.dataset_name = dataset_name
         self.source_table_name = source_table_name
         self.target_table_name = target_table_name
         self.truncate_target = truncate_target
@@ -228,6 +240,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         "using table '{source_table_name}' as a template.",
                     )
                 ]
+
                 if self.truncate_target:
                     statements.append(
                         Statement(
@@ -235,13 +248,39 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                             log_msg="Truncating table '{target_table_name}'.",
                         )
                     )
+
                 if self.copy_data:
+
+                    columns = []
+                    # The column order in target and source table may differ or may change
+                    # at some point in the future. We cannot not rely on an identical
+                    # column order. To prevent possible datatype mismatches due to
+                    # different order, the column names must be used in the insert statement.
+                    if self.dataset_name and self.target_table_name:
+                        dataset: DatasetSchema = dataset_schema_from_url(
+                            SCHEMA_URL, self.dataset_name
+                        )
+                        for table in dataset.tables:
+                            if (
+                                table.id
+                                == self.target_table_name.split(f"{self.dataset_name}_")[1]
+                            ):
+                                for field in table.fields:
+                                    if field.name != "schema":
+                                        columns.append(
+                                            to_snake_case(
+                                                f"{field.name}_id"
+                                                if field.relation
+                                                else field.name
+                                            )
+                                        )
+
                     statements.append(
                         Statement(
-                            sql="""
-                        INSERT INTO {target_table_name}
-                        SELECT *
-                        FROM {source_table_name}
+                            sql=f"""
+                        INSERT INTO {self.target_table_name} {'('+ ','.join(columns) +')' if columns else ''}
+                        SELECT {','.join(columns) if columns else '*'}
+                        FROM {self.source_table_name}
                         """,
                             log_msg="Copying all data from table '{source_table_name}' "
                             "to table '{target_table_name}'.",

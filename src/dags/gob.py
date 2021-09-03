@@ -129,6 +129,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         # 5. truncate target table and insert data from temp table
         copy_table = PostgresTableCopyOperator(
             task_id=f"copy_{dataset_table_id}",
+            dataset_name=None,
             source_table_name=None,
             target_table_name=None,
             drop_target_if_unequal=True,

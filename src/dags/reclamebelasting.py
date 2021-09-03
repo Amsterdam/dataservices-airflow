@@ -152,6 +152,7 @@ with DAG(
     # 9. Check for changes to merge in target table
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
+        dataset_name=schema_name,
         source_table_name=f"{schema_name}_{table_name}_new",
         target_table_name=f"{schema_name}_{table_name}",
         drop_target_if_unequal=True,
