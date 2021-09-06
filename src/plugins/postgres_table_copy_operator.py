@@ -11,7 +11,7 @@ from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from more_itertools import first
-from psycopg2 import sql
+from psycopg2 import extras, sql
 from schematools.types import DatasetSchema
 from schematools.utils import dataset_schema_from_url, to_snake_case
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
@@ -129,8 +129,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 "even though source table will be dropped."
             )
 
-    def _drop_tables_if_unequal(self, cursor: Any, all_table_copies: List[TableMapping]) -> None:
-        """Drop the target tables that are unequal to their source table."""
+    def _validate_tables_equality(self, cursor: Any, all_table_copies: List[TableMapping]) -> List:
+        """Validate data structure between target and source table."""
         for table_mapping in all_table_copies:
             # First make sure the target table exists
             cursor.execute(
@@ -143,36 +143,57 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     "Target table %s not found, skipping equality check.", table_mapping.target
                 )
                 continue
+
+            self.log.info(
+                "Executing equality check between %s and %s",
+                table_mapping.target,
+                table_mapping.source,
+            )
+
             cursor.execute(
                 """
                     WITH src AS
-                      (SELECT data_type,
-                              ordinal_position,
-                              column_name
+                      (SELECT data_type as dtt_source,
+                              ordinal_position as ord_pos_source,
+                              column_name as col_name_source
                        FROM information_schema.columns
                        WHERE table_name = %(source_table_name)s ),
                          tgt AS
-                      (SELECT data_type,
-                              ordinal_position,
-                              column_name
+                      (SELECT data_type as dtt_target,
+                              ordinal_position as ord_pos_target,
+                              column_name as col_name_target
                        FROM information_schema.columns
                        WHERE table_name = %(target_table_name)s )
-                    SELECT COUNT(*) = COUNT(src) AND count(*) = COUNT(tgt)
-                    FROM src NATURAL
-                    FULL OUTER JOIN tgt
+                    SELECT *
+                    FROM src
+                    FULL OUTER JOIN tgt on src.col_name_source = tgt.col_name_target
             """,
                 {
                     "source_table_name": table_mapping.source,
                     "target_table_name": table_mapping.target,
                 },
             )
-            if not first(cursor.fetchone()):
-                self.log.info("Dropping table %s", table_mapping.target)
-                cursor.execute(
-                    sql.SQL("DROP TABLE {table_name}").format(
-                        table_name=sql.Identifier(table_mapping.target)
+
+            results = cursor.fetchall()
+
+            diff = []
+            for row in results:
+                if row["col_name_source"] is None:
+                    diff.append(f"{row['col_name_target']} is missing in {self.source_table_name}")
+                if row["col_name_target"] is None:
+                    diff.append(f"{row['col_name_source']} is missing in {self.target_table_name}")
+                if row["ord_pos_source"] != row["ord_pos_target"]:
+                    diff.append(
+                        f"""{row['col_name_source']} has position {row['ord_pos_source']}
+                            but in target it has position {row['ord_pos_target']}"""
                     )
-                )
+                if row["dtt_source"] != row["dtt_target"]:
+                    diff.append(
+                        f"""{row['col_name_source']} has data type {row['dtt_source']}
+                            but in target it has data type {row['dtt_target']}"""
+                    )
+
+        return diff
 
     def execute(self, context: Dict[str, Any]) -> None:  # noqa: C901, D102
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
@@ -197,7 +218,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             # Find the cross-tables for n-m relations, we assume they have
             # a name that start with f"{source_table_name}_"
 
-            with closing(conn.cursor()) as cursor:
+            with closing(conn.cursor(cursor_factory=extras.RealDictCursor)) as cursor:
                 # the underscore must be escaped because of it's special meaning in a like
                 # the exclamation mark was used as an escape chacater because
                 # a backslash was not interpreted as an escape
@@ -225,8 +246,27 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         TableMapping(source_table_name, target_table_name)
                     )
 
-                if self.drop_target_if_unequal:
-                    self._drop_tables_if_unequal(cursor, table_copies + junction_table_copies)
+                # Check if there are structural differences between target and source.
+                diff_check = self._validate_tables_equality(
+                    cursor, table_copies + junction_table_copies
+                )
+                if diff_check:
+                    self.log.info(
+                        "Different data structure detected between %s and %s!",
+                        self.source_table_name,
+                        self.target_table_name,
+                    )
+                    for index, diff_finding in enumerate(diff_check):
+                        self.log.info("%s: %s", index, diff_finding)
+
+                # Drop target table if differences and set to true
+                if self.drop_target_if_unequal and diff_check:
+                    self.log.info("Dropping table %s", self.target_table_name)
+                    cursor.execute(
+                        sql.SQL("DROP TABLE {table_name}").format(
+                            table_name=sql.Identifier(self.target_table_name)
+                        )
+                    )
 
                 statements: List[Statement] = [
                     Statement(
@@ -251,12 +291,21 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
                 if self.copy_data:
 
+                    # Try to execute copy based on explicit table names
+                    # if target table not already dropped.
                     columns = []
-                    # The column order in target and source table may differ or may change
-                    # at some point in the future. We cannot not rely on an identical
-                    # column order. To prevent possible datatype mismatches due to
-                    # different order, the column names must be used in the insert statement.
-                    if self.dataset_name and self.target_table_name:
+                    if (
+                        diff_check
+                        and self.dataset_name
+                        and self.target_table_name
+                        and not self.drop_target_if_unequal
+                    ):
+
+                        self.log.info(
+                            """Trying to do data copy based on explicit column names
+                                in Amsterdam schema defintion."""
+                        )
+
                         dataset: DatasetSchema = dataset_schema_from_url(
                             SCHEMA_URL, self.dataset_name
                         )
