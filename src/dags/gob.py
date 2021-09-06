@@ -104,7 +104,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         create_dataset_info = PythonOperator(
             task_id=f"mkinfo_{dataset_table_id}",
             python_callable=_create_dataset_info,
-            op_args=(gob_dataset_id, gob_table_id),
+            op_args=[gob_dataset_id, gob_table_id],
         )
 
         def init_assigner(o: Any, x: Any) -> None:
