@@ -67,7 +67,7 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            # swift_conn_id default when ommited is the Various Small Datasets objectstore
+            swift_conn_id="SWIFT_DEFAULT",
             container="bed_and_breakfast",
             object_id=f"{DATAPUNT_ENVIRONMENT}/{file}",
             output_path=f"{tmp_dir}/{file}",

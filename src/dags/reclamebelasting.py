@@ -68,8 +68,7 @@ with DAG(
     # 3. Download data
     download_data = SwiftOperator(
         task_id=f"download_{zip_file}",
-        # Default swift == Various Small Datasets objectstore
-        # swift_conn_id="SWIFT_DEFAULT",
+        swift_conn_id="SWIFT_DEFAULT",
         container="reclame",
         object_id=zip_file,
         output_path=f"{tmp_dir}/{zip_file}",
