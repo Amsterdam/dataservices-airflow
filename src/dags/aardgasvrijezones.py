@@ -57,8 +57,7 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            #  when swift_conn_id is ommitted then the default connection will be the VSD objectstore
-            #  swift_conn_id="SWIFT_DEFAULT",
+            swift_conn_id="SWIFT_DEFAULT",
             container="aardgasvrij",
             object_id=file,
             output_path=f"{tmp_dir}/{file}",
