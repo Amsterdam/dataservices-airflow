@@ -61,8 +61,7 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            # if conn is ommitted, it defaults to Objecstore Various Small Datasets
-            # swift_conn_id="SWIFT_DEFAULT",
+            swift_conn_id="SWIFT_DEFAULT",
             container="spoorlijnen",
             object_id=str(file),
             output_path=f"{TMP_PATH}/{file}",

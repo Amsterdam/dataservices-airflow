@@ -51,6 +51,7 @@ with DAG(
 
     fetch_zip = SwiftOperator(
         task_id="fetch_zip",
+        swift_conn_id="SWIFT_DEFAULT",
         container=dag_id,
         object_id=zip_file,
         output_path=f"{tmp_dir}/{zip_file}",

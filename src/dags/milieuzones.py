@@ -63,8 +63,7 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            # Default swift = Various Small Datasets objectstore
-            # swift_conn_id="SWIFT_DEFAULT",
+            swift_conn_id="SWIFT_DEFAULT",
             container="milieuzones",
             object_id=file,
             output_path=f"{tmp_dir}/{file}",

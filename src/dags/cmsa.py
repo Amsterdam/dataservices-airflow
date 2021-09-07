@@ -62,8 +62,7 @@ with DAG(
     fetch_files = [
         SwiftOperator(
             task_id=f"download_{file}",
-            # if conn is omitted, it defaults to Objecstore Various Small Datasets
-            # swift_conn_id="SWIFT_DEFAULT",
+            swift_conn_id="SWIFT_DEFAULT",
             container="cmsa",
             object_id=file,
             output_path=TMP_DIR / file,
