@@ -122,7 +122,7 @@ with DAG(
         count_checks.append(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
-                pass_value=2,
+                pass_value=1,
                 params=dict(table_name=key),
                 result_checker=operator.ge,
             )
