@@ -115,12 +115,12 @@ with DAG(
     )
 
     create_temp_table = PostgresTableCopyOperator(
-        task_id="create_temp_table",
+        task_id="create_temp_table",       
         dataset_name=dag_id,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
-        drop_target_if_unequal=True,
-        truncate_target=True,
+        # Only copy table definitions. Don't do anything else.
+        truncate_target=False,
         copy_data=False,
         drop_source=False,
     )
