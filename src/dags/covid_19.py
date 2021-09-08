@@ -30,9 +30,10 @@ variables_covid19 = Variable.get("covid19", deserialize_json=True)
 files_to_download = variables_covid19["files_to_download"]
 
 # Note: Gebiedsverbod is absolete since "nieuwe tijdelijke wetgeving Corona maatregelen 01-12-2020"
-# TODO: remove Gebiedsverbod from var.yml, if DSO-API endpoint and Amsterdam Schema definition can be removed
+# TODO: remove Gebiedsverbod and Straatartiestverbod from var.yml, if DSO-API endpoint and 
+# Amsterdam Schema definition can be removed.
 tables_to_create = variables_covid19["tables_to_create"]
-tables_to_check = {k: v for k, v in tables_to_create.items() if k != "gebiedsverbod"}
+tables_to_check = {k: v for k, v in tables_to_create.items() if k not in ("gebiedsverbod", "straatartiestverbod")}
 
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
