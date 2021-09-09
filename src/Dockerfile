@@ -3,7 +3,7 @@ MAINTAINER datapunt@amsterdam.nl
 
 RUN apt-get update \
  && apt-get install --no-install-recommends -y rsync libaio1 supervisor \
- curl libcurl4 postgresql-server-dev-all postgresql-common zip libdigest-sha3-perl
+ libcurl4 postgresql-server-dev-all postgresql-common zip libdigest-sha3-perl libssh2-1-dev libssl-dev
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
@@ -19,6 +19,14 @@ RUN bash -c "sha3sum -a 256 -c <(echo 'fdc699685a20284cb72efe3e3ddfac58e94d8ffd5
 RUN tar xzf sqlite-autoconf-3360000.tar.gz
 WORKDIR /tmp/sqlite-autoconf-3360000
 RUN CFLAGS="-DSQLITE_ENABLE_COLUMN_METADATA=1" ./configure --disable-static --disable-static-shell && make install distclean
+
+# cURL needs to be build from source. Without this it will show the error:
+# error while loading shared libraries: libcurl.so.4: cannot open shared object file: No such file or directory
+WORKDIR /opt
+RUN wget http://curl.haxx.se/download/curl-7.78.0.tar.gz
+RUN bash -c "sha3sum -a 256 -c <(echo 'a87aa0596a5c5763f2ce1419bfd63729d0f3a2128569d00a76196c86dcb96eb1  curl-7.78.0.tar.gz')"
+RUN tar zxvf curl-7.78.0.tar.gz && rm curl-7.78.0.tar.gz
+RUN cd curl-7.78.0 && ./configure --with-ssl --with-libssh2 && make && make install
 
 # Start runtime image,
 FROM amsterdam/python:3.8-slim-buster
