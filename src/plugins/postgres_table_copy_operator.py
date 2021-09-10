@@ -1,5 +1,6 @@
 import itertools
 import operator
+from collections import defaultdict
 from contextlib import closing
 from dataclasses import dataclass
 from typing import Any, Callable, Final, Optional, cast
@@ -10,8 +11,8 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
-from more_itertools import first
 from psycopg2 import extras, sql
+from schematools.exceptions import SchemaObjectNotFound
 from schematools.types import DatasetSchema
 from schematools.utils import dataset_schema_from_url, to_snake_case
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
@@ -20,7 +21,7 @@ env = Env()
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 
 
-@dataclass
+@dataclass(frozen=True)
 class TableMapping:
     """Simple mapping from source table to target table."""
 
@@ -129,8 +130,19 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 "even though source table will be dropped."
             )
 
-    def _validate_tables_equality(self, cursor: Any, all_table_copies: list[TableMapping]) -> list:
+        if dataset_name is None and not drop_target_if_unequal:
+            raise AirflowFailException(
+                "Configuration error: not knowing the columnnames "
+                "and drop_target_if_unequal is False "
+                "can lead to DatatypeMismatch exceptions "
+                "when the schema of a table changes."
+            )
+
+    def _validate_tables_equality(
+        self, cursor: Any, all_table_copies: list[TableMapping]
+    ) -> dict[TableMapping, list[str]]:
         """Validate data structure between target and source table."""
+        diffs = defaultdict(list)
         for table_mapping in all_table_copies:
             # First make sure the target table exists
             cursor.execute(
@@ -138,7 +150,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 (table_mapping.target,),
             )
 
-            if first(cursor.fetchone()) is None:
+            if cursor.fetchone()["to_regclass"] is None:
                 self.log.info(
                     "Target table %s not found, skipping equality check.", table_mapping.target
                 )
@@ -176,24 +188,75 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
             results = cursor.fetchall()
 
-            diff = []
             for row in results:
                 if row["col_name_source"] is None:
-                    diff.append(f"{row['col_name_target']} is missing in {self.source_table_name}")
+                    diffs[table_mapping].append(
+                        f"{row['col_name_target']} is missing in {table_mapping.source}"
+                    )
                 if row["col_name_target"] is None:
-                    diff.append(f"{row['col_name_source']} is missing in {self.target_table_name}")
+                    diffs[table_mapping].append(
+                        f"{row['col_name_source']} is missing in {table_mapping.target}"
+                    )
                 if row["ord_pos_source"] != row["ord_pos_target"]:
-                    diff.append(
-                        f"""{row['col_name_source']} has position {row['ord_pos_source']}
-                            but in target it has position {row['ord_pos_target']}"""
+                    diffs[table_mapping].append(
+                        f"{row['col_name_source']} has position {row['ord_pos_source']}"
+                        f" but in target it has position {row['ord_pos_target']}"
                     )
                 if row["dtt_source"] != row["dtt_target"]:
-                    diff.append(
-                        f"""{row['col_name_source']} has data type {row['dtt_source']}
-                            but in target it has data type {row['dtt_target']}"""
+                    diffs[table_mapping].append(
+                        f"{row['col_name_source']} has data type {row['dtt_source']}"
+                        f" but in target it has data type {row['dtt_target']}"
                     )
 
-        return diff
+        return diffs
+
+    def _calculate_columns_for_diffs(
+        self, diffs: Dict[TableMapping, List[str]]
+    ) -> Dict[TableMapping, List[str]]:
+        """Determine what columns are involved in a copy operation.
+
+        If a dataset_name is defined, we try to get the column names from the dataset.
+        """
+        columns_per_table_mapping = {}
+
+        for table_mapping, _diff_check in diffs.items():
+
+            # Try to execute copy based on explicit table names
+            # if target table not already dropped.
+            columns = []
+            if self.dataset_name and not self.drop_target_if_unequal:
+
+                self.log.info(
+                    """Trying to do data copy based on explicit column names
+                        in Amsterdam schema defintion."""
+                )
+
+                dataset: DatasetSchema = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
+
+                # Get the table_id from the full sql table name
+                table_id = table_mapping.target.split(f"{self.dataset_name}_")[1]
+
+                # We do not take nested/through tables into account,
+                # because this can get very hairy. In that case, `columns` stays empty,
+                # and table copy will be done based on all columns (*).
+                try:
+                    table = dataset.get_table_by_id(
+                        table_id, include_nested=False, include_through=False
+                    )
+                except SchemaObjectNotFound:
+                    continue
+
+                for field in table.fields:
+                    if field.name == "schema" or field.nm_relation is not None:
+                        continue
+                    columns.append(
+                        to_snake_case(
+                            f"{field.name}_id" if field.relation is not None else field.name
+                        )
+                    )
+            columns_per_table_mapping[table_mapping] = columns
+
+        return columns_per_table_mapping
 
     def execute(self, context: dict[str, Any]) -> None:  # noqa: C901, D102
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
@@ -220,7 +283,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
             with closing(conn.cursor(cursor_factory=extras.RealDictCursor)) as cursor:
                 # the underscore must be escaped because of it's special meaning in a like
-                # the exclamation mark was used as an escape chacater because
+                # the exclamation mark was used as an escape character because
                 # a backslash was not interpreted as an escape
                 cursor.execute(
                     """
@@ -234,6 +297,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     tuple[str, ...],
                     tuple(map(operator.itemgetter("tablename"), cursor.fetchall())),
                 )
+
                 if junction_tables:
                     self.log.info("Found the following junction tables: %r", junction_tables)
                 else:
@@ -246,27 +310,30 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         TableMapping(source_table_name, target_table_name)
                     )
 
-                # Check if there are structural differences between target and source.
-                diff_check = self._validate_tables_equality(
-                    cursor, table_copies + junction_table_copies
-                )
-                if diff_check:
-                    self.log.info(
-                        "Different data structure detected between %s and %s!",
-                        self.source_table_name,
-                        self.target_table_name,
-                    )
-                    for index, diff_finding in enumerate(diff_check):
-                        self.log.info("%s: %s", index, diff_finding)
+                # Check if there are structural differences between targets and sources.
+                all_table_copies: List[TableMapping] = table_copies + junction_table_copies
+                diff_results = self._validate_tables_equality(cursor, all_table_copies)
 
-                # Drop target table if differences and set to true
-                if self.drop_target_if_unequal and diff_check:
-                    self.log.info("Dropping table %s", self.target_table_name)
-                    cursor.execute(
-                        sql.SQL("DROP TABLE {table_name}").format(
-                            table_name=sql.Identifier(self.target_table_name)
+                for table_mapping, diff_check in diff_results.items():
+
+                    if diff_check:
+
+                        self.log.info(
+                            "Different data structure detected between %s and %s!",
+                            table_mapping.source,
+                            table_mapping.target,
                         )
-                    )
+                        for index, diff_finding in enumerate(diff_check):
+                            self.log.info("%s: %s", index, diff_finding)
+
+                        # Drop target table if there are differences in columns
+                        # this is done regardless of drop_target_if_unequal setting
+                        self.log.info("Dropping table %s", table_mapping.target)
+                        cursor.execute(
+                            sql.SQL("DROP TABLE {table_name}").format(
+                                table_name=sql.Identifier(table_mapping.target)
+                            )
+                        )
 
                 statements: list[Statement] = [
                     Statement(
@@ -276,7 +343,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         LIKE {source_table_name} INCLUDING ALL
                     )
                     """,
-                        log_msg="Creating new table '{target_table_name}' "
+                        log_msg="Creating new table (if not exists) '{target_table_name}' "
                         "using table '{source_table_name}' as a template.",
                     )
                 ]
@@ -289,60 +356,41 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         )
                     )
 
+                columns_for_diffs = self._calculate_columns_for_diffs(diff_results)
+
                 if self.copy_data:
-
-                    # Try to execute copy based on explicit table names
-                    # if target table not already dropped.
-                    columns = []
-                    if (
-                        diff_check
-                        and self.dataset_name
-                        and self.target_table_name
-                        and not self.drop_target_if_unequal
-                    ):
-
-                        self.log.info(
-                            """Trying to do data copy based on explicit column names
-                                in Amsterdam schema defintion."""
-                        )
-
-                        dataset: DatasetSchema = dataset_schema_from_url(
-                            SCHEMA_URL, self.dataset_name
-                        )
-                        for table in dataset.tables:
-                            if (
-                                table.id
-                                == self.target_table_name.split(f"{self.dataset_name}_")[1]
-                            ):
-                                for field in table.fields:
-                                    if field.name != "schema":
-                                        columns.append(
-                                            to_snake_case(
-                                                f"{field.name}_id"
-                                                if field.relation
-                                                else field.name
-                                            )
-                                        )
-
                     statements.append(
                         Statement(
-                            sql=f"""
-                        INSERT INTO {self.target_table_name} {'('+ ','.join(columns) +')' if columns else ''}
-                        SELECT {','.join(columns) if columns else '*'}
-                        FROM {self.source_table_name}
+                            sql="""
+                        INSERT INTO {target_table_name}
+                            ({to_columns})
+                        SELECT {from_columns}
+                        FROM {source_table_name}
                         """,
                             log_msg="Copying all data from table '{source_table_name}' "
                             "to table '{target_table_name}'.",
                         )
                     )
+
                 if self.drop_source:
                     statements.append(
                         Statement(
                             sql="DROP TABLE IF EXISTS {source_table_name} CASCADE",
-                            log_msg="Dropping table '{source_table_name}'.",
+                            log_msg="Dropping table (if exists) '{source_table_name}'.",
                         )
                     )
+
                 for table_mapping in itertools.chain(table_copies, junction_table_copies):
+
+                    columns = columns_for_diffs.get(table_mapping)
+                    from_columns = None
+                    to_columns = None
+
+                    if columns:
+                        columns_idents = sql.SQL(", ").join([sql.Identifier(c) for c in columns])
+                        from_columns = columns_idents
+                        to_columns = columns_idents
+
                     for stmt in statements:
                         self.log.info(
                             stmt.log_msg.format(  # noqa: G001
@@ -350,12 +398,30 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                                 target_table_name=table_mapping.target,
                             )
                         )
-                        cursor.execute(
-                            sql.SQL(stmt.sql).format(
-                                source_table_name=sql.Identifier(table_mapping.source),
-                                target_table_name=sql.Identifier(table_mapping.target),
-                            )
-                        )
+
+                        sql_args = {
+                            "source_table_name": sql.Identifier(table_mapping.source),
+                            "target_table_name": sql.Identifier(table_mapping.target),
+                            "from_columns": from_columns,
+                            "to_columns": to_columns,
+                        }
+
+                        # Unfortunately, we need some argument fiddling here, because
+                        # to_columns/from_columns should be an empty string or '*'
+                        # when there are no columns defined
+                        # and psycopg2.sql does not seem to allow that.
+                        sql_stmt = stmt.sql
+                        if from_columns is None:
+                            sql_stmt = sql_stmt.replace("{from_columns}", "*")
+                            del sql_args["from_columns"]
+
+                        if to_columns is None:
+                            sql_stmt = sql_stmt.replace("({to_columns})", "")
+                            del sql_args["to_columns"]
+
+                        self.log.info("SQL %s; args %s", sql_stmt, sql_args)
+                        cursor.execute(sql.SQL(sql_stmt).format(**sql_args))
+
             if not hook.get_autocommit(conn):
                 self.log.debug("Committing transaction.")
                 conn.commit()
