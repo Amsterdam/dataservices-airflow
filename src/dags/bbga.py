@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import Dict, Final, Tuple
+from typing import Dict, Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -34,10 +34,6 @@ TMP_TABLE_PREFIX: Final = "tmp_"
 VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: Dict[FileStem, UrlPath] = VARS["data_endpoints"]
 table_mappings: Dict[FileStem, str] = VARS["table_mappings"]
-
-# We have one extra table that does not map to a downloadable dataset
-# Hence we add it explicitly here.
-TABLES: Tuple[str, ...] = tuple(table_mappings.values()) + ("bbga_cijfers",)
 
 assert set(data_endpoints.keys()) == set(
     table_mappings.keys()
@@ -74,7 +70,7 @@ with DAG(
         return PostgresOperator(
             task_id=f"rm_tmp_tables{task_id_postfix}",
             sql="DROP TABLE IF EXISTS {tables}".format(
-                tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", TABLES))
+                tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", table_mappings.values()))
             ),
         )
 
@@ -94,7 +90,7 @@ with DAG(
             copy_data=False,
             drop_source=False,
         )
-        for table in TABLES
+        for table in table_mappings.values()
     ]
 
     def _create_sqlite_transform_file(file: Path, contents: str) -> None:
@@ -118,33 +114,6 @@ with DAG(
     )
     postgres_insert_csv = PostgresInsertCsvOperator(task_id="postgres_insert_csv", data=data)
 
-    populate_cijfers = PostgresOperator(
-        task_id="populate_cijfers",
-        sql="""
-            INSERT INTO {{ params.tmp_table_prefix }}bbga_cijfers (jaar,
-                                          gebiedcode_15,
-                                          waarde,
-                                          indicator_definitie_id,
-                                          id,
-                                          stedelijk_gemiddelde,
-                                          stedelijk_standaardafwijking,
-                                          statistiek_bron)
-            SELECT k.jaar,
-                   k.gebiedcode_15,
-                   k.waarde,
-                   k.indicator_definitie_id,
-                   k.id,
-                   s.gemiddelde,
-                   s.standaardafwijking,
-                   s.bron
-                FROM {{ params.tmp_table_prefix }}bbga_kerncijfers k
-                         LEFT JOIN {{ params.tmp_table_prefix }}bbga_statistieken s
-                                   ON k.indicator_definitie_id = s.indicator_definitie_id
-                                          AND k.jaar = s.jaar
-        """,
-        params={"tmp_table_prefix": TMP_TABLE_PREFIX},
-    )
-
     rename_tables = [
         PostgresTableRenameOperator(
             task_id=f"rename_tables_for_{table}",
@@ -152,7 +121,7 @@ with DAG(
             old_table_name=f"{TMP_TABLE_PREFIX}{table}",
             cascade=True,
         )
-        for table in TABLES
+        for table in table_mappings.values()
     ]
 
     rm_tmp_tables_post = rm_tmp_tables("_post")
@@ -174,7 +143,6 @@ with DAG(
         >> create_sqlite_transform_file
         >> transform_csv_files
         >> postgres_insert_csv
-        >> populate_cijfers
         >> rename_tables
         >> rm_tmp_tables_post
         >> rm_tmp_dir
