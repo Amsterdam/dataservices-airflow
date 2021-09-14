@@ -4,6 +4,7 @@ from typing import Dict, Final
 import pendulum
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.python import BranchPythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.settings import TIMEZONE
 from common import (
@@ -18,16 +19,12 @@ from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
+from importscripts.import_stroomstoringen import _pick_branch
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.stroomstoringen import (
-    CHECK_TABLE,
-    CONVERT_DATE_TIME,
-    DROP_TABLE_IF_EXISTS,
-    NO_DATA_PRESENT_INDICATOR,
-)
+from sql.stroomstoringen import CONVERT_DATE_TIME, DROP_TABLE_IF_EXISTS, NO_DATA_PRESENT_INDICATOR
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 DAG_ID: Final = "stroomstoringen"
@@ -38,7 +35,6 @@ TODAY: Final = pendulum.now(TIMEZONE).format("MM-DD-YYYY")
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 
 db_conn = DatabaseEngine()
-
 
 with DAG(
     DAG_ID,
@@ -63,7 +59,7 @@ with DAG(
     # 2. Create temp directory to store files
     mkdir = mk_dir(TMP_DIR, clean_if_exists=False)
 
-    # 3. download the data into temp directorys
+    # 3. download the data into temp directoys
     download_data = HttpFetchOperator(
         task_id="download",
         endpoint=endpoint_url.format(today=TODAY),
@@ -85,23 +81,21 @@ with DAG(
         db_conn=db_conn,
     )
 
-    # 5. Check target table if source data structure is loaded
-    # NOTE: This task has zero retries. It is used to determine
-    # what path to executed based on it's outcome.
-    check_table = PostgresOperator(
-        task_id="check_table",
-        sql=CHECK_TABLE,
-        params={"tablename": f"{DAG_ID}_{DAG_ID}_new"},
-        retries=0,
+    # 5. Pick branch based on amount of power failures.
+    # No power failures triggers 'drop_table', generating dummy data.
+    # >= 1 power failures triggers 'convert_datetime'
+    pick_branch = BranchPythonOperator(
+        task_id="pick_branch",
+        python_callable=_pick_branch,
+        op_kwargs={"file": f"{TMP_DIR}/stroomstoringen.geojson"},
     )
 
     # 6. Drop table if exists
-    # NOTE: This triggers only if upstream task has failed.
+    # NOTE: This triggers there are currently no power failure.
     drop_table = PostgresOperator(
         task_id="drop_table",
         sql=DROP_TABLE_IF_EXISTS,
         params={"tablename": f"{DAG_ID}_{DAG_ID}_new"},
-        trigger_rule="all_failed",
     )
 
     # 7. Create the DB target temp table (based on the JSON data schema)
@@ -127,12 +121,11 @@ with DAG(
     )
 
     # 9. convert epoch time
-    # NOTE: This triggers only if upstream task has been succesful.
+    # NOTE: This triggers only if currently there are power failures.
     convert_datetime = PostgresOperator(
         task_id="convert_datetime",
         sql=CONVERT_DATE_TIME,
         params={"tablename": f"{DAG_ID}_{DAG_ID}_new"},
-        trigger_rule="all_success",
     )
 
     # 10. Rename COLUMNS based on Provenance
@@ -157,22 +150,27 @@ with DAG(
     # 12. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
-
 # FLOW
-slack_at_start >> mkdir >> download_data >> import_data >> check_table
+(
+    slack_at_start
+    >> mkdir
+    >> download_data
+    >> import_data
+    >> pick_branch
+    >> [drop_table, convert_datetime]
+)
 
-# Based on outcome check_table
-# path 1: Case: Source has no data, so table is created and dummy record is inserted
-[check_table >> drop_table >> create_table >> no_data_indicator]
-# path 2: Case: Source has data, so processed accordingly
-[check_table >> convert_datetime]
+# In case drop_table is executed
+drop_table >> create_table >> no_data_indicator
 
+# Flow after executing no_data_indicator or convert_datetime
 (
     [no_data_indicator, convert_datetime]
     >> provenance_translation
     >> rename_table
     >> grant_db_permissions
 )
+
 
 dag.doc_md = """
     #### DAG summary
