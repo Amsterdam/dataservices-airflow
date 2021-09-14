@@ -6,15 +6,6 @@ DROP_TABLE_IF_EXISTS: Final = """
 DROP TABLE IF EXISTS {{ params.tablename }};
 """
 
-# Check if table contains source data.
-# If the source does not have data (no electric blackouts present)
-# then the source column `storing_nummer` is not present.
-# In the latter case, this operation will crash. Then in the DAG flow this
-# will trigger a different path to execute.
-CHECK_TABLE: Final = """
-SELECT storing_nummer FROM {{ params.tablename }};
-"""
-
 # The source data contains epoch times.
 # In order to translate it to a timestamp, the data is updated.
 # The dates are stored in millseconds.
