@@ -53,6 +53,7 @@ attrs==20.3.0
     #   flake8-implicit-str-concat
     #   jsonschema
     #   pg-grant
+    #   pytest
 babel==2.9.0
     # via flask-babel
 bandit==1.7.0
@@ -135,8 +136,10 @@ dill==0.3.3
     # via apache-airflow
 dnspython==2.1.0
     # via email-validator
-docker==5.0.0
-    # via -r requirements.in
+docker==4.4.4
+    # via
+    #   -r requirements.in
+    #   pytest-docker-tools
 docutils==0.16
     # via python-daemon
 dsnparse==0.1.15
@@ -241,6 +244,8 @@ importlib-resources==1.5.0
     # via apache-airflow
 inflection==0.5.1
     # via connexion
+iniconfig==1.1.1
+    # via pytest
 iso8601==0.1.14
     # via
     #   apache-airflow
@@ -365,7 +370,9 @@ oslo.utils==4.8.0
     #   oslo.serialization
     #   python-keystoneclient
 packaging==20.9
-    # via oslo.utils
+    # via
+    #   oslo.utils
+    #   pytest
 pandas==1.2.2
     # via
     #   apache-airflow
@@ -393,6 +400,8 @@ pendulum==2.1.2
     #   apache-airflow
 pg-grant==0.3.2
     # via amsterdam-schema-tools
+pluggy==1.0.0
+    # via pytest
 ply==3.11
     # via jsonpath-rw
 prison==0.1.3
@@ -403,6 +412,8 @@ psycopg2==2.8.6
     # via amsterdam-schema-tools
 psycopg2-binary==2.8.6
     # via apache-airflow-providers-postgres
+py==1.10.0
+    # via pytest
 pycodestyle==2.7.0
     # via
     #   flake8
@@ -437,6 +448,21 @@ pysftp==0.2.9
     #   apache-airflow-providers-sftp
     #   apache-airflow-providers-ssh
 pyshp==2.1.0
+    # via -r requirements.in
+pytest==6.2.5
+    # via
+    #   -r requirements.in
+    #   pytest-docker-tools
+    #   pytest-env
+    #   pytest-helpers-namespace
+    #   pytest-mock
+pytest-docker-tools==3.1.0
+    # via -r requirements.in
+pytest-env==0.6.2
+    # via -r requirements.in
+pytest-helpers-namespace==2021.04.29
+    # via -r requirements.in
+pytest-mock==3.6.1
     # via -r requirements.in
 python-daemon==2.3.0
     # via apache-airflow
@@ -535,6 +561,7 @@ six==1.15.0
     #   bandit
     #   bcrypt
     #   debtcollector
+    #   docker
     #   flake8-print
     #   flask-jwt-extended
     #   json-encoder
@@ -602,6 +629,8 @@ termcolor==1.1.0
     # via apache-airflow
 text-unidecode==1.3
     # via python-slugify
+toml==0.10.2
+    # via pytest
 typing-extensions==3.7.4.3
     # via rich
 unicodecsv==0.14.1
