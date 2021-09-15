@@ -59,7 +59,7 @@ with DAG(
     # 2. Create temp directory to store files
     mkdir = mk_dir(TMP_DIR, clean_if_exists=False)
 
-    # 3. download the data into temp directoys
+    # 3. download the data into temp directories
     download_data = HttpFetchOperator(
         task_id="download",
         endpoint=endpoint_url.format(today=TODAY),
