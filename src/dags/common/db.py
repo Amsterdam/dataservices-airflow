@@ -1,6 +1,8 @@
+from typing import Dict
+
 import dsnparse
 from airflow import AirflowException
-from airflow.hooks.oracle_hook import OracleHook
+from airflow.providers.oracle.hooks.oracle import OracleHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -8,9 +10,10 @@ from sqlalchemy.exc import SQLAlchemyError
 
 
 class DatabaseEngine:
-    """Construct the elements of the SQLAlchemy database engine"""
+    """Construct the elements of the SQLAlchemy database engine."""
 
-    def __init__(self, postgres_conn_id="postgres_default"):
+    def __init__(self, postgres_conn_id: str = "postgres_default"):
+        """Initialize DatabaseEngine."""
         self.connection = PostgresHook().get_connection(postgres_conn_id)
         self.user = self.connection.login
         self.password = self.connection.password
@@ -20,14 +23,16 @@ class DatabaseEngine:
 
 
 def get_postgreshook_instance(postgres_conn_id: str = "postgres_default") -> PostgresHook:
-    """Return a postgreshook instance,
-    so it can be used to get connection i.e."""
+    """Return a postgreshook instance.
+
+    So it can be used to get connection i.e.
+    """
     connection = PostgresHook(postgres_conn_id=postgres_conn_id)
     return connection
 
 
-def get_engine(postgres_conn_id="postgres_default") -> Engine:
-    """Construct the SQLAlchemy database engine"""
+def get_engine(postgres_conn_id: str = "postgres_default") -> Engine:
+    """Construct the SQLAlchemy database engine."""
     connection = PostgresHook().get_connection(postgres_conn_id)
     user = connection.login
     password = connection.password
@@ -41,7 +46,8 @@ def get_engine(postgres_conn_id="postgres_default") -> Engine:
         raise AirflowException(str(e)) from e
 
 
-def get_ora_engine(oracle_conn_id="oracle_default") -> Engine:
+def get_ora_engine(oracle_conn_id: str = "oracle_default") -> Engine:
+    """Get the oracle connection parameters."""
     connection = OracleHook().get_connection(oracle_conn_id)
     user = connection.login
     password = connection.password
@@ -56,7 +62,8 @@ def get_ora_engine(oracle_conn_id="oracle_default") -> Engine:
         raise AirflowException(str(e)) from e
 
 
-def fetch_pg_env_vars(postgres_conn_id="postgres_default"):
+def fetch_pg_env_vars(postgres_conn_id: str = "postgres_default") -> Dict[str, str]:
+    """Get the Postgres Default DSN connection info as a dict."""
     # Need to get rid of trailing '&'
     # moved from to here due to circular import error
     from . import env
