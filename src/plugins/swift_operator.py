@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
@@ -17,7 +17,7 @@ class SwiftOperator(BaseOperator):
         time_window_in_days: Optional[int] = None,
         swift_conn_id: str = "swift_default",
         *args: Any,
-        **kwargs: Dict,
+        **kwargs: dict,
     ) -> None:
         self.container = container
         self.object_id = object_id
@@ -28,7 +28,7 @@ class SwiftOperator(BaseOperator):
         self.swift_conn_id = swift_conn_id
         super().__init__(*args, **kwargs)
 
-    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:
+    def execute(self, context: Optional[dict[str, Any]] = None) -> None:
         """Dispatcher to call the SwiftHook methods i.e. download, upload or delete.
 
         Args:

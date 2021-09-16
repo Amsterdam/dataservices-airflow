@@ -2,13 +2,13 @@ import csv
 import json
 import logging
 from hashlib import blake2s
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Type
+from typing import Any, Iterator, Optional
 
 # define logger for output to console
 logger = logging.getLogger(__name__)
 
 
-def get_dialect(file: str) -> Type[csv.Dialect]:
+def get_dialect(file: str) -> type[csv.Dialect]:
     """determine dialect of file
 
     Args:
@@ -22,7 +22,7 @@ def get_dialect(file: str) -> Type[csv.Dialect]:
         return csv.Sniffer().sniff(data.readline())
 
 
-def get_header(file: str) -> List[str]:
+def get_header(file: str) -> list[str]:
     """Return header row of file
 
     Args:
@@ -38,7 +38,7 @@ def get_header(file: str) -> List[str]:
         return next(data)
 
 
-def make_hash(composite_values: List[str], digest_size: int = 3) -> int:
+def make_hash(composite_values: list[str], digest_size: int = 3) -> int:
     """The blake2s algorithm is used to generate a single hased value for source
     composite values that uniquely identify a row.
     In case the source itself doesn't provide a single solid identification as key.
@@ -63,7 +63,7 @@ def make_hash(composite_values: List[str], digest_size: int = 3) -> int:
     )
 
 
-def read_data(file: str, composite_key: Tuple[str, ...]) -> Iterator[Dict[str, Any]]:
+def read_data(file: str, composite_key: tuple[str, ...]) -> Iterator[dict[str, Any]]:
     """Read the data from csv file
 
     Args:
@@ -83,8 +83,8 @@ def read_data(file: str, composite_key: Tuple[str, ...]) -> Iterator[Dict[str, A
 
 
 def generate_unique_id(
-    file: str, composite_key: Tuple[str, ...], digest_size: Optional[int] = None
-) -> Iterator[Dict[str, Any]]:
+    file: str, composite_key: tuple[str, ...], digest_size: Optional[int] = None
+) -> Iterator[dict[str, Any]]:
     """Generate unique hased id from composite values
 
     Args:
@@ -111,7 +111,7 @@ def generate_unique_id(
             continue
 
 
-def add_unique_id_to_csv(file: str, composite_key: Tuple[str, ...]) -> None:
+def add_unique_id_to_csv(file: str, composite_key: tuple[str, ...]) -> None:
     """save enriched data to csv for further processing in DAG
 
     Args:
@@ -124,7 +124,7 @@ def add_unique_id_to_csv(file: str, composite_key: Tuple[str, ...]) -> None:
     """
     data = generate_unique_id(file, composite_key=composite_key)
     header = next(data)  # get the modified header including the new id column
-    rows = list()
+    rows = []
     for row in data:
         rows.append(row.values())
     with open(file, "w") as f:
@@ -134,7 +134,7 @@ def add_unique_id_to_csv(file: str, composite_key: Tuple[str, ...]) -> None:
 
 
 def add_unique_id_to_geojson(
-    file: str, composite_key: Tuple[str, ...], digest_size: Optional[int] = None
+    file: str, composite_key: tuple[str, ...], digest_size: Optional[int] = None
 ) -> None:
     """save enriched data to geojson for further processing in DAG
 

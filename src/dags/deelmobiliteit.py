@@ -1,5 +1,4 @@
 import operator
-from typing import Dict
 
 from airflow import DAG
 from airflow.models import Variable
@@ -29,10 +28,10 @@ dag_id: str = "deelmobiliteit"
 description: str = (
     "locaties en contextuele informatie over deelvoertuigen zoals auto’s, fietsen en scooters."
 )
-variables: Dict = Variable.get(dag_id, deserialize_json=True)
+variables: dict = Variable.get(dag_id, deserialize_json=True)
 env: Env = Env()
 
-endpoint_scooters: Dict = variables["scooters"]["data_endpoints"]
+endpoint_scooters: dict = variables["scooters"]["data_endpoints"]
 felyx_base_url: str = URL(env("AIRFLOW_CONN_FELYX_BASE_URL"))
 felyx_api_key: str = env("AIRFLOW_CONN_FELYX_API_KEY")
 ridecheck_base_url: str = URL(env("AIRFLOW_CONN_RIDECHECK_BASE_URL"))
@@ -40,7 +39,7 @@ ridecheck_token_url: str = URL(env("AIRFLOW_CONN_RIDECHECK_TOKEN_URL"))
 ridecheck_token_client_id: str = env("AIRFLOW_CONN_RIDECHECK_CLIENT_ID")
 ridecheck_token_client_secret: str = env("AIRFLOW_CONN_RIDECHECK_CLIENT_SECRET")
 
-endpoint_autos: Dict = variables["autos"]["data_endpoints"]
+endpoint_autos: dict = variables["autos"]["data_endpoints"]
 mywheels_base_url: str = URL(env("AIRFLOW_CONN_MYWHEELS_BASE_URL"))
 mywheels_api_key: str = env("AIRFLOW_CONN_MYWHEELS_API_KEY")
 

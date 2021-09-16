@@ -1,6 +1,6 @@
 import shutil
 from pathlib import Path
-from typing import Dict, Final
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -32,8 +32,8 @@ TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 SQLITE_CSV_TRANSFORM_FILE: Final = TMP_DIR / "transform_csv_files.sqlite3"
 TMP_TABLE_PREFIX: Final = "tmp_"
 VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
-data_endpoints: Dict[FileStem, UrlPath] = VARS["data_endpoints"]
-table_mappings: Dict[FileStem, str] = VARS["table_mappings"]
+data_endpoints: dict[FileStem, UrlPath] = VARS["data_endpoints"]
+table_mappings: dict[FileStem, str] = VARS["table_mappings"]
 
 assert set(data_endpoints.keys()) == set(
     table_mappings.keys()

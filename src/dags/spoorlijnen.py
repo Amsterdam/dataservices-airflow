@@ -1,6 +1,6 @@
 import operator
 from pathlib import Path
-from typing import Dict, Final, List, Union, cast
+from typing import Final, Union, cast
 
 from airflow import DAG
 from airflow.models import Variable
@@ -25,15 +25,15 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
 
 DAG_ID: Final = "spoorlijnen"
-variables: Dict[str, Union[List[str], Dict[str, str]]] = Variable.get(
+variables: dict[str, Union[list[str], dict[str, str]]] = Variable.get(
     "spoorlijnen", deserialize_json=True
 )
-files_to_download = cast(Dict[str, List[str]], variables["files_to_download"])
+files_to_download = cast(dict[str, list[str]], variables["files_to_download"])
 TMP_PATH: Final = f"{SHARED_DIR}/{DAG_ID}"
-total_checks: List[int] = []
-count_checks: List[int] = []
-geo_checks: List[int] = []
-check_name: Dict[str, List[int]] = {}
+total_checks: list[int] = []
+count_checks: list[int] = []
+geo_checks: list[int] = []
+check_name: dict[str, list[int]] = {}
 db_conn = DatabaseEngine()
 
 with DAG(

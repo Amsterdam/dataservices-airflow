@@ -15,4 +15,4 @@ class BashEnvOperator(BashOperator):
         super().__init__(*args, **kwargs)
         # Now add our extra env by calling the env_expander
         if env_expander is not None:
-            self.env = {**self.env, **env_expander()}
+            self.env = self.env | env_expander()

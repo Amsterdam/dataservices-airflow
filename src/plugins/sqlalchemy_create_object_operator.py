@@ -1,6 +1,6 @@
 import re
 from re import Pattern
-from typing import Any, Callable, Dict, Final, Optional, Union
+from typing import Any, Callable, Final, Optional, Union
 
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
@@ -92,7 +92,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
             xcom_task_ids is not None
         ), "Either data_table_name or xcom_task_ids should be provided."
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: dict[str, Any]) -> None:
         """Executes the ``generate_db_object`` method from schema-tools.
 
         Which leads to the creation of tables and/or an index on the identifier (as specified in

@@ -1,6 +1,5 @@
 import operator
 from pathlib import Path
-from typing import Dict, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -31,10 +30,10 @@ variables_bodem = Variable.get("veiligeafstanden", deserialize_json=True)
 files_to_download = variables_bodem["files_to_download"]
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 db_conn = DatabaseEngine()
-total_checks: List[int] = []
-count_checks: List[int] = []
-geo_checks: List[int] = []
-check_name: Dict[str, List[int]] = {}
+total_checks: list[int] = []
+count_checks: list[int] = []
+geo_checks: list[int] = []
+check_name: dict[str, list[int]] = {}
 
 
 with DAG(

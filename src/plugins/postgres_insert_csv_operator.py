@@ -2,7 +2,7 @@ import csv
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Optional
 
 from airflow.models import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -49,7 +49,7 @@ class PostgresInsertCsvOperator(BaseOperator):
     @apply_defaults
     def __init__(
         self,
-        data: Tuple[FileTable, ...],
+        data: tuple[FileTable, ...],
         base_dir_task_id: Optional[str] = None,
         page_size: int = 1000,
         postgres_conn_id: str = "postgres_default",
@@ -79,7 +79,7 @@ class PostgresInsertCsvOperator(BaseOperator):
         self.postgres_conn_id = postgres_conn_id
         self.autocommit = autocommit
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: dict[str, Any]) -> None:
         base_dir = Path()
         if self.base_dir_task_id is not None:
             base_dir = Path(context["task_instance"].xcom_pull(task_ids=self.base_dir_task_id))

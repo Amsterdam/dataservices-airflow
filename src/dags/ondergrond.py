@@ -1,6 +1,6 @@
 import operator
 from pathlib import Path
-from typing import Dict, Final, List
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -30,10 +30,10 @@ variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
 db_conn = DatabaseEngine()
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks: List[int] = []
-count_checks: List[int] = []
-geo_checks: List[int] = []
-check_name: Dict[str, List[int]] = {}
+total_checks: list[int] = []
+count_checks: list[int] = []
+geo_checks: list[int] = []
+check_name: dict[str, list[int]] = {}
 
 
 SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE: Final = """

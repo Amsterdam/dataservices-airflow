@@ -37,7 +37,7 @@ gpkg_path = f"{tmp_dir}/{dataset_name}.gpkg"
 owner = "team_ruimte"
 with DAG(
     dag_id,
-    default_args={**default_args, **{"owner": owner}},
+    default_args=default_args | {"owner": owner},
     # New data is delivered every wednesday and friday evening,
     # So we schedule the import on friday and saturday morning
     schedule_interval="0 0 * * 4,6",

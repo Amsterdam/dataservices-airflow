@@ -1,6 +1,6 @@
 import logging
 from datetime import timedelta
-from typing import Any, Dict, Final, Optional, Union
+from typing import Any, Final, Optional, Union
 
 import pendulum
 from airflow.models.baseoperator import BaseOperator
@@ -74,7 +74,7 @@ class PostgresPermissionsOperator(BaseOperator):
         create_roles: bool = True,
         revoke: bool = False,
         *args: Any,
-        **kwargs: Dict,
+        **kwargs: dict,
     ):
         """Initialize paramaters."""
         super().__init__(*args, **kwargs)
@@ -91,7 +91,7 @@ class PostgresPermissionsOperator(BaseOperator):
         self.create_roles = create_roles
         self.revoke = revoke
 
-    def execute(self, context: Optional[Dict[str, Any]] = None) -> None:  # noqa: C901
+    def execute(self, context: Optional[dict[str, Any]] = None) -> None:  # noqa: C901
         """Executes 'apply_schema_and_profile_permissions' method  from \
             schema-tools to set the database permissions on objects to roles.
 

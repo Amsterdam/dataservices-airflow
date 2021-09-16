@@ -1,8 +1,8 @@
-from typing import Any, Dict
+from typing import Any
 
 
 class XComAttrAssignerMixin:
-    def _assign(self, context: Dict[str, Any]) -> None:
+    def _assign(self, context: dict[str, Any]) -> None:
 
         # If an xcom task_ids is provided, use it to do the assigments
         if self.xcom_task_ids is not None:  # type: ignore

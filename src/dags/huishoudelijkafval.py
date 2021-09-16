@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Union
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -26,7 +26,7 @@ from swift_load_sql_operator import SwiftLoadSqlOperator
 
 owner = "team_ruimte"
 dag_id: str = "huishoudelijkafval"
-tables: Dict[str, Union[List[str], str]] = {
+tables: dict[str, Union[list[str], str]] = {
     "dump_file": [
         "container",
         "containerlocatie",
@@ -45,7 +45,7 @@ tables: Dict[str, Union[List[str], str]] = {
 
 with DAG(
     dag_id,
-    default_args={**default_args, **{"owner": owner}},
+    default_args=default_args | {"owner": owner},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:

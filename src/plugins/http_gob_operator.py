@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Final, Optional
+from typing import Any, Final, Optional
 
 from airflow.exceptions import AirflowException
 from airflow.hooks.http_hook import HttpHook
@@ -72,7 +72,7 @@ class HttpGobOperator(BaseOperator):
         self.access_token: Optional[str] = None
         super().__init__(*args, **kwargs)
 
-    def _fetch_params(self, dataset_table_id: str) -> Dict[str, str]:
+    def _fetch_params(self, dataset_table_id: str) -> dict[str, str]:
         params = {
             "condens": "node,edges,id",
             "schema": dataset_table_id,
@@ -81,7 +81,7 @@ class HttpGobOperator(BaseOperator):
             params["geojson"] = self.geojson
         return params
 
-    def _fetch_headers(self, force_refresh: bool = False) -> Dict[str, str]:
+    def _fetch_headers(self, force_refresh: bool = False) -> dict[str, str]:
         headers = {"Content-Type": "application/x-ndjson"}
         if not self.protected:
             return headers
@@ -90,11 +90,11 @@ class HttpGobOperator(BaseOperator):
             or time.time() + self.token_expires_margin > self.token_expires_time
             or force_refresh
         ):
-            form_params = dict(
-                grant_type="client_credentials",
-                client_id=OIDC_CLIENT_ID,
-                client_secret=OIDC_CLIENT_SECRET,
-            )
+            form_params = {
+                "grant_type": "client_credentials",
+                "client_id": OIDC_CLIENT_ID,
+                "client_secret": OIDC_CLIENT_SECRET,
+            }
             http = HttpHook(http_conn_id="oidc_server", method="POST")
             for i in range(3):
                 try:
@@ -122,7 +122,7 @@ class HttpGobOperator(BaseOperator):
             f"active: false, first: {batch_size}, after: {cursor_pos}",
         )
 
-    def execute(self, context: Dict[str, Any]) -> None:  # NoQA
+    def execute(self, context: dict[str, Any]) -> None:  # NoQA
         # When doing 'airflow test' there is a context['params']
         # For full dag runs, there is dag_run["conf"]
         from common import SHARED_DIR
@@ -186,11 +186,11 @@ class HttpGobOperator(BaseOperator):
                             self.endpoint,
                             self._fetch_params(dataset_table_id),
                             json.dumps(
-                                dict(
-                                    query=self.add_batch_params_to_query(
+                                {
+                                    "query": self.add_batch_params_to_query(
                                         query, cursor_pos, batch_size
                                     )
-                                )
+                                }
                             ),
                             headers=headers,
                             extra_options={"stream": True},

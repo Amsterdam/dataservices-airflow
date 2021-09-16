@@ -1,6 +1,6 @@
 import logging
 from contextlib import closing
-from typing import Final, Iterable, List, Optional
+from typing import Final, Iterable, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -78,7 +78,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
             """
         )
         while True:
-            rows: List[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
+            rows: list[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
             batch_count = insert_many(rows, IMPORT_STEP)
             count += batch_count
             if batch_count < IMPORT_STEP:
@@ -86,7 +86,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
         logger.info("Number of records imported: %d", count)
 
 
-def insert_many(rows: List[RowProxy], batch_size: Optional[int]) -> int:
+def insert_many(rows: list[RowProxy], batch_size: Optional[int]) -> int:
     """Insert rows in batches."""
     if batch_size is None:
         batch_size = len(rows)

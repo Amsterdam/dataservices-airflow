@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Final
+from typing import Final
 
 import pendulum
 from airflow import DAG
@@ -28,7 +28,7 @@ from sql.stroomstoringen import CONVERT_DATE_TIME, DROP_TABLE_IF_EXISTS, NO_DATA
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 DAG_ID: Final = "stroomstoringen"
-variables: Dict[str, Dict[str, str]] = Variable.get("stroomstoringen", deserialize_json=True)
+variables: dict[str, dict[str, str]] = Variable.get("stroomstoringen", deserialize_json=True)
 endpoint_url: str = variables["data_endpoints"]["stroomstoringen"]
 
 TODAY: Final = pendulum.now(TIMEZONE).format("MM-DD-YYYY")

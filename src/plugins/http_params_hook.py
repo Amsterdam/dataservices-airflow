@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import requests
 from airflow.hooks.http_hook import HttpHook
@@ -14,10 +14,10 @@ class HttpParamsHook(HttpHook):
     def run(
         self,
         endpoint: str,
-        params: Optional[Dict[str, str]] = None,
+        params: Optional[dict[str, str]] = None,
         data: str = None,
-        headers: Optional[Dict[str, str]] = None,
-        extra_options: Optional[Dict[str, Any]] = None,
+        headers: Optional[dict[str, str]] = None,
+        extra_options: Optional[dict[str, Any]] = None,
         **request_kwargs,
     ):
         r"""

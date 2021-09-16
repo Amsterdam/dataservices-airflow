@@ -1,6 +1,6 @@
 import operator
 import pathlib
-from typing import Dict, Final, List
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -23,15 +23,15 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
 
 dag_id: str = "parkeerzones"
-variables: Dict = Variable.get(dag_id, deserialize_json=True)
-file_to_download: Dict = variables["files_to_download"]
-files_to_proces: Dict = variables["files_to_proces"]
+variables: dict = Variable.get(dag_id, deserialize_json=True)
+file_to_download: dict = variables["files_to_download"]
+files_to_proces: dict = variables["files_to_proces"]
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
 sql_path: pathlib.Path = pathlib.Path(__file__).resolve().parents[0] / "sql"
-total_checks: List = []
-count_checks: List = []
-geo_checks: List = []
-check_name: Dict = {}
+total_checks: list = []
+count_checks: list = []
+geo_checks: list = []
+check_name: dict = {}
 
 
 SQL_MAKE_VALID_GEOM: Final = """
@@ -133,7 +133,7 @@ with DAG(
         PostgresOperator(
             task_id=f"revalidate_geom_{subject}",
             sql=SQL_MAKE_VALID_GEOM,
-            params=dict(tablename=f"{dag_id}_{subject}_new"),
+            params={"tablename": f"{dag_id}_{subject}_new"},
         )
         for subject in files_to_proces.keys()
     ]
@@ -149,7 +149,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{subject}",
                 pass_value=2,
-                params=dict(table_name=f"{dag_id}_{subject}_new"),
+                params={"table_name": f"{dag_id}_{subject}_new"},
                 result_checker=operator.ge,
             )
         )
@@ -157,10 +157,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{subject}",
-                params=dict(
-                    table_name=f"{dag_id}_{subject}_new",
-                    geotype=["POLYGON", "MULTIPOLYGON"],
-                ),
+                params={
+                    "table_name": f"{dag_id}_{subject}_new",
+                    "geotype": ["POLYGON", "MULTIPOLYGON"],
+                },
                 pass_value=1,
             )
         )
@@ -200,7 +200,7 @@ with DAG(
         PostgresOperator(
             task_id=f"delete_show_false_{subject}",
             sql=SQL_DELETE_UNUSED,
-            params=dict(tablename=f"{dag_id}_{subject}_new"),
+            params={"tablename": f"{dag_id}_{subject}_new"},
         )
         for subject in files_to_proces.keys()
     ]

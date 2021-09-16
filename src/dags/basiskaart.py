@@ -1,7 +1,7 @@
 import logging
 import operator
 from dataclasses import dataclass
-from typing import Final, Iterable, List
+from typing import Final, Iterable
 
 from airflow import DAG
 from airflow.models import Variable
@@ -59,7 +59,7 @@ class Table:
     select: str
 
 
-TABLES: Final[List[Table]] = [
+TABLES: Final[list[Table]] = [
     Table(
         id=f"{DAG_ID}_{base_id}",
         base_id=base_id,
@@ -93,7 +93,7 @@ def copy_basiskaartdb_to_masterdb(
         logger.debug("Executing SQL query: %r", source_select_statement)
         cursor: ResultProxy = src_conn.execute(source_select_statement)
         while True:
-            rows: List[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
+            rows: list[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
             batch_count = insert_rows(target_base_table, rows, cursor.keys())
             count += batch_count
             if batch_count < IMPORT_STEP:
@@ -101,7 +101,7 @@ def copy_basiskaartdb_to_masterdb(
     logger.info("Total records imported: %d", count)
 
 
-def insert_rows(target_base_table: str, rows: List[RowProxy], col_names: Iterable[str]) -> int:
+def insert_rows(target_base_table: str, rows: list[RowProxy], col_names: Iterable[str]) -> int:
     """Insert data from iterator into target table."""
     # TODO:
     # This function is enormously inefficient;

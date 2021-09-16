@@ -1,6 +1,6 @@
 import subprocess  # noqa: S404
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Optional, Union
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
@@ -20,7 +20,7 @@ class Ogr2OgrOperator(BaseOperator):
         fid: str = "id",
         geometry_name: str = "geometry",
         target_table_name: Optional[str] = None,
-        source_table_name: Optional[List[str]] = None,
+        source_table_name: Optional[list[str]] = None,
         sql_output_file: Optional[str] = None,
         sql_statement: Optional[str] = None,
         input_file_sep: Optional[str] = None,
@@ -95,7 +95,7 @@ class Ogr2OgrOperator(BaseOperator):
 
         # setup the cmd to execute
         program = "ogr2ogr"
-        ogr2ogr_cmd: List[str] = [program, "-f", self.mode]
+        ogr2ogr_cmd: list[str] = [program, "-f", self.mode]
 
         # Option 1 SQL (default): create sql file
         if self.mode == "PGDump":

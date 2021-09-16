@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union
+from typing import Iterator, Optional, Union
 
 import pendulum
 from airflow.exceptions import AirflowException
@@ -39,7 +39,7 @@ class SwiftHook(BaseHook):
             options["os_tenant_name"] = connection.host
         yield SwiftService(options=options)
 
-    def list_container(self, container: str) -> Iterator[Dict]:
+    def list_container(self, container: str) -> Iterator[dict]:
         """Returns the items in the objectstore folder (container).
 
         Args:
