@@ -87,6 +87,7 @@ with DAG(
             target_table_name=f"{TMP_TABLE_PREFIX}{table}",
             # Only copy table definitions. Don't do anything else.
             truncate_target=False,
+            drop_target_if_unequal=True,
             copy_data=False,
             drop_source=False,
         )
