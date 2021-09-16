@@ -164,6 +164,7 @@ def table_task_group(table: Table) -> DAG:
             task_id=f"change_data_capture_for_{table.id}",
             source_table_name=table.tmp_id,
             target_table_name=table.id,
+            drop_target_if_unequal=True,
         )
 
         # Create mviews for T-REX tile server
