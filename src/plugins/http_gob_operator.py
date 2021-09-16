@@ -7,9 +7,9 @@ from tempfile import TemporaryDirectory
 from typing import Any, Final, Optional
 
 from airflow.exceptions import AirflowException
-from airflow.hooks.http_hook import HttpHook
 from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
+from airflow.providers.http.hooks.http import HttpHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
@@ -29,15 +29,9 @@ OIDC_CLIENT_SECRET: Final = env("OIDC_CLIENT_SECRET")
 
 
 class HttpGobOperator(BaseOperator):
-    """Operator for fetching data from Gob"""
+    """Operator for fetching data from Gob."""
 
-    # template_fields = [
-    #     "endpoint",
-    #     "data",
-    #     "headers",
-    # ]
-
-    @apply_defaults
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         endpoint: str,
@@ -56,6 +50,27 @@ class HttpGobOperator(BaseOperator):
         xcom_table_info_key: str = XCOM_RETURN_KEY,
         **kwargs: Any,
     ) -> None:
+        """Initialize the Gob Operator.
+
+        Args:
+            endpoint: The GOB Graphql endpoint.
+            geojson_field: Parameter for the graphql call to indicate the
+                field that contains geojson.
+            lowercase: Parameter for the graphql call, lowercases the fields in ndjson output.
+            flatten: Parameter needed for graphql call.
+            graphql_query_path: Path to the actual graphql query.
+            batch_size: Number of ndjson records to be returned per graphql call.
+            max_records: Parameter, mainly for testing to limit the max number of records to fetch.
+            protected: Indicates that a protected endpoint is used, so a token needs to be
+                add to the graphl request.
+            copy_bufsize: Size of copy buffer to be used by shutil.copyfileobj.
+            http_conn_id: The connection id for the GOB graphl server.
+            token_expires_margin: Safety margin (in seconds) to be used
+                for the OpenID connect server.
+            xcom_table_info_task_ids: The id of the task that is providing the xcom info.
+            xcom_table_info_key: Key use to grab the xcom info, defaults to the airflow
+                default `return_value`.
+        """
         self.geojson = geojson_field
         self.graphql_query_path = graphql_query_path
         self.http_conn_id = http_conn_id
@@ -96,7 +111,7 @@ class HttpGobOperator(BaseOperator):
                 "client_secret": OIDC_CLIENT_SECRET,
             }
             http = HttpHook(http_conn_id="oidc_server", method="POST")
-            for i in range(3):
+            for _i in range(3):
                 try:
                     response = http.run(OIDC_TOKEN_ENDPOINT, data=form_params)
                 except AirflowException:
@@ -113,7 +128,7 @@ class HttpGobOperator(BaseOperator):
         headers["Authorization"] = f"Bearer {self.access_token}"
         return headers
 
-    def add_batch_params_to_query(self, query: str, cursor_pos: int, batch_size: int) -> str:
+    def _add_batch_params_to_query(self, query: str, cursor_pos: int, batch_size: int) -> str:
         # Simple approach, just string replacement
         # alternative would be to parse query with graphql-core lib, alter AST
         # and render query, seems overkill for now
@@ -122,7 +137,7 @@ class HttpGobOperator(BaseOperator):
             f"active: false, first: {batch_size}, after: {cursor_pos}",
         )
 
-    def execute(self, context: dict[str, Any]) -> None:  # NoQA
+    def execute(self, context: dict[str, Any]) -> None:  # noqa: D102
         # When doing 'airflow test' there is a context['params']
         # For full dag runs, there is dag_run["conf"]
         from common import SHARED_DIR
@@ -178,7 +193,7 @@ class HttpGobOperator(BaseOperator):
             while True:
 
                 force_refresh_token = False
-                for i in range(3):
+                for _i in range(3):
                     try:
                         request_start_time = time.time()
                         headers = self._fetch_headers(force_refresh=force_refresh_token)
@@ -187,7 +202,7 @@ class HttpGobOperator(BaseOperator):
                             self._fetch_params(dataset_table_id),
                             json.dumps(
                                 {
-                                    "query": self.add_batch_params_to_query(
+                                    "query": self._add_batch_params_to_query(
                                         query, cursor_pos, batch_size
                                     )
                                 }
