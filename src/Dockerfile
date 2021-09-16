@@ -1,4 +1,4 @@
-FROM amsterdam/python:3.8-buster AS builder
+FROM amsterdam/python:3.9-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
 RUN apt-get update \
@@ -21,14 +21,14 @@ WORKDIR /tmp/sqlite-autoconf-3360000
 RUN CFLAGS="-DSQLITE_ENABLE_COLUMN_METADATA=1" ./configure --disable-static --disable-static-shell && make install distclean
 
 # Start runtime image,
-FROM amsterdam/python:3.8-slim-buster
+FROM amsterdam/python:3.9-slim-buster
 
 # Copy python build artifacts from builder image
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
 COPY --from=builder /usr/local/lib/ /usr/local/lib/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libaio* /usr/lib/x86_64-linux-gnu/
 COPY --from=builder /usr/lib/x86_64-linux-gnu/libcurl.so.4 /usr/lib/x86_64-linux-gnu/
-COPY --from=builder /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
+COPY --from=builder /usr/local/lib/python3.9/site-packages/ /usr/local/lib/python3.9/site-packages/
 COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /usr/lib/postgresql/. /usr/lib/postgresql/
 COPY --from=builder /usr/share/postgresql/. /usr/share/postgresql/
