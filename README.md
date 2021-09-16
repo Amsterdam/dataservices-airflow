@@ -4,7 +4,7 @@ Airflow setup for Dataservices, running in a Docker container.
 
 # Requirements
 
-    Python >= 3.8
+    Python >= 3.9
 
     python3 -m venv .venv
     source .venv/bin/activate
