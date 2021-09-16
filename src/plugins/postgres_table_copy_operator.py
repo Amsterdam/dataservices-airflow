@@ -211,8 +211,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         return diffs
 
     def _calculate_columns_for_diffs(
-        self, diffs: Dict[TableMapping, List[str]]
-    ) -> Dict[TableMapping, List[str]]:
+        self, diffs: dict[TableMapping, list[str]]
+    ) -> dict[TableMapping, list[str]]:
         """Determine what columns are involved in a copy operation.
 
         If a dataset_name is defined, we try to get the column names from the dataset.
@@ -311,7 +311,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     )
 
                 # Check if there are structural differences between targets and sources.
-                all_table_copies: List[TableMapping] = table_copies + junction_table_copies
+                all_table_copies: list[TableMapping] = table_copies + junction_table_copies
                 diff_results = self._validate_tables_equality(cursor, all_table_copies)
 
                 for table_mapping, diff_check in diff_results.items():
