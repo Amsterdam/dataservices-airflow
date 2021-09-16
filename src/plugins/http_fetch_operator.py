@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.http_hook import HttpHook
@@ -29,8 +29,8 @@ class HttpFetchOperator(BaseOperator):
         self,
         endpoint: str,
         tmp_file: Union[Path, str],
-        data: Optional[Dict[str, Any]] = None,
-        headers: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
+        headers: Optional[dict[str, Any]] = None,
         http_conn_id: str = "http_default",
         encoding_schema: Optional[str] = None,
         output_type: Optional[str] = None,

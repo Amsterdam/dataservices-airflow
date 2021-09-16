@@ -10,7 +10,7 @@ airflow trigger_dag --conf '[curly-braces]"maxLogAgeInDays":30[curly-braces]' ai
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Optional
 
 import airflow
 from airflow.configuration import conf
@@ -31,7 +31,7 @@ SCHEDULE_INTERVAL: str = "@daily"
 # Who is listed as the owner of this DAG in the Airflow Web Server
 DAG_OWNER_NAME: str = "dataservices"
 # List of email address to send email alerts to if this job fails
-ALERT_EMAIL_ADDRESSES: Optional[List] = []
+ALERT_EMAIL_ADDRESSES: Optional[list] = []
 # Length to retain the log files if not already provided in the conf. If this
 # is set to 30, the job will remove those files that are 30 days old or older
 # DEFAULT_MAX_LOG_AGE_IN_DAYS = Variable.get(
@@ -45,7 +45,7 @@ ENABLE_DELETE: bool = True
 # process for however many workers there are so that each worker gets its
 # logs cleared.
 NUMBER_OF_WORKERS: int = 1
-DIRECTORIES_TO_DELETE: List = [BASE_LOG_FOLDER]
+DIRECTORIES_TO_DELETE: list = [BASE_LOG_FOLDER]
 ENABLE_DELETE_CHILD_LOG: str = Variable.get(
     "AIRFLOW_LOG_CLEANUP__ENABLE_DELETE_CHILD_LOG", "False"
 )
@@ -71,7 +71,7 @@ if ENABLE_DELETE_CHILD_LOG.lower() == "true":
             + str(e)
         )
 
-default_args: Dict = {
+default_args: dict = {
     "dag_id": "airflow_log_cleanup",
     "owner": DAG_OWNER_NAME,
     "depends_on_past": False,

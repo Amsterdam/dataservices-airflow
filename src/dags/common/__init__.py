@@ -4,7 +4,7 @@ import traceback
 from datetime import timedelta
 from hashlib import blake2s
 from inspect import cleandoc
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union, cast
+from typing import Any, Iterable, Optional, Union, cast
 
 import pendulum
 from airflow.exceptions import AirflowException
@@ -27,7 +27,7 @@ slack_webhook_token: str = env("SLACK_WEBHOOK")
 DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
 # Defines the environments in which sending of email is enabled.
-ELIGIBLE_EMAIL_ENVIRONMENTS: Tuple[str, ...] = tuple(
+ELIGIBLE_EMAIL_ENVIRONMENTS: tuple[str, ...] = tuple(
     cast(
         Iterable[str],
         map(lambda s: s.strip(), env.list("ELIGIBLE_EMAIL_ENVIRONMENTS", ["production"])),
@@ -51,9 +51,9 @@ class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
     def run(  # noqa: D102 (it's temporary after all)
         self,
         endpoint: Optional[str],
-        data: Optional[Union[Dict[str, Any], str]] = None,
-        headers: Optional[Dict[str, Any]] = None,
-        extra_options: Optional[Dict[str, Any]] = None,
+        data: Optional[Union[dict[str, Any], str]] = None,
+        headers: Optional[dict[str, Any]] = None,
+        extra_options: Optional[dict[str, Any]] = None,
         **request_kwargs: Any,
     ) -> None:
         if extra_options and "verify" not in extra_options:
@@ -205,7 +205,7 @@ def quote_string(val: str) -> str:
     return cast(str, QuotedString(val.encode()).getquoted().decode())
 
 
-def make_hash(composite_values: List[str], digest_size: int = 5) -> int:
+def make_hash(composite_values: list[str], digest_size: int = 5) -> int:
     """Construct a hash value.
 
     The blake2s algorithm is used to generate a single hased value for source

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Final, List, Optional
+from typing import Any, Final, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -18,9 +18,9 @@ class SwapSchemaOperator(BaseOperator):
         from_pg_schema: str = "pte",
         to_pg_schema: str = "public",
         postgres_conn_id: str = "postgres_default",
-        subset_tables: Optional[List] = None,
+        subset_tables: Optional[list] = None,
         *args: Any,
-        **kwargs: Dict,
+        **kwargs: dict,
     ) -> None:
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
@@ -29,7 +29,7 @@ class SwapSchemaOperator(BaseOperator):
         self.to_pg_schema = to_pg_schema
         self.subset_tables = subset_tables
 
-    def execute(self, context: Optional[Dict] = None) -> None:
+    def execute(self, context: Optional[dict] = None) -> None:
         """Moves database objects (in this case tables) to other schema owner
 
         Args:

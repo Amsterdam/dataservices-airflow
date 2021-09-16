@@ -1,5 +1,5 @@
 import csv
-from typing import Iterable, List, TypedDict
+from typing import Iterable, TypedDict
 
 from common import make_hash
 from more_ds.network.url import URL
@@ -74,7 +74,7 @@ def save_data(start_folder: str, base_url: str, conn_id: str, output_file: str) 
         represents it's election year i.e. 2021
 
     """
-    data_to_save: List = []
+    data_to_save: list = []
     get_listing = ObjectStoreListing(conn_id)
     for file in get_listing.list_files(start_folder):
         if "pdf" in file:

@@ -120,7 +120,7 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
         )
 
         # 4. load data into temp table
-        load_data = HttpGobOperator(**{**kwargs, **extra_kwargs})
+        load_data = HttpGobOperator(**kwargs | extra_kwargs)
 
         def copy_assigner(o: Any, x: Any) -> None:
             o.source_table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"

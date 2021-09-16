@@ -1,5 +1,4 @@
 import operator
-from typing import Dict, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -31,10 +30,10 @@ tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 tables_to_proces = [table for table in variables["files_to_download"] if table != "themas"]
 db_conn = DatabaseEngine()
-total_checks: List[int] = []
-count_checks: List[int] = []
-geo_checks: List[int] = []
-check_name: Dict[str, List[int]] = {}
+total_checks: list[int] = []
+count_checks: list[int] = []
+geo_checks: list[int] = []
+check_name: dict[str, list[int]] = {}
 
 
 with DAG(

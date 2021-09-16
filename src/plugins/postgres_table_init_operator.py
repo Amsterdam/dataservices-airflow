@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from airflow.models import XCOM_RETURN_KEY
 from airflow.providers.postgres.hooks.postgres import PostgresHook
@@ -46,7 +46,7 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
         self.xcom_key = xcom_key
         self.xcom_attr_assigner = xcom_attr_assigner
 
-    def execute(self, context: Dict[str, Any]) -> None:
+    def execute(self, context: dict[str, Any]) -> None:
         # First get all index names, so it's known which indices to rename
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 

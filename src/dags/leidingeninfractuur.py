@@ -1,11 +1,10 @@
 import operator
 from pathlib import Path
-from typing import Dict, Final
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.models.baseoperator import chain
-from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
 from common import (
@@ -36,10 +35,10 @@ from swift_operator import SwiftOperator
 
 DAG_ID: Final = "leidingeninfrastructuur"
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
-variables: Dict[str, Dict[str, str]] = Variable.get(
+variables: dict[str, dict[str, str]] = Variable.get(
     "leidingeninfrastuctuur", deserialize_json=True
 )
-files_to_download: Dict[str, str] = variables["files_to_download"]
+files_to_download: dict[str, str] = variables["files_to_download"]
 data_file: str = files_to_download["wibon"]
 source_tables: str = files_to_download["source_tables"]
 target_tables: str = files_to_download["target_tables"]

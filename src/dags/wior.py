@@ -2,7 +2,7 @@ import json
 import operator
 from datetime import datetime, timezone, tzinfo
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Optional
 
 import requests
 from airflow import DAG
@@ -41,8 +41,8 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
 dag_id: str = "wior"
-variables: Dict = Variable.get(dag_id, deserialize_json=True)
-data_endpoint: Dict = variables["data_endpoints"]["wfs"]
+variables: dict = Variable.get(dag_id, deserialize_json=True)
+data_endpoint: dict = variables["data_endpoints"]["wfs"]
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
 data_file: str = f"{tmp_dir}/{dag_id}.geojson"
 db_conn: DatabaseEngine = DatabaseEngine()

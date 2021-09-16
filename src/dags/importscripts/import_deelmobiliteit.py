@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from hashlib import blake2s
 from itertools import chain
-from typing import Dict, Iterator, List, Optional
+from typing import Iterator, Optional
 
 import pandas as pd
 import requests
@@ -16,7 +16,7 @@ from shapely.geometry.point import Point
 to_zone = tz.gettz("Europe/Amsterdam")
 
 
-def make_hash(composite_values: List[str], digest_size: int = 5) -> int:
+def make_hash(composite_values: list[str], digest_size: int = 5) -> int:
     """The blake2s algorithm is used to generate a single hased value for source
     composite values that uniquely identify a row.
     In case the source itself doesn't provide a single solid identification as key.
@@ -65,7 +65,7 @@ class Scooter:
     tarief_parkeren: Optional[int] = None
 
 
-def get_data_scooter_felyx(api_endpoint: str, api_header: Dict) -> Iterator[Scooter]:
+def get_data_scooter_felyx(api_endpoint: str, api_header: dict) -> Iterator[Scooter]:
     """Retrieves the data from resource felyx
     Because each resource has it's own quirks when calling the API
     each resource has it's own get_data_* method.
@@ -106,10 +106,10 @@ def get_data_scooter_felyx(api_endpoint: str, api_header: Dict) -> Iterator[Scoo
 
 def get_data_ridecheck(
     token_endpoint: str,
-    token_payload: Dict,
-    token_header: Dict,
+    token_payload: dict,
+    token_header: dict,
     data_endpoint: str,
-    data_headers: Dict,
+    data_headers: dict,
 ) -> Iterator[Scooter]:
     """Retrieves the data from resource RIDECHECK
     Because each resource has it's own quirks when calling the API
@@ -182,12 +182,12 @@ def get_data_ridecheck(
 def import_scooter_data(
     table_name: str,
     felyx_api_endpoint: str,
-    felyx_api_header: Dict,
+    felyx_api_header: dict,
     ridecheck_token_endpoint: str,
-    ridecheck_token_payload: Dict,
-    ridecheck_token_header: Dict,
+    ridecheck_token_payload: dict,
+    ridecheck_token_header: dict,
     ridecheck_data_endpoint: str,
-    ridecheck_data_header: Dict,
+    ridecheck_data_header: dict,
 ) -> None:
     """Union resources felyx and RIDECHECK and imports data into database table
 
@@ -217,7 +217,7 @@ def import_scooter_data(
         ridecheck_data_header,
     )
     felyx = get_data_scooter_felyx(felyx_api_endpoint, felyx_api_header)
-    scooter_dataset = chain([row for row in ridecheck], [row for row in felyx])
+    scooter_dataset = chain(ridecheck, felyx)
 
     df = pd.DataFrame([vars(row) for row in scooter_dataset])
     df["geometrie"] = df["geometrie"].apply(lambda g: WKTElement(g.wkt, srid=4326))
@@ -270,7 +270,7 @@ class Auto:
     afbeelding: Optional[str] = None
 
 
-def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -> Iterator[Auto]:
+def get_data_auto_mywheels(api_endpoint: str, api_header: dict, payload: dict) -> Iterator[Auto]:
     """Retrieves the data from resource MYWHEELS
     Because each resource has it's own quirks when calling the API
     each resource has it's own get_data_* method.
@@ -359,8 +359,8 @@ def get_data_auto_mywheels(api_endpoint: str, api_header: Dict, payload: Dict) -
 def import_auto_data(
     table_name: str,
     mywheels_api_endpoint: str,
-    mywheels_api_header: Dict,
-    mywheels_api_payload: Dict,
+    mywheels_api_header: dict,
+    mywheels_api_payload: dict,
 ) -> None:
     """Union resources MYWHEELS and [...] and imports data into database table
 
@@ -378,9 +378,8 @@ def import_auto_data(
     mywheels = get_data_auto_mywheels(
         mywheels_api_endpoint, mywheels_api_header, mywheels_api_payload
     )
-    auto_dataset = [row for row in mywheels]
 
-    df = pd.DataFrame([vars(row) for row in auto_dataset])
+    df = pd.DataFrame([vars(row) for row in mywheels])
     df["geometrie"] = df["geometrie"].apply(lambda g: WKTElement(g.wkt, srid=4326))
     db_engine = get_engine()
     df.to_sql(

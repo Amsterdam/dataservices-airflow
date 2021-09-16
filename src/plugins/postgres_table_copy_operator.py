@@ -2,7 +2,7 @@ import itertools
 import operator
 from contextlib import closing
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Final, List, Optional, Tuple, cast
+from typing import Any, Callable, Final, Optional, cast
 
 from airflow.exceptions import AirflowFailException
 from airflow.models import XCOM_RETURN_KEY, BaseOperator
@@ -129,7 +129,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 "even though source table will be dropped."
             )
 
-    def _validate_tables_equality(self, cursor: Any, all_table_copies: List[TableMapping]) -> List:
+    def _validate_tables_equality(self, cursor: Any, all_table_copies: list[TableMapping]) -> list:
         """Validate data structure between target and source table."""
         for table_mapping in all_table_copies:
             # First make sure the target table exists
@@ -195,7 +195,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
         return diff
 
-    def execute(self, context: Dict[str, Any]) -> None:  # noqa: C901, D102
+    def execute(self, context: dict[str, Any]) -> None:  # noqa: C901, D102
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
         # Use the mixin class _assign to assign new values, if provided.
@@ -207,7 +207,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 hook.set_autocommit(conn, self.autocommit)
 
             # Start a list to hold copy information
-            table_copies: List[TableMapping] = []
+            table_copies: list[TableMapping] = []
             if self.source_table_name is not None and self.target_table_name is not None:
                 table_copies.extend(
                     [
@@ -231,7 +231,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 )
 
                 junction_tables = cast(
-                    Tuple[str, ...],
+                    tuple[str, ...],
                     tuple(map(operator.itemgetter("tablename"), cursor.fetchall())),
                 )
                 if junction_tables:
@@ -239,7 +239,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 else:
                     self.log.info("Did not find any junction tables.")
 
-                junction_table_copies: List[TableMapping] = []
+                junction_table_copies: list[TableMapping] = []
                 for source_table_name in junction_tables:
                     target_table_name = source_table_name.replace("_new", "")
                     junction_table_copies.append(
@@ -268,7 +268,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         )
                     )
 
-                statements: List[Statement] = [
+                statements: list[Statement] = [
                     Statement(
                         sql="""
                     CREATE TABLE IF NOT EXISTS {target_table_name}

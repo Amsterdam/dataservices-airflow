@@ -1,5 +1,4 @@
 import operator
-from typing import Dict, List
 
 from airflow import DAG
 from airflow.models import Variable
@@ -41,10 +40,10 @@ files_to_union = variables["files_to_union"]
 files_to_cleanse = variables["files_to_cleanse"]
 files_to_fix_geom = variables["files_to_fix_geom"]
 db_conn = DatabaseEngine()
-total_checks: List[int] = []
-count_checks: List[int] = []
-geo_checks: List[int] = []
-check_name: Dict[str, List[int]] = {}
+total_checks: list[int] = []
+count_checks: list[int] = []
+geo_checks: list[int] = []
+check_name: dict[str, list[int]] = {}
 
 
 with DAG(

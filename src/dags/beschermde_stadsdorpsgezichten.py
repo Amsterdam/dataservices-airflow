@@ -38,7 +38,7 @@ owner = "team_ruimte"
 
 with DAG(
     dag_id,
-    default_args={**default_args, **{"owner": owner}},
+    default_args=default_args | {"owner": owner},
     on_failure_callback=get_contact_point_on_failure_callback(
         dataset_id="beschermdestadsdorpsgezichten"
     ),
@@ -73,7 +73,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=10,
-            params=dict(table_name="pte.beschermde_stadsdorpsgezichten"),
+            params={"table_name": "pte.beschermde_stadsdorpsgezichten"},
             result_checker=operator.ge,
         )
     )
@@ -97,10 +97,7 @@ with DAG(
     checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name="pte.beschermde_stadsdorpsgezichten",
-                geotype="MULTIPOLYGON",
-            ),
+            params={"table_name": "pte.beschermde_stadsdorpsgezichten", "geotype": "MULTIPOLYGON"},
             pass_value=1,
         )
     )

@@ -38,7 +38,7 @@ owner = "team_ruimte"
 
 with DAG(
     dag_id,
-    default_args={**default_args, **{"owner": owner}},
+    default_args=default_args | {"owner": owner},
     user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
@@ -99,7 +99,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{table_name}",
                 pass_value=count,
-                params=dict(table_name=f"pte.{table_name}"),
+                params={"table_name": f"pte.{table_name}"},
                 result_checker=operator.ge,
             )
         )
@@ -117,11 +117,11 @@ with DAG(
         checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{table_name}",
-                params=dict(
-                    table_name=f"pte.{table_name}",
-                    geo_column="geometrie",
-                    geotype=geo_type,
-                ),
+                params={
+                    "table_name": f"pte.{table_name}",
+                    "geo_column": "geometrie",
+                    "geotype": geo_type,
+                },
                 pass_value=1,
             )
         )

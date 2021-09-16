@@ -17,7 +17,7 @@ dag_id = "varen"
 owner = "team_ruimte"
 with DAG(
     dag_id,
-    default_args={**default_args, **{"owner": owner}},
+    default_args=default_args | {"owner": owner},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 

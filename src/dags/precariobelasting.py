@@ -1,6 +1,5 @@
 import operator
 import re
-from typing import Dict
 
 from airflow import DAG
 from airflow.models import Variable
@@ -28,7 +27,7 @@ from swift_operator import SwiftOperator
 dag_id: str = "precariobelasting"
 variables: dict = Variable.get(dag_id, deserialize_json=True)
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
-data_endpoints: Dict[str, str] = variables["temp_data"]
+data_endpoints: dict[str, str] = variables["temp_data"]
 total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
@@ -123,7 +122,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{file_name}",
                 pass_value=2,
-                params=dict(table_name=file_name),
+                params={"table_name": file_name},
                 result_checker=operator.ge,
             )
         )
@@ -131,10 +130,7 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{file_name}",
-                params=dict(
-                    table_name=file_name,
-                    geotype=["POLYGON", "MULTIPOLYGON"],
-                ),
+                params={"table_name": file_name, "geotype": ["POLYGON", "MULTIPOLYGON"]},
                 pass_value=1,
             )
         )
@@ -181,7 +177,7 @@ with DAG(
         PostgresOperator(
             task_id=f"add_title_column_{file_name}",
             sql=ADD_TITLE,
-            params=dict(tablenames=[f"{dag_id}_{file_name}"]),
+            params={"tablenames": [f"{dag_id}_{file_name}"]},
         )
         for file_name in data_endpoints.keys()
     ]
@@ -196,7 +192,7 @@ with DAG(
         PostgresOperator(
             task_id=f"add_gebied_{file_name}",
             sql=ADD_GEBIED_COLUMN,
-            params=dict(tablenames=[f"{dag_id}_{file_name}"]),
+            params={"tablenames": [f"{dag_id}_{file_name}"]},
         )
         for file_name in ["woonschepen", "bedrijfsvaartuigen"]
     ]
@@ -207,7 +203,7 @@ with DAG(
         PostgresOperator(
             task_id=f"rename_value_{file_name}",
             sql=RENAME_DATAVALUE_GEBIED,
-            params=dict(tablenames=[f"{dag_id}_{file_name}"]),
+            params={"tablenames": [f"{dag_id}_{file_name}"]},
         )
         for file_name in ["terrassen", "passagiersvaartuigen"]
     ]

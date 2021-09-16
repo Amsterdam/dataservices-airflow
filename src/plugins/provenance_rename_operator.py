@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, Final, Iterable, List, Optional, Set
+from typing import Any, Final, Iterable, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
@@ -26,7 +26,7 @@ class ProvenanceRenameOperator(BaseOperator):
         rename_indexes: bool = False,
         prefix_table_name: str = "",
         postfix_table_name: str = "",
-        subset_tables: Optional[List] = None,
+        subset_tables: Optional[list] = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -42,11 +42,11 @@ class ProvenanceRenameOperator(BaseOperator):
         self.prefix_table_name: str = prefix_table_name
         self.postfix_table_name: str = postfix_table_name
         # set table name for getting provenance for specific table
-        self.subset_tables: Optional[List] = subset_tables
+        self.subset_tables: Optional[list] = subset_tables
 
     def _get_existing_tables(
-        self, pg_hook: PostgresHook, tables: List, pg_schema: str = "public"
-    ) -> Dict[str, Any]:
+        self, pg_hook: PostgresHook, tables: list, pg_schema: str = "public"
+    ) -> dict[str, Any]:
         """Looks up the table name in schema.
 
         Taking into account the provenance (it can contain the orginal (real) name) and relates
@@ -92,7 +92,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
     def _get_existing_columns(
         self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
-    ) -> Dict[str, Set[str]]:
+    ) -> dict[str, set[str]]:
         """Looks up the column name of table in database.
 
         Args:
@@ -120,7 +120,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
     def _get_existing_indexes(
         self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
-    ) -> Dict[str, List[str]]:
+    ) -> dict[str, list[str]]:
         """Looks up the index name of table in database.
 
         Args:

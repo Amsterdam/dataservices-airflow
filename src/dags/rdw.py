@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, Iterable
+from typing import Iterable
 
 from airflow import DAG
 from airflow.models import Variable
@@ -27,7 +27,7 @@ from sql.rdw import SQL_CREATE_TMP_TABLE, SQL_SWAP_TABLE
 # Source defaults to 1000 records per request.
 # There is no unlimited.
 DATA_LIMIT: int = 100_000_000
-DATA_SELECTIONS: Dict[str, Iterable[str]] = {
+DATA_SELECTIONS: dict[str, Iterable[str]] = {
     "basis": [
         "kenteken",
         "voertuigsoort",
@@ -123,7 +123,7 @@ with DAG(
     swap_table = PostgresOperator(
         task_id="swap_table",
         sql=SQL_SWAP_TABLE,
-        params=dict(tablename=f"{dag_id}_{dag_id}"),
+        params={"tablename": f"{dag_id}_{dag_id}"},
     )
 
     # 8. Remove downloaded files

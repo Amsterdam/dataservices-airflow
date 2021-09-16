@@ -1,5 +1,5 @@
 import operator
-from typing import Dict, Final, List
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -39,10 +39,10 @@ table_source_names = variables["table_source_names"]
 table_target_names = variables["table_target_names"]
 table_renames = list(zip(files_to_download, table_source_names, table_target_names))
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks: List[int] = []
-count_checks: List[int] = []
-geo_checks: List[int] = []
-check_name: Dict[str, List[int]] = {}
+total_checks: list[int] = []
+count_checks: list[int] = []
+geo_checks: list[int] = []
+check_name: dict[str, list[int]] = {}
 
 
 with DAG(

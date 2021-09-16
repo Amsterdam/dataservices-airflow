@@ -2,7 +2,7 @@ import operator
 from dataclasses import dataclass
 from functools import partial
 from string import Template
-from typing import Any, Callable, ClassVar, Dict, Final, Iterable, List
+from typing import Any, Callable, ClassVar, Final, Iterable
 
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
@@ -19,8 +19,8 @@ class Check:
     result_fetcher: Callable
     pass_value: Any
     template_fields: ClassVar = ["sql"]
-    params: Dict[str, str] = None
-    parameters: List[str] = None
+    params: dict[str, str] = None
+    parameters: list[str] = None
     result_checker: Callable = None
 
 
@@ -118,7 +118,7 @@ class PostgresMultiCheckOperator(BaseOperator):
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.checks = checks
-        self.params = {**kwargs.get("params", {}), **make_params(self.checks)}
+        self.params = kwargs.get("params" | {}), make_params(self.checks)
 
     def execute(self, context=None):
 

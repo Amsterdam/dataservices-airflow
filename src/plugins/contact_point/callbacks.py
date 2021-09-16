@@ -1,5 +1,5 @@
 import logging
-from typing import Final, Tuple, cast
+from typing import Final, cast
 
 from airflow.models.dag import DagStateChangeCallback
 from airflow.models.taskinstance import Context, TaskInstance
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_contact_point_on_failure_callback(
-    dataset_id: str, eligible_environments: Tuple[str, ...] = ELIGIBLE_EMAIL_ENVIRONMENTS
+    dataset_id: str, eligible_environments: tuple[str, ...] = ELIGIBLE_EMAIL_ENVIRONMENTS
 ) -> DagStateChangeCallback:
     """Return a ``contact_point_on_failure_callback`` initialized for a specific dataset.
 
