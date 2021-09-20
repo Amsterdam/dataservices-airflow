@@ -118,7 +118,7 @@ class PostgresMultiCheckOperator(BaseOperator):
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.checks = checks
-        self.params = kwargs.get("params", {}), make_params(self.checks)
+        self.params = kwargs.get("params", {}) | make_params(self.checks)
 
     def execute(self, context=None):
 
