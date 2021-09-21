@@ -3,12 +3,11 @@ import re
 
 import pandas
 
-
 def convert_biz_data(table_name, sql_shape_file, xlsx_file, output_file):
 
     try:
         # Read Excel sheet in dataframe df
-        df = pandas.read_excel(xlsx_file)
+        df = pandas.read_excel(xlsx_file, engine="openpyxl")
 
         # Read SQL data  in shape_map dictionary
         with open(sql_shape_file) as fd:

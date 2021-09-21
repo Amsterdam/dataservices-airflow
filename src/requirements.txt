@@ -148,6 +148,8 @@ email-validator==1.1.2
     # via flask-appbuilder
 environs==9.3.3
     # via -r requirements.in
+et-xmlfile==1.1.0
+    # via openpyxl
 flake8==3.9.2
     # via
     #   -r requirements.in
@@ -352,6 +354,8 @@ openapi-schema-validator==0.1.4
     # via openapi-spec-validator
 openapi-spec-validator==0.3.0
     # via connexion
+openpyxl==3.0.8
+    # via -r requirements.in
 ordered-set==4.0.2
     # via deepdiff
 os-service-types==1.7.0
