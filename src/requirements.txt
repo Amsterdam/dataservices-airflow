@@ -200,7 +200,7 @@ flask==1.1.2
     #   flask-openid
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==3.3.0
+flask-appbuilder==3.3.2
     # via apache-airflow
 flask-babel==1.0.0
     # via flask-appbuilder
