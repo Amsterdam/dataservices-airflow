@@ -354,7 +354,7 @@ openapi-schema-validator==0.1.4
     # via openapi-spec-validator
 openapi-spec-validator==0.3.0
     # via connexion
-openpyxl==3.0.8
+openpyxl==3.0.7
     # via -r requirements.in
 ordered-set==4.0.2
     # via deepdiff

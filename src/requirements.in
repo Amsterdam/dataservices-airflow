@@ -38,7 +38,7 @@ cx-Oracle == 8.2.1
 validator-collection == 1.4.1
 clevercsv==0.1.4
 more-ds == 0.0.4
-openpyxl==3.0.8
+openpyxl==3.0.7
 pendulum == 2.1.2
 paramiko==2.7.2
 pysftp==0.2.9
