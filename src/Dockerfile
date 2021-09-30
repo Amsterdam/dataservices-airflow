@@ -6,6 +6,7 @@ RUN apt-get update \
  curl libcurl4 postgresql-server-dev-all postgresql-common zip libdigest-sha3-perl
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r $PIP_REQUIREMENTS
 WORKDIR /tmp
 RUN wget -nv https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
