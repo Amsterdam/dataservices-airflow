@@ -1,7 +1,7 @@
 import json
 import pathlib
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -38,17 +38,26 @@ class DatasetInfo:
     schema_url: str
     dataset_id: str
     table_id: str
+    sub_table_id: str
     dataset_table_id: str
     db_table_name: str
 
 
-def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DAG:
+def create_gob_dag(
+    is_first: bool, gob_dataset_id: str, gob_table_id: str, sub_table_id: Optional[str] = None
+) -> DAG:
     """Create the DAG."""
     dataset_table_id = f"{gob_dataset_id}_{gob_table_id}"
-    graphql_dir_path = graphql_path / f"{gob_dataset_id}-{gob_table_id}"
+    if sub_table_id is not None:
+        dataset_table_id = f"{dataset_table_id}_{sub_table_id}"
+    graphql_dir_name = f"{gob_dataset_id}-{gob_table_id}"
+    if sub_table_id is not None:
+        graphql_dir_name = f"{graphql_dir_name}-{sub_table_id}"
+    graphql_dir_path = graphql_path / graphql_dir_name
     graphql_params_path = graphql_dir_path / "args.json"
     extra_kwargs = {}
     schedule_start_hour = 6
+
     if graphql_params_path.exists():
         with graphql_params_path.open() as json_file:
             args_from_file = json.load(json_file)
@@ -87,9 +96,11 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
             username="admin",
         )
 
-        def _create_dataset_info(dataset_id: str, table_id: str) -> DatasetInfo:
+        def _create_dataset_info(dataset_id: str, table_id: str, sub_table_id: str) -> DatasetInfo:
             dataset = dataset_schema_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
             # Fetch the db_name for this dataset and table
+            if sub_table_id is not None:
+                table_id = f"{table_id}_{sub_table_id}"
             db_table_name = dataset.get_table_by_id(table_id).db_name()
 
             # We do not pass the dataset through xcom, but only the id.
@@ -97,14 +108,16 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
             # (Airflow uses pickle for (de)serialization).
             # provide the dataset_table_id as fully qualified name, for convenience
             dataset_table_id = f"{dataset_id}_{table_id}"
-            return DatasetInfo(SCHEMA_URL, dataset_id, table_id, dataset_table_id, db_table_name)
+            return DatasetInfo(
+                SCHEMA_URL, dataset_id, table_id, sub_table_id, dataset_table_id, db_table_name
+            )
 
         # 2. Create Dataset info to put on the xcom channel for later use
         # by operators
         create_dataset_info = PythonOperator(
             task_id=f"mkinfo_{dataset_table_id}",
             python_callable=_create_dataset_info,
-            op_args=[gob_dataset_id, gob_table_id],
+            op_args=[gob_dataset_id, gob_table_id, sub_table_id],
         )
 
         def init_assigner(o: Any, x: Any) -> None:
@@ -180,7 +193,6 @@ def create_gob_dag(is_first: bool, gob_dataset_id: str, gob_table_id: str) -> DA
 
 
 for i, gob_gql_dir in enumerate(sorted(graphql_path.glob("*"))):
-    gob_dataset_id, gob_table_id = gob_gql_dir.parts[-1].split("-")
-    globals()[f"gob_{gob_dataset_id}_{gob_table_id}"] = create_gob_dag(
-        i == 0, gob_dataset_id, gob_table_id
-    )
+    ds_table_parts = gob_gql_dir.parts[-1].split("-")
+    dag_id_postfix = "_".join(ds_table_parts)
+    globals()[f"gob_{dag_id_postfix}"] = create_gob_dag(i == 0, *ds_table_parts)

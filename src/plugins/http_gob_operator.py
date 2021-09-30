@@ -16,7 +16,7 @@ from environs import Env
 from http_params_hook import HttpParamsHook
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import dataset_schema_from_url, toCamelCase
+from schematools.utils import dataset_schema_from_url
 from sqlalchemy.exc import SQLAlchemyError
 from urllib3.exceptions import ProtocolError
 
@@ -45,6 +45,7 @@ class HttpGobOperator(BaseOperator):
         protected: bool = False,
         copy_bufsize: int = 16 * 1024 * 1024,
         http_conn_id: str = "http_default",
+        is_through_table: bool = False,
         token_expires_margin: int = 5,
         xcom_table_info_task_ids: Optional[str] = None,
         xcom_table_info_key: str = XCOM_RETURN_KEY,
@@ -65,6 +66,8 @@ class HttpGobOperator(BaseOperator):
                 add to the graphl request.
             copy_bufsize: Size of copy buffer to be used by shutil.copyfileobj.
             http_conn_id: The connection id for the GOB graphl server.
+            is_through_table: Indicates that the data to be imported is for a through
+                table. In that case an extra transform on field names is needed.
             token_expires_margin: Safety margin (in seconds) to be used
                 for the OpenID connect server.
             xcom_table_info_task_ids: The id of the task that is providing the xcom info.
@@ -80,11 +83,13 @@ class HttpGobOperator(BaseOperator):
         self.max_records = max_records
         self.protected = protected
         self.copy_bufsize = copy_bufsize
+        self.is_through_table = is_through_table
         self.token_expires_margin = token_expires_margin
         self.xcom_table_info_task_ids = xcom_table_info_task_ids
         self.xcom_table_info_key = xcom_table_info_key
         self.token_expires_time: float = time.time()
         self.access_token: Optional[str] = None
+
         super().__init__(*args, **kwargs)
 
     def _fetch_params(self, dataset_table_id: str) -> dict[str, str]:
@@ -172,10 +177,8 @@ class HttpGobOperator(BaseOperator):
             )
             importer = NDJSONImporter(dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log)
 
-            # Here we enter the schema-world, so table_name needs to be camelized
-            # Or, should this be done later in the chain?
             importer.generate_db_objects(
-                table_name=toCamelCase(dataset_info.table_id),
+                table_name=dataset_info.table_id,
                 db_table_name=f"{dataset_info.db_table_name}{TMP_TABLE_POSTFIX}",
                 ind_tables=True,
                 ind_extra_index=False,
@@ -238,7 +241,9 @@ class HttpGobOperator(BaseOperator):
                         request_end_time - request_start_time,
                         cursor_pos,
                     )
-                    last_record = importer.load_file(tmp_file)
+                    last_record = importer.load_file(
+                        tmp_file, is_through_table=self.is_through_table
+                    )
                 except (SQLAlchemyError, ProtocolError, UnicodeDecodeError) as e:
                     # Save last imported file for further inspection
                     shutil.copy(
