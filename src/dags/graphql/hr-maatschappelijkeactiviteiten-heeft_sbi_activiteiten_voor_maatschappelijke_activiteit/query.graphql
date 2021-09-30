@@ -1,0 +1,16 @@
+
+    {
+      relHrMacHrSac_HeeftSbiAct_Voor_MaatschAct_(active: false) {
+        edges {
+          cursor
+          node {
+            srcId
+            srcVolgnummer
+            dstId
+            dstVolgnummer
+            beginGeldigheid
+            eindGeldigheid
+          }
+        }
+      }
+    }

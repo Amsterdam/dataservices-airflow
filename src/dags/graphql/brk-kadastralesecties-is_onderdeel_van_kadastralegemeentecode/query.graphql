@@ -1,0 +1,16 @@
+
+    {
+      relBrkKseBrkKce_OndrdlVn_Kadastralegemeentecode(active: false) {
+        edges {
+          cursor
+          node {
+            srcId
+            srcVolgnummer
+            dstId
+            dstVolgnummer
+            beginGeldigheid
+            eindGeldigheid
+          }
+        }
+      }
+    }

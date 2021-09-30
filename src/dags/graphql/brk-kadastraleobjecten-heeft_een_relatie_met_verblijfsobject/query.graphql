@@ -1,0 +1,16 @@
+
+    {
+      relBrkKotBagVot_HftRelMt_Verblijfsobject(active: false) {
+        edges {
+          cursor
+          node {
+            srcId
+            srcVolgnummer
+            dstId
+            dstVolgnummer
+            beginGeldigheid
+            eindGeldigheid
+          }
+        }
+      }
+    }
