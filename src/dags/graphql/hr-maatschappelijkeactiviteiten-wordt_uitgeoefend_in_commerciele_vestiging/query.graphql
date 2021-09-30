@@ -1,0 +1,16 @@
+
+    {
+      relHrMacHrVes_UitgoefIn__CommVstgng_(active: false) {
+        edges {
+          cursor
+          node {
+            srcId
+            srcVolgnummer
+            dstId
+            dstVolgnummer
+            beginGeldigheid
+            eindGeldigheid
+          }
+        }
+      }
+    }

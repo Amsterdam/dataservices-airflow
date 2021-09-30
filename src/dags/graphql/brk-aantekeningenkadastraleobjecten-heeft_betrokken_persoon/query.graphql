@@ -1,0 +1,16 @@
+
+    {
+      relBrkAktBrkSjtHeeftBetrokkenPersoon(active: false) {
+        edges {
+          cursor
+          node {
+            srcId
+            srcVolgnummer
+            dstId
+            dstVolgnummer
+            beginGeldigheid
+            eindGeldigheid
+          }
+        }
+      }
+    }
