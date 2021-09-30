@@ -156,3 +156,5 @@ src/airflow.cfg
 # will be created with default values.
 # This too should not be checked in.
 src/webserver_config.py
+
+src/logs
