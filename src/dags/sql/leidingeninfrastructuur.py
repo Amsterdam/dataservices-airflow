@@ -98,12 +98,12 @@ SQL_GEOM_CONVERT: Final = """
     {% if 'mantelbuizen' in params.tablename %}
     UPDATE {{ params.tablename }}
     SET GEOMETRY =  ST_CollectionExtract(geometry, 3)
-    WHERE GeometryType(geometry) NOT IN ('MULTIPOLYGON', 'MULTILINESTRING');
+    WHERE GeometryType(geometry) NOT IN ('MULTIPOLYGON');
     COMMIT;
     {% elif 'kabels' in params.tablename %}
     UPDATE {{ params.tablename }}
     SET GEOMETRY =  ST_CollectionExtract(geometry, 2)
-    WHERE GeometryType(geometry) NOT IN ('MULTIPOLYGON', 'MULTILINESTRING');
+    WHERE GeometryType(geometry) NOT IN ('MULTILINESTRING');
     COMMIT;
     {% endif %}
 """
