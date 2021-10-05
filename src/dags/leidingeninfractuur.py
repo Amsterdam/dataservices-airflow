@@ -187,7 +187,7 @@ with DAG(
         count_checks.append(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{table}",
-                pass_value=50,
+                pass_value=20,
                 params={"table_name": f"{DAG_ID}_{table}"},
                 result_checker=operator.ge,
             )
