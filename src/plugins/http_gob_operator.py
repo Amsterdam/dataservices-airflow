@@ -178,10 +178,11 @@ class HttpGobOperator(BaseOperator):
             importer = NDJSONImporter(dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log)
 
             importer.generate_db_objects(
-                table_name=dataset_info.table_id,
+                table_id=dataset_info.table_id,
                 db_table_name=f"{dataset_info.db_table_name}{TMP_TABLE_POSTFIX}",
                 ind_tables=True,
                 ind_extra_index=False,
+                limit_tables_to={dataset_info.table_id},
             )
             # For GOB content, cursor value is exactly the same as
             # the record index. If this were not true, the cursor needed
