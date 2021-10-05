@@ -5,7 +5,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import default_args
-from common.db import get_engine, get_ora_engine
+from common.db import get_engine, get_ora_engine_using_service_name
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from geoalchemy2 import Geometry, WKTElement
@@ -29,7 +29,14 @@ SQL_TABLE_RENAME: Final = f"""
 """
 
 
-def wkt_loads_wrapped(data):
+def wkt_loads_wrapped(data: str) -> WKTElement:
+    """Loading WKT (wellkown text) geometry definition.
+
+    And translate single geometry to multi.
+
+    Args:
+        data: Geometry data from source.
+    """
     p = wkt.loads(data)
     if isinstance(p, Polygon):
         p = MultiPolygon([p])
@@ -41,29 +48,41 @@ def wkt_loads_wrapped(data):
     return p
 
 
-def load_grex_from_dwh(table_name):
+def load_grex_from_dwh(table_name: str) -> None:
+    """Imports data from source into target database.
+
+    Args:
+        table_name: Name of target table to import data.
+    Executes:
+        SQL statements
+    """
     db_engine = get_engine()
-    dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
-    with dwh_ora_engine.connect() as connection:
+    dwh_ora_engine = get_ora_engine_using_service_name("oracle_dwh_stadsdelen")
+    # import cx_Oracle
+    with dwh_ora_engine.get_conn() as connection:
+        # with dwh_ora_engine.connect() as connection:
+        #   SELECT PLANNR as ID
+        #              , PLANNAAM
+        #              , STARTDATUM
+        #              , PLANSTATUS
+        #              , OPPERVLAKTE
+        #              , GEOMETRIE_WKT AS GEOMETRY
+        #         FROM DMDATA.GREX_GV_PLANNEN_V2
+        # with cx_Oracle.connect(**dwh_ora_engine) as connection:
         df = pd.read_sql(
             """
-            SELECT PLANNR as ID
-                 , PLANNAAM
-                 , STARTDATUM
-                 , PLANSTATUS
-                 , OPPERVLAKTE
-                 , GEOMETRIE_WKT AS GEOMETRY
-            FROM DMDATA.GREX_GV_PLANNEN_V2
+            SELECT owner, table_name FROM all_tables
+
         """,
             connection,
-            index_col="id",
+            # index_col="id",
             coerce_float=True,
             params=None,
             parse_dates=["startdatum"],
             columns=None,
             chunksize=None,
         )
-        df["geometry"] = df["geometry"].apply(wkt_loads_wrapped)
+        # df["geometry"] = df["geometry"].apply(wkt_loads_wrapped)
         grex_rapportage_dtype = {
             "id": Integer(),
             "plannaam": Text(),
@@ -73,25 +92,19 @@ def load_grex_from_dwh(table_name):
             "geometry": Geometry(geometry_type="GEOMETRY", srid=4326),
         }
         df.to_sql(table_name, db_engine, if_exists="replace", dtype=grex_rapportage_dtype)
-        with db_engine.connect() as connection:
-            connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (id)")
-            connection.execute(
-                f"""
-                 UPDATE {table_name}
-                 SET geometry = ST_CollectionExtract(ST_Makevalid(geometry), 3)
-                 WHERE ST_IsValid(geometry) = False
-                 OR ST_GeometryType(geometry) != 'ST_MultiPolygon';
-                 COMMIT;
-             """
-            )
-            connection.execute(
-                f"""
-                 ALTER TABLE {table_name}
-                 ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
-                 USING ST_Transform(geometry,28992);
-             """
-            )
-            connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
+        # with db_engine.connect() as connection:
+        #     connection.execute(f"ALTER TABLE-> WKTElement) != 'ST_MultiPolygon';
+        #          COMMIT;
+        #      """
+        #     )
+        #     connection.execute(
+        #         f"""
+        #          ALTER TABLE {table_name}
+        #          ALTER COLUMN geometry TYPE geometry(MultiPolygon,28992)
+        #          USING ST_Transform(geometry,28992);
+        #      """
+        #     )
+        #     connection.execute(f"DELETE FROM {table_name} WHERE geometry is NULL")
 
 
 with DAG(
@@ -111,13 +124,17 @@ with DAG(
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
-        params=dict(tablename=table_name_new, mincount=400),
+        params={"tablename": table_name_new, "mincount": 400},
     )
 
     check_geo = PostgresCheckOperator(
         task_id="check_geo",
         sql=SQL_CHECK_GEO,
-        params=dict(tablename=table_name_new, geotype="ST_MultiPolygon", geo_column="geometry"),
+        params={
+            "tablename": table_name_new,
+            "geotype": "ST_MultiPolygon",
+            "geo_column": "geometry",
+        },
     )
 
     rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
