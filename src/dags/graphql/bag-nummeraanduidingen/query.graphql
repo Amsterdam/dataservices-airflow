@@ -2,78 +2,70 @@
   bagNummeraanduidingen(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        huisnummer 
-        geconstateerd 
-        huisletter 
-        huisnummertoevoeging 
-        postcode 
+        volgnummer
+        registratiedatum
+        huisnummer
+        geconstateerd
+        huisletter
+        huisnummertoevoeging
+        postcode
         ligtInWoonplaats {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
-        beginGeldigheid 
-        eindGeldigheid 
-        heeftOnderzoeken {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
+        beginGeldigheid
+        eindGeldigheid
         ligtAanOpenbareruimte {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
-        typeAdresseerbaarObject 
-        documentdatum 
-        documentnummer 
-        status 
-        typeAdres 
+        typeAdresseerbaarObject
+        documentdatum
+        documentnummer
+        status
+        typeAdres
         adresseertVerblijfsobject {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
         adresseertLigplaats {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
         adresseertStandplaats {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
         heeftDossier {
           edges {
             node {
-              dossier 
+              dossier
             }
           }
         }
-        bagproces 
+        bagproces
       }
     }
   }

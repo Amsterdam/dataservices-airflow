@@ -2,58 +2,42 @@
   bagStandplaatsen(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        geconstateerd 
-        status 
+        volgnummer
+        registratiedatum
+        geconstateerd
+        status
         heeftHoofdadres {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
-        heeftNevenadres {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        geometrie 
-        gebruiksdoel 
-        beginGeldigheid 
-        eindGeldigheid 
-        heeftOnderzoeken {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        documentdatum 
-        documentnummer 
+        geometrie
+        gebruiksdoel
+        beginGeldigheid
+        eindGeldigheid
+        documentdatum
+        documentnummer
         ligtInBuurt {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
         heeftDossier {
           edges {
             node {
-              dossier 
+              dossier
             }
           }
         }
-        bagproces 
+        bagproces
       }
     }
   }

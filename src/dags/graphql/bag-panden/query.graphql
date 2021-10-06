@@ -2,48 +2,40 @@
   bagPanden(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        geconstateerd 
-        geometrie 
-        oorspronkelijkBouwjaar 
-        status 
-        beginGeldigheid 
-        eindGeldigheid 
-        heeftOnderzoeken {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        documentdatum 
-        documentnummer 
-        naam 
-        ligging 
-        typeWoonobject 
+        volgnummer
+        registratiedatum
+        geconstateerd
+        geometrie
+        oorspronkelijkBouwjaar
+        status
+        beginGeldigheid
+        eindGeldigheid
+        documentdatum
+        documentnummer
+        naam
+        ligging
+        typeWoonobject
         ligtInBouwblok {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
-        aantalBouwlagen 
-        hoogsteBouwlaag 
-        laagsteBouwlaag 
+        aantalBouwlagen
+        hoogsteBouwlaag
+        laagsteBouwlaag
         heeftDossier {
           edges {
             node {
-              dossier 
+              dossier
             }
           }
         }
-        bagproces 
+        bagproces
       }
     }
   }

@@ -2,42 +2,34 @@
   bagWoonplaatsen(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        woonplaatsPtt 
-        naam 
-        geometrie 
-        geconstateerd 
-        beginGeldigheid 
-        eindGeldigheid 
-        heeftOnderzoeken {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        documentdatum 
-        documentnummer 
-        status 
+        volgnummer
+        registratiedatum
+        woonplaatsPtt
+        naam
+        geometrie
+        geconstateerd
+        beginGeldigheid
+        eindGeldigheid
+        documentdatum
+        documentnummer
+        status
         ligtInGemeente {
           edges {
             node {
-              identificatie 
+              identificatie
             }
           }
         }
         heeftDossier {
           edges {
             node {
-              dossier 
+              dossier
             }
           }
         }
-        bagproces 
+        bagproces
       }
     }
   }
