@@ -2,83 +2,59 @@
   bagVerblijfsobjecten(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        cbsNummer 
-        indicatieWoningvoorraad 
-        financieringscode 
-        geconstateerd 
+        volgnummer
+        registratiedatum
+        cbsNummer
+        indicatieWoningvoorraad
+        financieringscode
+        geconstateerd
         heeftHoofdadres {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
-        heeftNevenadres {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        geometrie 
-        gebruiksdoel 
-        oppervlakte 
-        status 
-        ligtInPanden {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        beginGeldigheid 
-        eindGeldigheid 
-        heeftOnderzoeken {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        documentdatum 
-        documentnummer 
-        gebruiksdoelWoonfunctie 
-        gebruiksdoelGezondheidszorgfunctie 
-        aantalEenhedenComplex 
-        verdiepingToegang 
-        aantalBouwlagen 
-        hoogsteBouwlaag 
-        laagsteBouwlaag 
-        aantalKamers 
-        eigendomsverhouding 
-        feitelijkGebruik 
-        toegang 
-        redenopvoer 
-        redenafvoer 
+        geometrie
+        gebruiksdoel
+        oppervlakte
+        status
+        beginGeldigheid
+        eindGeldigheid
+        documentdatum
+        documentnummer
+        gebruiksdoelWoonfunctie
+        gebruiksdoelGezondheidszorgfunctie
+        aantalEenhedenComplex
+        verdiepingToegang
+        aantalBouwlagen
+        hoogsteBouwlaag
+        laagsteBouwlaag
+        aantalKamers
+        eigendomsverhouding
+        feitelijkGebruik
+        toegang
+        redenopvoer
+        redenafvoer
         ligtInBuurt {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
         heeftDossier {
           edges {
             node {
-              dossier 
+              dossier
             }
           }
         }
-        bagproces 
+        bagproces
       }
     }
   }

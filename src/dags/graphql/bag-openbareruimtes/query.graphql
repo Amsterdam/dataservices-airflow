@@ -2,47 +2,39 @@
   bagOpenbareruimtes(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        straatcode 
-        straatnaamPtt 
-        status 
-        beginGeldigheid 
-        eindGeldigheid 
-        geconstateerd 
-        heeftOnderzoeken {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        type 
-        documentdatum 
-        documentnummer 
-        naam 
-        naamNen 
+        volgnummer
+        registratiedatum
+        straatcode
+        straatnaamPtt
+        status
+        beginGeldigheid
+        eindGeldigheid
+        geconstateerd
+        type
+        documentdatum
+        documentnummer
+        naam
+        naamNen
         ligtInWoonplaats {
           edges {
             node {
-              identificatie 
-              volgnummer 
+              identificatie
+              volgnummer
             }
           }
         }
-        beschrijvingNaam 
+        beschrijvingNaam
         heeftDossier {
           edges {
             node {
-              dossier 
+              dossier
             }
           }
         }
-        bagproces 
-        geometrie 
+        bagproces
+        geometrie
       }
     }
   }

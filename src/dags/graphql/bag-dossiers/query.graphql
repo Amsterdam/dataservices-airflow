@@ -2,15 +2,8 @@
   bagDossiers(active: false) {
     edges {
       node {
-        dossier 
+        dossier
         cursor
-        heeftBrondocumenten {
-          edges {
-            node {
-              documentnummer 
-            }
-          }
-        }
       }
     }
   }
