@@ -11,6 +11,8 @@ WORKDIR /tmp
 RUN wget -nv https://download.oracle.com/otn_software/linux/instantclient/19600/instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN unzip instantclient-basiclite-linux.x64-19.6.0.0.0dbru.zip
 RUN cp -r  instantclient_19_6/* /usr/local/lib
+# Oracle DB connections to use encrypted connection
+RUN cd /usr/local/lib && echo SQLNET.ENCRYPTION_CLIENT=REQUIRED > ./network/admin/sqlnet.ora
 
 # Install sqlite3 from source, the default version for this Ubuntu-based image is too old
 RUN wget -c https://www.sqlite.org/2021/sqlite-autoconf-3360000.tar.gz
