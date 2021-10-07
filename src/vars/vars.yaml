@@ -168,7 +168,7 @@ sport:
       sportpark: dcatd/datasets/mdp9l38vc9omBQ/purls/5
   data_endpoints:
     geojson:
-      openbaresportplek: open_geodata/geojson.php?KAARTLAAG=SPORT_OPENBAAR&THEMA=sport
+      openbaresportplek: open_geodata/geojson_latlng.php?KAARTLAAG=SPORT_OPENBAAR&THEMA=sport
 verzinkbarepalen:
   data_endpoints: open_geodata/geojson.php?KAARTLAAG=VIS_BFA&THEMA=vis
 basiskaart:
