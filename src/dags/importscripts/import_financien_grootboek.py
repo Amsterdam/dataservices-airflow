@@ -7,24 +7,21 @@ from sqlalchemy.types import Boolean, Date, Integer, Numeric, Text
 
 
 def load_from_dwh(table_name: str) -> None:
-    """Loads data from an Oracle database source into a Postgres database
+    """Loads data from an Oracle database source into a Postgres database.
 
     Args:
         table_name: The target table where the source data will be stored
-
     Executes:
         SQL INSERT statements for the data and post-processing
         an ALTER statement to a contraint.
-
     Note: The SQL processing is done with SQLAlchemy
-    Note2: Data is filterd on unit OIS 'Onderzoek, Informatie en Statistiek' by code 380000
-
+    Note2: Data is filtered on unit OIS 'Onderzoek, Informatie en Statistiek' by code 380000
     """
     postgreshook_instance = get_postgreshook_instance()
     db_engine = get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_ami")
     date_fmt = "%Y%d%m"
-    with dwh_ora_engine.connect() as connection:
+    with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(
             """
             SELECT
@@ -90,6 +87,9 @@ def load_from_dwh(table_name: str) -> None:
             columns=None,
             chunksize=None,
         )
+        # it seems that get_conn() makes the columns case sensitive
+        # lowercase all columns so the database will handle them as case insensitive
+        df.columns = map(str.lower, df.columns)
         dtype = {
             "datum_boeking": Date(),
             "bedrag_boeking": Numeric(),
