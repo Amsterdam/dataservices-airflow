@@ -1,10 +1,13 @@
+from contextlib import closing
+
 import pandas as pd
-from common.db import get_engine, get_ora_engine
+from common.db import get_engine, get_ora_engine, get_postgreshook_instance
+from psycopg2 import sql
 from sqlalchemy.types import Date, DateTime, Integer, Numeric, Text
 
 
 def load_from_dwh(table_name: str) -> None:
-    """Loads data from an Oracle database source into a Postgres database
+    """Loads data from an Oracle database source into a Postgres database.
 
     Args:
         table_name: The target table where the source data will be stored
@@ -15,9 +18,10 @@ def load_from_dwh(table_name: str) -> None:
         Note: The SQL processing is done with SQLAlchemy
 
     """
+    postgreshook_instance = get_postgreshook_instance()
     db_engine = get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
-    with dwh_ora_engine.connect() as connection:
+    with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(
             """
         select ADWH_VERSIE_ID
@@ -62,7 +66,7 @@ def load_from_dwh(table_name: str) -> None:
             chunksize=None,
         )
         dtype = {
-            "ADWH_VERSIE_ID": Integer(),
+            "ADWH_VERSIE_ID": Numeric(),
             "SOORT_WERKZAAMHEDEN": Text(),
             "KENTEKEN": Text(),
             "ADWH_KENTEKEN": Text(),
@@ -91,6 +95,14 @@ def load_from_dwh(table_name: str) -> None:
             "ADWH_LAATST_GEZIEN": DateTime(),
             "ADWH_LAATST_GEZIEN_BRON": DateTime(),
         }
+        # it seems that get_conn() makes the columns case sensitive
+        # lowercase all columns so the database will handle them as case insensitive
+        df.columns = map(str.lower, df.columns)
         df.to_sql(table_name, db_engine, if_exists="replace", dtype=dtype, index=False)
-        with db_engine.connect() as connection:
-            connection.execute(f"ALTER TABLE {table_name} ADD PRIMARY KEY (ADWH_VERSIE_ID)")
+
+        with closing(postgreshook_instance.get_conn().cursor()) as cur:
+            cur.execute(
+                sql.SQL("ALTER TABLE {table_name} ADD PRIMARY KEY (ADWH_VERSIE_ID)").format(
+                    table_name=sql.Identifier(table_name)
+                )
+            )
