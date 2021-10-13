@@ -118,6 +118,7 @@ services:
       AIRFLOW_LOG_CLEANUP__ENABLE_DELETE_CHILD_LOG: "true"
       SENDGRID_MAIL_FROM: ${SENDGRID_MAIL_FROM}
       SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      NO_AUTOSTART_AIRFLOW: ${NO_AUTOSTART_AIRFLOW-}
     volumes:
       - ./src/dags:/usr/local/airflow/dags
       - ./src/plugins:/usr/local/airflow/plugins

@@ -94,5 +94,14 @@ airflow variables import vars/vars.json
 # stops on errors (set -e).
 #python scripts/checkdags.py || exit
 
-# sleep infinity
-/usr/local/bin/supervisord --config /usr/local/airflow/etc/supervisord.conf
+
+# During development it is not always desirable to run the
+# Airflow webserver and scheduler. When the NO_AUTOSTART_AIRFLOW
+# variable is defined, airflow will not start automatically.
+# If needed, it can be started manually using supervisor.
+
+if [[ ! -z $NO_AUTOSTART_AIRFLOW ]]; then
+    sleep infinity
+else
+    /usr/local/bin/supervisord --config /usr/local/airflow/etc/supervisord.conf
+fi
