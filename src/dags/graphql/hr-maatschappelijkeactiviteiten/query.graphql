@@ -8,41 +8,11 @@
         datumEindeMaatschappelijkeActiviteit
         registratieTijdstipMaatschappelijkeActiviteit
         naam
-        heeftBezoekadres {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
-        heeftPostadres {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
         communicatienummer
         domeinnaam
         emailAdres
         nonMailing
         incidenteelUitlenenArbeidskrachten
-        heeftHoofdvestiging {
-          edges {
-            node {
-              vestigingsnummer
-            }
-          }
-        }
-        heeftSbiActiviteitenVoorMaatschappelijkeActiviteit {
-          edges {
-            node {
-              sbi_activiteit_nummer
-            }
-          }
-        }
         registratieTijdstipOnderneming
         datumAanvangOnderneming
         datumEindeOnderneming
@@ -51,27 +21,6 @@
         totaalWerkzamePersonen
         voltijdWerkzamePersonen
         deeltijdWerkzamePersonen
-        heeftSbiActiviteitenVoorOnderneming {
-          edges {
-            node {
-              sbi_activiteit_nummer
-            }
-          }
-        }
-        wordtUitgeoefendInCommercieleVestiging {
-          edges {
-            node {
-              vestigingsnummer
-            }
-          }
-        }
-        wordtUitgeoefendInNietCommercieleVestiging {
-          edges {
-            node {
-              vestigingsnummer
-            }
-          }
-        }
         handeltOnderHandelsnamen
       }
     }
