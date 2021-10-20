@@ -2,33 +2,17 @@
   gebiedenGgpgebieden(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        naam 
-        code 
-        beginGeldigheid 
-        eindGeldigheid 
-        documentdatum 
-        documentnummer 
-        ligtInStadsdeel {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        bestaatUitBuurten {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        geometrie 
+        volgnummer
+        registratiedatum
+        naam
+        code
+        beginGeldigheid
+        eindGeldigheid
+        documentdatum
+        documentnummer
+        geometrie
       }
     }
   }

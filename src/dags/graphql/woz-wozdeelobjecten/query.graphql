@@ -11,38 +11,6 @@
         soortobject
         beginGeldigheid
         eindGeldigheid
-        isVerbondenMetVerblijfsobject {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
-        isVerbondenMetLigplaats {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
-        isVerbondenMetStandplaats {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
-        heeftPand {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
       }
     }
   }

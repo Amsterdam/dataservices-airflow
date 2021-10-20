@@ -2,34 +2,20 @@
   brkAantekeningenrechten(active: false) {
     edges {
       node {
-        identificatie 
-        cursor 
-        id 
-        aard 
-        omschrijving 
-        betrokkenTenaamstelling {
-          edges {
-            node {
-              id 
-            }
-          }
-        }
-        heeftBetrokkenPersoon {
-          edges {
-            node {
-              identificatie 
-            }
-          }
-        }
+        identificatie
+        cursor
+        id
+        aard
+        omschrijving
         isGebaseerdOpStukdeel {
           edges {
             node {
-              id 
+              id
             }
           }
         }
-        einddatum 
-        toestandsdatum 
+        einddatum
+        toestandsdatum
       }
     }
   }

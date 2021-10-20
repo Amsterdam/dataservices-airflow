@@ -2,29 +2,21 @@
   brkZakelijkerechten(active: false) {
     edges {
       node {
-        identificatie 
-        cursor 
-        volgnummer 
-        registratiedatum 
-        id 
-        beginGeldigheid 
-        eindGeldigheid 
-        isBeperktTot 
-        rustOpKadastraalobject {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        appartementsrechtsplitsingidentificatie 
-        appartementsrechtsplitsingtype 
-        einddatumAppartementsrechtsplitsing 
-        indicatieActueelAppartementsrechtsplitsing 
-        aardZakelijkRecht 
-        akrAardZakelijkRecht 
-        toestandsdatum 
+        identificatie
+        cursor
+        volgnummer
+        registratiedatum
+        id
+        beginGeldigheid
+        eindGeldigheid
+        isBeperktTot
+        appartementsrechtsplitsingidentificatie
+        appartementsrechtsplitsingtype
+        einddatumAppartementsrechtsplitsing
+        indicatieActueelAppartementsrechtsplitsing
+        aardZakelijkRecht
+        akrAardZakelijkRecht
+        toestandsdatum
       }
     }
   }
