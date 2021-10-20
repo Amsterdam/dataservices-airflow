@@ -2,22 +2,14 @@
   gebiedenBouwblokken(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
         cursor
-        volgnummer 
-        registratiedatum 
-        code 
-        beginGeldigheid 
-        eindGeldigheid 
-        ligtInBuurt {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        geometrie 
+        volgnummer
+        registratiedatum
+        code
+        beginGeldigheid
+        eindGeldigheid
+        geometrie
       }
     }
   }

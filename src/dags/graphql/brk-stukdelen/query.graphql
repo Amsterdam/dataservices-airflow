@@ -7,29 +7,6 @@
         identificatie
         aard
         bedragTransactie
-        isBronVoorAantekeningKadastraalObject {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
-        isBronVoorAantekeningRecht {
-          edges {
-            node {
-              identificatie
-            }
-          }
-        }
-        isBronVoorZakelijkRecht {
-          edges {
-            node {
-              identificatie
-              volgnummer
-            }
-          }
-        }
         stukidentificatie
         portefeuillenummerAkr
         tijdstipAanbiedingStuk

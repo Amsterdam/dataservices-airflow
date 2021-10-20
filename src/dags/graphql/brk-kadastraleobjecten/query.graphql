@@ -2,43 +2,35 @@
   brkKadastraleobjecten(active: false) {
     edges {
       node {
-        identificatie 
-        cursor 
-        volgnummer 
-        registratiedatum 
-        id 
-        kadastraleAanduiding 
-        perceelnummer 
-        indexletter 
-        indexnummer 
-        gemeente 
-        soortGrootte 
-        grootte 
-        soortCultuurBebouwd 
-        soortCultuurOnbebouwd 
-        status 
-        geometrie 
-        plaatscoordinaten 
-        perceelnummerRotatie 
-        perceelnummerVerschuiving 
-        bijpijlingGeometrie 
-        indicatieVoorlopigeGeometrie 
-        koopsom 
-        koopsomValutacode 
-        koopjaar 
-        indicatieMeerObjecten 
-        toestandsdatum 
-        beginGeldigheid 
-        eindGeldigheid 
-        inOnderzoek 
-        heeftEenRelatieMetVerblijfsobject {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
+        identificatie
+        cursor
+        volgnummer
+        registratiedatum
+        id
+        kadastraleAanduiding
+        perceelnummer
+        indexletter
+        indexnummer
+        gemeente
+        soortGrootte
+        grootte
+        soortCultuurBebouwd
+        soortCultuurOnbebouwd
+        status
+        geometrie
+        plaatscoordinaten
+        perceelnummerRotatie
+        perceelnummerVerschuiving
+        bijpijlingGeometrie
+        indicatieVoorlopigeGeometrie
+        koopsom
+        koopsomValutacode
+        koopjaar
+        indicatieMeerObjecten
+        toestandsdatum
+        beginGeldigheid
+        eindGeldigheid
+        inOnderzoek
       }
     }
   }

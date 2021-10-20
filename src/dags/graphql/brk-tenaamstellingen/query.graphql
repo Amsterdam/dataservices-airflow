@@ -2,33 +2,25 @@
   brkTenaamstellingen(active: false) {
     edges {
       node {
-        id 
-        cursor 
-        identificatie 
-        volgnummer 
+        id
+        cursor
+        identificatie
+        volgnummer
         vanKadastraalsubject {
           edges {
             node {
-              identificatie 
+              identificatie
             }
           }
         }
-        beginGeldigheid 
-        eindGeldigheid 
-        aandeel 
-        geldtVoor 
-        burgerlijkeStaatTenTijdeVanVerkrijging 
-        verkregenNamensSamenwerkingsverband 
-        inOnderzoek 
-        vanZakelijkrecht {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
-        toestandsdatum 
+        beginGeldigheid
+        eindGeldigheid
+        aandeel
+        geldtVoor
+        burgerlijkeStaatTenTijdeVanVerkrijging
+        verkregenNamensSamenwerkingsverband
+        inOnderzoek
+        toestandsdatum
       }
     }
   }

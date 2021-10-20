@@ -2,39 +2,24 @@
   brkAantekeningenkadastraleobjecten(active: false) {
     edges {
       node {
-        identificatie 
-        cursor 
-        volgnummer 
-        registratiedatum 
-        id 
-        beginGeldigheid 
-        eindGeldigheid 
-        aard 
-        omschrijving 
-        heeftBetrokkenPersoon {
-          edges {
-            node {
-              identificatie 
-            }
-          }
-        }
-        heeftBetrekkingOpKadastraalObject {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
+        identificatie
+        cursor
+        volgnummer
+        registratiedatum
+        id
+        beginGeldigheid
+        eindGeldigheid
+        aard
+        omschrijving
         isGebaseerdOpStukdeel {
           edges {
             node {
-              id 
+              id
             }
           }
         }
-        einddatum 
-        toestandsdatum 
+        einddatum
+        toestandsdatum
       }
     }
   }
