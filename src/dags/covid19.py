@@ -25,15 +25,18 @@ from swift_operator import SwiftOperator
 # Note: to snake case is needed in target table because of the provenance check, because
 # number are seen as a start for underscore seperator. Covid19 is therefore translated as covid_19
 # TODO: change logic for snake_case when dealing with numbers
-dag_id = "covid_19"
+dag_id = "covid19"
+table_name = "covid_19"
 variables_covid19 = Variable.get("covid19", deserialize_json=True)
 files_to_download = variables_covid19["files_to_download"]
 
 # Note: Gebiedsverbod is absolete since "nieuwe tijdelijke wetgeving Corona maatregelen 01-12-2020"
-# TODO: remove Gebiedsverbod and Straatartiestverbod from var.yml, if DSO-API endpoint and 
+# TODO: remove Gebiedsverbod and Straatartiestverbod from var.yml, if DSO-API endpoint and
 # Amsterdam Schema definition can be removed.
 tables_to_create = variables_covid19["tables_to_create"]
-tables_to_check = {k: v for k, v in tables_to_create.items() if k not in ("gebiedsverbod", "straatartiestverbod")}
+tables_to_check = {
+    k: v for k, v in tables_to_create.items() if k not in ("gebiedsverbod", "straatartiestverbod")
+}
 
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks = []
@@ -157,7 +160,7 @@ with DAG(
         PostgresTableRenameOperator(
             task_id=f"rename_table_{key}",
             old_table_name=key,
-            new_table_name=f"{dag_id}_{key}",
+            new_table_name=f"{table_name}_{key}",
         )
         for key in tables_to_create.keys()
     ]
