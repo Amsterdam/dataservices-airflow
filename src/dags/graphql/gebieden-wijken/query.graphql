@@ -13,6 +13,14 @@
         documentdatum
         documentnummer
         cbsCode
+        ligtInStadsdeel {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         geometrie
       }
     }

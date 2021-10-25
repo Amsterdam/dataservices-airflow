@@ -9,6 +9,14 @@
         code
         beginGeldigheid
         eindGeldigheid
+        ligtInBuurt {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         geometrie
       }
     }

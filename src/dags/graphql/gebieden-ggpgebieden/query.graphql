@@ -12,6 +12,14 @@
         eindGeldigheid
         documentdatum
         documentnummer
+        ligtInStadsdeel {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         geometrie
       }
     }

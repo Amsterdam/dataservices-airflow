@@ -13,6 +13,14 @@
         documentdatum
         documentnummer
         cbsCode
+        ligtInWijk {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         geometrie
       }
     }
