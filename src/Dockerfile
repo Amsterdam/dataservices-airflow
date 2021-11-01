@@ -62,7 +62,6 @@ ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 COPY scripts/run.sh /run.sh
 COPY scripts/mkvars.py ${AIRFLOW_USER_HOME}/scripts/mkvars.py
-COPY scripts/mkuser.py ${AIRFLOW_USER_HOME}/scripts/mkuser.py
 COPY scripts/checkdags.py ${AIRFLOW_USER_HOME}/scripts/checkdags.py
 RUN chmod +x /docker-entrypoint.sh /run.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
