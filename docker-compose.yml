@@ -1,5 +1,6 @@
 version: "3.7"
 services:
+  # Internal database for Airflow.
   database:
     image: amsterdam/postgres11
     ports:
@@ -9,6 +10,7 @@ services:
       POSTGRES_USER: ds_airflow
       POSTGRES_PASSWORD: insecure
 
+  # Database for actual datasets, shared with DSO-API.
   dso_database:
     image: amsterdam/postgres11
     ports:
