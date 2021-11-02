@@ -54,7 +54,7 @@ with DAG(
 
     download_geojson = HttpFetchOperator(
         task_id="download_geojson",
-        endpoint="open_geodata/geojson.php?KAARTLAAG=CROWDSENSOREN&THEMA=cmsa",
+        endpoint="open_geodata/geojson_lnglat.php?KAARTLAAG=CROWDSENSOREN&THEMA=cmsa",
         http_conn_id="ams_maps_conn_id",
         tmp_file=TMP_DIR / "sensors.geojson",
     )
