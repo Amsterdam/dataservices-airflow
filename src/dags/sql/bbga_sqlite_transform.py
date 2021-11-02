@@ -10,10 +10,10 @@ DROP TABLE IF EXISTS bbga_indicatoren_definities;
  */
 CREATE TABLE IF NOT EXISTS bbga_indicatoren_definities
 (
-    sort                        BIGINT PRIMARY KEY,
+    sort                        BIGINT,
     begrotings_programma        VARCHAR,
     thema                       VARCHAR,
-    variabele                   VARCHAR NOT NULL,
+    variabele                   VARCHAR PRIMARY KEY,
     label                       VARCHAR,
     label_kort                  VARCHAR,
     definitie                   VARCHAR,
