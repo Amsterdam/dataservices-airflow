@@ -13,6 +13,7 @@ services:
   # Database for actual datasets, shared with DSO-API.
   dso_database:
     image: amsterdam/postgres11
+    shm_size: 1g
     ports:
       - "5416:5432"
     environment:
