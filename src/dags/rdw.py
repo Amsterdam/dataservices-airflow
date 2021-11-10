@@ -103,10 +103,19 @@ with DAG(
         for resource in endpoints
     ]
 
+    keepalive_kwargs = {
+    "keepalives": 1,
+    "keepalives_idle": 60,
+    "keepalives_interval": 10,
+    "keepalives_count": 5
+    }
+
     # 5. SETUP tmp TABLE
     create_tmp_table = PostgresOperator(
         task_id="create_tmp_table",
         sql=SQL_CREATE_TMP_TABLE,
+        autocommit=True,
+        parameters={**keepalive_kwargs}
     )
 
     # 6. Rename COLUMNS based on provenance (if specified)
