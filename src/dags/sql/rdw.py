@@ -7,8 +7,9 @@ from typing import Final
 # an object (array) within the schema definition.
 SQL_CREATE_TMP_TABLE: Final = """
 DROP TABLE IF EXISTS rdw_voertuig_new CASCADE;
-DROP TABLE IF EXISTS rdw_assen_new CASCADE;
-DROP TABLE IF EXISTS rdw_brandstof_new CASCADE;
+DROP TABLE IF EXISTS rdw_voertuig_assen_new CASCADE;
+DROP TABLE IF EXISTS rdw_voertuig_brandstof_new CASCADE;
+DROP TABLE IF EXISTS rdw_voertuig_brandstof_new CASCADE;
 CREATE TABLE IF NOT EXISTS rdw_voertuig_new AS (
     SELECT b.id,
         b.kenteken,
@@ -72,7 +73,7 @@ ALTER TABLE
 IF EXISTS rdw_voertuig_brandstof_new RENAME TO rdw_voertuig_brandstof;
 ALTER TABLE
 IF EXISTS rdw_voertuig_assen_new RENAME TO rdw_voertuig_assen;
-ALTER INDEX
+ALTER TABLE
 IF EXISTS rdw_voertuig_carrosserie_new RENAME TO rdw_voertuig_carrosserie;
 ALTER INDEX
 IF EXISTS rdw_voertuig_new_idx RENAME TO rdw_voertuig_idx;
