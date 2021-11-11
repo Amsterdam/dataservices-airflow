@@ -18,6 +18,7 @@ from dcat_swift_operator import DCATSwiftOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from schematools.utils import to_snake_case
 from sql.beheerkaart_basis import RENAME_COLS
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swap_schema_operator import SwapSchemaOperator
@@ -31,8 +32,10 @@ tables = {
     "beheerkaart_basis_kaart": "bkt_beheerkaart_basis",
 }
 
-dataset_name = f"{dag_id}_basis"
-gpkg_path = f"{tmp_dir}/{dataset_name}.gpkg"
+# Dataset name as specified in Amsterdamsschema
+dataset_name = "beheerkaartBasis"
+dataset_name_database = {to_snake_case(dataset_name)}
+gpkg_path = f"{tmp_dir}/{dataset_name_database}.gpkg"
 
 owner = "team_ruimte"
 with DAG(
@@ -41,7 +44,7 @@ with DAG(
     # New data is delivered every wednesday and friday evening,
     # So we schedule the import on friday and saturday morning
     schedule_interval="0 0 * * 4,6",
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id="beheerkaart_basis"),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dataset_name),
 ) as dag:
     # 1. Post message on slack
     slack_at_start = MessageOperator(
@@ -87,7 +90,7 @@ with DAG(
     swift_load_task = SwiftLoadSqlOperator(
         task_id="swift_load_task",
         container="Dataservices",
-        object_id=f"beheerkaart_pr/{dataset_name}/{DATASTORE_TYPE}/bkt.zip",
+        object_id=f"beheerkaart_pr/{dataset_name_database}/{DATASTORE_TYPE}/bkt.zip",
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -99,7 +102,7 @@ with DAG(
         task_id="provenance_renames",
         dataset_name=dataset_name,
         pg_schema="pte",
-        prefix_table_name=f"{dataset_name}_",
+        prefix_table_name=f"{dataset_name_database}_",
         postfix_table_name="_new",
         rename_indexes=True,
     )
