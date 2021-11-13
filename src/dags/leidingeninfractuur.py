@@ -1,4 +1,5 @@
 import operator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Final
 
@@ -24,13 +25,13 @@ from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOp
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.leidingeninfrastructuur import (
-    SQL_ALTER_DATATYPES,
-    SQL_GEOM_CONVERT,
-    SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE,
-    SQL_MANTELBUIZEN_TABLE,
-    SQL_REMOVE_TABLE,
-)
+
+# These seemingly unused imports are actually used, albeit indirectly. See the code with
+# `globals()[select_statement]`. Hence the `noqa: F401` comments.
+from sql.leidingeninfrastructuur import SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE  # noqa: F401
+from sql.leidingeninfrastructuur import SQL_MANTELBUIZEN_TABLE  # noqa: F401
+from sql.leidingeninfrastructuur import SQL_PUNTEN_TABLE  # noqa: F401
+from sql.leidingeninfrastructuur import SQL_ALTER_DATATYPES, SQL_GEOM_CONVERT, SQL_REMOVE_TABLE
 from swift_operator import SwiftOperator
 
 DAG_ID: Final = "leidingeninfrastructuur"
@@ -42,12 +43,36 @@ files_to_download: dict[str, str] = variables["files_to_download"]
 data_file: str = files_to_download["wibon"]
 source_tables: str = files_to_download["source_tables"]
 target_tables: str = files_to_download["target_tables"]
+sql_to_execute: dict[str, str] = variables["sql_to_execute"]
 env = Env()
 total_checks = []
 count_checks = []
 geo_checks = []
 
 db_conn: object = DatabaseEngine()
+
+TMP_TABLE_POSTFIX: Final = "new"
+
+
+@dataclass
+class Table:
+    """Simple dataclass to represent various table ids and a select statement."""
+
+    id: str  # noqa: A003
+    base_id: str
+    tmp_id: str
+    sql_name: str
+
+
+TABLES: Final[list[Table]] = [
+    Table(
+        id=f"{DAG_ID}_{table_name}",
+        base_id=table_name,
+        tmp_id=f"{DAG_ID}_{table_name}_{TMP_TABLE_POSTFIX}",
+        sql_name=sql_name,
+    )
+    for table_name, sql_name in sql_to_execute.items()
+]
 
 with DAG(
     DAG_ID,
@@ -110,27 +135,19 @@ with DAG(
     )
 
     # 6. CREATE MANTELBUIZEN table (composite of multiple tables)
-    create_table_mantelbuizen = PostgresOperator(
-        task_id="create_table_mantelbuizen",
-        sql=SQL_MANTELBUIZEN_TABLE,
-        params={"tablename": f"{DAG_ID}_mantelbuizen_new"},
-    )
+    create_tables = [
+        PostgresOperator(
+            task_id=f"create_table_{table.base_id}",
+            sql=globals()[table.sql_name],
+            params={
+                "tablename": table.tmp_id,
+                "filter": "ondergronds" if "ondergronds" in table.tmp_id else "bovengronds",
+            },
+        )
+        for table in TABLES
+    ]
 
-    # 7. CREATE KABELSBOVENGRONDS table (composite of multiple tables)
-    create_table_kabelsbovengronds = PostgresOperator(
-        task_id="create_table_bovengrondse_kabels",
-        sql=SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE,
-        params={"tablename": f"{DAG_ID}_bovengrondse_kabels_new", "filter": "bovengronds"},
-    )
-
-    # 8. CREATE KABELSONDERGRONDS table (composite of multiple tables)
-    create_table_kabelsondergronds = PostgresOperator(
-        task_id="create_table_ondergrondse_kabels",
-        sql=SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE,
-        params={"tablename": f"{DAG_ID}_ondergrondse_kabels_new", "filter": "ondergronds"},
-    )
-
-    # 9. Rename COLUMNS based on provenance (if specified)
+    # 7. Rename COLUMNS based on provenance (if specified)
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=DAG_ID,
@@ -141,64 +158,64 @@ with DAG(
         pg_schema="public",
     )
 
-    # 10. ALTER DATATYPES
+    # 8. ALTER DATATYPES
     alter_data_types = [
         PostgresOperator(
-            task_id=f"alter_data_types_{table}",
+            task_id=f"alter_data_types_{table.base_id}",
             sql=SQL_ALTER_DATATYPES,
-            params={"tablename": f"{DAG_ID}_{table}_new"},
+            params={"tablename": table.tmp_id},
         )
-        for table in target_tables
+        for table in TABLES
     ]
 
-    # 11. CONVERT GEOM
+    # 9. CONVERT GEOM
     converting_geom = [
         PostgresOperator(
-            task_id=f"converting_geom_{table}",
+            task_id=f"converting_geom_{table.base_id}",
             sql=SQL_GEOM_CONVERT,
-            params={"tablename": f"{DAG_ID}_{table}_new"},
+            params={"tablename": table.tmp_id},
         )
-        for table in target_tables
+        for table in TABLES
     ]
 
-    # 12. Drop Exisiting TABLE
+    # 10. Drop Exisiting TABLE
     drop_tables = [
         PostgresOperator(
-            task_id=f"drop_existing_table_{table}",
+            task_id=f"drop_existing_table_{table.id}",
             sql="DROP TABLE IF EXISTS {{ params.table_id }} CASCADE",
-            params={"table_id": f"{DAG_ID}_{table}"},
+            params={"table_id": table.id},
         )
-        for table in target_tables
+        for table in TABLES
     ]
 
-    # 13. Rename TABLE
+    # 11. Rename TABLE
     rename_tables = [
         PostgresTableRenameOperator(
-            task_id=f"rename_table_{table}",
-            old_table_name=f"{DAG_ID}_{table}_new",
-            new_table_name=f"{DAG_ID}_{table}",
+            task_id=f"rename_table_{table.base_id}",
+            old_table_name=table.tmp_id,
+            new_table_name=table.id,
         )
-        for table in target_tables
+        for table in TABLES
     ]
 
     # Check minimum number of records
     # PREPARE CHECKS
-    for table in target_tables:
+    for table in TABLES:
         count_checks.append(
             COUNT_CHECK.make_check(
-                check_id=f"count_check_{table}",
+                check_id=f"count_check_{table.base_id}",
                 pass_value=20,
-                params={"table_name": f"{DAG_ID}_{table}"},
+                params={"table_name": table.id},
                 result_checker=operator.ge,
             )
         )
 
         geo_checks.append(
             GEO_CHECK.make_check(
-                check_id=f"geo_check_{table}",
+                check_id=f"geo_check_{table.base_id}",
                 params={
-                    "table_name": f"{DAG_ID}_{table}",
-                    "geotype": ["MULTIPOLYGON", "MULTILINESTRING"],
+                    "table_name": table.id,
+                    "geotype": ["MULTIPOLYGON", "MULTILINESTRING", "POINT"],
                     "geo_column": "geometry",
                 },
                 pass_value=1,
@@ -207,10 +224,10 @@ with DAG(
 
         total_checks = count_checks + geo_checks
 
-    # 14. RUN bundled CHECKS
-    multi_checks = PostgresMultiCheckOperator(task_id=f"multi_check", checks=total_checks)
+    # 12. RUN bundled CHECKS
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 15. DROP temp tables
+    # 13. DROP temp tables
     # Start Task Group definition, combining tasks into one group for better visualisation
     group_tasks = []
     with TaskGroup(group_id="drop_tables_after") as drop_tables_after:
@@ -225,7 +242,7 @@ with DAG(
             group_tasks.append(task)
         chain(*group_tasks)
 
-    # 16. Grant database permissions
+    # 14. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
     # FLOW
@@ -235,12 +252,11 @@ with DAG(
         >> download_data
         >> drop_tables_before
         >> import_data
-        >> create_table_mantelbuizen
-        >> create_table_kabelsbovengronds
-        >> create_table_kabelsondergronds
-        >> provenance_translation
-        >> converting_geom
+        >> create_tables
     )
+
+    for table in create_tables:
+        (table >> provenance_translation >> converting_geom)
 
     for geom, data_type, target_table, temp_table in zip(
         converting_geom, alter_data_types, drop_tables, rename_tables
@@ -252,7 +268,6 @@ with DAG(
             >> drop_tables_after
             >> grant_db_permissions
         )
-
 
 dag.doc_md = """
     #### DAG summary
