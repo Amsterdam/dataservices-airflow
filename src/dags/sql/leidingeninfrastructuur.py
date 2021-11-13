@@ -89,6 +89,39 @@ SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE: Final = """
     where LOWER(bovenonder)='{{ params.filter }}';
 """
 
+# CREATING KABELSBOVEN/ONDERGRONDS TABLE
+SQL_PUNTEN_TABLE: Final = """
+DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
+CREATE TABLE {{ params.tablename }} AS SELECT
+    k.id,
+    k.geometry,
+    inwinningstype.naam as inwinningstype,
+    thema.naam as thema,
+    klasse.naam as klasse,
+    punttype.naam as type,
+    janee.naam as zichtbaar,
+    bovenonder,
+    diepte,
+    nauwkeurigheid1.naam as nauwkeurigheid_diepte,
+    hoogte,
+    nauwkeurigheid2.naam as nauwkeurigheid_hoogte,
+    hoofdcategorie.naam as hoofdcategorie,
+    eigenaar.naam as eigenaar,
+    jva,
+    gebruiker,
+    datum as mutatiedatum
+    FROM  punten k
+    INNER JOIN inwinningstype ON inwinningstype.code = k.wijzeinw
+    INNER JOIN hoofdcategorie ON hoofdcategorie.code = k.hoofdcat
+    INNER JOIN thema ON thema.code = k.thema
+    INNER JOIN klasse ON klasse.code = k.klasse
+    INNER JOIN punttype ON punttype.code = k.type
+    INNER JOIN janee ON janee.code = k.zichtbaar
+    INNER JOIN nauwkeurigheid nauwkeurigheid1 ON nauwkeurigheid1.code = k.nauwdiep
+    INNER JOIN nauwkeurigheid nauwkeurigheid2 ON nauwkeurigheid2.code = k.nauwhoog
+    INNER JOIN eigenaar ON eigenaar.code = k.eigenaar;
+"""
+
 # CONVERTING TO GEOMETRY to 2D AND CHECKING CONTENT
 SQL_GEOM_CONVERT: Final = """
     ALTER TABLE {{ params.tablename }}
@@ -113,13 +146,18 @@ SQL_ALTER_DATATYPES: Final = """
     ALTER TABLE {{ params.tablename }} ALTER COLUMN jaar_van_aanleg TYPE integer
     USING jaar_van_aanleg::integer;
     ALTER TABLE {{ params.tablename }} ALTER COLUMN diepte TYPE numeric USING diepte::numeric;
+    {% if 'punten' not in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN lengte TYPE numeric USING lengte::numeric;
+    {% endif %}
     {% if 'kabels' in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN hoogte TYPE numeric USING hoogte::numeric;
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(MULTILINESTRING, 28992)
     USING ST_SetSRID(geometry, 28992);
     {% elif 'mantelbuizen' in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 28992)
+    USING ST_SetSRID(geometry, 28992);
+    {% elif 'punten' in params.tablename %}
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(POINT, 28992)
     USING ST_SetSRID(geometry, 28992);
     {% endif %}
 """

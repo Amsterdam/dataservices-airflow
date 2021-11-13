@@ -348,5 +348,10 @@ stroomstoringen:
 leidingeninfrastuctuur:
   files_to_download:
     wibon: Wibon.sqlite
-    source_tables: [mantelbuizen, materiaal, klasse, inwinningstype, mantelbuisdiameter, hoofdcategorie, thema, mantelbuistype, janee, nauwkeurigheid, eigenaar, functie, groep, kabeltype, kabeldiameter, fase, bouwtype, type, kabels]
-    target_tables: [mantelbuizen, ondergrondse_kabels, bovengrondse_kabels]
+    source_tables: [mantelbuizen, materiaal, klasse, inwinningstype, mantelbuisdiameter, hoofdcategorie, thema, mantelbuistype, janee, nauwkeurigheid, eigenaar, functie, groep, kabeltype, kabeldiameter, fase, bouwtype, type, kabels, punten, punttype]
+    target_tables: [mantelbuizen, ondergrondse_kabels, bovengrondse_kabels, punten]
+  sql_to_execute:
+    mantelbuizen: SQL_MANTELBUIZEN_TABLE
+    ondergrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
+    bovengrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
+    punten: SQL_PUNTEN_TABLE
