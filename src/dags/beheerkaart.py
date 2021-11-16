@@ -34,7 +34,7 @@ tables = {
 
 # Dataset name as specified in Amsterdamsschema
 dataset_name = "beheerkaartBasis"
-dataset_name_database = {to_snake_case(dataset_name)}
+dataset_name_database = to_snake_case(dataset_name)
 gpkg_path = f"{tmp_dir}/{dataset_name_database}.gpkg"
 
 owner = "team_ruimte"
