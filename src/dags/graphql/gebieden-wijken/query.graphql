@@ -21,6 +21,14 @@
             }
           }
         }
+        ligtInGgwgebied {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         geometrie
       }
     }
