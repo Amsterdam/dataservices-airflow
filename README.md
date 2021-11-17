@@ -49,10 +49,30 @@ The webserver UI is protected with a password, admin user is created automatical
 Extra users can be created using airflow shell:
 
     1. log in the airflow container: docker exec -it airflow bash
-    2. airflow users create -r User -u <username> -e <email> -f <first_name> -l <last_name> -p <password>
+    2. airflow users create -r Viewer -u <username> -e <email> -f <first_name> -l <last_name> -p <password>
 
 Dags can only be seen in the UI by the owner, or by the admin. The default owner is dataservices.
 In order to see the dataservices dags you have to use admin or the dataservices user.
+
+# User management
+
+When additional users are created, they should get the `Viewer` role, because the `User` role
+by default gives too many permissions.
+
+A typical use-case is adding a user that needs to see and manage its own Dags.
+The following steps need to be taken:
+
+    1. Add the user (see above for cli instructions), or use the Web UI
+    2. Add a role for this user in the Web UI
+    3. Add the role to the user in the Web UI
+    4. Add the following permissions for this role in the Web UI:
+        - can edit on DAG:<name of dag>
+        - can read on DAG:<name of dag>
+        - can create on DAG Runs
+        - can read on Website
+        - can read on DAG runs
+        - can read on Task Instances
+        - can read on Task Logs
 
 # Managing requirements.txt
 
