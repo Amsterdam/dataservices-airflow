@@ -11,6 +11,7 @@ airflow users create -r Admin -u admin -e admin@example.com -f admin -l admin -p
 
 airflow users create -r User -u dataservices -e dataservices@example.com -f dataservices -l dataservices -p ${AIRFLOW_USER_DATASERVICES_PASSWD:-dataservices}
 airflow users create -r User -u team_ruimte -e team_ruimte@example.com -f team_ruimte -l team_ruimte -p ${AIRFLOW_USER_TEAM_RUIMTE_PASSWD:-team_ruimte}
+airflow users create -r User -u team_beeldschoon -e team_beeldschoon@example.com -f team_beeldschoon -l team_beeldschoon -p ${AIRFLOW_USER_TEAM_BEELDSCHOON_PASSWD:-team_beeldschoon}
 
 # Airflow does not support slack connection config through environment var
 # So we (re-)create the slack connection on startup.
