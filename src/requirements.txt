@@ -11,7 +11,7 @@ adal==1.2.7
     #   msrestazure
 alembic==1.5.5
     # via apache-airflow
-amsterdam-schema-tools==3.0.2
+amsterdam-schema-tools==3.0.3
     # via -r requirements.in
 anyio==3.3.3
     # via httpcore
