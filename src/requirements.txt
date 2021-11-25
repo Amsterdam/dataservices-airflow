@@ -757,7 +757,7 @@ sshtunnel==0.1.4
     #   -r requirements.in
     #   apache-airflow-providers-sftp
     #   apache-airflow-providers-ssh
-starkbank-ecdsa==1.1.0
+starkbank-ecdsa==2.0.1
     # via sendgrid
 stevedore==3.3.0
     # via
