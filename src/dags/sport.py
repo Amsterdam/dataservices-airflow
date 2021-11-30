@@ -280,7 +280,7 @@ with DAG(
             )
 
             total_checks = count_checks + geo_checks
-            check_name[resource] = total_checks
+            check_name[resource] = [*total_checks]
 
     # 15. Execute bundled checks on database
     multi_checks = [
