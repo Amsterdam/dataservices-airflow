@@ -27,7 +27,7 @@ from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOp
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE
+from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE, SQL_GEOMETRY_VALID
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from typeahead_location_operator import TypeAHeadLocationOperator
 
@@ -245,6 +245,17 @@ with DAG(
         sql=DEL_ROWS,
     )
 
+    # 15. Make geometry valid
+    geom_valid = [
+        PostgresOperator(
+            task_id=f"geom_valid_{resource}",
+            sql=SQL_GEOMETRY_VALID,
+            params={"tablename": f"{dag_id}_{resource}_new"},
+        )
+        for resources in files_to_import.values()
+        for resource in resources
+    ]
+
     # Prepare the checks and added them per source to a dictionary
     for resources in files_to_import.values():
         for resource in resources:
@@ -282,14 +293,14 @@ with DAG(
             total_checks = count_checks + geo_checks
             check_name[resource] = [*total_checks]
 
-    # 15. Execute bundled checks on database
+    # 16. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(task_id=f"multi_check_{resource}", checks=check_name[resource])
         for resources in files_to_import.values()
         for resource in resources
     ]
 
-    # 16. Create the DB target table (as specified in the JSON data schema)
+    # 17. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_tables = [
         SqlAlchemyCreateObjectOperator(
@@ -304,7 +315,7 @@ with DAG(
         for resource in resources
     ]
 
-    # 17. Check for changes to merge in target table
+    # 18. Check for changes to merge in target table
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource}",
@@ -317,7 +328,7 @@ with DAG(
         for resource in resources
     ]
 
-    # 18. Clean up (remove temp table _new)
+    # 19. Clean up (remove temp table _new)
     clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{resource}",
@@ -328,7 +339,7 @@ with DAG(
         for resource in resources
     ]
 
-    # 19. Grant database permissions
+    # 20. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 
@@ -348,13 +359,13 @@ for (create_id, import_data) in zip(unique_id, load_data):
 
 Interface3 >> add_geom_col
 
-add_geom_col >> provenance_trans >> lookup_geometry_typeahead >> del_dupl_rows >> multi_checks
+add_geom_col >> provenance_trans >> lookup_geometry_typeahead >> del_dupl_rows >> geom_valid
 
-for (multi_check, create_table, check_changes, clean_up) in zip(
-    multi_checks, create_tables, change_data_capture, clean_ups
+for (geom_validate, multi_check, create_table, check_changes, clean_up) in zip(
+    geom_valid, multi_checks, create_tables, change_data_capture, clean_ups
 ):
 
-    [multi_check >> create_table >> check_changes >> clean_up]
+    [geom_validate >> multi_check >> create_table >> check_changes >> clean_up]
 
 clean_ups >> grant_db_permissions
 
