@@ -17,9 +17,6 @@ from importscripts.import_brp_iburgerzaken import container_variables
 
 # SETUP the use of mounting secrets instead of using environment variables (the latter
 # being prone for unwanted secret exposure if someone can describe the pod)
-#  GENERIC_VARS_NAMES:list = ['ST_IBURGERZAKEN_CONTAINER_NAME', 'ST_IBURGERZAKEN_CONNECTION_STRING',
-#                             'DB_IBURGERZAKEN_SERVER', 'DB_IBURGERZAKEN_DB_NAME', 'DB_IBURGERZAKEN_DB_UID',
-#                             'DB_IBURGERZAKEN_DB_UID_PWD', 'AIRFLOW__CORE__SQL_ALCHEMY_CONN']
 # https://github.com/VBhojawala/airflow/blob/k8s-docs/docs/apache-airflow-providers-cncf-kubernetes/operators.rst#mounting-secrets-as-volume
 # The instantiating of Secret needs a type (volume or env), a location path and the object secret name as stated in the values.yml in HELM.
 secret_file = Secret("volume", "/TMP/secrets", "db-iburgerzaken-db-uid-pwd")
@@ -30,7 +27,7 @@ secret_file = Secret("volume", "/TMP/secrets", "db-iburgerzaken-db-uid-pwd")
 CONTAINER_IMAGE: Final = "crdaveontweu01.azurecr.io/airflow-workload-iburgerzaken:latest"  # [registry]/[imagename]:[tag]
 COMMAND_TO_EXECUTE: list = ["python"]  # Command that you want to run on container start
 COMMAND_ARGS: list = [
-    "/scripts/logic.py"
+    "/scripts/data_processor.py"
 ]  # Command arguments that will be used with command to execute on start
 DATATEAM_OWNER: Final = "datateam_basis_kernregistraties"
 DAG_ID: Final = "brp_iburgerzaken"
@@ -43,7 +40,7 @@ CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = container_variables()
 
 with DAG(
     DAG_ID,
-    description="""Running a containerized workload that collects BRP
+    description="""Running a containerized workload that collects BRP (basis registratie personen)
                     data from source iBurgerzaken.""",
     default_args=default_args,
     template_searchpath=["/"],
