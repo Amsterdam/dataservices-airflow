@@ -20,13 +20,13 @@ def container_variables():
     """
 
     # the environment variables names that need to be included into the container
+    # "DB_IBURGERZAKEN_DB_UID_PWD"
     GENERIC_VARS_NAMES: list = [
         "ST_IBURGERZAKEN_CONTAINER_NAME",
         "ST_IBURGERZAKEN_CONNECTION_STRING",
         "DB_IBURGERZAKEN_SERVER",
         "DB_IBURGERZAKEN_DB_NAME",
         "DB_IBURGERZAKEN_DB_UID",
-        "DB_IBURGERZAKEN_DB_UID_PWD",
         "AIRFLOW__CORE__SQL_ALCHEMY_CONN",
     ]
 
