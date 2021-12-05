@@ -26,7 +26,7 @@ def container_variables():
         "DB_IBURGERZAKEN_SERVER",
         "DB_IBURGERZAKEN_DB_NAME",
         "DB_IBURGERZAKEN_DB_UID",
-        # "DB_IBURGERZAKEN_DB_UID_PWD",
+        "DB_IBURGERZAKEN_DB_UID_PWD",
         "AIRFLOW__CORE__SQL_ALCHEMY_CONN",
     ]
 
@@ -120,7 +120,8 @@ def container_variables():
     #     "container_rest": CONTAINER_COLLECTED_REST
     # }
 
-    tables = ["BZSBURL00",
+    tables: list = [
+        "BZSBURL00",
         "BZSBURM00",
         "BZSVBRL00",
         "BZSVBRW00",
@@ -263,12 +264,12 @@ def container_variables():
         "BZSGDIL00",
         "BZSGDIM00"]
 
-    containers = {}
+    containers: dict[str,str] = {}
 
     for index, table in enumerate(tables):
         tables_to_proces = {"TABLES_TO_PROCESS":table}
         tables_to_proces.update(GENERIC_VARS_DICT)
-        containers[f'container_{index}'] = {"TABLES_TO_PROCESS":tables_to_proces}
+        containers[f'container_{index}'] = tables_to_proces
 
     containers['container_rest'] = CONTAINER_COLLECTED_REST
 
