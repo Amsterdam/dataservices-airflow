@@ -272,7 +272,7 @@ def container_variables():
 
     containers['container_rest'] = CONTAINER_COLLECTED_REST
 
-    return {containers}
+    return containers
 
 
 # Below an overview of all source table that have over 0.5 million records each (about 100+ out of 1_000+ total (10%)).
