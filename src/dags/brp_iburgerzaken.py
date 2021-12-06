@@ -13,7 +13,7 @@ from common import (
     slack_webhook_token,
 )
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from importscripts.import_brp_iburgerzaken import container_variables
+from importscripts.import_brp_iburgerzaken import setup_containers
 
 # SETUP the use of mounting secrets instead of using environment variables (the latter
 # being prone for unwanted secret exposure if someone can describe the pod)
@@ -36,7 +36,7 @@ TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 K8_NAME_SPACE: Final = "airflow-dave"
 
 # SETUP CONTAINER SPECIFIC ENV VARS
-CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = container_variables()
+CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
 
 with DAG(
     DAG_ID,

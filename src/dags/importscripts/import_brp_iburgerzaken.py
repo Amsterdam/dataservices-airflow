@@ -1,7 +1,88 @@
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.exc import SQLAlchemyError
+from typing import Final, Optional, Any
 
 
-def container_variables():
+def get_tables() -> list[str]:
+    """Get source tables and each of their row count.
+
+    : return : Returns a list of tables names and row count.
+    """
+
+    # Setup the needed variables for execution.
+    # NOTE_1: The environment variables need to be set in the
+    # Airflow DAG (and given to this container), need to be present
+    # in Azure Key Vault as a secret so it can be collected by HELM
+    # and be present as an environment variable.
+    SRC_DB_SERVER: Optional[str] = os.getenv("DB_IBURGERZAKEN_SERVER")
+    SRC_DB_NAME: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_NAME")
+    SRC_DB_UID: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_UID")
+    SRC_DB_UID_PWD: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_UID_PWD")
+    SRC_CONNECTION_DRIVER: Optional[str] = "IBM i Access ODBC Driver"
+    SRC_CONNECTION_STRING: Optional[str] = f"""DRIVER={SRC_CONNECTION_DRIVER};\
+                                                SYSTEM={SRC_DB_SERVER};\
+                                                DATABASE={SRC_DB_NAME};\
+                                                UID={SRC_DB_UID};\
+                                                PWD={SRC_DB_UID_PWD}"""
+
+    # connection open
+    define_engine = create_engine("ibm_db_sa+pyodbc:///?odbc_connect={odbc_connect}".format(odbc_connect=SRC_CONNECTION_STRING))
+    SQL_GET_TABLES: str = """SELECT DISTINCT
+                            NUMBER_ROWS,
+                            TABLE_NAME
+                            FROM QSYS2.SYSTABLESTAT
+                            WHERE TABLE_SCHEMA in (?)
+                            """
+
+    # start connection to source
+    tables: list = []
+    with define_engine.connect() as conn:
+        result = conn.execute(SQL_GET_TABLES, SRC_DB_NAME)
+        for row_count, table_name in result:
+            tables.append([row_count,table_name])
+
+    return tables
+
+
+def get_tables_row_batch() -> list[Any]:
+    """Get the chunk of rows per source table.
+
+    :param tables: Hold a list of table names and row count.
+    :return: Returns a list of tables names and row count.
+    """
+    # define the limit of number of rows for each table to proces in one container.
+    # If the table has more rows that the limit, then it will process it in chunks.
+    # Each chunk will have it's own container. The chunk division (what container will
+    # proces which row ranges) is set in the Airflow DAG and given to this container.
+    TABLE_ROW_CHOP_LIMIT: Final = 10_000_000
+
+    # list of tables row batches (row chunks) to be processed
+    tables_batches: list = []
+
+    for row_count, table_name in get_tables():
+        # calculate the number of row batches based to process
+        row_batches =  row_count // TABLE_ROW_CHOP_LIMIT
+        start_batch_counter = 0
+        # for each `row batch`` create a container
+        for _ in range(row_batches + 1):
+            # check if batch row is still within total rows, then continue
+            # creating a next container for it including its row ranges (start-end)
+            if TABLE_ROW_CHOP_LIMIT < (row_count - start_batch_counter):
+                end_batch_counter = start_batch_counter + TABLE_ROW_CHOP_LIMIT
+                tables_batches.append([table_name, start_batch_counter, end_batch_counter])
+                start_batch_counter = end_batch_counter
+            # last batch row detected
+            # if batch row size is bigger then rows to proces left,
+            # then set batch row size to last row counter and total rows
+            # like 100 (start row number) till 101 (total rows) for instance.
+            else:
+                tables_batches.append(f"{table_name},{start_batch_counter},{row_count}")
+
+    return tables_batches
+
+
+def setup_containers() -> dict[str, list]:
     """Defines the source tables to process for each container.
 
     To speed up processing paralell containers are executed. The BRP
@@ -18,7 +99,6 @@ def container_variables():
     in the Airflow HELM configuration repository (airflow-dave). These vars are used by the docker
     container to use during dataprocessing logic.
     """
-
     # the environment variables names that need to be included into the container
     # "DB_IBURGERZAKEN_DB_UID_PWD"
     GENERIC_VARS_NAMES: list = [
@@ -264,20 +344,17 @@ def container_variables():
     #     "BZSGDIL00",
     #     "BZSGDIM00"]
 
-    tables: list = [
-        "BZSGDIM00"]
-
     containers: dict[str,str] = {}
 
     # create for each table a container
-    for index, table in enumerate(tables):
-        tables_to_proces = {"TABLES_TO_PROCESS":table}
+    for index, table_name_and_row_range in enumerate(get_tables_row_batch()):
+        tables_to_proces = {"TABLES_TO_PROCESS": table_name_and_row_range}
         tables_to_proces.update(GENERIC_VARS_DICT)
         containers[f'container_{index}'] = tables_to_proces
 
     # the rest container will process all tables except the ones
     # that are already processed and defined in the `tables` list.
-    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": tables}
+    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": get_tables()}
     CONTAINER_TYPE: dict[str, str] = {"CONTAINER_TYPE": "REST"}
     CONTAINER_COLLECTED_REST: dict[str, str] = (
         GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST | CONTAINER_TYPE
