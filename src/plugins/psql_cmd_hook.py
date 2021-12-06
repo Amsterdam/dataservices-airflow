@@ -1,6 +1,6 @@
 import subprocess
 
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 
 # XXX move to common, also used in PostgresFilesOperator
 pg_params = " ".join(

@@ -3,14 +3,12 @@ from typing import Any, Callable, Optional
 from airflow.models import XCOM_RETURN_KEY
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.utils.decorators import apply_defaults
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 
 class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
     """Drop or truncated a table and associated n-m cross tables."""
 
-    @apply_defaults
     def __init__(
         self,
         table_name: Optional[str] = None,
