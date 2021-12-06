@@ -3,7 +3,6 @@ from typing import Any, Optional
 
 from airflow.models import BaseOperator
 from airflow.models.taskinstance import Context
-from airflow.utils.decorators import apply_defaults
 
 
 class LogMessageOperator(BaseOperator):
@@ -12,7 +11,6 @@ class LogMessageOperator(BaseOperator):
     To proxy SlackWebhookOperator for local development.
     """
 
-    @apply_defaults  # type: ignore [misc]
     def __init__(self, *, message: str = "", channel: Optional[str] = None, **kwargs: Any) -> None:
         """Initialize LogMessageOperator."""
         self.message = message

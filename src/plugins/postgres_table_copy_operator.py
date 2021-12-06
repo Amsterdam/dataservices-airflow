@@ -8,7 +8,6 @@ from typing import Any, Callable, Final, Optional, cast
 from airflow.exceptions import AirflowFailException
 from airflow.models import XCOM_RETURN_KEY, BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from psycopg2 import extras, sql
@@ -53,7 +52,6 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
        configurable.
     """
 
-    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         dataset_name: Optional[str] = None,

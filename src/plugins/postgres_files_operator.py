@@ -1,4 +1,4 @@
-from airflow.hooks.base_hook import BaseHook
+from airflow.hooks.base import BaseHook
 from airflow.operators.bash import BashOperator
 
 pg_params = " ".join(
