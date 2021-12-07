@@ -25,6 +25,10 @@ def get_tables() -> list[str]:
                                                 DATABASE={SRC_DB_NAME};\
                                                 UID={SRC_DB_UID};\
                                                 PWD={SRC_DB_UID_PWD}"""
+    # indicates large table, if beyond limit
+    # then proces by seperate container else
+    # bulk execute in one rest container
+    MAX_ROW_NUM: int = 500000
 
     # connection open
     define_engine = create_engine("ibm_db_sa+pyodbc:///?odbc_connect={odbc_connect}".format(odbc_connect=SRC_CONNECTION_STRING))
@@ -33,12 +37,13 @@ def get_tables() -> list[str]:
                             TABLE_NAME
                             FROM QSYS2.SYSTABLESTAT
                             WHERE TABLE_SCHEMA in (?)
+                            AND MAX_ROW_NUM > ?
                             """
 
     # start connection to source
     tables: list = []
     with define_engine.connect() as conn:
-        result = conn.execute(SQL_GET_TABLES, SRC_DB_NAME)
+        result = conn.execute(SQL_GET_TABLES, SRC_DB_NAME, MAX_ROW_NUM)
         for row_count, table_name in result:
             tables.append([row_count,table_name])
 
@@ -77,7 +82,7 @@ def get_tables_row_batch() -> list[Any]:
             # then set batch row size to last row counter and total rows
             # like 100 (start row number) till 101 (total rows) for instance.
             else:
-                tables_batches.append(f"{table_name},{start_batch_counter},{row_count}")
+                tables_batches.append([table_name, start_batch_counter, row_count])
 
     return tables_batches
 
@@ -345,16 +350,18 @@ def setup_containers() -> dict[str, list]:
     #     "BZSGDIM00"]
 
     containers: dict[str,str] = {}
+    collect_all_table_names: list[str] = []
 
     # create for each table a container
     for index, table_name_and_row_range in enumerate(get_tables_row_batch()):
-        tables_to_proces = {"TABLES_TO_PROCESS": table_name_and_row_range}
-        tables_to_proces.update(GENERIC_VARS_DICT)
-        containers[f'container_{index}'] = tables_to_proces
+        collect_all_table_names.append(table_name_and_row_range[0])
+        tables_to_proces_container = {"TABLES_TO_PROCESS": ','.join(table_name_and_row_range)}
+        tables_to_proces_container.update(GENERIC_VARS_DICT)
+        containers[f'container_{index}'] = tables_to_proces_container
 
     # the rest container will process all tables except the ones
-    # that are already processed and defined in the `tables` list.
-    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": get_tables()}
+    # that are already processed and defined in the `collect_table_names` list.
+    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": collect_all_table_names}
     CONTAINER_TYPE: dict[str, str] = {"CONTAINER_TYPE": "REST"}
     CONTAINER_COLLECTED_REST: dict[str, str] = (
         GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST | CONTAINER_TYPE
