@@ -9,7 +9,6 @@ def get_tables() -> list[str]:
 
     : return : Returns a list of tables names and row count.
     """
-
     # Setup the needed variables for execution.
     # NOTE_1: The environment variables need to be set in the
     # Airflow DAG (and given to this container), need to be present
@@ -28,8 +27,7 @@ def get_tables() -> list[str]:
     # indicates large table, if beyond limit
     # then proces by seperate container else
     # bulk execute in one rest container
-    MAX_ROW_NUM: int = 500000
-
+    MAX_ROW_NUM: int = 50000
     # connection open
     define_engine = create_engine("ibm_db_sa+pyodbc:///?odbc_connect={odbc_connect}".format(odbc_connect=SRC_CONNECTION_STRING))
     SQL_GET_TABLES: str = """SELECT DISTINCT
@@ -39,14 +37,12 @@ def get_tables() -> list[str]:
                             WHERE TABLE_SCHEMA in (?)
                             AND NUMBER_ROWS > ?
                             """
-
     # start connection to source
     tables: list = []
     with define_engine.connect() as conn:
         result = conn.execute(SQL_GET_TABLES, SRC_DB_NAME, MAX_ROW_NUM)
         for row_count, table_name in result:
             tables.append([row_count,table_name])
-
     return tables
 
 
@@ -60,11 +56,9 @@ def get_tables_row_batch() -> list[Any]:
     # If the table has more rows that the limit, then it will process it in chunks.
     # Each chunk will have it's own container. The chunk division (what container will
     # proces which row ranges) is set in the Airflow DAG and given to this container.
-    TABLE_ROW_CHOP_LIMIT: Final = 10_000_000
-
+    TABLE_ROW_CHOP_LIMIT: Final = 1_000_000
     # list of tables row batches (row chunks) to be processed
     tables_batches: list = []
-
     for row_count, table_name in get_tables():
         # calculate the number of row batches based to process
         row_batches =  row_count // TABLE_ROW_CHOP_LIMIT
@@ -83,7 +77,6 @@ def get_tables_row_batch() -> list[Any]:
             # like 100 (start row number) till 101 (total rows) for instance.
             else:
                 tables_batches.append([table_name, str(start_batch_counter), str(row_count)])
-
     return tables_batches
 
 
@@ -353,7 +346,7 @@ def setup_containers() -> dict[str, list]:
     collect_all_table_names: list[str] = []
 
     # create for each table a container
-    for index, table_name_and_row_range in enumerate(get_tables_row_batch()):
+    for index, table_name_and_row_range in enumerate(get_tables_row_batch()[0]):
         collect_all_table_names.append(table_name_and_row_range[0])
         tables_to_proces_container = {"TABLES_TO_PROCESS": ','.join(table_name_and_row_range)}
         tables_to_proces_container.update(GENERIC_VARS_DICT)
@@ -370,6 +363,11 @@ def setup_containers() -> dict[str, list]:
         GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST | CONTAINER_TYPE
     )
     containers['container_rest'] = CONTAINER_COLLECTED_REST
+
+    # TEST #
+    containers2 = { k:v for k,v in containers.items() if k == 'container_0'}
+    return containers2
+    # TEST #
 
     return containers
 
