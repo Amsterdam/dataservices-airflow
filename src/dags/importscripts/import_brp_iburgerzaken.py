@@ -358,7 +358,7 @@ def setup_containers() -> dict[str, list]:
     # therefor the `collect_table_names` list is part of its arguments
     # so it can do an invert in the container (and process the tables
     # that are not in that list)
-    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": collect_all_table_names}
+    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": ','.join(collect_all_table_names)}
     CONTAINER_TYPE: dict[str, str] = {"CONTAINER_TYPE": "REST"}
     CONTAINER_COLLECTED_REST: dict[str, str] = (
         GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST | CONTAINER_TYPE
