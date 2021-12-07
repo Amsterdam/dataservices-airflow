@@ -347,7 +347,8 @@ def setup_containers() -> dict[str, list]:
 
     # create for each table a container
     for index, table_name_and_row_range in enumerate(get_tables_row_batch()):
-        collect_all_table_names.append(table_name_and_row_range[0])
+        if table_name_and_row_range[0] not in collect_all_table_names:
+            collect_all_table_names.append(table_name_and_row_range[0])
         tables_to_proces_container = {"TABLES_TO_PROCESS": ','.join(table_name_and_row_range)}
         tables_to_proces_container.update(GENERIC_VARS_DICT)
         containers[f'container_{index}'] = tables_to_proces_container
