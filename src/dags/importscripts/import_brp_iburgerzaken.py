@@ -69,10 +69,10 @@ def get_tables_row_batch() -> list[Any]:
         # calculate the number of row batches based to process
         row_batches =  row_count // TABLE_ROW_CHOP_LIMIT
         start_batch_counter = 0
-        # for each `row batch`` create a container
+        # for each `row batch` create a container
         for _ in range(row_batches + 1):
-            # check if batch row is still within total rows, then continue
-            # creating a next container for it including its row ranges (start-end)
+            # check if batch row is still within total rows, then continue creating
+            # a next container for it including its row ranges (start-end)
             if TABLE_ROW_CHOP_LIMIT < (row_count - start_batch_counter):
                 end_batch_counter = start_batch_counter + TABLE_ROW_CHOP_LIMIT
                 tables_batches.append([table_name, start_batch_counter, end_batch_counter])
