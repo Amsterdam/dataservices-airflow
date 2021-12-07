@@ -364,10 +364,10 @@ def setup_containers() -> dict[str, list]:
     )
     containers['container_rest'] = CONTAINER_COLLECTED_REST
 
-    # TEST #
-    containers2 = { k:v for k,v in containers.items() if k == 'container_0'}
-    return containers2
-    # TEST #
+    # # TEST #
+    # containers2 = { k:v for k,v in containers.items() if k == 'container_0'}
+    # return containers2
+    # # TEST #
 
     return containers
 
