@@ -75,14 +75,14 @@ def get_tables_row_batch() -> list[Any]:
             # a next container for it including its row ranges (start-end)
             if TABLE_ROW_CHOP_LIMIT < (row_count - start_batch_counter):
                 end_batch_counter = start_batch_counter + TABLE_ROW_CHOP_LIMIT
-                tables_batches.append([table_name, start_batch_counter, end_batch_counter])
+                tables_batches.append([table_name, str(start_batch_counter), str(end_batch_counter)])
                 start_batch_counter = end_batch_counter
             # last batch row detected
             # if batch row size is bigger then rows to proces left,
             # then set batch row size to last row counter and total rows
             # like 100 (start row number) till 101 (total rows) for instance.
             else:
-                tables_batches.append([table_name, start_batch_counter, row_count])
+                tables_batches.append([table_name, str(start_batch_counter), str(row_count)])
 
     return tables_batches
 
