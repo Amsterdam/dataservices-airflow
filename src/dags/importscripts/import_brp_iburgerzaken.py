@@ -37,7 +37,7 @@ def get_tables() -> list[str]:
                             TABLE_NAME
                             FROM QSYS2.SYSTABLESTAT
                             WHERE TABLE_SCHEMA in (?)
-                            AND MAX_ROW_NUM > ?
+                            AND NUMBER_ROWS > ?
                             """
 
     # start connection to source
