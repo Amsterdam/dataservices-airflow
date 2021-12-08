@@ -1,20 +1,18 @@
-import json
 from contextlib import nullcontext
 from pathlib import Path
 
 import postgres_table_copy_operator
 import pytest
 from airflow.exceptions import AirflowFailException
-from postgres_table_copy_operator import PostgresHook, PostgresTableCopyOperator
-from psycopg2.errors import DatatypeMismatch, UndefinedColumn  # type: ignore
-from schematools.types import DatasetSchema
+from postgres_table_copy_operator import PostgresTableCopyOperator
+from schematools.utils import dataset_schema_from_path
 
 FILES_PATH = Path(__file__).parent / "files"
 should_work = nullcontext()
 
 
-def patched_schema_getter(url, name):
-    return DatasetSchema.from_file(FILES_PATH / "gebieden.json")  # type: ignore
+def _patched_schema_getter(url, name):
+    return dataset_schema_from_path(FILES_PATH / "gebieden.json")
 
 
 @pytest.mark.parametrize(
@@ -121,7 +119,8 @@ def patched_schema_getter(url, name):
     ],
 )
 def test_table_copy_operator(
-    pg_cursor,
+    postgresql,
+    mock_pghook,
     test_dag,
     monkeypatch,
     dataset_name,
@@ -131,34 +130,47 @@ def test_table_copy_operator(
     target_row_count,
     related_row_counts,
 ):
+    """Prove that the `PostgresTableCopyOperator` is working correctly.
 
+    This parametrized test first creates tables using the `sql_init_file` parameter.
+    Then the operator is used with different input parameters
+    (`contextmgr` and `drop_target_if_unequal).
+    Finally, rowcount checks are done on the final results in the database using
+    `target_row_count` and `related_row_counts`.
+
+    The initial table setup files (`sql_init_file`), containing sql statements
+    have some additional comments explaining the sql structure that is being set up.
+    """
     monkeypatch.setattr(
-        postgres_table_copy_operator, "dataset_schema_from_url", patched_schema_getter
+        postgres_table_copy_operator, "dataset_schema_from_url", _patched_schema_getter
     )
+    pg_cursor = postgresql.cursor()
 
-    # Set initial table + table content
-    with open(FILES_PATH / f"{sql_init_file}.sql") as sql_file:
-        pg_cursor.execute(sql_file.read())
-        # Need a commit here, because operator uses its own pg connection
-        # that runs in a different transaction
-        pg_cursor.connection.commit()
+    with postgresql.cursor() as pg_cursor:
 
-    with contextmgr:
-        task = PostgresTableCopyOperator(
-            dataset_name=dataset_name,
-            source_table_name="gebieden_ggwgebieden_new",
-            target_table_name="gebieden_ggwgebieden",
-            drop_target_if_unequal=drop_target_if_unequal,
-            dag=test_dag,
-        )
+        # Set initial table + table content
+        with open(FILES_PATH / f"{sql_init_file}.sql") as sql_file:
+            pg_cursor.execute(sql_file.read())
+            # Need a commit here, because operator uses its own pg connection
+            # that runs in a different transaction
+            pg_cursor.connection.commit()
 
-        pytest.helpers.run_task(task=task, dag=test_dag)  # type: ignore
+        with contextmgr:
+            task = PostgresTableCopyOperator(
+                dataset_name=dataset_name,
+                source_table_name="gebieden_ggwgebieden_new",
+                target_table_name="gebieden_ggwgebieden",
+                drop_target_if_unequal=drop_target_if_unequal,
+                dag=test_dag,
+            )
 
-    pg_cursor.execute("SELECT * from gebieden_ggwgebieden")
-    rows = pg_cursor.fetchall()
-    assert len(rows) == target_row_count
+            pytest.helpers.run_task(task=task, dag=test_dag)  # type: ignore
 
-    for table_name, row_count in related_row_counts.items():
-        pg_cursor.execute(f"SELECT * from {table_name}")
+        pg_cursor.execute("SELECT * from gebieden_ggwgebieden")
         rows = pg_cursor.fetchall()
         assert len(rows) == target_row_count
+
+        for table_name, row_count in related_row_counts.items():
+            pg_cursor.execute(f"SELECT * from {table_name}")  # noqa: S608
+            rows = pg_cursor.fetchall()
+            assert len(rows) == row_count

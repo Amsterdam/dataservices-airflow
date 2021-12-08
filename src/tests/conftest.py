@@ -1,15 +1,28 @@
 import datetime
-from collections import namedtuple
+import os
+from urllib.parse import urlparse
 
 import pendulum
 import pytest
 from airflow import DAG
-from airflow.models import Connection
+from airflow.models.connection import Connection
 from airflow.settings import TIMEZONE
-from psycopg2 import extras
-from pytest_docker_tools import container, fetch
+from postgres_table_copy_operator import PostgresHook
+from pytest_postgresql import factories
 
 pytest_plugins = ["helpers_namespace"]
+
+# We take the postgresql database credentials from an environment var DATABASE_URL
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://dataservices:insecure@localhost:5416/dataservices",
+)
+
+dsn_url = urlparse(DATABASE_URL)
+PG_PORT = dsn_url.port
+PG_USER = dsn_url.username
+PG_PASSWD = dsn_url.password
+PG_DBNAME = "test_dags"
 
 
 @pytest.fixture
@@ -32,64 +45,22 @@ def run_task(task, dag):
     )
 
 
-@pytest.fixture(scope="module")
-def postgres_credentials():
-    """Return a fixture that configures postgres credentials."""
-    PostgresCredentials = namedtuple("PostgresCredentials", ["username", "password"])
-    return PostgresCredentials("testuser", "testpass")
-
-
-postgres_image = fetch(repository="postgres:11.1-alpine")  # type: ignore
-
-
-postgres = container(  # type: ignore
-    image="{postgres_image.id}",
-    environment={
-        "POSTGRES_USER": "{postgres_credentials.username}",
-        "POSTGRES_PASSWORD": "{postgres_credentials.password}",
-    },
-    ports={"5432/tcp": None},
-)
+postgresql_in_docker = factories.postgresql_noproc(port=PG_PORT, user=PG_USER, password=PG_PASSWD)
+postgresql = factories.postgresql("postgresql_in_docker", dbname="test_dags")
 
 
 @pytest.fixture
-def mock_pghook(mocker, postgres, postgres_credentials):
-    """Returns a fixture that mocks Airflow PostgresHook."""
-
-    def _apply_mock(PostgresHook):
-        mocker.patch.object(
-            PostgresHook,
-            "get_connection",
-            return_value=Connection(
-                host="localhost",
-                conn_type="postgres",
-                login=postgres_credentials.username,
-                password=postgres_credentials.password,
-                port=postgres.ports["5432/tcp"][0],
-            ),
-        )
-
-    return _apply_mock
-
-
-@pytest.fixture
-def pg_cursor(mocker, postgres, postgres_credentials, request):
-    """Returns a fixture that provides a postgres cursor."""
-    # Use the request.module to get PostgresHook
-    # from the requesting module. By keeping this PostgresHook
-    # dynamic, this fixture can be use to test different airflow modules.
+def mock_pghook(mocker, request):
+    """Mocks Airflow PostgresHook."""
     mocker.patch.object(
-        request.module.PostgresHook,
+        PostgresHook,
         "get_connection",
         return_value=Connection(
             host="localhost",
             conn_type="postgres",
-            login=postgres_credentials.username,
-            password=postgres_credentials.password,
-            port=postgres.ports["5432/tcp"][0],
+            login=PG_USER,
+            password=PG_PASSWD,
+            schema=PG_DBNAME,  # For airflow, `schema` is the name of the database
+            port=PG_PORT,
         ),
     )
-    hook = request.module.PostgresHook()
-    with hook.get_conn() as conn:
-        with conn.cursor(cursor_factory=extras.RealDictCursor) as cursor:
-            yield cursor
