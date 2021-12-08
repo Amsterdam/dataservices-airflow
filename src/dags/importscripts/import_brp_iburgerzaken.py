@@ -56,7 +56,7 @@ def get_tables_row_batch() -> list[Any]:
     # If the table has more rows that the limit, then it will process it in chunks.
     # Each chunk will have it's own container. The chunk division (what container will
     # proces which row ranges) is set in the Airflow DAG and given to this container.
-    TABLE_ROW_CHOP_LIMIT: Final = 1_000_000
+    TABLE_ROW_CHOP_LIMIT: Final = 100_000
     # list of tables row batches (row chunks) to be processed
     tables_batches: list = []
     for row_count, table_name in get_tables():
