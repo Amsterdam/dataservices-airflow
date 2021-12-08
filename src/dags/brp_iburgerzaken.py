@@ -34,7 +34,9 @@ DAG_ID: Final = "brp_iburgerzaken"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 K8_NAME_SPACE: Final = "airflow-dave"
-K8_NODE_POOL: Final = ["airflow",]
+K8_NODE_POOL: Final = [
+    "airflow",
+]
 
 # SETUP CONTAINER SPECIFIC ENV VARS
 CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
@@ -76,36 +78,43 @@ with DAG(
             is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
             log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
             hostnetwork=True,  # If True enable host networking on the pod.
-            secrets=[secret_file,], # Uses a mount to get to secret
+            secrets=[
+                secret_file,
+            ],  # Uses a mount to get to secret
             reattach_on_restart=True,
             dag=dag,
-            execution_timeout=timedelta(hours=4), # to prevent taks becoming marked as failed when taking longer
+            execution_timeout=timedelta(
+                hours=4
+            ),  # to prevent taks becoming marked as failed when taking longer
             affinity={
-                'nodeAffinity':{
+                "nodeAffinity": {
                     # requiredDuringSchedulingIgnoredDuringExecution means in order
                     # for a pod to be scheduled on a node, the node must have the
                     # specified labels. However, if labels on a node change at
                     # runtime such that the affinity rules on a pod are no longer
                     # met, the pod will still continue to run on the node.
-                    'requiredDuringSchedulingIgnoredDuringExecution': {
-                        'nodeSelectorTerms': [{
-                            'matchExpressions': [{
-                                # When nodepools are created by TerraForm,
-                                # the nodes inside of that nodepool are
-                                # automatically assigned the label
-                                # 'nodetype' with the value of
-                                # the nodepool's name.
-                                'key': 'nodetype',
-                                'operator': 'In',
-                                # The label key's value that pods can be scheduled
-                                # on.
-                                'values': K8_NODE_POOL
-                            }]
-                        }]
+                    "requiredDuringSchedulingIgnoredDuringExecution": {
+                        "nodeSelectorTerms": [
+                            {
+                                "matchExpressions": [
+                                    {
+                                        # When nodepools are created by TerraForm,
+                                        # the nodes inside of that nodepool are
+                                        # automatically assigned the label
+                                        # 'nodetype' with the value of
+                                        # the nodepool's name.
+                                        "key": "nodetype",
+                                        "operator": "In",
+                                        # The label key's value that pods can be scheduled
+                                        # on.
+                                        "values": K8_NODE_POOL,
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 }
-            }
-
+            },
         )
         for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items()
     ]
