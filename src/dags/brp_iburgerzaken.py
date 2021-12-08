@@ -87,6 +87,9 @@ with DAG(
             execution_timeout=timedelta(
                 hours=4
             ),  # to prevent taks becoming marked as failed when taking longer
+            # Resource specifications for Pod, this will allow you to set both cpu
+            # and memory limits and requirements.
+            resources={'limit_memory': "250M", 'limit_cpu': "100m"},
             affinity={
                 "nodeAffinity": {
                     # requiredDuringSchedulingIgnoredDuringExecution means in order
