@@ -83,6 +83,7 @@ with DAG(
             ],  # Uses a mount to get to secret
             reattach_on_restart=True,
             dag=dag,
+            startup_timeout_seconds=3600,
             execution_timeout=timedelta(
                 hours=4
             ),  # to prevent taks becoming marked as failed when taking longer
