@@ -311,9 +311,9 @@ schiphol:
     geluidzones: dro_geluid_schiphol.csv
 bbga:
   data_endpoints:
-    bbga_latest_and_greatest: dcatd/datasets/G5JpqNbhweXZSw/purls/LXGOPUQQfAXBbg
-    metadata_latest_and_greatest: dcatd/datasets/G5JpqNbhweXZSw/purls/_V6g35HdgsK2nA
-    bbga_std_latest_and_greatest: dcatd/datasets/G5JpqNbhweXZSw/purls/2
+    bbga_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/2
+    metadata_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/4
+    bbga_std_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/5
   table_mappings:
     bbga_latest_and_greatest: bbga_kerncijfers
     metadata_latest_and_greatest: bbga_indicatoren_definities
