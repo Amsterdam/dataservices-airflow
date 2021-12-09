@@ -35,7 +35,7 @@ DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 K8_NAME_SPACE: Final = "airflow-dave"
 K8_NODE_POOL: Final = [
-    "airflowbenk",
+    "benkbbn1ibur"
 ]
 
 # SETUP CONTAINER SPECIFIC ENV VARS
