@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from pathlib import Path
 from typing import Final
@@ -33,7 +34,7 @@ DATATEAM_OWNER: Final = "datateam_basis_kernregistraties"
 DAG_ID: Final = "brp_iburgerzaken"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
-K8_NAME_SPACE: Final = "airflow-benkbbn1"
+K8_NAMESPACE: Final = os.getenv("AIRFLOW__KUBERNETES__NAMESPACE")
 K8_NODE_POOL: Final = [
     "benkbbn1ibur"
 ]
@@ -65,7 +66,7 @@ with DAG(
     procesdata = [
         KubernetesPodOperator(
             task_id=container_name,
-            namespace=K8_NAME_SPACE,
+            namespace=K8_NAMESPACE,
             image=CONTAINER_IMAGE,
             cmds=COMMAND_TO_EXECUTE,
             arguments=COMMAND_ARGS,
