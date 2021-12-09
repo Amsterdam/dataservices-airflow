@@ -77,6 +77,19 @@ ROUTES: Final = [
                 geometry(Point, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)""",
         ],
     ),
+
+    Route(
+        "vrachtroutes-7.5-ton",
+        "https://api.data.amsterdam.nl/dcatd/datasets/ZtMOaEZSOnXM9w/purls/2",
+        geometry_type="MultiLineString",
+        columns=["id", "geometry", "name", "categorie", "type"],
+        post_process=[
+            "ALTER TABLE hoofdroutes_tunnels_gevaarlijke_stoffen_new ADD COLUMN id SERIAL PRIMARY KEY",
+            """ALTER TABLE hoofdroutes_tunnels_gevaarlijke_stoffen_new ALTER COLUMN geometry TYPE
+                geometry(Point, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)""",
+        ],
+    ),
+
     # 03-03-2021: obsolete
     # Commented it out just in case its needed in the future.
     # Route(
@@ -90,6 +103,7 @@ ROUTES: Final = [
     #             geometry(MultiLineString, 28992) using ST_Transform(ST_SetSRID(geometry, 4326), 28992)"""
     #     ],
     # ),
+
 ]
 
 DROP_TMPL: Final = """
