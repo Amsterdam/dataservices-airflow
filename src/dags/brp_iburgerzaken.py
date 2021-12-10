@@ -34,8 +34,8 @@ DATATEAM_OWNER: Final = "datateam_basis_kernregistraties"
 DAG_ID: Final = "brp_iburgerzaken"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
-K8_NAMESPACE: Final = os.getenv("AIRFLOW__KUBERNETES__NAMESPACE")
-K8_NODE_POOL: Final = [
+AKS_NAMESPACE: Final = os.getenv("AIRFLOW__KUBERNETES__NAMESPACE")
+AKS_NODE_POOL: Final = [
     "benkbbn1ibur"
 ]
 
@@ -66,7 +66,7 @@ with DAG(
     procesdata = [
         KubernetesPodOperator(
             task_id=container_name,
-            namespace=K8_NAMESPACE,
+            namespace=AKS_NAMESPACE,
             image=CONTAINER_IMAGE,
             cmds=COMMAND_TO_EXECUTE,
             arguments=COMMAND_ARGS,
@@ -112,7 +112,7 @@ with DAG(
                                         "operator": "In",
                                         # The label key's value that pods can be scheduled
                                         # on.
-                                        "values": K8_NODE_POOL,
+                                        "values": AKS_NODE_POOL,
                                     }
                                 ]
                             }
