@@ -137,7 +137,7 @@ def setup_containers() -> dict[str, list]:
     containers['container_rest'] = CONTAINER_COLLECTED_REST
 
     # # TEST #
-    containers2 = { k:v for k,v in containers.items() if k in ['container_0','container_1','container_2','container_3','container_4','container_rest']}
+    containers2 = { k:v for k,v in containers.items() if k in ['container_0','container_1','container_2','container_3','container_4','container_5','container_6','container_7','container_8','container_9','container_rest']}
     return containers2
     # # TEST #
 
