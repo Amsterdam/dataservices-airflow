@@ -81,7 +81,7 @@ with DAG(
             in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
             is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
             log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
-            hostnetwork=True,  # If True enable host networking on the pod.
+            hostnetwork=False,  # If True enable host networking on the pod.
             secrets=[
                 secret_file,
             ],  # Uses a mount to get to secret
