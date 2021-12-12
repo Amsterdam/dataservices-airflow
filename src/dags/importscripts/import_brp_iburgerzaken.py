@@ -3,27 +3,47 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Final, Optional, Any
 
-
-def get_tables() -> list[str]:
-    """Get source tables and each of their row count.
-
-    : return : Returns a list of tables names and row count.
-    """
-    # Setup the needed variables for execution.
-    # NOTE_1: The environment variables need to be set in the
-    # Airflow DAG (and given to this container), need to be present
-    # in Azure Key Vault as a secret so it can be collected by HELM
-    # and be present as an environment variable.
-    SRC_DB_SERVER: Optional[str] = os.getenv("DB_IBURGERZAKEN_SERVER")
-    SRC_DB_NAME: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_NAME")
-    SRC_DB_UID: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_UID")
-    SRC_DB_UID_PWD: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_UID_PWD")
-    SRC_CONNECTION_DRIVER: Optional[str] = "IBM i Access ODBC Driver"
-    SRC_CONNECTION_STRING: Optional[str] = f"""DRIVER={SRC_CONNECTION_DRIVER};\
+# Setup the needed variables for execution.
+# NOTE_1: The environment variables need to be set in the
+# Airflow DAG (and given to this container), need to be present
+# in Azure Key Vault as a secret so it can be collected by HELM
+# and be present as an environment variable.
+SRC_DB_SERVER: Optional[str] = os.getenv("DB_IBURGERZAKEN_SERVER")
+SRC_DB_NAME: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_NAME")
+SRC_DB_UID: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_UID")
+SRC_DB_UID_PWD: Optional[str] = os.getenv("DB_IBURGERZAKEN_DB_UID_PWD")
+SRC_CONNECTION_DRIVER: Optional[str] = "IBM i Access ODBC Driver"
+SRC_CONNECTION_STRING: Optional[str] = f"""DRIVER={SRC_CONNECTION_DRIVER};\
                                                 SYSTEM={SRC_DB_SERVER};\
                                                 DATABASE={SRC_DB_NAME};\
                                                 UID={SRC_DB_UID};\
                                                 PWD={SRC_DB_UID_PWD}"""
+
+def get_all_tables() -> list[str]:
+    """Get all source tables.
+
+    : return : Returns a list of tables names.
+    """
+    # connection open
+    define_engine = create_engine("ibm_db_sa+pyodbc:///?odbc_connect={odbc_connect}".format(odbc_connect=SRC_CONNECTION_STRING))
+    SQL_GET_TABLES: str = """SELECT
+                                TABLE_NAME
+                                FROM QSYS2.SYSTABLESTAT
+                                WHERE TABLE_SCHEMA in (?)
+                            """
+    # start connection to source
+    tables: list = []
+    with define_engine.connect() as conn:
+        result = conn.execute(SQL_GET_TABLES, SRC_DB_NAME)
+        for table_name in result:
+            tables.append(table_name)
+    return tables
+
+def get_tables_rows_limit() -> list[str]:
+    """Get source tables and each of their row count within row limit.
+
+    : return : Returns a list of tables names and row count.
+    """
     # indicates large table, if beyond limit
     # then proces by seperate container else
     # bulk execute in one rest container
@@ -59,7 +79,7 @@ def get_tables_row_batch() -> list[Any]:
     TABLE_ROW_CHOP_LIMIT: Final = 500_000
     # list of tables row batches (row chunks) to be processed
     tables_batches: list = []
-    for row_count, table_name in get_tables():
+    for row_count, table_name in get_tables_rows_limit():
         # calculate the number of row batches based to process
         row_batches =  row_count // TABLE_ROW_CHOP_LIMIT
         start_batch_counter = 0
@@ -124,16 +144,16 @@ def setup_containers() -> dict[str, list]:
         tables_to_proces_container.update(GENERIC_VARS_DICT)
         containers[f'container_{index}'] = tables_to_proces_container
 
-    # the rest container will process all tables except the ones
-    # that are already processed and defined in the `collect_table_names` list.
-    # therefor the `collect_table_names` list is part of its arguments
-    # so it can do an invert in the container (and process the tables
-    # that are not in that list)
-    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": ','.join(collect_all_table_names)}
-    CONTAINER_TYPE: dict[str, str] = {"CONTAINER_TYPE": "REST"}
-    CONTAINER_COLLECTED_REST: dict[str, str] = (
-        GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST | CONTAINER_TYPE
-    )
+    # container of type `REST` will process all remaining source tables
+    # that where **not** given to be processed by a dedicated container.
+    # These are the so called `left overs` source tables, that are
+    # each smaller then `MAX_ROW_NUM` and collected to be handled by one `REST` container.
+    all_tables = get_all_tables()
+    tables_larger_then_rowlimit = [record[1] for record in get_tables_rows_limit()]
+    for table in tables_larger_then_rowlimit:
+            all_tables.remove(table)
+    TABLES_TO_PROCESS_REST: dict[str, str] = {"TABLES_TO_PROCESS": ','.join(all_tables)}
+    CONTAINER_COLLECTED_REST: dict[str, str] = (GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST)
     containers['container_rest'] = CONTAINER_COLLECTED_REST
 
     # # TEST #
