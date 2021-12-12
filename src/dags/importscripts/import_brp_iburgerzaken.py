@@ -18,7 +18,6 @@ SRC_CONNECTION_STRING: Optional[str] = f"""DRIVER={SRC_CONNECTION_DRIVER};\
                                                 DATABASE={SRC_DB_NAME};\
                                                 UID={SRC_DB_UID};\
                                                 PWD={SRC_DB_UID_PWD}"""
-
 def get_all_tables() -> list[str]:
     """Get all source tables.
 
@@ -148,7 +147,7 @@ def setup_containers() -> dict[str, list]:
     # that where **not** given to be processed by a dedicated container.
     # These are the so called `left overs` source tables, that are
     # each smaller then `MAX_ROW_NUM` and collected to be handled by one `REST` container.
-    all_tables = get_all_tables()
+    all_tables = [record[0] for record in get_all_tables()]
     tables_larger_then_rowlimit = [record[1] for record in get_tables_rows_limit()]
     for table in tables_larger_then_rowlimit:
             all_tables.remove(table)
