@@ -74,7 +74,10 @@ with DAG(
             env_vars=container_vars,
             name=DAG_ID,
             image_pull_policy="Always",
-            get_logs=True,
+            # Known issue in the KubernetesPodOperator
+            # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
+            # set get_logs to false
+            get_logs=False,
             in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
             is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
             log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
@@ -91,6 +94,7 @@ with DAG(
             # Resource specifications for Pod, this will allow you to set both cpu
             # and memory limits and requirements.
             # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
+            node_selector={'agentpool': AKS_NODE_POOL},
             affinity={
                 "nodeAffinity": {
                     # requiredDuringSchedulingIgnoredDuringExecution means in order
