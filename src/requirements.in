@@ -21,7 +21,7 @@ flake8-polyfill == 1.0.2
 flake8-print == 4.0.0
 flake8-rst == 0.8.0
 flake8-string-format == 0.3.0
-kubernetes==19.15.0
+kubernetes==11.0.0
 python-keystoneclient == 4.0.0
 python-swiftclient == 3.9.0
 environs == 9.3.3
