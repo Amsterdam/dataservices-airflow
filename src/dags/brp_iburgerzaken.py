@@ -94,41 +94,41 @@ with DAG(
             # Resource specifications for Pod, this will allow you to set both cpu
             # and memory limits and requirements.
             # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
-            # node_selector={'nodetype': AKS_NODE_POOL},
-            # resources={
-            #     'request_memory': '2Gi',
-            #     'request_cpu': 2,
-            #     'limit_memory': '4Gi',
-            #     'limit_cpu': 8},
-            affinity={
-                "nodeAffinity": {
-                    # requiredDuringSchedulingIgnoredDuringExecution means in order
-                    # for a pod to be scheduled on a node, the node must have the
-                    # specified labels. However, if labels on a node change at
-                    # runtime such that the affinity rules on a pod are no longer
-                    # met, the pod will still continue to run on the node.
-                    "requiredDuringSchedulingIgnoredDuringExecution": {
-                        "nodeSelectorTerms": [
-                            {
-                                "matchExpressions": [
-                                    {
-                                        # When nodepools are created by TerraForm,
-                                        # the nodes inside of that nodepool are
-                                        # automatically assigned the label
-                                        # 'nodetype' with the value of
-                                        # the nodepool's name.
-                                        "key": "nodetype",
-                                        "operator": "In",
-                                        # The label key's value that pods can be scheduled
-                                        # on.
-                                        "values": AKS_NODE_POOL,
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                }
-            },
+            node_selector={'nodetype': AKS_NODE_POOL},
+            resources={
+                'request_memory': '2Gi',
+                'request_cpu': 2,
+                'limit_memory': '4Gi',
+                'limit_cpu': 8},
+            # affinity={
+            #     "nodeAffinity": {
+            #         # requiredDuringSchedulingIgnoredDuringExecution means in order
+            #         # for a pod to be scheduled on a node, the node must have the
+            #         # specified labels. However, if labels on a node change at
+            #         # runtime such that the affinity rules on a pod are no longer
+            #         # met, the pod will still continue to run on the node.
+            #         "requiredDuringSchedulingIgnoredDuringExecution": {
+            #             "nodeSelectorTerms": [
+            #                 {
+            #                     "matchExpressions": [
+            #                         {
+            #                             # When nodepools are created by TerraForm,
+            #                             # the nodes inside of that nodepool are
+            #                             # automatically assigned the label
+            #                             # 'nodetype' with the value of
+            #                             # the nodepool's name.
+            #                             "key": "nodetype",
+            #                             "operator": "In",
+            #                             # The label key's value that pods can be scheduled
+            #                             # on.
+            #                             "values": AKS_NODE_POOL,
+            #                         }
+            #                     ]
+            #                 }
+            #             ]
+            #         }
+            #     }
+            # },
         )
         for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items()
     ]
