@@ -18,6 +18,7 @@ anyio==3.3.3
 apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.0
     # via
     #   -r requirements.in
+    #   apache-airflow-providers-cncf-kubernetes
     #   apache-airflow-providers-microsoft-azure
     #   apache-airflow-providers-oracle
     #   apache-airflow-providers-postgres
@@ -25,6 +26,8 @@ apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.0
     #   apache-airflow-providers-sftp
     #   apache-airflow-providers-slack
     #   apache-airflow-providers-ssh
+apache-airflow-providers-cncf-kubernetes==2.1.0
+    # via -r requirements.in
 apache-airflow-providers-ftp==1.0.1
     # via apache-airflow
 apache-airflow-providers-http==1.1.0
@@ -137,7 +140,9 @@ bcrypt==3.2.0
 blinker==1.4
     # via apache-airflow
 cachetools==4.2.1
-    # via amsterdam-schema-tools
+    # via
+    #   amsterdam-schema-tools
+    #   google-auth
 cattrs==1.1.2
     # via
     #   -r requirements.in
@@ -145,6 +150,7 @@ cattrs==1.1.2
 certifi==2020.12.5
     # via
     #   httpx
+    #   kubernetes
     #   msrest
     #   requests
     #   sentry-sdk
@@ -186,6 +192,7 @@ cryptography==3.4.6
     # via
     #   adal
     #   apache-airflow
+    #   apache-airflow-providers-cncf-kubernetes
     #   azure-identity
     #   azure-keyvault-keys
     #   azure-storage-blob
@@ -317,6 +324,8 @@ gitdb==4.0.7
     # via gitpython
 gitpython==3.1.17
     # via bandit
+google-auth==2.3.3
+    # via kubernetes
 graphviz==0.16
     # via apache-airflow
 gunicorn==19.10.0
@@ -385,6 +394,8 @@ jsonschema==3.2.0
     #   validator-collection
 keystoneauth1==4.3.1
     # via python-keystoneclient
+kubernetes==11.0.0
+    # via apache-airflow-providers-cncf-kubernetes
 lark-parser==0.11.2
     # via mappyfile
 lazy-object-proxy==1.5.2
@@ -541,6 +552,12 @@ psycopg2-binary==2.8.6
     # via apache-airflow-providers-postgres
 py==1.10.0
     # via pytest
+pyasn1==0.4.8
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.2.8
+    # via google-auth
 pycodestyle==2.7.0
     # via
     #   flake8
@@ -608,6 +625,7 @@ python-dateutil==2.8.1
     #   croniter
     #   datapunt-objectstore
     #   flask-appbuilder
+    #   kubernetes
     #   pandas
     #   pendulum
 python-dotenv==0.15.0
@@ -654,6 +672,7 @@ pyyaml==5.4.1
     #   bandit
     #   clickclick
     #   datapunt-config-loader
+    #   kubernetes
     #   openapi-spec-validator
     #   oslo.config
     #   yamlip
@@ -670,6 +689,7 @@ requests==2.25.1
     #   azure-storage-common
     #   docker
     #   keystoneauth1
+    #   kubernetes
     #   msal
     #   msrest
     #   oslo.config
@@ -677,13 +697,17 @@ requests==2.25.1
     #   python-swiftclient
     #   requests-oauthlib
 requests-oauthlib==1.3.0
-    # via msrest
+    # via
+    #   kubernetes
+    #   msrest
 rfc3986[idna2008]==1.4.0
     # via
     #   httpx
     #   oslo.config
 rich==9.2.0
     # via apache-airflow
+rsa==4.8
+    # via google-auth
 sendgrid==6.7.0
     # via apache-airflow-providers-sendgrid
 sentry-sdk==0.20.3
@@ -713,11 +737,13 @@ six==1.15.0
     #   docker
     #   flake8-print
     #   flask-jwt-extended
+    #   google-auth
     #   isodate
     #   json-encoder
     #   jsonpath-rw
     #   jsonschema
     #   keystoneauth1
+    #   kubernetes
     #   msrestazure
     #   openapi-schema-validator
     #   openapi-spec-validator
@@ -794,12 +820,15 @@ unicodecsv==0.14.1
     # via apache-airflow
 urllib3==1.26.5
     # via
+    #   kubernetes
     #   requests
     #   sentry-sdk
 validator-collection==1.4.1
     # via -r requirements.in
 websocket-client==0.57.0
-    # via docker
+    # via
+    #   docker
+    #   kubernetes
 werkzeug==1.0.1
     # via
     #   apache-airflow
