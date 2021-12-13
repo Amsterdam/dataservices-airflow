@@ -228,10 +228,6 @@ with DAG(
         for container_name, container_vars in CON3.items()
     ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
-    Interface3 = DummyOperator(task_id="interface3")
-
 
 # FLOW
 (
