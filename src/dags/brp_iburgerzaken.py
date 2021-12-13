@@ -235,5 +235,5 @@ with DAG(
 
 # FLOW
 (
-    slack_at_start >> procesdata >> Interface >> procesdata2 >> procesdata3
+    slack_at_start >> procesdata >> Interface >> procesdata2 >> Interface2 >> procesdata3
 )
