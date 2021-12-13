@@ -324,7 +324,7 @@ gitdb==4.0.7
     # via gitpython
 gitpython==3.1.17
     # via bandit
-google-auth
+google-auth==1.35.0
     # via kubernetes
 graphviz==0.16
     # via apache-airflow
@@ -505,7 +505,7 @@ oslo.utils==4.8.0
     # via
     #   oslo.serialization
     #   python-keystoneclient
-packaging
+packaging==21.0
     # via
     #   oslo.utils
     #   pytest
