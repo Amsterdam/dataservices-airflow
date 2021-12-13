@@ -40,6 +40,11 @@ AKS_NODE_POOL: Final = "benkbbn1ibur"
 # SETUP CONTAINER SPECIFIC ENV VARS
 CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
 
+# SETUP CONTAINER CHUNKS
+CON1 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[0:10]}
+CON2 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[10:20]}
+CON3 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[20:30]}
+
 with DAG(
     DAG_ID,
     description="""Running a containerized workload that collects BRP (basis registratie personen)
@@ -128,7 +133,7 @@ with DAG(
             #     }
             # },
         )
-        for container_name, container_vars in {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[0:10]}.items()
+        for container_name, container_vars in CON1.items()
     ]
 
     procesdata2 = [
@@ -169,7 +174,7 @@ with DAG(
                 'limit_memory': '4Gi',
                 'limit_cpu': 8},
         )
-        for container_name, container_vars in {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[10:20]}.items()
+        for container_name, container_vars in CON2.items()
     ]
 
     procesdata3 = [
@@ -210,7 +215,7 @@ with DAG(
                 'limit_memory': '4Gi',
                 'limit_cpu': 8},
         )
-        for container_name, container_vars in {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[20:30]}.items()
+        for container_name, container_vars in CON3.items()
     ]
 
 
