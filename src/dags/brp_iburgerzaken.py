@@ -220,4 +220,6 @@ with DAG(
 
 
 # FLOW
-slack_at_start >> procesdata >> procesdata2 >> procesdata3
+(
+    slack_at_start >> procesdata >> procesdata2 >> procesdata3
+)
