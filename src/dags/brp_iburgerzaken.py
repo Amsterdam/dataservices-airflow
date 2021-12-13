@@ -5,6 +5,7 @@ from typing import Final
 
 from airflow import DAG
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
+from airflow.operators.dummy import DummyOperator
 from airflow.kubernetes.secret import Secret
 from common import (
     DATAPUNT_ENVIRONMENT,
@@ -136,6 +137,11 @@ with DAG(
         for container_name, container_vars in CON1.items()
     ]
 
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+
     procesdata2 = [
         KubernetesPodOperator(
             task_id=container_name,
@@ -176,6 +182,10 @@ with DAG(
         )
         for container_name, container_vars in CON2.items()
     ]
+
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
 
     procesdata3 = [
         KubernetesPodOperator(
@@ -218,8 +228,12 @@ with DAG(
         for container_name, container_vars in CON3.items()
     ]
 
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface3 = DummyOperator(task_id="interface3")
+
 
 # FLOW
 (
-    slack_at_start >> procesdata >> procesdata2 >> procesdata3
+    slack_at_start >> procesdata >> Interface >> procesdata2 >> Interface2 >> procesdata3 >> Interface3
 )
