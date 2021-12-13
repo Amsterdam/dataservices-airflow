@@ -83,7 +83,7 @@ with DAG(
             secrets=[
                 secret_file,
             ],  # Uses a mount to get to secret
-            reattach_on_restart=True,
+            reattach_on_restart=False,
             dag=dag,
             startup_timeout_seconds=3600,
             # execution_timeout=timedelta(
@@ -153,7 +153,7 @@ with DAG(
             secrets=[
                 secret_file,
             ],  # Uses a mount to get to secret
-            reattach_on_restart=True,
+            reattach_on_restart=False,
             dag=dag,
             startup_timeout_seconds=3600,
             # execution_timeout=timedelta(
