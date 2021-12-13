@@ -100,7 +100,6 @@ with DAG(
                 'request_cpu': 2,
                 'limit_memory': '4Gi',
                 'limit_cpu': 8},
-            pool=AKS_NODE_POOL,
             # affinity={
             #     "nodeAffinity": {
             #         # requiredDuringSchedulingIgnoredDuringExecution means in order

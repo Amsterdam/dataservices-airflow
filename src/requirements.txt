@@ -26,7 +26,7 @@ apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.0
     #   apache-airflow-providers-sftp
     #   apache-airflow-providers-slack
     #   apache-airflow-providers-ssh
-apache-airflow-providers-cncf-kubernetes==2.1.0
+apache-airflow-providers-cncf-kubernetes==2.2.0
     # via -r requirements.in
 apache-airflow-providers-ftp==1.0.1
     # via apache-airflow
