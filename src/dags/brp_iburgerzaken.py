@@ -89,7 +89,7 @@ with DAG(
             secrets=[
                 secret_file,
             ],  # Uses a mount to get to secret
-            reattach_on_restart=False,
+            reattach_on_restart=True,
             dag=dag,
             startup_timeout_seconds=3600,
             # execution_timeout=timedelta(
@@ -164,7 +164,7 @@ with DAG(
             secrets=[
                 secret_file,
             ],  # Uses a mount to get to secret
-            reattach_on_restart=False,
+            reattach_on_restart=True,
             dag=dag,
             startup_timeout_seconds=3600,
             # execution_timeout=timedelta(
@@ -235,5 +235,5 @@ with DAG(
 
 # FLOW
 (
-    slack_at_start >> procesdata >> Interface >> procesdata2 >> Interface2 >> procesdata3 >> Interface3
+    slack_at_start >> procesdata >> Interface >> procesdata2 >> procesdata3
 )
