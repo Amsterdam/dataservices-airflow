@@ -94,7 +94,7 @@ with DAG(
             # Resource specifications for Pod, this will allow you to set both cpu
             # and memory limits and requirements.
             # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
-            node_selector={'nodetype': AKS_NODE_POOL},
+            node_selector={'nodetype': f'{AKS_NODE_POOL}'},
             resources={
                 'request_memory': '2Gi',
                 'request_cpu': 2,
