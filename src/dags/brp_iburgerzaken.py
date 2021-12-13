@@ -35,9 +35,7 @@ DAG_ID: Final = "brp_iburgerzaken"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 AKS_NAMESPACE: Final = os.getenv("AIRFLOW__KUBERNETES__NAMESPACE")
-AKS_NODE_POOL: Final = [
-    "benkbbn1ibur"
-]
+AKS_NODE_POOL: Final = "benkbbn1ibur"
 
 # SETUP CONTAINER SPECIFIC ENV VARS
 CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
@@ -94,7 +92,7 @@ with DAG(
             # Resource specifications for Pod, this will allow you to set both cpu
             # and memory limits and requirements.
             # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
-            node_selector={'nodetype': f'{AKS_NODE_POOL}'},
+            node_selector={'nodetype': AKS_NODE_POOL},
             resources={
                 'request_memory': '2Gi',
                 'request_cpu': 2,
