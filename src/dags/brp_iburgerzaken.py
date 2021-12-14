@@ -99,11 +99,11 @@ with DAG(
             # and memory limits and requirements.
             # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
             node_selector={'nodetype': AKS_NODE_POOL},
-            resources={
-                'request_memory': '2Gi',
-                'request_cpu': 2,
-                'limit_memory': '4Gi',
-                'limit_cpu': 8},
+            # resources={
+            #     'request_memory': '2Gi',
+            #     'request_cpu': 2,
+            #     'limit_memory': '4Gi',
+            #     'limit_cpu': 8},
             # affinity={
             #     "nodeAffinity": {
             #         # requiredDuringSchedulingIgnoredDuringExecution means in order
