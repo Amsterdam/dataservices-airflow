@@ -26,7 +26,7 @@ secret_file = Secret("volume", "/TMP/secrets", "db-iburgerzaken-db-uid-pwd")
 # secret_env  = Secret('env', 'SQL_CONN', 'airflow-secrets', 'sql_alchemy_conn')
 
 # SETUP GENERAL DAG RELATED VARIABLES
-CONTAINER_IMAGE: Final = "crdaveontweu01.azurecr.io/airflow-workload-iburgerzaken:latest"  # [registry]/[imagename]:[tag]
+CONTAINER_IMAGE: Final = "crdavebbn1ontweu01.azurecr.io/airflow-workload-iburgerzaken:latest"  # [registry]/[imagename]:[tag]
 COMMAND_TO_EXECUTE: list = ["python"]  # Command that you want to run on container start
 COMMAND_ARGS: list = [
     "/scripts/data_processor.py"
