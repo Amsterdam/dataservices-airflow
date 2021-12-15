@@ -15,7 +15,7 @@ amsterdam-schema-tools==3.0.1
     # via -r requirements.in
 anyio==3.3.1
     # via httpcore
-apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.2
+apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.4
     # via
     #   -r requirements.in
     #   apache-airflow-providers-cncf-kubernetes
@@ -30,7 +30,9 @@ apache-airflow-providers-cncf-kubernetes==2.2.0
 apache-airflow-providers-ftp==2.0.1
     # via apache-airflow
 apache-airflow-providers-http==2.0.1
-    # via apache-airflow-providers-slack
+    # via
+    #   apache-airflow
+    #   apache-airflow-providers-slack
 apache-airflow-providers-imap==2.0.1
     # via apache-airflow
 apache-airflow-providers-microsoft-azure==3.2.0
