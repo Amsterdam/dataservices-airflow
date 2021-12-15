@@ -39,7 +39,7 @@ apache-airflow-providers-microsoft-azure==3.2.0
     # via -r requirements.in
 apache-airflow-providers-oracle==2.0.1
     # via -r requirements.in
-apache-airflow-providers-postgres==2.2.0
+apache-airflow-providers-postgres==2.4.0
     # via apache-airflow
 apache-airflow-providers-sendgrid==2.0.1
     # via apache-airflow
