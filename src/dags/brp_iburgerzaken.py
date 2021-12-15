@@ -45,9 +45,9 @@ CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
 CON1 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[0:5]}
 CON2 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[5:10]}
 CON3 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[10:15]}
-CON4 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[15:20]}
-CON5 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[20:25]}
-CON6 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[25:30]}
+# CON4 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[15:20]}
+# CON5 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[20:25]}
+# CON6 = {k: CONTAINERS_TO_RUN_IN_PARALLEL[k] for k in list(CONTAINERS_TO_RUN_IN_PARALLEL)[25:30]}
 
 with DAG(
     DAG_ID,
@@ -231,140 +231,140 @@ with DAG(
         for container_name, container_vars in CON3.items()
     ]
 
-     # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
-    Interface3 = DummyOperator(task_id="interface3")
+    # # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # #  (without this intermediar, Airflow will give an error)
+    # Interface3 = DummyOperator(task_id="interface3")
 
-    procesdata4 = [
-        KubernetesPodOperator(
-            task_id=container_name,
-            namespace=AKS_NAMESPACE,
-            image=CONTAINER_IMAGE,
-            cmds=COMMAND_TO_EXECUTE,
-            arguments=COMMAND_ARGS,
-            labels=DAG_LABEL,
-            env_vars=container_vars,
-            name=DAG_ID,
-            image_pull_policy="Always",
-            # Known issue in the KubernetesPodOperator
-            # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
-            # set get_logs to false
-            get_logs=False,
-            in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
-            is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
-            log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
-            hostnetwork=False,  # If True enable host networking on the pod.
-            secrets=[
-                secret_file,
-            ],  # Uses a mount to get to secret
-            reattach_on_restart=True,
-            dag=dag,
-            startup_timeout_seconds=3600,
-            # execution_timeout=timedelta(
-            #     hours=4
-            # ),  # to prevent taks becoming marked as failed when taking longer
-            # Resource specifications for Pod, this will allow you to set both cpu
-            # and memory limits and requirements.
-            # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
-            node_selector={'nodetype': AKS_NODE_POOL},
-            # resources={
-            #     'request_memory': '2Gi',
-            #     'request_cpu': 2,
-            #     'limit_memory': '4Gi',
-            #     'limit_cpu': 8},
-        )
-        for container_name, container_vars in CON4.items()
-    ]
+    # procesdata4 = [
+    #     KubernetesPodOperator(
+    #         task_id=container_name,
+    #         namespace=AKS_NAMESPACE,
+    #         image=CONTAINER_IMAGE,
+    #         cmds=COMMAND_TO_EXECUTE,
+    #         arguments=COMMAND_ARGS,
+    #         labels=DAG_LABEL,
+    #         env_vars=container_vars,
+    #         name=DAG_ID,
+    #         image_pull_policy="Always",
+    #         # Known issue in the KubernetesPodOperator
+    #         # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
+    #         # set get_logs to false
+    #         get_logs=False,
+    #         in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
+    #         is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
+    #         log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
+    #         hostnetwork=False,  # If True enable host networking on the pod.
+    #         secrets=[
+    #             secret_file,
+    #         ],  # Uses a mount to get to secret
+    #         reattach_on_restart=True,
+    #         dag=dag,
+    #         startup_timeout_seconds=3600,
+    #         # execution_timeout=timedelta(
+    #         #     hours=4
+    #         # ),  # to prevent taks becoming marked as failed when taking longer
+    #         # Resource specifications for Pod, this will allow you to set both cpu
+    #         # and memory limits and requirements.
+    #         # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
+    #         node_selector={'nodetype': AKS_NODE_POOL},
+    #         # resources={
+    #         #     'request_memory': '2Gi',
+    #         #     'request_cpu': 2,
+    #         #     'limit_memory': '4Gi',
+    #         #     'limit_cpu': 8},
+    #     )
+    #     for container_name, container_vars in CON4.items()
+    # ]
 
-     # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
-    Interface4 = DummyOperator(task_id="interface4")
+    #  # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # #  (without this intermediar, Airflow will give an error)
+    # Interface4 = DummyOperator(task_id="interface4")
 
-    procesdata5 = [
-        KubernetesPodOperator(
-            task_id=container_name,
-            namespace=AKS_NAMESPACE,
-            image=CONTAINER_IMAGE,
-            cmds=COMMAND_TO_EXECUTE,
-            arguments=COMMAND_ARGS,
-            labels=DAG_LABEL,
-            env_vars=container_vars,
-            name=DAG_ID,
-            image_pull_policy="Always",
-            # Known issue in the KubernetesPodOperator
-            # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
-            # set get_logs to false
-            get_logs=False,
-            in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
-            is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
-            log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
-            hostnetwork=False,  # If True enable host networking on the pod.
-            secrets=[
-                secret_file,
-            ],  # Uses a mount to get to secret
-            reattach_on_restart=True,
-            dag=dag,
-            startup_timeout_seconds=3600,
-            # execution_timeout=timedelta(
-            #     hours=4
-            # ),  # to prevent taks becoming marked as failed when taking longer
-            # Resource specifications for Pod, this will allow you to set both cpu
-            # and memory limits and requirements.
-            # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
-            node_selector={'nodetype': AKS_NODE_POOL},
-            # resources={
-            #     'request_memory': '2Gi',
-            #     'request_cpu': 2,
-            #     'limit_memory': '4Gi',
-            #     'limit_cpu': 8},
-        )
-        for container_name, container_vars in CON5.items()
-    ]
+    # procesdata5 = [
+    #     KubernetesPodOperator(
+    #         task_id=container_name,
+    #         namespace=AKS_NAMESPACE,
+    #         image=CONTAINER_IMAGE,
+    #         cmds=COMMAND_TO_EXECUTE,
+    #         arguments=COMMAND_ARGS,
+    #         labels=DAG_LABEL,
+    #         env_vars=container_vars,
+    #         name=DAG_ID,
+    #         image_pull_policy="Always",
+    #         # Known issue in the KubernetesPodOperator
+    #         # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
+    #         # set get_logs to false
+    #         get_logs=False,
+    #         in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
+    #         is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
+    #         log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
+    #         hostnetwork=False,  # If True enable host networking on the pod.
+    #         secrets=[
+    #             secret_file,
+    #         ],  # Uses a mount to get to secret
+    #         reattach_on_restart=True,
+    #         dag=dag,
+    #         startup_timeout_seconds=3600,
+    #         # execution_timeout=timedelta(
+    #         #     hours=4
+    #         # ),  # to prevent taks becoming marked as failed when taking longer
+    #         # Resource specifications for Pod, this will allow you to set both cpu
+    #         # and memory limits and requirements.
+    #         # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
+    #         node_selector={'nodetype': AKS_NODE_POOL},
+    #         # resources={
+    #         #     'request_memory': '2Gi',
+    #         #     'request_cpu': 2,
+    #         #     'limit_memory': '4Gi',
+    #         #     'limit_cpu': 8},
+    #     )
+    #     for container_name, container_vars in CON5.items()
+    # ]
 
-     # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
-    #  (without this intermediar, Airflow will give an error)
-    Interface5 = DummyOperator(task_id="interface5")
+    #  # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # #  (without this intermediar, Airflow will give an error)
+    # Interface5 = DummyOperator(task_id="interface5")
 
-    procesdata6 = [
-        KubernetesPodOperator(
-            task_id=container_name,
-            namespace=AKS_NAMESPACE,
-            image=CONTAINER_IMAGE,
-            cmds=COMMAND_TO_EXECUTE,
-            arguments=COMMAND_ARGS,
-            labels=DAG_LABEL,
-            env_vars=container_vars,
-            name=DAG_ID,
-            image_pull_policy="Always",
-            # Known issue in the KubernetesPodOperator
-            # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
-            # set get_logs to false
-            get_logs=False,
-            in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
-            is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
-            log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
-            hostnetwork=False,  # If True enable host networking on the pod.
-            secrets=[
-                secret_file,
-            ],  # Uses a mount to get to secret
-            reattach_on_restart=True,
-            dag=dag,
-            startup_timeout_seconds=3600,
-            # execution_timeout=timedelta(
-            #     hours=4
-            # ),  # to prevent taks becoming marked as failed when taking longer
-            # Resource specifications for Pod, this will allow you to set both cpu
-            # and memory limits and requirements.
-            # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
-            node_selector={'nodetype': AKS_NODE_POOL},
-            # resources={
-            #     'request_memory': '2Gi',
-            #     'request_cpu': 2,
-            #     'limit_memory': '4Gi',
-            #     'limit_cpu': 8},
-        )
-        for container_name, container_vars in CON6.items()
-    ]
+    # procesdata6 = [
+    #     KubernetesPodOperator(
+    #         task_id=container_name,
+    #         namespace=AKS_NAMESPACE,
+    #         image=CONTAINER_IMAGE,
+    #         cmds=COMMAND_TO_EXECUTE,
+    #         arguments=COMMAND_ARGS,
+    #         labels=DAG_LABEL,
+    #         env_vars=container_vars,
+    #         name=DAG_ID,
+    #         image_pull_policy="Always",
+    #         # Known issue in the KubernetesPodOperator
+    #         # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
+    #         # set get_logs to false
+    #         get_logs=False,
+    #         in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
+    #         is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
+    #         log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
+    #         hostnetwork=False,  # If True enable host networking on the pod.
+    #         secrets=[
+    #             secret_file,
+    #         ],  # Uses a mount to get to secret
+    #         reattach_on_restart=True,
+    #         dag=dag,
+    #         startup_timeout_seconds=3600,
+    #         # execution_timeout=timedelta(
+    #         #     hours=4
+    #         # ),  # to prevent taks becoming marked as failed when taking longer
+    #         # Resource specifications for Pod, this will allow you to set both cpu
+    #         # and memory limits and requirements.
+    #         # resources={'limit_memory': "250M", 'limit_cpu': "100m"},
+    #         node_selector={'nodetype': AKS_NODE_POOL},
+    #         # resources={
+    #         #     'request_memory': '2Gi',
+    #         #     'request_cpu': 2,
+    #         #     'limit_memory': '4Gi',
+    #         #     'limit_cpu': 8},
+    #     )
+    #     for container_name, container_vars in CON6.items()
+    # ]
 
 
 # FLOW
@@ -375,10 +375,10 @@ with DAG(
     >> procesdata2
     >> Interface2
     >> procesdata3
-    >> Interface3
-    >> procesdata4
-    >> Interface4
-    >> procesdata5
-    >> Interface5
-    >> procesdata6
+    # >> Interface3
+    # >> procesdata4
+    # >> Interface4
+    # >> procesdata5
+    # >> Interface5
+    # >> procesdata6
 )
