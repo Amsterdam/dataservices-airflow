@@ -15,7 +15,7 @@ amsterdam-schema-tools==3.0.1
     # via -r requirements.in
 anyio==3.3.1
     # via httpcore
-apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.0
+apache-airflow[crypto,postgres,sendgrid,sentry]==2.1.2
     # via
     #   -r requirements.in
     #   apache-airflow-providers-cncf-kubernetes
@@ -229,7 +229,9 @@ docker==4.4.4
     #   -r requirements.in
     #   pytest-docker-tools
 docutils==0.16
-    # via python-daemon
+    # via
+    #   apache-airflow
+    #   python-daemon
 dsnparse==0.1.15
     # via -r requirements.in
 email-validator==1.1.3

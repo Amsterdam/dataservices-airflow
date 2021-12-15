@@ -1,6 +1,6 @@
 amsterdam-schema-tools == 3.0.1
 cattrs == 1.1.2
-apache-airflow[crypto,postgres,sentry,sendgrid] == 2.1.0
+apache-airflow[crypto,postgres,sentry,sendgrid] == 2.1.2
 apache-airflow-providers-microsoft-azure==3.2.0
 apache-airflow-providers-slack[http]==2.0.0
 apache-airflow-providers-oracle==2.0.1
