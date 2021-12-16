@@ -81,7 +81,7 @@ with DAG(
             # Determines when to pull a fresh image, if 'IfNotPresent' will cause
             # the Kubelet to skip pulling an image if it already exists. If you
             # want to always pull a new image, set it to 'Always'.
-            image_pull_policy="Always",
+            image_pull_policy="IfNotPresent",
             # Known issue in the KubernetesPodOperator
             # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
             # set get_logs to false
