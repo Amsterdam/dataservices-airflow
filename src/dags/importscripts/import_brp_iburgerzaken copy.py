@@ -99,27 +99,6 @@ def get_tables_row_batch() -> list[Any]:
     return tables_batches
 
 
-def get_generic_vars():
-    """Get generic variabels.
-    """
-    # the environment variables names that need to be included into the container
-    # "DB_IBURGERZAKEN_DB_UID_PWD"
-    GENERIC_VARS_NAMES: list = [
-        "ST_IBURGERZAKEN_CONTAINER_NAME",
-        "ST_IBURGERZAKEN_CONNECTION_STRING",
-        "DB_IBURGERZAKEN_SERVER",
-        "DB_IBURGERZAKEN_DB_NAME",
-        "DB_IBURGERZAKEN_DB_UID",
-        "AIRFLOW__CORE__SQL_ALCHEMY_CONN",
-    ]
-
-    # collect the environment variables that need to be included into the container based on `GENERIC_VARS_NAMES` above
-    GENERIC_VARS_DICT: dict[str, str] = {
-        variable: os.environ[variable] for variable in GENERIC_VARS_NAMES
-    }
-    return GENERIC_VARS_DICT
-
-
 def setup_containers() -> dict[str, list]:
     """Defines the source tables to process for each container.
 
@@ -137,9 +116,24 @@ def setup_containers() -> dict[str, list]:
     in the Airflow HELM configuration repository (airflow-dave). These vars are used by the docker
     container to use during dataprocessing logic.
     """
+    # the environment variables names that need to be included into the container
+    # "DB_IBURGERZAKEN_DB_UID_PWD"
+    GENERIC_VARS_NAMES: list = [
+        "ST_IBURGERZAKEN_CONTAINER_NAME",
+        "ST_IBURGERZAKEN_CONNECTION_STRING",
+        "DB_IBURGERZAKEN_SERVER",
+        "DB_IBURGERZAKEN_DB_NAME",
+        "DB_IBURGERZAKEN_DB_UID",
+        "AIRFLOW__CORE__SQL_ALCHEMY_CONN",
+    ]
+
+    # collect the environment variables that need to be included into the container based on `GENERIC_VARS_NAMES` above
+    GENERIC_VARS_DICT: dict[str, str] = {
+        variable: os.environ[variable] for variable in GENERIC_VARS_NAMES
+    }
+
     containers: dict[str,str] = {}
     collect_all_table_names: list[str] = []
-    GENERIC_VARS_DICT = get_generic_vars()
 
     # create for each table a container
     for index, table_name_and_row_range in enumerate(get_tables_row_batch()):
