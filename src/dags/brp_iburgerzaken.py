@@ -81,14 +81,14 @@ with DAG(
             # Determines when to pull a fresh image, if 'IfNotPresent' will cause
             # the Kubelet to skip pulling an image if it already exists. If you
             # want to always pull a new image, set it to 'Always'.
-            image_pull_policy="IfNotPresent",
+            image_pull_policy="Always",
             # Known issue in the KubernetesPodOperator
             # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
             # set get_logs to false
             # If true, logs stdout output of container. Defaults to True.
             get_logs=False,
             in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
-            is_delete_operator_pod=False,  # if true delete pod when pod reaches its final state.
+            is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
             log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
             hostnetwork=False,  # If True enable host networking on the pod.
             secrets=[
