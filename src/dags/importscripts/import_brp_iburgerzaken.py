@@ -163,9 +163,9 @@ def setup_containers() -> dict[str, list]:
     CONTAINER_COLLECTED_REST: dict[str, str] = (GENERIC_VARS_DICT | TABLES_TO_PROCESS_REST | CONTAINER_TYPE)
     containers['container_rest'] = CONTAINER_COLLECTED_REST
 
-    # # TEST #
-    # containers2 = { k:v for k,v in containers.items() if k in ['container_0','container_1','container_2','container_3','container_4','container_5','container_6','container_7','container_8','container_9', 'container_10', 'container_11', 'container_12', 'container_13', 'container_14', 'container_rest']}
-    # return containers2
-    # # TEST #
+    # TEST #
+    containers2 = { k:v for k,v in containers.items() if k in ['container_0','container_1','container_2','container_3','container_4','container_5','container_6','container_7','container_8','container_9', 'container_10', 'container_11', 'container_12', 'container_13', 'container_14', 'container_rest']}
+    return containers2
+    # TEST #
 
     return containers
