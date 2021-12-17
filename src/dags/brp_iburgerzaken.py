@@ -146,59 +146,59 @@ with DAG(
         for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items()
     ]
 
-     # 2. Excuting containers
-    # The KubernetesPodOperator enables you to run containerized workloads as pods on Kubernetes from your DAG.
-    mergedata = KubernetesPodOperator(
-            task_id='merge_data',
-            namespace=AKS_NAMESPACE,
-            image=CONTAINER_IMAGE,
-            cmds=COMMAND_TO_EXECUTE,
-            arguments=COMMAND_ARGS_MERGE,
-            labels=DAG_LABEL,
-            env_vars=GENERIC_VARS,
-            name=DAG_ID,
-            # Determines when to pull a fresh image, if 'IfNotPresent' will cause
-            # the Kubelet to skip pulling an image if it already exists. If you
-            # want to always pull a new image, set it to 'Always'.
-            image_pull_policy="IfNotPresent",
-            # Known issue in the KubernetesPodOperator
-            # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
-            # set get_logs to false
-            # If true, logs stdout output of container. Defaults to True.
-            get_logs=False,
-            in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
-            is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
-            log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
-            hostnetwork=False,  # If True enable host networking on the pod.
-            secrets=[
-                secret_file,
-            ],  # Uses a mount to get to secret
-            reattach_on_restart=True,
-            dag=dag,
-            # Timeout to start up the Pod, default is 120.
-            startup_timeout_seconds=3600,
-            # execution_timeout=timedelta(
-            #     hours=4
-            # ),  # to prevent taks becoming marked as failed when taking longer
-            # Select a specific nodepool to use. Could also be specified by affinity.
-            node_selector={'nodetype': AKS_NODE_POOL},
-            # Resource specifications for Pod, this will allow you to set both cpu
-            # and memory limits and requirements.
-            resources={
-                'request_memory': '1Gi',
-                'request_cpu': 2,
-                'limit_memory': '4Gi',
-                'limit_cpu': 4},
-            # List of Volume objects to pass to the Pod.
-            volumes=[],
-            # List of VolumeMount objects to pass to the Pod.
-            volume_mounts=[],
-        )
+    # # 2. Excuting containers
+    # # The KubernetesPodOperator enables you to run containerized workloads as pods on Kubernetes from your DAG.
+    # mergedata = KubernetesPodOperator(
+    #         task_id='merge_data',
+    #         namespace=AKS_NAMESPACE,
+    #         image=CONTAINER_IMAGE,
+    #         cmds=COMMAND_TO_EXECUTE,
+    #         arguments=COMMAND_ARGS_MERGE,
+    #         labels=DAG_LABEL,
+    #         env_vars=GENERIC_VARS,
+    #         name=DAG_ID,
+    #         # Determines when to pull a fresh image, if 'IfNotPresent' will cause
+    #         # the Kubelet to skip pulling an image if it already exists. If you
+    #         # want to always pull a new image, set it to 'Always'.
+    #         image_pull_policy="IfNotPresent",
+    #         # Known issue in the KubernetesPodOperator
+    #         # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
+    #         # set get_logs to false
+    #         # If true, logs stdout output of container. Defaults to True.
+    #         get_logs=False,
+    #         in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
+    #         is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
+    #         log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
+    #         hostnetwork=False,  # If True enable host networking on the pod.
+    #         secrets=[
+    #             secret_file,
+    #         ],  # Uses a mount to get to secret
+    #         reattach_on_restart=True,
+    #         dag=dag,
+    #         # Timeout to start up the Pod, default is 120.
+    #         startup_timeout_seconds=3600,
+    #         # execution_timeout=timedelta(
+    #         #     hours=4
+    #         # ),  # to prevent taks becoming marked as failed when taking longer
+    #         # Select a specific nodepool to use. Could also be specified by affinity.
+    #         node_selector={'nodetype': AKS_NODE_POOL},
+    #         # Resource specifications for Pod, this will allow you to set both cpu
+    #         # and memory limits and requirements.
+    #         resources={
+    #             'request_memory': '1Gi',
+    #             'request_cpu': 2,
+    #             'limit_memory': '4Gi',
+    #             'limit_cpu': 4},
+    #         # List of Volume objects to pass to the Pod.
+    #         volumes=[],
+    #         # List of VolumeMount objects to pass to the Pod.
+    #         volume_mounts=[],
+    #     )
 
 
 
 # FLOW
 (
-    slack_at_start >> procesdata >> mergedata
+    slack_at_start >> procesdata
 
 )
