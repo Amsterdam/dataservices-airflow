@@ -147,7 +147,7 @@ def setup_containers() -> dict[str, list]:
             collect_all_table_names.append(table_name_and_row_range[0])
         tables_to_proces_container = {"TABLES_TO_PROCESS": ','.join(table_name_and_row_range)}
         tables_to_proces_container.update(GENERIC_VARS_DICT)
-        containers[f'container_{index}'] = tables_to_proces_container
+        containers[f'{table_name_and_row_range[0]}_{index}'] = tables_to_proces_container
 
     # container of type `REST` will process all remaining source tables
     # that where **not** given to be processed by a dedicated container.
