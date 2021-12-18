@@ -148,7 +148,7 @@ def setup_containers() -> dict[str, list]:
         count_occurence = table_occurences.count(table_name)
 
         # set container name by soure table name and occurence chunk
-        if count_occurence == 0:
+        if count_occurence != 0:
             container_name = f"{table_name}_{count_occurence+1}"
         else:
             container_name = f"{table_name}_1"
