@@ -138,16 +138,25 @@ def setup_containers() -> dict[str, list]:
     container to use during dataprocessing logic.
     """
     containers: dict[str,str] = {}
-    collect_all_table_names: list[str] = []
+    collect_all_table_names: dict[str,str] = {}
     GENERIC_VARS_DICT = get_generic_vars()
 
     # create for each table a container
-    for index, table_name_and_row_range in enumerate(get_tables_row_batch()):
-        if table_name_and_row_range[0] not in collect_all_table_names:
-            collect_all_table_names.append(table_name_and_row_range[0])
+    for table_name_and_row_range in get_tables_row_batch():
+        container_name = ''
+        table_name = table_name_and_row_range[0]
+        count_occurence = collect_all_table_names.count(table_name)
+
+        if count_occurence == 0:
+            container_name = f"{table_name}_{count_occurence+1}"
+        else:
+            container_name = f"{table_name}_1"
+
+        # if table_name_and_row_range[0] not in collect_all_table_names:
+        #     collect_all_table_names.append(table_name_and_row_range[0])
         tables_to_proces_container = {"TABLES_TO_PROCESS": ','.join(table_name_and_row_range)}
         tables_to_proces_container.update(GENERIC_VARS_DICT)
-        containers[f'{table_name_and_row_range[0]}_{index}'] = tables_to_proces_container
+        containers[container_name] = tables_to_proces_container
 
     # container of type `REST` will process all remaining source tables
     # that where **not** given to be processed by a dedicated container.
