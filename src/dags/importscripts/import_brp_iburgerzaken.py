@@ -138,20 +138,22 @@ def setup_containers() -> dict[str, list]:
     container to use during dataprocessing logic.
     """
     containers: dict[str,str] = {}
-    collect_all_table_names: dict[str,str] = {}
+    table_occurences: list[str] = []
     GENERIC_VARS_DICT = get_generic_vars()
 
     # create for each table a container
     for table_name_and_row_range in get_tables_row_batch():
         container_name = ''
         table_name = table_name_and_row_range[0]
-        count_occurence = collect_all_table_names.count(table_name)
+        count_occurence = table_occurences.count(table_name)
 
         # set container name by soure table name and occurence chunk
         if count_occurence == 0:
             container_name = f"{table_name}_{count_occurence+1}"
         else:
             container_name = f"{table_name}_1"
+
+        table_occurences.append(table_name)
 
         # if table_name_and_row_range[0] not in collect_all_table_names:
         #     collect_all_table_names.append(table_name_and_row_range[0])
