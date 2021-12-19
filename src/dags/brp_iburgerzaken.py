@@ -277,7 +277,7 @@ with DAG(
             # List of VolumeMount objects to pass to the Pod.
             volume_mounts=[],
         )
-        for table, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL_SQLITE
+        for table, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL_SQLITE.items()
     ]
 
 
