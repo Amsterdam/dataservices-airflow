@@ -144,7 +144,7 @@ with DAG(
             #     }
             # },
         )
-        for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items() if '_1' in container_name
+        for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items() if container_name.endswith("_1")
     ]
 
     # 3. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
@@ -200,7 +200,7 @@ with DAG(
             # List of VolumeMount objects to pass to the Pod.
             volume_mounts=[],
         )
-        for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items() if '_1' not in container_name
+        for container_name, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL.items() if not container_name.endswith("_1")
     ]
 
     # # 2. Import data into SQLlite3
