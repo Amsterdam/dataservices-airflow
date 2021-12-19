@@ -45,9 +45,19 @@ AKS_NODE_POOL: Final = "benkbbn1"
 
 # SETUP CONTAINER SPECIFIC ENV VARS
 CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
-all_tables = [record[0] for record in get_all_tables()]
-GENERIC_VARS_DICT = get_generic_vars()
-ALL_TABLES: list[str] = {GENERIC_VARS_DICT | "TABLES_TO_PROCESS": ','.join(all_tables)}
+
+# TEST
+def test():
+    containers = {}
+    all_tables = [record[0] for record in get_all_tables()]
+    GENERIC_VARS_DICT = get_generic_vars()
+    for table in all_tables:
+        container_name = table
+        containers[container_name] = (GENERIC_VARS_DICT | {"TABLES_TO_PROCESS": table})
+    return containers
+
+CONTAINERS_TO_RUN_IN_PARALLEL_SQLITE: dict[str, dict] = test()
+
 
 # STORAGE_ACCOUNT_CONN: Final = os.getenv("AIRFLOW_CONN_WASB_DEFAULT")
 # #export AIRFLOW_CONN_WASB_DEFAULT='wasb://blob%20username:blob%20password@myblob.com?tenant_id=tenant+id'
@@ -228,7 +238,7 @@ with DAG(
             cmds=COMMAND_TO_EXECUTE,
             arguments=COMMAND_ARGS_SQLITE,
             labels=DAG_LABEL,
-            env_vars=ALL_TABLES,
+            env_vars=container_vars,
             name=DAG_ID,
             # Determines when to pull a fresh image, if 'IfNotPresent' will cause
             # the Kubelet to skip pulling an image if it already exists. If you
@@ -267,7 +277,7 @@ with DAG(
             # List of VolumeMount objects to pass to the Pod.
             volume_mounts=[],
         )
-        for table in ALL_TABLES
+        for table, container_vars in CONTAINERS_TO_RUN_IN_PARALLEL_SQLITE
     ]
 
 
