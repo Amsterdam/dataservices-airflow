@@ -83,7 +83,7 @@ with DAG(
             # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
             # set get_logs to false
             # If true, logs stdout output of container. Defaults to True.
-            get_logs=False,
+            get_logs=True,
             in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
             is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
             log_events_on_failure=True,  # if true log the pod’s events if a failure occurs
@@ -171,7 +171,7 @@ with DAG(
             # https://stackoverflow.com/questions/55176707/airflow-worker-connection-broken-incompleteread0-bytes-read
             # set get_logs to false
             # If true, logs stdout output of container. Defaults to True.
-            get_logs=False,
+            get_logs=True,
             in_cluster=True,  # if true uses our service account token as aviable in Airflow on K8
             is_delete_operator_pod=True,  # if true delete pod when pod reaches its final state.
             log_events_on_failure=True,  # if true log the pod’s events if a failure occurs

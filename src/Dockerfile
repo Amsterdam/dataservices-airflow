@@ -2,8 +2,13 @@ FROM amsterdam/python:3.9-buster AS builder
 MAINTAINER datapunt@amsterdam.nl
 
 RUN apt-get update \
- && apt-get install --no-install-recommends -y rsync libaio1 supervisor \
- curl libcurl4 postgresql-server-dev-all postgresql-common zip libdigest-sha3-perl
+ && apt-get dist-upgrade -y \
+ && apt-get autoremove -y \
+ && apt-get install --no-install-recommends -y \
+ rsync libaio1 supervisor \
+ curl libcurl4 postgresql-server-dev-all \
+ postgresql-common zip libdigest-sha3-perl \
+ g++ unixodbc unixodbc-dev
 COPY requirements* ./
 ARG PIP_REQUIREMENTS=requirements.txt
 RUN pip install --upgrade pip
