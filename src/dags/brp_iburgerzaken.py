@@ -41,7 +41,7 @@ DAG_ID: Final = "brp_iburgerzaken"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 AKS_NAMESPACE: Final = os.getenv("AIRFLOW__KUBERNETES__NAMESPACE")
-AKS_NODE_POOL: Final = "benkbbn1ibur"
+AKS_NODE_POOL: Final = "benkbbn1"
 
 # SETUP CONTAINER SPECIFIC ENV VARS
 CONTAINERS_TO_RUN_IN_PARALLEL: dict[str, dict] = setup_containers()
