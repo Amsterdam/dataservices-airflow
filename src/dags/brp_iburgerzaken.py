@@ -125,9 +125,9 @@ with DAG(
             # and memory limits and requirements.
             resources={
                 'request_memory': '1Gi',
-                'request_cpu': 2,
-                'limit_memory': '4Gi',
-                'limit_cpu': 4},
+                'request_cpu': 1,
+                'limit_memory': '2Gi',
+                'limit_cpu': 2},
             # List of Volume objects to pass to the Pod.
             volumes=[],
             # List of VolumeMount objects to pass to the Pod.
@@ -213,9 +213,9 @@ with DAG(
             # and memory limits and requirements.
             resources={
                 'request_memory': '1Gi',
-                'request_cpu': 2,
-                'limit_memory': '4Gi',
-                'limit_cpu': 4},
+                'request_cpu': 1,
+                'limit_memory': '2Gi',
+                'limit_cpu': 2},
             # List of Volume objects to pass to the Pod.
             volumes=[],
             # List of VolumeMount objects to pass to the Pod.
@@ -269,9 +269,9 @@ with DAG(
             # and memory limits and requirements.
             resources={
                 'request_memory': '1Gi',
-                'request_cpu': 2,
-                'limit_memory': '4Gi',
-                'limit_cpu': 4},
+                'request_cpu': 1,
+                'limit_memory': '2Gi',
+                'limit_cpu': 2},
             # List of Volume objects to pass to the Pod.
             volumes=[],
             # List of VolumeMount objects to pass to the Pod.
