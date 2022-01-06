@@ -26,7 +26,7 @@ python-keystoneclient == 4.0.0
 python-swiftclient == 3.9.0
 environs == 9.3.3
 flask_bcrypt == 0.7.1
-flask-appbuilder == 3.3.2   # Dependency of apache-airflow, with vuln fix.
+flask-appbuilder == 3.4.2   # Dependency of apache-airflow, with vuln fix.
 docker == 4.4.4
 supervisor == 4.1.0
 yamlip == 0.0.2
