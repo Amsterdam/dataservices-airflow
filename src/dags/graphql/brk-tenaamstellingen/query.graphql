@@ -20,6 +20,21 @@
         burgerlijkeStaatTenTijdeVanVerkrijging
         verkregenNamensSamenwerkingsverband
         inOnderzoek
+        vanZakelijkrecht {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        isGebaseerdOpStukdeel {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
         toestandsdatum
       }
     }

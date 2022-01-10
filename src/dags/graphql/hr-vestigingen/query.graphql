@@ -10,6 +10,22 @@
         datumVoortzetting
         isCommercieleVestiging
         eersteHandelsnaam
+        heeftAlsPostadres {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        heeftAlsBezoekadres {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         communicatienummer
         domeinnaam
         emailadres

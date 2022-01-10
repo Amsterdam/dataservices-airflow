@@ -8,6 +8,34 @@
         registratiedatum
         id
         kadastraleAanduiding
+        aangeduidDoorGemeente {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
+        aangeduidDoorKadastralegemeente {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
+        aangeduidDoorKadastralegemeentecode {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
+        aangeduidDoorKadastralesectie {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
         perceelnummer
         indexletter
         indexnummer

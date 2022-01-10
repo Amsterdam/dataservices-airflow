@@ -7,12 +7,35 @@
         datumAanvangMaatschappelijkeActiviteit
         datumEindeMaatschappelijkeActiviteit
         registratieTijdstipMaatschappelijkeActiviteit
+        heeftBezoekadres {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
+        heeftPostadres {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         naam
         communicatienummer
         domeinnaam
         emailAdres
         nonMailing
         incidenteelUitlenenArbeidskrachten
+        heeftHoofdvestiging {
+          edges {
+            node {
+              vestigingsnummer
+            }
+          }
+        }
         registratieTijdstipOnderneming
         datumAanvangOnderneming
         datumEindeOnderneming
