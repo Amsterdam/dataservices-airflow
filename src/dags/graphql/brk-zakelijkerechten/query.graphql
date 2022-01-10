@@ -9,7 +9,29 @@
         id
         beginGeldigheid
         eindGeldigheid
+        ontstaanUitAppartementsrechtsplitsingVve {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
+        betrokkenBijAppartementsrechtsplitsingVve {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
         isBeperktTot
+        rustOpKadastraalobject {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         appartementsrechtsplitsingidentificatie
         appartementsrechtsplitsingtype
         einddatumAppartementsrechtsplitsing

@@ -11,6 +11,14 @@
         eindGeldigheid
         aard
         omschrijving
+        heeftBetrekkingOpKadastraalObject {
+          edges {
+            node {
+              identificatie
+              volgnummer
+            }
+          }
+        }
         isGebaseerdOpStukdeel {
           edges {
             node {
