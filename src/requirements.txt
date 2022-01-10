@@ -289,7 +289,7 @@ flask==1.1.4
     #   flask-openid
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==3.3.2
+flask-appbuilder==3.4.3
     # via
     #   -r requirements.in
     #   apache-airflow
@@ -856,7 +856,9 @@ wrapt==1.12.1
     #   debtcollector
     #   deprecated
 wtforms==2.3.3
-    # via flask-wtf
+    # via
+    #   flask-appbuilder
+    #   flask-wtf
 xlrd==1.2.0
     # via -r requirements.in
 yamlip==0.0.2
