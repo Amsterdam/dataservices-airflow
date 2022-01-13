@@ -28,6 +28,7 @@ dag_config = Variable.get(dag_id, deserialize_json=True)
 
 with DAG(
     dag_id,
+    description="heeft status NIET BESCHIKBAAR. Geen active API.",
     default_args=default_args,
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id="asbestdaken"),
 ) as dag:
