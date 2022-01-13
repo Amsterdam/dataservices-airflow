@@ -1,7 +1,8 @@
 import json
 import pathlib
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, Final, Optional
+from typing import Any, DefaultDict, Final, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -9,6 +10,7 @@ from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, sla
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from http_gob_operator import HttpGobOperator
+from more_itertools import first
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from postgres_table_init_operator import PostgresTableInitOperator
@@ -21,6 +23,24 @@ GOB_PUBLIC_ENDPOINT: Final = env("GOB_PUBLIC_ENDPOINT")
 GOB_SECURE_ENDPOINT: Final = env("GOB_SECURE_ENDPOINT")
 OAUTH_TOKEN_EXPIRES_MARGIN: Final = env.int("OAUTH_TOKEN_EXPIRES_MARGIN", 5)
 SCHEMA_URL: Final = env("SCHEMA_URL")
+
+# Schedule information is stored in an environment variable,
+# and not an Airflow variable (that needs to call the database),
+# because the DAG python module is executed very often.
+SCHEDULES: Final[str] = env(
+    "GOB_SCHEDULES", "bag,gebieden,woz,hr:0 6 * * 0;brk,nap,meetbouten:0 6 * * 3"
+)
+
+SCHEDULE_LOOKUP: dict[str, str] = {}
+# Every dataset needs a reference to the 'other' datasets that are sharing
+# the same schedule, to be able to feed the DynamicDagRunOperator with
+# a set of labels for selection of DAGs.
+
+SAME_SCHEDULE_DATASETS: DefaultDict[str, set[str]] = defaultdict(set)
+# Because the DynamicDagRunOperator triggers dags in alphabetic order
+# only the first dataset in a group of dataset with an identical schedule
+# should get a schedule to start the estafette run.
+FIRST_IN_GROUP_DATASETS = set()
 
 dag_id = "gob"
 owner = "gob"
@@ -44,7 +64,12 @@ class DatasetInfo:
 
 
 def create_gob_dag(
-    is_first: bool, gob_dataset_id: str, gob_table_id: str, sub_table_id: Optional[str] = None
+    schedule_interval: Optional[str],
+    gob_dataset_id: str,
+    gob_table_id: str,
+    sub_table_id: Optional[str] = None,
+    *,
+    labels_group: Optional[set[str]] = None,
 ) -> DAG:
     """Create the DAG."""
     dataset_table_id = f"{gob_dataset_id}_{gob_table_id}"
@@ -56,7 +81,6 @@ def create_gob_dag(
     graphql_dir_path = graphql_path / graphql_dir_name
     graphql_params_path = graphql_dir_path / "args.json"
     extra_kwargs = {}
-    schedule_start_hour = 6
 
     if graphql_params_path.exists():
         with graphql_params_path.open() as json_file:
@@ -69,8 +93,8 @@ def create_gob_dag(
     dag = DAG(
         f"{dag_id}_{dataset_table_id}",
         default_args={"owner": owner, **default_args},
-        schedule_interval=f"0 {schedule_start_hour} * * *" if is_first else None,
-        tags=["gob"],
+        schedule_interval=schedule_interval,
+        tags=["gob"] + [gob_dataset_id],
         on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
     )
 
@@ -170,6 +194,7 @@ def create_gob_dag(
             task_id="trigger_next_dag",
             dag_id_prefix="gob_",
             trigger_rule="all_done",
+            labels_group=labels_group,
         )
 
         # 9. Grant database permissions
@@ -192,7 +217,33 @@ def create_gob_dag(
     return dag
 
 
-for i, gob_gql_dir in enumerate(sorted(graphql_path.glob("*"))):
+for dss_schedule in SCHEDULES.split(";"):
+    dataset_names_str, schedule = dss_schedule.split(":")
+    dataset_names = set(dataset_names_str.split(","))
+    FIRST_IN_GROUP_DATASETS.add(first(sorted(dataset_names)))
+    for dataset_name in dataset_names:
+        SCHEDULE_LOOKUP[dataset_name] = schedule
+        SAME_SCHEDULE_DATASETS[dataset_name] = dataset_names
+
+# We need to group the dags on the name of the dataset,
+# because one or more datasets are sharing the same schedule
+# and need to be initialized properly.
+grouped_dag_params = defaultdict(list)
+for gob_gql_dir in sorted(graphql_path.glob("*")):
     ds_table_parts = gob_gql_dir.parts[-1].split("-")
-    dag_id_postfix = "_".join(ds_table_parts)
-    globals()[f"gob_{dag_id_postfix}"] = create_gob_dag(i == 0, *ds_table_parts)
+    grouped_dag_params[ds_table_parts[0]].append(ds_table_parts)
+
+
+for dataset_name, dag_params in grouped_dag_params.items():
+    for i, ds_table_parts in enumerate(dag_params):
+        schedule_interval = (
+            SCHEDULE_LOOKUP[dataset_name]
+            if (i == 0 and dataset_name in FIRST_IN_GROUP_DATASETS)
+            else None
+        )
+        dag_id_postfix = "_".join(ds_table_parts)
+        globals()[f"gob_{dag_id_postfix}"] = create_gob_dag(
+            schedule_interval,
+            *ds_table_parts,
+            labels_group=SAME_SCHEDULE_DATASETS[dataset_name],
+        )
