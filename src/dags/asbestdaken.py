@@ -20,10 +20,10 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_operator import SwiftOperator
 
 SQL_RENAME_COL: Final = """
-ALTER TABLE asbest_daken_new RENAME COLUMN identifica TO pandidentificatie
+ALTER TABLE asbestdaken_daken_new RENAME COLUMN identifica TO pandidentificatie
 """
 
-dag_id = "asbest"
+dag_id = "asbestdaken"
 dag_config = Variable.get(dag_id, deserialize_json=True)
 
 with DAG(
@@ -52,7 +52,7 @@ with DAG(
     fetch_zip = SwiftOperator(
         task_id="fetch_zip",
         swift_conn_id="SWIFT_DEFAULT",
-        container=dag_id,
+        container="asbest",
         object_id=zip_file,
         output_path=f"{tmp_dir}/{zip_file}",
     )
@@ -91,7 +91,7 @@ with DAG(
     rename_tables = PostgresOperator(
         task_id="rename_tables",
         sql=SQL_TABLE_RENAMES,
-        params=dict(tablenames=rename_tablenames),
+        params={"tablenames": rename_tablenames},
     )
 
     rename_col = PostgresOperator(task_id="rename_col", sql=SQL_RENAME_COL)

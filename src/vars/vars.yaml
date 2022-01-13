@@ -30,17 +30,17 @@ bekendmakingen:
       </Filter>
     outputFormat: application/json
   geotype: ST_Point
-asbest:
+asbestdaken:
   zip_file: Amsterdam_Asbestverdachte_daken_Shape.zip
   shp_files:
     - Asbestverdachte_daken_gegevens.shp
     - Asbestverdachte_Percelen.shp
   tables:
-    - asbest_daken_new
-    - asbest_percelen_new
+    - asbestdaken_daken_new
+    - asbestdaken_percelen_new
   rename_tablenames:
-    - asbest_daken
-    - asbest_percelen
+    - asbestdaken_daken
+    - asbestdaken_percelen
 vergunningen:
   files_to_download: [bb_quotum.sql, omzettingen_quotum.sql]
   table_source_names:
