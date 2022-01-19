@@ -4,7 +4,7 @@
          # Filter to only ask for accessible and selected dags
          query = query.filter(DagRun.dag_id.in_(filter_dag_ids))  # pylint: enable=no-member
 
-+        # Pathed version from upstream Airflow
++        # Patched version from upstream Airflow
 +        # https://github.com/apache/airflow/pull/18315/commits/f9f499f1aeaed774f08a55f738c10856dd4c696c
 +        def _datetime_to_string(value: Optional[DateTime]) -> Optional[str]:
 +            if value is None:
