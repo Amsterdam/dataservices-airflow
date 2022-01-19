@@ -98,8 +98,9 @@ airflow variables import vars/vars.json
 
 # During development it is not always desirable to run the
 # Airflow webserver and scheduler. When the NO_AUTOSTART_AIRFLOW
-# variable is defined, airflow will not start automatically.
-# If needed, it can be started manually using supervisor.
+# variable is defined (or it is zero-length),
+# airflow will not start automatically.
+# If needed, it can be started manually using supervisor from the container.
 
 if [[ ! -z $NO_AUTOSTART_AIRFLOW ]]; then
     sleep infinity
