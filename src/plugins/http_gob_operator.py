@@ -143,8 +143,8 @@ class HttpGobOperator(BaseOperator):
         )
 
     def execute(self, context: dict[str, Any]) -> None:  # noqa: D102
-        # When doing 'airflow test' there is a context['params']
-        # For full dag runs, there is dag_run["conf"]
+        # When doing `airflow tasks test` from cli, there is a self.params attribute availabe.
+        # For full dag runs from the scheduler, there is dag_run["conf"]
         from common import SHARED_DIR
 
         # Fetch the datset info, provided by the first operator
@@ -152,10 +152,8 @@ class HttpGobOperator(BaseOperator):
             task_ids=self.xcom_table_info_task_ids, key=self.xcom_table_info_key
         )
         dataset_table_id = dataset_info.dataset_table_id
-        dag_run = context["dag_run"]
-        if dag_run is None:
-            params = context["params"]
-        else:
+        if not (params := self.params):
+            dag_run = context["dag_run"]
             params = dag_run.conf or {}
         self.log.debug("PARAMS: %s", params)
         max_records = params.get("max_records", self.max_records)
