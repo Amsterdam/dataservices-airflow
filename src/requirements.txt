@@ -11,7 +11,7 @@ adal==1.2.7
     #   msrestazure
 alembic==1.7.1
     # via apache-airflow
-amsterdam-schema-tools==3.1.0
+amsterdam-schema-tools==3.3.3
     # via -r requirements.in
 anyio==3.3.3
     # via httpcore
@@ -345,6 +345,7 @@ idna==3.2
     # via
     #   anyio
     #   email-validator
+    #   jsonschema
     #   requests
     #   rfc3986
 importlib-resources==1.5.0
@@ -380,10 +381,12 @@ json-encoder==0.4.4
 jsonpath-rw==1.4.0
     # via amsterdam-schema-tools
 jsonpointer==2.1
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   jsonschema
 jsonref==0.2
     # via mappyfile
-jsonschema==3.2.0
+jsonschema[format]==3.2.0
     # via
     #   amsterdam-schema-tools
     #   apache-airflow
@@ -471,8 +474,6 @@ msrestazure==0.6.4
     #   azure-kusto-data
     #   azure-mgmt-containerinstance
     #   azure-mgmt-datalake-store
-natsort==7.1.1
-    # via croniter
 ndjson==0.3.1
     # via amsterdam-schema-tools
 netaddr==0.8.0
@@ -715,6 +716,8 @@ rfc3986[idna2008]==1.5.0
     # via
     #   httpx
     #   oslo.config
+rfc3987==1.3.8
+    # via jsonschema
 rich==10.9.0
     # via apache-airflow
 rsa==4.7.2
@@ -808,6 +811,8 @@ stevedore==3.3.0
     #   keystoneauth1
     #   oslo.config
     #   python-keystoneclient
+strict-rfc3339==0.7
+    # via jsonschema
 supervisor==4.1.0
     # via -r requirements.in
 swagger-ui-bundle==0.0.9
@@ -824,8 +829,6 @@ text-unidecode==1.3
     # via python-slugify
 toml==0.10.2
     # via pytest
-typing-extensions==3.7.4.3
-    # via rich
 unicodecsv==0.14.1
     # via apache-airflow
 urllib3==1.26.6
@@ -835,6 +838,8 @@ urllib3==1.26.6
     #   sentry-sdk
 validator-collection==1.4.1
     # via -r requirements.in
+webcolors==1.11.1
+    # via jsonschema
 websocket-client==1.2.1
     # via
     #   docker
