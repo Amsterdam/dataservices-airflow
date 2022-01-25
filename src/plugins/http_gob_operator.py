@@ -154,7 +154,7 @@ class HttpGobOperator(BaseOperator):
         dataset_table_id = dataset_info.dataset_table_id
         if not (params := self.params):
             dag_run = context["dag_run"]
-            params = dag_run.conf or {}
+            params = {} if dag_run is None else dag_run.conf or {}
         self.log.debug("PARAMS: %s", params)
         max_records = params.get("max_records", self.max_records)
         cursor_pos = int(

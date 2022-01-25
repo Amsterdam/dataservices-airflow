@@ -11,6 +11,7 @@ from airflow.providers.postgres.hooks.postgres import PostgresHook
 from environs import Env
 from more_ds.network.url import URL
 from psycopg2 import extras, sql
+from schematools import TMP_TABLE_POSTFIX
 from schematools.exceptions import SchemaObjectNotFound
 from schematools.types import DatasetSchema
 from schematools.utils import dataset_schema_from_url, to_snake_case
@@ -21,11 +22,25 @@ SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 
 
 @dataclass(frozen=True)
+class Table:
+    """Holding class for table name and schema."""
+
+    schema: str
+    name: str
+
+    @property
+    def full_name(self) -> str:
+        """Get fully qualified table name."""
+        return f"{self.schema}.{self.name}"
+
+
+@dataclass(frozen=True)
 class TableMapping:
     """Simple mapping from source table to target table."""
 
-    source: str
-    target: str
+    source: Table
+    target: Table
+    view_name: Optional[str] = None
 
 
 @dataclass
@@ -36,27 +51,56 @@ class Statement:
     log_msg: str
 
 
+SELECT_TABLE_FOR_VIEW_NAME: Final[
+    str
+] = """
+    -- Query to find the table associated with a view
+    -- pg_depend: system table in postgres that holds dependency relations
+    -- pg_rewrite: system table the holds information about views
+    -- pg_class: system table with information about views and tables
+    -- d.refobjid: oid of the referenced object
+    -- d.objid: object having a dependency
+    -- r.oid: oid of a rule (info about view) attached
+    -- r.ev_class: table/view that the rule applies to
+    -- v.oid: referring to the view
+    -- d.classid: oid of the system catalog depedent is in
+    -- d.refclassid: oid of system catalog dependency is in
+    SELECT DISTINCT d.refobjid::regclass AS ref_object
+    FROM pg_depend AS d
+    JOIN pg_rewrite AS r ON r.oid = d.objid
+    JOIN pg_class AS v ON v.oid = r.ev_class
+    WHERE v.relkind = 'v'
+      AND d.classid = 'pg_rewrite'::regclass
+      AND d.refclassid = 'pg_class'::regclass
+      AND d.deptype = 'n'
+      AND NOT (v.oid = d.refobjid)
+      AND v.oid = %(view_or_table_name)s::regclass
+    """
+
+
 class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
     """Copy table to another table, create target table structure if needed from source.
 
-    The premise here is that the source table is a temporary table and the target table is the
-    final result. In copying, it not only copies the the table definition, but optionally also
+    The premise here is that the source table is a temporary table and the target table or view
+    is the final result. In copying, it not only copies the table definition, but optionally also
     the data. To prevent duplicate key errors it has has the option to truncate the target table
     first. This is necessary if the target already exists and contains data. Lastly
     it has the ability to drop the source (=temporary) table.
 
     .. note:: A strange assumption is being made by this operator. It does require you to specify
        both source (temporary) and target tables. However for finding any junction tables it
-       assumes that all these junction tables have a "_new" postfix. Makes you wonder why that
-       assumption is not made for original source table? Or even better, why that wasn't made
-       configurable.
+       assumes that all these junction tables have a TMP_TABLE_POSTFIX postfix.
+       Makes you wonder why that assumption is not made for original source table?
+       Or even better, why that wasn't made configurable.
     """
 
     def __init__(
         self,
+        source_table_name: str,
+        target_table_name: str,
         dataset_name: Optional[str] = None,
-        source_table_name: Optional[str] = None,
-        target_table_name: Optional[str] = None,
+        source_schema_name: str = "public",
+        target_schema_name: str = "public",
         truncate_target: bool = True,
         drop_target_if_unequal: bool = False,
         copy_data: bool = True,
@@ -78,7 +122,9 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             of the columns to cope with a possible datatype mismatch due to a different
             column order between target and source table regarding data copy.
             source_table_name: Name of the temporary table that needs to be copied.
+            source_schema_name: Name of the schema of the source table.
             target_table_name: Name of the table that needs to be created and data copied to.
+            target_schema_name: Name of the schema of the target table.
             truncate_target: Whether the target table should be truncated before being copied to.
             drop_target_if_unequal: Whether the target table should be dropped if it is not
                 equal to the source table wrt. column types, names and positions
@@ -99,7 +145,9 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         super().__init__(*args, task_id=task_id, **kwargs)
         self.dataset_name = dataset_name
         self.source_table_name = source_table_name
+        self.source_schema_name = source_schema_name
         self.target_table_name = target_table_name
+        self.target_schema_name = target_schema_name
         self.truncate_target = truncate_target
         self.drop_target_if_unequal = drop_target_if_unequal
         self.copy_data = copy_data
@@ -145,7 +193,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             # First make sure the target table exists
             cursor.execute(
                 "SELECT to_regclass(%s)",
-                (table_mapping.target,),
+                (table_mapping.target.full_name,),
             )
 
             if cursor.fetchone()["to_regclass"] is None:
@@ -167,20 +215,24 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                               ordinal_position as ord_pos_source,
                               column_name as col_name_source
                        FROM information_schema.columns
-                       WHERE table_name = %(source_table_name)s ),
+                       WHERE table_name = %(source_table_name)s
+                        AND table_schema = %(source_schema_name)s),
                          tgt AS
                       (SELECT data_type as dtt_target,
                               ordinal_position as ord_pos_target,
                               column_name as col_name_target
                        FROM information_schema.columns
-                       WHERE table_name = %(target_table_name)s )
+                       WHERE table_name = %(target_table_name)s
+                        AND table_schema = %(target_schema_name)s)
                     SELECT *
                     FROM src
                     FULL OUTER JOIN tgt on src.col_name_source = tgt.col_name_target
             """,
                 {
-                    "source_table_name": table_mapping.source,
-                    "target_table_name": table_mapping.target,
+                    "source_table_name": table_mapping.source.name,
+                    "source_schema_name": table_mapping.source.schema,
+                    "target_table_name": table_mapping.target.name,
+                    "target_schema_name": table_mapping.target.schema,
                 },
             )
 
@@ -226,13 +278,13 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
                 self.log.info(
                     """Trying to do data copy based on explicit column names
-                        in Amsterdam schema defintion."""
+                        in Amsterdam schema definition."""
                 )
 
                 dataset: DatasetSchema = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
 
                 # Get the table_id from the full sql table name
-                table_id = table_mapping.target.split(f"{self.dataset_name}_")[1]
+                table_id = table_mapping.target.name.split(f"{self.dataset_name}_")[1]
 
                 # We do not take nested/through tables into account,
                 # because this can get very hairy. In that case, `columns` stays empty,
@@ -256,6 +308,41 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
         return columns_per_table_mapping
 
+    def _find_actual_table_name(
+        self, cursor: Any, view_or_table_name: str
+    ) -> tuple[str, str, bool]:
+        """Finds out if a name is referring to a view or to regular table.
+
+        If the view_or_table_name is just a regular table, the name is returned as-is
+        and the database schema is considered to be `public`.
+
+        Args:
+            cursor: DB-API cursor
+            view_or_table_name: name of a postgres db object
+
+        Returns:
+            name of database schema
+            name of the table
+            boolean indicating if view_or_table_name is referring to a view
+        """
+        cursor.execute("SELECT to_regclass(%s)", (view_or_table_name,))
+        if cursor.fetchone()["to_regclass"] is None:
+            return "public", view_or_table_name, False
+
+        cursor.execute(SELECT_TABLE_FOR_VIEW_NAME, {"view_or_table_name": view_or_table_name})
+        result = cursor.fetchone()
+        if result is None:
+            return "public", view_or_table_name, False
+
+        ref_object = ""
+        try:
+            ref_object = result["ref_object"]
+            schema_name, table_name = ref_object.split(".")
+            return schema_name, table_name, True
+        except ValueError:
+            self.log.error("View '%s' references a table in the public schema", ref_object)
+            raise
+
     def execute(self, context: dict[str, Any]) -> None:  # noqa: C901, D102
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
@@ -267,28 +354,55 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 self.log.debug("Setting autocommit to '%s'.", self.autocommit)
                 hook.set_autocommit(conn, self.autocommit)
 
-            # Start a list to hold copy information
-            table_copies: list[TableMapping] = []
-            if self.source_table_name is not None and self.target_table_name is not None:
-                table_copies.extend(
-                    [
-                        TableMapping(source=self.source_table_name, target=self.target_table_name),
-                    ]
-                )
-
-            # Find the cross-tables for n-m relations, we assume they have
-            # a name that start with f"{source_table_name}_"
-
             with closing(conn.cursor(cursor_factory=extras.RealDictCursor)) as cursor:
+
+                original_target_table_name = self.target_table_name
+
+                (
+                    self.target_schema_name,
+                    self.target_table_name,
+                    is_view,
+                ) = self._find_actual_table_name(cursor, self.target_table_name)
+
+                if is_view and self.drop_target_if_unequal:
+                    raise AirflowFailException(
+                        f"Dropping the target `{original_target_table_name}` "
+                        "is not allowed for views."
+                    )
+
+                # Start a list to hold copy information
+                table_copies: list[TableMapping] = []
+                if self.source_table_name is not None and self.target_table_name is not None:
+                    table_copies.extend(
+                        [
+                            TableMapping(
+                                source=Table(
+                                    name=self.source_table_name, schema=self.source_schema_name
+                                ),
+                                target=Table(
+                                    name=self.target_table_name, schema=self.target_schema_name
+                                ),
+                                view_name=original_target_table_name if is_view else None,
+                            ),
+                        ]
+                    )
+
+                # Find the cross-tables for n-m relations, we assume they have
+                # a name that start with f"{source_table_name}_"
+
                 # the underscore must be escaped because of it's special meaning in a like
                 # the exclamation mark was used as an escape character because
                 # a backslash was not interpreted as an escape
                 cursor.execute(
                     """
                         SELECT tablename FROM pg_tables
-                        WHERE schemaname = 'public' AND tablename like %(table_name)s ESCAPE '!'
+                        WHERE schemaname = %(table_schema)s
+                            AND tablename like %(table_name)s ESCAPE '!'
                     """,
-                    {"table_name": f"{self.source_table_name}!_%"},
+                    {
+                        "table_schema": self.source_schema_name,
+                        "table_name": f"{self.source_table_name}!_%",
+                    },
                 )
 
                 junction_tables = cast(
@@ -303,9 +417,22 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
 
                 junction_table_copies: list[TableMapping] = []
                 for source_table_name in junction_tables:
-                    target_table_name = source_table_name.replace("_new", "")
+                    original_target_junction_table_name = source_table_name.replace(
+                        TMP_TABLE_POSTFIX, ""
+                    )
+                    (
+                        target_schema_name,
+                        target_table_name,
+                        junction_is_view,
+                    ) = self._find_actual_table_name(cursor, original_target_junction_table_name)
                     junction_table_copies.append(
-                        TableMapping(source_table_name, target_table_name)
+                        TableMapping(
+                            source=Table(name=source_table_name, schema=self.source_schema_name),
+                            target=Table(name=target_table_name, schema=target_schema_name),
+                            view_name=original_target_junction_table_name
+                            if junction_is_view
+                            else None,
+                        )
                     )
 
                 # Check if there are structural differences between targets and sources.
@@ -317,40 +444,54 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     if diff_check:
 
                         self.log.info(
-                            "Different data structure detected between %s and %s!",
-                            table_mapping.source,
-                            table_mapping.target,
+                            "Different data structure detected between %s.%s and %s.%s!",
+                            table_mapping.source.schema,
+                            table_mapping.source.name,
+                            table_mapping.target.schema,
+                            table_mapping.target.name,
                         )
                         for index, diff_finding in enumerate(diff_check):
                             self.log.info("%s: %s", index, diff_finding)
 
+                        if table_mapping.view_name is not None:
+                            raise AirflowFailException(
+                                f"Dropping {table_mapping.view_name} "
+                                "is not allowed, because it is a view."
+                            )
+
                         # Drop target table if there are differences in columns
                         # this is done regardless of drop_target_if_unequal setting
-                        self.log.info("Dropping table %s", table_mapping.target)
+                        self.log.info(
+                            "Dropping table %s.%s",
+                            table_mapping.target.schema,
+                            table_mapping.target.name,
+                        )
                         cursor.execute(
-                            sql.SQL("DROP TABLE {table_name}").format(
-                                table_name=sql.Identifier(table_mapping.target)
+                            sql.SQL("DROP TABLE {table_schema}.{table_name}").format(
+                                table_schema=sql.Identifier(table_mapping.target.schema),
+                                table_name=sql.Identifier(table_mapping.target.name),
                             )
                         )
 
                 statements: list[Statement] = [
                     Statement(
                         sql="""
-                    CREATE TABLE IF NOT EXISTS {target_table_name}
+                    CREATE TABLE IF NOT EXISTS {target_schema_name}.{target_table_name}
                     (
-                        LIKE {source_table_name} INCLUDING ALL
+                        LIKE {source_schema_name}.{source_table_name} INCLUDING ALL
                     )
                     """,
-                        log_msg="Creating new table (if not exists) '{target_table_name}' "
-                        "using table '{source_table_name}' as a template.",
+                        log_msg="Creating new table (if not exists) "
+                        "'{target_schema_name}.{target_table_name}' "
+                        "using table '{source_schema_name}.{source_table_name}' as a template.",
                     )
                 ]
 
                 if self.truncate_target:
                     statements.append(
                         Statement(
-                            sql="TRUNCATE TABLE {target_table_name} CASCADE",
-                            log_msg="Truncating table '{target_table_name}'.",
+                            sql="TRUNCATE TABLE {target_schema_name}.{target_table_name} CASCADE",
+                            log_msg="Truncating table '{target_schema_name}.{target_table_name}'.",
                         )
                     )
 
@@ -360,21 +501,24 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     statements.append(
                         Statement(
                             sql="""
-                        INSERT INTO {target_table_name}
+                        INSERT INTO {target_schema_name}.{target_table_name}
                             ({to_columns})
                         SELECT {from_columns}
-                        FROM {source_table_name}
+                        FROM {source_schema_name}.{source_table_name}
                         """,
-                            log_msg="Copying all data from table '{source_table_name}' "
-                            "to table '{target_table_name}'.",
+                            log_msg="Copying all data from table "
+                            "'{source_schema_name}.{source_table_name}' "
+                            "to table '{target_schema_name}.{target_table_name}'.",
                         )
                     )
 
                 if self.drop_source:
                     statements.append(
                         Statement(
-                            sql="DROP TABLE IF EXISTS {source_table_name} CASCADE",
-                            log_msg="Dropping table (if exists) '{source_table_name}'.",
+                            sql="DROP TABLE IF EXISTS "
+                            "{source_schema_name}.{source_table_name} CASCADE",
+                            log_msg="Dropping table (if exists) "
+                            "'{source_schema_name}.{source_table_name}'.",
                         )
                     )
 
@@ -392,14 +536,19 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     for stmt in statements:
                         self.log.info(
                             stmt.log_msg.format(  # noqa: G001
-                                source_table_name=table_mapping.source,
-                                target_table_name=table_mapping.target,
+                                source_schema_name=table_mapping.source.schema,
+                                source_table_name=table_mapping.source.name,
+                                target_schema_name=table_mapping.target.schema,
+                                target_table_name=table_mapping.target.name,
                             )
                         )
 
+                        # NB. schema and table cannot be combined into one `sql.Identifier`.
                         sql_args = {
-                            "source_table_name": sql.Identifier(table_mapping.source),
-                            "target_table_name": sql.Identifier(table_mapping.target),
+                            "source_schema_name": sql.Identifier(table_mapping.source.schema),
+                            "source_table_name": sql.Identifier(table_mapping.source.name),
+                            "target_schema_name": sql.Identifier(table_mapping.target.schema),
+                            "target_table_name": sql.Identifier(table_mapping.target.name),
                             "from_columns": from_columns,
                             "to_columns": to_columns,
                         }

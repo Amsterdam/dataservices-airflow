@@ -1,5 +1,4 @@
--- Source and target tables are existing
--- new has two records, existing has one record
+-- Source and target tables
 
 SET search_path TO public;
 CREATE TABLE gebieden_ggwgebieden_new (
@@ -10,7 +9,10 @@ CREATE TABLE gebieden_ggwgebieden_new (
     ligt_in_stadsdeel_identificatie character varying(255),
     ligt_in_stadsdeel_volgnummer integer
 );
-CREATE TABLE gebieden_ggwgebieden (
+
+CREATE SCHEMA gebieden;
+
+CREATE TABLE gebieden.ggwgebieden (
     id character varying(255),
     identificatie character varying(255),
     volgnummer integer,
@@ -18,6 +20,9 @@ CREATE TABLE gebieden_ggwgebieden (
     ligt_in_stadsdeel_identificatie character varying(255),
     ligt_in_stadsdeel_volgnummer integer
 );
+
+CREATE VIEW gebieden_ggwgebieden AS SELECT * FROM gebieden.ggwgebieden;
+
 INSERT INTO gebieden_ggwgebieden_new (identificatie, volgnummer, ligt_in_stadsdeel_id,
     ligt_in_stadsdeel_identificatie, ligt_in_stadsdeel_volgnummer) VALUES
         ('01', 1, '01.1', '01', 1),
