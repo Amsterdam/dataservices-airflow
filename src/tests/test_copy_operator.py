@@ -116,6 +116,38 @@ def _patched_schema_getter(url, name):
             1,
             {"gebieden_ggwgebieden_bestaat_uit_buurten": 1},
         ),
+        (
+            "gebieden",
+            "new-and-existing-with-view",
+            False,
+            should_work,
+            2,
+            {},
+        ),
+        (
+            "gebieden",
+            "new-and-existing-with-view",
+            True,  # drop_target_if_unequal not allowed for views
+            pytest.raises(AirflowFailException),
+            1,  # Only the original record
+            {},
+        ),
+        (
+            "gebieden",
+            "new-and-existing-unequal-with-view",
+            False,
+            pytest.raises(AirflowFailException),
+            1,
+            {},
+        ),
+        (
+            "gebieden",
+            "with-related-unequal-with-view",
+            False,
+            pytest.raises(AirflowFailException),
+            0,
+            {},
+        ),
     ],
 )
 def test_table_copy_operator(
@@ -123,7 +155,7 @@ def test_table_copy_operator(
     mock_pghook,
     test_dag,
     monkeypatch,
-    dataset_name,
+    dataset_name,  # Start of parametrized arguments
     sql_init_file,
     drop_target_if_unequal,
     contextmgr,
