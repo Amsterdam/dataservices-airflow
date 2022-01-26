@@ -40,7 +40,7 @@ def create_vsd_dag(vsd_id, default_args):
             bash_command=str(script_dir / "import.sh"),
             env={
                 "SCRIPT_DIR": script_dir,
-                "SHARED_DIR": shared_dir,
+                "VSD_SHARED_DIR": shared_dir,
                 "DATA_DIR": data_dir,
             },
             env_expander=fetch_env_vars,
