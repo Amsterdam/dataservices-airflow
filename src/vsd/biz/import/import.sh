@@ -4,8 +4,8 @@
 # export PYTHONPATH="$SCRIPT_DIR/../..:$SCRIPT_DIR/../../.."
 # export SHARED_DIR=${SCRIPT_DIR}/../../shared
 
-source ${SHARED_DIR}/import/config.sh
-source ${SHARED_DIR}/import/before.sh
+source opt/airflow/vsd/shared/import/config.sh
+source opt/airflow/vsd/shared/import/before.sh
 
 echo "Process import data"
 
@@ -37,4 +37,4 @@ ALTER INDEX biz_data_new_wkb_geometry_geom_idx RENAME TO biz_data_wkb_geometry_g
 COMMIT;
 SQL
 
-source ${SHARED_DIR}/import/after.sh
+source opt/airflow/vsd/shared/import/after.sh
