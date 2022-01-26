@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-source ${SHARED_DIR}/import/config.sh
-source ${SHARED_DIR}/import/before.sh
+source ${VSD_SHARED_DIR}/import/config.sh
+source ${VSD_SHARED_DIR}/import/before.sh
 
 echo "Download files from objectstore"
-python $SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.prj"
-python $SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.dbf"
-python $SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.shx"
-python $SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.shp"
+python $VSD_SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.prj"
+python $VSD_SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.dbf"
+python $VSD_SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.shx"
+python $VSD_SHARED_DIR/utils/get_objectstore_file.py "grootstedelijkegebieden/GBD_grootstedelijke_projecten.shp"
 
 ogr2ogr -f "PGDump" -lco FID=id -lco GEOMETRY_NAME=geometrie -nlt MULTIPOLYGON -nln gebieden_grootstedelijke_projecten_new ${TMPDIR}/gbd_grootstedelijke_projecten.sql ${TMPDIR}/GBD_grootstedelijke_projecten.shp
 
@@ -31,4 +31,4 @@ ALTER INDEX gebieden_grootstedelijke_projecten_new_geometrie_geom_idx RENAME TO 
 COMMIT;
 SQL
 
-source ${SHARED_DIR}/import/after.sh
+source ${VSD_SHARED_DIR}/import/after.sh
