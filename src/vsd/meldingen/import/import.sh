@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
-source ${SHARED_DIR}/import/config.sh
-source ${SHARED_DIR}/import/before.sh
+source ${VSD_SHARED_DIR}/import/config.sh
+source ${VSD_SHARED_DIR}/import/before.sh
 
 ENVIRONMENT=${DATAPUNT_ENVIRONMENT:-acceptance}
 
@@ -11,7 +11,7 @@ OBJECTSTORE_PATH=Dataservices/meldingen/${ENVIRONMENT}/$ZIPFILE
 
 mkdir -p ${TMPDIR}/meldingen
 echo "Download file from objectstore"
-python $SHARED_DIR/utils/get_objectstore_file.py "$OBJECTSTORE_PATH" -s objectstore_dataservices
+python $VSD_SHARED_DIR/utils/get_objectstore_file.py "$OBJECTSTORE_PATH" -s objectstore_dataservices
 
 unzip $TMPDIR/meldingen/${ENVIRONMENT}/$ZIPFILE -d ${TMPDIR}
 
