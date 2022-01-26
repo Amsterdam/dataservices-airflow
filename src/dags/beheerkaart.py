@@ -118,7 +118,7 @@ with DAG(
         task_id="create_geopackage",
         env={},
         env_expander=fetch_pg_env_vars,
-        bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}" -lco overwrite=yes',
+        bash_command=f'rm -f {gpkg_path} && ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
     )
 
     # 10. Zip geopackage
@@ -134,7 +134,7 @@ with DAG(
         environment=DATAPUNT_ENVIRONMENT,
         task_id="upload_data",
         input_path=f"{gpkg_path}.zip",
-        dataset_title="Beheerkaart basis",
+        dataset_title="Beheerkaart publieke ruimte",
         distribution_id="1",
     )
 
