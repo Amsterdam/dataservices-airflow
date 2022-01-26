@@ -5,7 +5,7 @@
 # export SHARED_DIR=${SCRIPT_DIR}/../../shared
 
 source ${VSD_SHARED_DIR}/import/config.sh
-source ${VSD_SHARED_DIR}/import/config.sh
+source ${VSD_SHARED_DIR}/import/before.sh
 
 echo "Process import data"
 
@@ -37,4 +37,4 @@ ALTER INDEX biz_data_new_wkb_geometry_geom_idx RENAME TO biz_data_wkb_geometry_g
 COMMIT;
 SQL
 
-source ${VSD_SHARED_DIR}/import/config.sh
+source ${VSD_SHARED_DIR}/import/after.sh
