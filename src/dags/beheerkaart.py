@@ -118,7 +118,7 @@ with DAG(
         task_id="create_geopackage",
         env={},
         env_expander=fetch_pg_env_vars,
-        bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
+        bash_command=f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}" -lco overwrite=yes',
     )
 
     # 10. Zip geopackage
