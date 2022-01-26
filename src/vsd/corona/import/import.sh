@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
-source ${SHARED_DIR}/import/config.sh
-source ${SHARED_DIR}/import/before.sh
+source ${VSD_SHARED_DIR}/import/config.sh
+source ${VSD_SHARED_DIR}/import/before.sh
 
 echo "Process import data"
 FILENAME_HANDHAVING=corona_handhaving.csv
@@ -24,7 +24,7 @@ echo "Upload source ${FILENAME_HANDHAVING} (csv) from oov.brievenbus.amsterdam.n
 curl -X PUT -T ${FILENAME_HANDHAVING_PATH}/${FILENAME_HANDHAVING} --user ${OS_USERNAME}:${OS_PASSWORD} https://${OS_TENANT_NAME}.objectstore.eu/${OBJECTSTORE_PATH_HANDHAVING}
 
 echo "Download ${FILENAME_HANDHAVING} from objectstore as the startingpoint (the staging area) for processing"
-python ${SHARED_DIR}/utils/get_objectstore_file.py "${OBJECTSTORE_PATH_HANDHAVING}"
+python ${VSD_SHARED_DIR}/utils/get_objectstore_file.py "${OBJECTSTORE_PATH_HANDHAVING}"
 
 echo "Download source ${FILENAME_RIVM} (json) from RIVM gevallen"
 curl -k "${AIRFLOW_CONN_RIVM_BASE_URL}/COVID-19_aantallen_gemeente_per_dag.json" -o "${FILENAME_RIVM_PATH}/${FILENAME_RIVM}" --create-dirs
@@ -33,7 +33,7 @@ echo "Upload source ${FILENAME_RIVM} (json) from RIVM gevallen to Object Store"
 curl -X PUT -T ${FILENAME_RIVM_PATH}/${FILENAME_RIVM} --user ${OS_USERNAME}:${OS_PASSWORD} https://${OS_TENANT_NAME}.objectstore.eu/${OBJECTSTORE_PATH_RIVM}
 
 echo "Download ${FILENAME_RIVM} from objectstore as the startingpoint (the staging area) for processing"
-python ${SHARED_DIR}/utils/get_objectstore_file.py "${OBJECTSTORE_PATH_RIVM}"
+python ${VSD_SHARED_DIR}/utils/get_objectstore_file.py "${OBJECTSTORE_PATH_RIVM}"
 
 psql -X --set ON_ERROR_STOP=on << SQL
 DROP TABLE IF EXISTS corona_handhaving_new CASCADE;
@@ -64,5 +64,5 @@ ALTER INDEX ix_corona_gevallen_new_index RENAME TO ix_corona_gevallen_id;
 COMMIT;
 SQL
 
-source ${SHARED_DIR}/import/after.sh
+source ${VSD_SHARED_DIR}/import/after.sh
 
