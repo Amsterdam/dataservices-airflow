@@ -81,6 +81,7 @@ with DAG(
     swift_load_task = SwiftLoadSqlOperator(
         task_id="swift_load_task",
         container="blackspots",
+        swift_conn_id="SWIFT_DEFAULT",
         object_id=f"{DATASTORE_TYPE}/spots.sql",
     )
 
