@@ -6,7 +6,6 @@ from bash_env_operator import BashEnvOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     DATASTORE_TYPE,
-    SHARED_DIR,
     MessageOperator,
     default_args,
     slack_webhook_token,
@@ -25,7 +24,7 @@ from swap_schema_operator import SwapSchemaOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
 dag_id = "beheerkaart"
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
+export_dir = f"/scratch-volume/{dag_id}"
 tables = {
     "beheerkaart_basis_bgt": "bkt_bgt",
     "beheerkaart_basis_eigendomsrecht": "bkt_eigendomsrecht",
@@ -35,7 +34,7 @@ tables = {
 # Dataset name as specified in Amsterdamsschema
 dataset_name = "beheerkaartBasis"
 dataset_name_database = to_snake_case(dataset_name)
-gpkg_path = f"{tmp_dir}/{dataset_name_database}.gpkg"
+gpkg_path = f"{export_dir}/{dataset_name_database}.gpkg"
 
 owner = "team_ruimte"
 with DAG(
@@ -111,14 +110,18 @@ with DAG(
     swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=dataset_name)
 
     # 8. Create temporary directory
-    mkdir = mk_dir(Path(tmp_dir))
+    # Due to a network mount (/tmp) on Azure AKS, the creating of
+    # a geopackage (see: next step) fails.
+    # We need an ephemeral non mount volume to create the GPKG file.
+    mkdir = mk_dir(Path(export_dir))
 
     # 9. Create geopackage
     create_geopackage = BashEnvOperator(
         task_id="create_geopackage",
         env={},
         env_expander=fetch_pg_env_vars,
-        bash_command=f'rm -f {gpkg_path} && ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
+        bash_command=f"rm -f {gpkg_path} &&"
+        f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
     )
 
     # 10. Zip geopackage
@@ -158,3 +161,24 @@ for table in create_tables:
     >> upload_data
     >> grant_db_permissions
 )
+
+dag.doc_md = """
+    #### DAG summery
+    This DAG processes data about maintaince public space and its objects.
+    The formal (approved by the city council) public space naming does not suffix in this case.
+    To cope with ommisions the objects are classified by the use of basisregistraties
+    grootschalige topografie (BGT) en Kadaster (BRK).
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the productowner at team Omgevingswet.
+    #### Business Use Case / process / origin
+    Na
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/docs/datasets/beheerkaart/index.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/beheerkaart/index.html
+    Example geosearch:
+    N.A.
+"""
