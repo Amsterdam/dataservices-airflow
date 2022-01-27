@@ -9,7 +9,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
+    EPHEMERAL_DIR,
     MessageOperator,
     default_args,
     slack_webhook_token,
@@ -28,8 +28,8 @@ FileStem = str
 UrlPath = str
 
 DAG_ID: Final = "bbga"
-TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
-SQLITE_CSV_TRANSFORM_FILE: Final = TMP_DIR / "transform_csv_files.sqlite3"
+EXPORT_DIR: Final = Path(EPHEMERAL_DIR) / DAG_ID
+SQLITE_CSV_TRANSFORM_FILE: Final = EXPORT_DIR / "transform_csv_files.sqlite3"
 TMP_TABLE_PREFIX: Final = "tmp_"
 VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: dict[FileStem, UrlPath] = VARS["data_endpoints"]
@@ -53,14 +53,14 @@ with DAG(
         username="admin",
     )
 
-    mkdir = mk_dir(TMP_DIR)
+    mkdir = mk_dir(EXPORT_DIR)
 
     download_data = [
         HttpFetchOperator(
             task_id=f"download_{file_stem}",
             endpoint=url_path,
             http_conn_id="api_data_amsterdam_conn_id",
-            tmp_file=TMP_DIR / f"{file_stem}.csv",
+            tmp_file=EXPORT_DIR / f"{file_stem}.csv",
         )
         for file_stem, url_path in data_endpoints.items()
     ]
@@ -106,11 +106,11 @@ with DAG(
 
     transform_csv_files = BashOperator(
         task_id="transform_csv_files",
-        bash_command=f"cd {TMP_DIR}; sqlite3 bbga.db < {SQLITE_CSV_TRANSFORM_FILE}",
+        bash_command=f"cd {EXPORT_DIR}; sqlite3 bbga.db < {SQLITE_CSV_TRANSFORM_FILE}",
     )
 
     data = tuple(
-        FileTable(file=TMP_DIR / f"{file_stem}.csv", table=f"{TMP_TABLE_PREFIX}{table}")
+        FileTable(file=EXPORT_DIR / f"{file_stem}.csv", table=f"{TMP_TABLE_PREFIX}{table}")
         for file_stem, table in table_mappings.items()
     )
     postgres_insert_csv = PostgresInsertCsvOperator(task_id="postgres_insert_csv", data=data)
@@ -128,7 +128,7 @@ with DAG(
     rm_tmp_tables_post = rm_tmp_tables("_post")
 
     rm_tmp_dir = PythonOperator(
-        task_id="rm_tmp_dir", python_callable=shutil.rmtree, op_args=[TMP_DIR]
+        task_id="rm_tmp_dir", python_callable=shutil.rmtree, op_args=[EXPORT_DIR]
     )
 
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)

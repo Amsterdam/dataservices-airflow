@@ -36,6 +36,9 @@ ELIGIBLE_EMAIL_ENVIRONMENTS: tuple[str, ...] = tuple(
 
 SHARED_DIR: str = env("SHARED_DIR", "/tmp")  # noqa: S108
 
+# defines the an ephermeral directory used on an AKS pod non-mounted as a share.
+EPHEMERAL_DIR: str = env("EPHEMERAL_DIR", "/scratch-volume")  # noqa: S108
+
 DATASTORE_TYPE: str = (
     "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )

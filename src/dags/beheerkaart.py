@@ -6,6 +6,7 @@ from bash_env_operator import BashEnvOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     DATASTORE_TYPE,
+    EPHEMERAL_DIR,
     MessageOperator,
     default_args,
     slack_webhook_token,
@@ -24,7 +25,7 @@ from swap_schema_operator import SwapSchemaOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
 dag_id = "beheerkaart"
-export_dir = f"/scratch-volume/{dag_id}"
+export_dir = f"{EPHEMERAL_DIR}/{dag_id}"
 tables = {
     "beheerkaart_basis_bgt": "bkt_bgt",
     "beheerkaart_basis_eigendomsrecht": "bkt_eigendomsrecht",
