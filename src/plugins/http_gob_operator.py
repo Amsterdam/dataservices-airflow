@@ -250,6 +250,7 @@ class HttpGobOperator(BaseOperator):
                         f"{SHARED_DIR}/{dataset_table_id}-{datetime.now().isoformat()}.ndjson",
                     )
                     Variable.set(f"{dataset_table_id}.cursor_pos", cursor_pos)
+                    self.log.exception("Database error")
                     raise AirflowException("A database error has occurred.") from e
 
                 self.log.info(
