@@ -7,7 +7,7 @@ from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
-    SHARED_DIR,
+    EPHEMERAL_DIR,
     MessageOperator,
     default_args,
     quote_string,
@@ -38,7 +38,11 @@ files_to_download = variables["files_to_download"]
 table_source_names = variables["table_source_names"]
 table_target_names = variables["table_target_names"]
 table_renames = list(zip(files_to_download, table_source_names, table_target_names))
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
+# Due to a network mount (/tmp) on Azure AKS, the modification of
+# the downloaded source file returns a permission denied. With an
+# ephemeral non mount volume this issue does not arise.
+# TODO: Investigate why.
+tmp_dir = f"{EPHEMERAL_DIR}/{dag_id}"
 total_checks: list[int] = []
 count_checks: list[int] = []
 geo_checks: list[int] = []
