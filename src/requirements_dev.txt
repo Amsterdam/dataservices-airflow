@@ -12,8 +12,10 @@ pre-commit == 2.14.0
 # Some installers need wheel support
 wheel == 0.34.1
 
-# Source code formatting
-black
+# 2022-02-02: black higher then
+# 20.8b1 gives issue with flask
+# in regards to click version 8
+black == 20.8b1
 isort
 
 mypy==0.910
