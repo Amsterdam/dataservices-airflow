@@ -355,3 +355,7 @@ leidingeninfrastuctuur:
     ondergrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
     bovengrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
     punten: SQL_PUNTEN_TABLE
+hoofdroutes:
+  files_to_download:
+    routes_gevaarlijke_stoffen: dcatd/datasets/ZtMOaEZSOnXM9w/purls/1
+    tunnels_gevaarlijke_stoffen: dcatd/datasets/ZtMOaEZSOnXM9w/purls/2
