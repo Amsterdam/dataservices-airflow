@@ -41,6 +41,7 @@ DAG_DATASET: Final = {
     "reclamebelasting": "belastingen",
     "processenverbaalverkiezingen": "verkiezingen",
     "financien_": "financien",
+    "wegenbestand": "wegenbestandZoneZwaarverkeer",
 }
 
 
