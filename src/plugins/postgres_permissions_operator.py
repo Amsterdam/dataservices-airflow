@@ -145,21 +145,17 @@ class PostgresPermissionsOperator(BaseOperator):
             if executed_dags_after_delta:
 
                 for self.dataset_name in executed_dags_after_delta:
+                    dataset_name = []
 
                     # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
                     for key in DAG_DATASET.keys():
-                        if key in self.dataset_name:
-                            self.dataset_name = DAG_DATASET[key]
-                        # if dataset_name is just a string value, convert it into a list
-                        # so we can use it as an iterable in the grants
-                        # allocation in the next section.
-                        if not isinstance(self.dataset_name, list):
-                            self.dataset_name = [
-                                self.dataset_name,
-                            ]
+                        if self.dataset_name and key in self.dataset_name:
+                            dataset_name.append(DAG_DATASET[key])
+                        elif self.dataset_name:
+                            dataset_name.append(self.dataset_name)
                         break
 
-                    for dataset in self.dataset_name:
+                    for dataset in dataset_name:
 
                         logger.info("set grants for %s", dataset)
 
@@ -194,21 +190,17 @@ class PostgresPermissionsOperator(BaseOperator):
 
         # Option TWO: grant on single dataset (can be used as a final step within a single DAG run)
         elif self.dataset_name and not self.batch_ind:
+            dataset_name = []
 
             # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
             for key in DAG_DATASET.keys():
                 if key in self.dataset_name:
-                    self.dataset_name = DAG_DATASET[key]
-                # if dataset_name is just a string value, convert it into a list
-                # so we can use it as an iterable in the grants
-                # allocation in the next section.
-                if not isinstance(self.dataset_name, list):
-                    self.dataset_name = [
-                        self.dataset_name,
-                    ]
+                    dataset_name.append(DAG_DATASET[key])
+                else:
+                    dataset_name.append(self.dataset_name)
                 break
 
-            for dataset in self.dataset_name:
+            for dataset in dataset_name:
 
                 logger.info("set grants for %s", dataset)
 
