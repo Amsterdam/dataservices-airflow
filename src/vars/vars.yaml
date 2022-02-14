@@ -363,10 +363,10 @@ wegenbestand:
   files_to_download:
     routes_gevaarlijke_stoffen: {"url": "dcatd/datasets/ZtMOaEZSOnXM9w/purls/1", "file_type": "geojson"}
     tunnels_gevaarlijke_stoffen: {"url": "dcatd/datasets/ZtMOaEZSOnXM9w/purls/2", "file_type": "geojson"}
-    zone_zwaarverkeer: {"url": "dcatd/datasets/YLTyzpWP6Vz2QQ/purls/1", "file_type": "gpkg"}
+    zone_zwaar_verkeer: {"url": "dcatd/datasets/YLTyzpWP6Vz2QQ/purls/1", "file_type": "gpkg"}
   data_values:
-    table_1: {"table":"binnen", "geopackage_layer": "vma400_20212201_undirected","data_filter": "binnen", "source": "zone_zwaarverkeer"}
-    table_2: {"table":"buiten", "geopackage_layer": "vma400_20212201_undirected","data_filter": "buiten", "source": "zone_zwaarverkeer"}
-    table_3: {"table":"breed_opgezette_wegen", "geopackage_layer": "vma400_20212201_undirected", "data_filter": "binnen - breed opgezette wegen", "source": "zone_zwaarverkeer"}
+    table_1: {"table":"binnen", "geopackage_layer": "vma400_20212201_undirected","data_filter": "binnen", "source": "zone_zwaar_verkeer"}
+    table_2: {"table":"buiten", "geopackage_layer": "vma400_20212201_undirected","data_filter": "buiten", "source": "zone_zwaar_verkeer"}
+    table_3: {"table":"breed_opgezette_wegen", "geopackage_layer": "vma400_20212201_undirected", "data_filter": "binnen - breed opgezette wegen", "source": "zone_zwaar_verkeer"}
     table_4: {"table":"routes_gevaarlijke_stoffen", "data_filter": None, "source": "routes_gevaarlijke_stoffen"}
     table_5: {"table":"tunnels_gevaarlijke_stoffen", "data_filter": None, "source": "tunnels_gevaarlijke_stoffen"}
