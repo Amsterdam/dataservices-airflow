@@ -31,9 +31,9 @@ logger = logging.getLogger(__name__)
 db_conn = DatabaseEngine()
 
 DAG_ID: Final = "wegenbestand"
-# Wegenbestand holds a sub categorie ZZV `zone zwaarverkeer` for
+# Wegenbestand holds a sub categorie ZZV `zone zwaar verkeer` for
 # some tables to be listed under.
-DATASET_ID_ZZV: Final = "wegenbestandZoneZwaarverkeer"
+DATASET_ID_ZZV: Final = "wegenbestandZoneZwaarVerkeer"
 DATASET_ID_ZZV_DATABASE: Final = to_snake_case(DATASET_ID_ZZV)
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 variables: dict[str, dict[str, str]] = Variable.get(DAG_ID, deserialize_json=True)
@@ -95,7 +95,7 @@ with DAG(
             db_conn=db_conn,
         )
         for values in data_values.values()
-        if values["source"] == "zone_zwaarverkeer"
+        if values["source"] == "zone_zwaar_verkeer"
         for resource_name, extention in files_to_download.items()
         if resource_name == values["source"]
     ]
@@ -125,9 +125,9 @@ with DAG(
     provenance_trans = [
         ProvenanceRenameOperator(
             task_id=f"provenance_rename_{values['table']}",
-            dataset_name=DATASET_ID_ZZV if values["source"] == "zone_zwaarverkeer" else DAG_ID,
+            dataset_name=DATASET_ID_ZZV if values["source"] == "zone_zwaar_verkeer" else DAG_ID,
             prefix_table_name=f"{DATASET_ID_ZZV_DATABASE}_"
-            if values["source"] == "zone_zwaarverkeer"
+            if values["source"] == "zone_zwaar_verkeer"
             else f"{DAG_ID}_",
             postfix_table_name="_new",
             rename_indexes=False,
@@ -143,7 +143,7 @@ with DAG(
             sql=SQL_GEOMETRY_VALID,
             params={
                 "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
-                if values["source"] == "zone_zwaarverkeer"
+                if values["source"] == "zone_zwaar_verkeer"
                 else f"{DAG_ID}_{values['table']}_new",
                 "geo_column": "geometry",
                 "geom_type_number": 2,
@@ -165,7 +165,7 @@ with DAG(
                 pass_value=2,
                 params={
                     "table_name": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
-                    if values["source"] == "zone_zwaarverkeer"
+                    if values["source"] == "zone_zwaar_verkeer"
                     else f"{DAG_ID}_{values['table']}_new"
                 },
                 result_checker=operator.ge,
@@ -177,7 +177,7 @@ with DAG(
                 check_id=f"geo_check_{values['table']}",
                 params={
                     "table_name": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
-                    if values["source"] == "zone_zwaarverkeer"
+                    if values["source"] == "zone_zwaar_verkeer"
                     else f"{DAG_ID}_{values['table']}_new",
                     "geotype": [
                         "POINT",
@@ -206,10 +206,10 @@ with DAG(
             task_id=f"change_data_capture_{values['table']}",
             dataset_name=DATASET_ID_ZZV,
             source_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
-            if values["source"] == "zone_zwaarverkeer"
+            if values["source"] == "zone_zwaar_verkeer"
             else f"{DAG_ID}_{values['table']}_new",
             target_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}"
-            if values["source"] == "zone_zwaarverkeer"
+            if values["source"] == "zone_zwaar_verkeer"
             else f"{DAG_ID}_{values['table']}",
             drop_target_if_unequal=True,
         )
@@ -223,7 +223,7 @@ with DAG(
             sql=SQL_DROP_TMP_TABLE,
             params={
                 "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
-                if values["source"] == "zone_zwaarverkeer"
+                if values["source"] == "zone_zwaar_verkeer"
                 else f"{DAG_ID}_{values['table']}_new"
             },
         )
@@ -278,9 +278,9 @@ dag.doc_md = """
     https://api.data.amsterdam.nl/v1/docs/datasets/wegenbestand.html
     https://api.data.amsterdam.nl/v1/docs/wfs-datasets/wegenbestand.html
     Example geosearch:
-    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaarverkeer/binnen&x=120320&y=488448&radius=10
-    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaarverkeer/buiten&x=120320&y=488448&radius=10
-    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaarverkeer/breed_opgezette_wegen&x=120320&y=488448&radius=10
-    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaarverkeer/routes_gevaarlijke_stoffen&x=118601&y=490715&radius=1
-    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaarverkeer/tunnels_gevaarlijke_stoffen&x=124630&y=480803&radius=1
+    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaar_verkeer/binnen&x=120320&y=488448&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaar_verkeer/buiten&x=120320&y=488448&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaar_verkeer/breed_opgezette_wegen&x=120320&y=488448&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaar_verkeer/routes_gevaarlijke_stoffen&x=118601&y=490715&radius=1
+    https://api.data.amsterdam.nl/geosearch?datasets=wegenbestand_zone_zwaar_verkeer/tunnels_gevaarlijke_stoffen&x=124630&y=480803&radius=1
 """
