@@ -189,8 +189,10 @@ with DAG(
             target_table_name=f"{dag_id}_{resource}_new",
             input_file=f"{tmp_dir}/{resource}.{resource_format}",
             # the lat long in source openbaresportplek are twisted.
-            # So we need to correct it by switching it in reverse.
-            s_srs="+proj=latlong +datum=WGS84 +axis=neu +wktext" if resource == "openbaresportplek" else "EPSG:4326",
+            # So we need to correct it by switching it in reverse
+            s_srs="+proj=latlong +datum=WGS84 +axis=neu +wktext"
+            if resource == "openbaresportplek"
+            else "EPSG:4326",
             t_srs="EPSG:28992",
             input_file_sep="SEMICOLON",
             auto_detect_type="YES",
