@@ -31,8 +31,10 @@ logger = logging.getLogger(__name__)
 db_conn = DatabaseEngine()
 
 DAG_ID: Final = "wegenbestand"
-DATASET_ID: Final = "wegenbestandZoneZwaarverkeer"
-DATASET_ID_DATABASE: Final = to_snake_case(DATASET_ID)
+# Wegenbestand holds a sub categorie ZZV `zone zwaarverkeer` for
+# some tables to be listed under.
+DATASET_ID_ZZV: Final = "wegenbestandZoneZwaarverkeer"
+DATASET_ID_ZZV_DATABASE: Final = to_snake_case(DATASET_ID_ZZV)
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 variables: dict[str, dict[str, str]] = Variable.get(DAG_ID, deserialize_json=True)
 files_to_download: dict[str, dict[str, str]] = variables["files_to_download"]  # type: ignore
@@ -89,7 +91,7 @@ with DAG(
             input_file=f"{TMP_DIR}/{resource_name}.{extention['file_type']}",
             t_srs="EPSG:28992",
             mode="PostgreSQL",
-            nln_options=[f"{DATASET_ID_DATABASE}_{values['table']}_new"],
+            nln_options=[f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"],
             db_conn=db_conn,
         )
         for values in data_values.values()
@@ -102,7 +104,7 @@ with DAG(
     load_geojson = [
         Ogr2OgrOperator(
             task_id=f"import_geojson_{values['table']}",
-            target_table_name=f"{DATASET_ID_DATABASE}_{values['table']}_new",
+            target_table_name=f"{DAG_ID}_{values['table']}_new",
             input_file=f"{TMP_DIR}/{values['table']}.{extention['file_type']}",
             t_srs="EPSG:28992",
             mode="PostgreSQL",
@@ -114,15 +116,25 @@ with DAG(
         if resource_name == values["source"]
     ]
 
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel
+    # tasks with different number of lanes (without this intermediar, Airflow will raise an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
     # 6. RENAME columns based on PROVENANCE
-    provenance_trans = ProvenanceRenameOperator(
-        task_id="provenance_rename",
-        dataset_name=DATASET_ID,
-        prefix_table_name=f"{DATASET_ID_DATABASE}_",
-        postfix_table_name="_new",
-        rename_indexes=False,
-        pg_schema="public",
-    )
+    # for sublevel zonezwaarverkeer
+    provenance_trans = [
+        ProvenanceRenameOperator(
+            task_id=f"provenance_rename_{values['table']}",
+            dataset_name=DATASET_ID_ZZV if values["source"] == "zone_zwaarverkeer" else DAG_ID,
+            prefix_table_name=f"{DATASET_ID_ZZV_DATABASE}_"
+            if values["source"] == "zone_zwaarverkeer"
+            else f"{DAG_ID}_",
+            postfix_table_name="_new",
+            rename_indexes=False,
+            pg_schema="public",
+        )
+        for values in data_values.values()
+    ]
 
     # 7. Make geometry valid
     make_geo_valid = [
@@ -130,7 +142,9 @@ with DAG(
             task_id=f"make_geo_valid_{values['table']}",
             sql=SQL_GEOMETRY_VALID,
             params={
-                "tablename": f"{DATASET_ID_DATABASE}_{values['table']}_new",
+                "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
+                if values["source"] == "zone_zwaarverkeer"
+                else f"{DAG_ID}_{values['table']}_new",
                 "geo_column": "geometry",
                 "geom_type_number": 2,
             },
@@ -149,7 +163,11 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{values['table']}",
                 pass_value=2,
-                params={"table_name": f"{DATASET_ID_DATABASE}_{values['table']}_new"},
+                params={
+                    "table_name": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
+                    if values["source"] == "zone_zwaarverkeer"
+                    else f"{DAG_ID}_{values['table']}_new"
+                },
                 result_checker=operator.ge,
             )
         )
@@ -158,7 +176,9 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{values['table']}",
                 params={
-                    "table_name": f"{DATASET_ID_DATABASE}_{values['table']}_new",
+                    "table_name": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
+                    if values["source"] == "zone_zwaarverkeer"
+                    else f"{DAG_ID}_{values['table']}_new",
                     "geotype": [
                         "POINT",
                         "MULTILINESTRING",
@@ -184,9 +204,13 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{values['table']}",
-            dataset_name=DATASET_ID,
-            source_table_name=f"{DATASET_ID_DATABASE}_{values['table']}_new",
-            target_table_name=f"{DATASET_ID_DATABASE}_{values['table']}",
+            dataset_name=DATASET_ID_ZZV,
+            source_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
+            if values["source"] == "zone_zwaarverkeer"
+            else f"{DAG_ID}_{values['table']}_new",
+            target_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}"
+            if values["source"] == "zone_zwaarverkeer"
+            else f"{DAG_ID}_{values['table']}",
             drop_target_if_unequal=True,
         )
         for values in data_values.values()
@@ -197,7 +221,11 @@ with DAG(
         PostgresOperator(
             task_id=f"clean_up_{values['table']}",
             sql=SQL_DROP_TMP_TABLE,
-            params={"tablename": f"{DATASET_ID_DATABASE}_{values['table']}_new"},
+            params={
+                "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
+                if values["source"] == "zone_zwaarverkeer"
+                else f"{DAG_ID}_{values['table']}_new"
+            },
         )
         for values in data_values.values()
     ]
@@ -225,13 +253,13 @@ for import_geojson in zip(load_geojson):
     [import_geojson]
 
 # Merge path 1&2: and continue main path
-load_geopackage >> provenance_trans
-load_geojson >> provenance_trans >> make_geo_valid
+load_geopackage >> Interface2
+load_geojson >> Interface2 >> provenance_trans
 
-for (geo_valid, multi_check, capture_data, clean_up) in zip(
-    make_geo_valid, multi_checks, change_data_capture, clean_ups
+for (renames, geo_valid, multi_check, capture_data, clean_up) in zip(
+    provenance_trans, make_geo_valid, multi_checks, change_data_capture, clean_ups
 ):
-    [geo_valid >> multi_check >> capture_data >> clean_up]
+    [renames >> geo_valid >> multi_check >> capture_data >> clean_up]
 
 clean_ups >> grant_db_permissions
 
