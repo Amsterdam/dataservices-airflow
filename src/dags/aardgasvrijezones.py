@@ -58,7 +58,7 @@ with DAG(
         SwiftOperator(
             task_id=f"download_{file}",
             swift_conn_id="SWIFT_DEFAULT",
-            container="aardgasvrij_expres_fout",
+            container="aardgasvrij",
             object_id=file,
             output_path=f"{tmp_dir}/{file}",
         )
