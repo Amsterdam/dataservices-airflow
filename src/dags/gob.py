@@ -6,7 +6,7 @@ from typing import Any, DefaultDict, Final, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
+from common import DATAPUNT_ENVIRONMENT, OTAP_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from http_gob_operator import HttpGobOperator
@@ -116,7 +116,7 @@ def create_gob_dag(
             task_id=f"slack_at_start_{dataset_table_id}",
             http_conn_id="slack",
             webhook_token=slack_webhook_token,
-            message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+            message=f":runner: Starting {dag_id} ({OTAP_ENVIRONMENT})",
             username="admin",
         )
 

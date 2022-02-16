@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from bash_env_operator import BashEnvOperator
 from common import (
-    DATAPUNT_ENVIRONMENT,
+    OTAP_ENVIRONMENT,
     DATASTORE_TYPE,
     EPHEMERAL_DIR,
     MessageOperator,
@@ -51,7 +51,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f":runner: Starting {dag_id} ({OTAP_ENVIRONMENT})",
         username="admin",
     )
 
@@ -135,7 +135,7 @@ with DAG(
 
     # 11. Upload geopackage to datacatalog
     upload_data = DCATSwiftOperator(
-        environment=DATAPUNT_ENVIRONMENT,
+        environment=OTAP_ENVIRONMENT,
         task_id="upload_data",
         input_path=f"{gpkg_path}.zip",
         dataset_title="Beheerkaart publieke ruimte",

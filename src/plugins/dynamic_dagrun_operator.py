@@ -64,7 +64,7 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
             self.log.info("Not starting next dag ('no_next_dag' in dag_run config)!")
             return
         current_dag_id = self.dag.dag_id
-        self.log.info("Starting dag %s", current_dag_id)
+        self.log.info(":runner: Starting dag %s", current_dag_id)
         session = Session()
         query = (
             session.query(DagModel)

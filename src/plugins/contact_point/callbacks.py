@@ -5,7 +5,7 @@ from airflow.models.dag import DagStateChangeCallback
 from airflow.models.taskinstance import Context, TaskInstance
 from airflow.settings import TIMEZONE
 from airflow.utils.email import send_email
-from common import DATAPUNT_ENVIRONMENT, ELIGIBLE_EMAIL_ENVIRONMENTS
+from common import OTAP_ENVIRONMENT, ELIGIBLE_EMAIL_ENVIRONMENTS
 from contact_point.models import ContactPoint
 from environs import Env
 from more_ds.network.url import URL
@@ -45,7 +45,6 @@ def get_contact_point_on_failure_callback(
     Returns:
         a ``contact_point_on_failure_callback``
     """
-
     def _contact_point_on_failure_callback(context: Context) -> None:
         logger.info("Import of dataset '%s' failed.", dataset_id)
 
@@ -97,7 +96,7 @@ def get_contact_point_on_failure_callback(
             Team Datadiensten<br>
         """
         logger.debug("Failure notification message:\n%s", body)
-        if DATAPUNT_ENVIRONMENT in eligible_environments:
+        if OTAP_ENVIRONMENT in eligible_environments:
             logger.info("Notifying contact point '%s' of import failure by email.", contact_point)
             send_email((contact_point.email,), subject, html_content=body)
         else:
@@ -107,7 +106,7 @@ def get_contact_point_on_failure_callback(
                 " Current environment: '%s'."
                 " Eligible environment(s): '%s'.",
                 contact_point,
-                DATAPUNT_ENVIRONMENT,
+                OTAP_ENVIRONMENT,
                 ", ".join(eligible_environments),
             )
 

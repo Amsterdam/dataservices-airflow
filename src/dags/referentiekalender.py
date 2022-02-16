@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import OTAP_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_referentiekalender import load_from_dwh
@@ -27,7 +27,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f":runner: Starting {dag_id} ({OTAP_ENVIRONMENT})",
         username="admin",
     )
 

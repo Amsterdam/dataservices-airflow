@@ -24,13 +24,29 @@ env: Env = Env()
 logger: logging.Logger = logging.getLogger(__name__)
 
 slack_webhook_token: str = env("SLACK_WEBHOOK")
+
+# the DATAPUNT_ENVIRONMENT is set in CloudVPS (Openstack repo) for
+# environment `acceptance` or `production`. These values are also
+# used in some dags to refer to a folder on the objectstore as such.
+# Therefor we will leave this one exists for now. When fully migrating
+# to Azure, we can modify the set of `DATASTORE_TYPE` and
+# `MessageOperator` see below.
 DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 
+# For slack messages and callback function (see callbacks.py) we use
+# the variable to indicate where execution takes place.
+# Since we have to deal with the hybride situation of CloudVPS and Azure
+# we for now still need to account for DATAPUNT_ENVIRONMENT as value.
+# When fully migrated to Azure we can remove the second entry.
+OTAP_ENVIRONMENT: str =env("AZURE_OTAP_ENVIRONMENT", env("DATAPUNT_ENVIRONMENT", "acceptance"))
+
 # Defines the environments in which sending of email is enabled.
+# After we are fully migrated to Azure, we can remove the list item
+# `production` and just leave `prd`.
 ELIGIBLE_EMAIL_ENVIRONMENTS: tuple[str, ...] = tuple(
     cast(
         Iterable[str],
-        map(lambda s: s.strip(), env.list("ELIGIBLE_EMAIL_ENVIRONMENTS", ["production"])),
+        map(lambda s: s.strip(), env.list("ELIGIBLE_EMAIL_ENVIRONMENTS", ["production", "prd"])),
     )
 )
 
@@ -43,34 +59,9 @@ DATASTORE_TYPE: str = (
     "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )
 
-
-class MonkeyPatchedSlackWebhookHook(SlackWebhookHook):
-    """THIS IS TEMPORARY PATCH. IF YOU SEE THIS AFTER MARCH 21 2021 PLEASE POKE NICK.
-
-    Patching default SlackWebhookHook in order to set correct Verify option,
-    needed for production use.
-    """
-
-    def run(  # noqa: D102 (it's temporary after all)
-        self,
-        endpoint: Optional[str],
-        data: Optional[Union[dict[str, Any], str]] = None,
-        headers: Optional[dict[str, Any]] = None,
-        extra_options: Optional[dict[str, Any]] = None,
-        **request_kwargs: Any,
-    ) -> None:
-        if extra_options and "verify" not in extra_options:
-            if "CURL_CA_BUNDLE" in os.environ:
-                extra_options["verify"] = os.environ.get("CURL_CA_BUNDLE")
-            if "REQUESTS_CA_BUNDLE" in os.environ:
-                extra_options["verify"] = os.environ.get("REQUESTS_CA_BUNDLE")
-
-        super().run(endpoint, data, headers, extra_options, **request_kwargs)
-
-
 class SlackFailsafeWebhookOperator(SlackWebhookOperator):  # noqa: D101 (it's temporary after all)
     def execute(self, context: Context) -> None:  # noqa: D102 (it's temporary after all)
-        self.hook = MonkeyPatchedSlackWebhookHook(
+        self.hook = SlackWebhookHook(
             self.http_conn_id,
             self.webhook_token,
             self.message,
@@ -127,7 +118,7 @@ def slack_failed_task(context: Context) -> None:
                 etype=type(exception), value=exception, tb=exception.__traceback__
             )
         ).strip()
-    message: str = f"""Failure info:
+    message: str = f""":red_circle: Failure info ({OTAP_ENVIRONMENT}):
         dag_id: {dag_id}
         task_id: {task_id}
     """

@@ -63,7 +63,7 @@ def main():
         .reset_index()
     )
 
-    log.info(f"Starting import {args.input_json}")
+    log.info(f":runner: Starting import {args.input_json}")
 
     engine = get_engine()
 
