@@ -79,7 +79,7 @@ with DAG(
     drop_tables = PostgresOperator(task_id="drop_tables", sql=DROP_IMPORT_TABLES)
 
     swift_load_task = SwiftLoadSqlOperator(
-        task_id=f"swift_load_task_{DATASTORE_TYPE}",
+        task_id=f"swift_load_task",
         container="blackspots",
         swift_conn_id="SWIFT_DEFAULT",
         object_id=f"{DATASTORE_TYPE}/spots.sql",
