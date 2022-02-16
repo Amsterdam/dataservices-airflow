@@ -18,7 +18,6 @@ env = Env()
 # For database connection the url params must be omitted.
 default_db_conn = env("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
 default_schema_url = env("SCHEMA_URL")
-datapunt_evironment = env("DATAPUNT_ENVIRONMENT")
 
 # some DAG's do not match dag_id with dataschema name.
 # the reason can be that for one dataset multiple DAG's are implemented i.e.

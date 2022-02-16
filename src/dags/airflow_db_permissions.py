@@ -1,7 +1,7 @@
 import logging
 
 from airflow import DAG
-from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import OTAP_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "airflow_db_permissions"
@@ -20,7 +20,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {dag_id} ({DATAPUNT_ENVIRONMENT})",
+        message=f":runner: Starting {dag_id} ({OTAP_ENVIRONMENT})",
         username="admin",
     )
 
