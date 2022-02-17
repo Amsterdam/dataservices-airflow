@@ -40,6 +40,10 @@ DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 # When fully migrated to Azure we can remove the second entry.
 OTAP_ENVIRONMENT: str =env("AZURE_OTAP_ENVIRONMENT", env("DATAPUNT_ENVIRONMENT", "acceptance"))
 
+# Emoij for indicator starting or failing DAG's in Slack message.
+SLACK_ICON_START: str = ":arrow_forward:"
+SLACK_ICON_FAIL: str = ":red_circle:"
+
 # Defines the environments in which sending of email is enabled.
 # After we are fully migrated to Azure, we can remove the list item
 # `production` and just leave `prd`.
@@ -118,7 +122,7 @@ def slack_failed_task(context: Context) -> None:
                 etype=type(exception), value=exception, tb=exception.__traceback__
             )
         ).strip()
-    message: str = f""":red_circle: Failure info ({OTAP_ENVIRONMENT}):
+    message: str = f"""{SLACK_ICON_FAIL} Failure info ({OTAP_ENVIRONMENT}):
         dag_id: {dag_id}
         task_id: {task_id}
     """

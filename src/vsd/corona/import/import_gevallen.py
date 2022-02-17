@@ -63,7 +63,7 @@ def main():
         .reset_index()
     )
 
-    log.info(f":runner: Starting import {args.input_json}")
+    log.info(f"{SLACK_ICON_START} Starting import {args.input_json}")
 
     engine = get_engine()
 
