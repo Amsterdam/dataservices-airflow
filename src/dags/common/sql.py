@@ -6,6 +6,13 @@ SQL_DROP_TABLE: Final = """
     COMMIT;
 """
 
+SQL_GEOMETRY_VALID: Final = """
+    UPDATE {{ params.tablename }}
+    SET GEOMETRY = ST_MakeValid(GEOMETRY)
+    WHERE ST_IsValid(GEOMETRY) = false;
+    COMMIT;
+"""
+
 SQL_TABLE_RENAME: Final = """
     {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% set pk = params.pk|default("pk", true) %}
@@ -44,7 +51,7 @@ SQL_CHECK_GEO: Final = """
         {% endif %}
         (
         {% if params.check_valid|default(true) %} ST_IsValid({{ geo_column }}) = false {% endif %}
-          {% if params.check_valid|default(true) %} OR {% endif %} ST_GeometryType({{ geo_column }})
+        {% if params.check_valid|default(true) %} OR {% endif %} ST_GeometryType({{ geo_column }})
         {% if params.geotype is string %}
           <> '{{ params.geotype }}'
         {% else %}
