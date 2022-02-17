@@ -5,6 +5,7 @@ import os
 from typing import Final
 
 import pandas as pd
+from common import SLACK_ICON_START
 from common.db import get_engine
 from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy import Date, Integer, String

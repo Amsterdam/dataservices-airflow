@@ -7,6 +7,7 @@ from airflow.operators.bash import BashOperator
 from common import (
     OTAP_ENVIRONMENT,
     SHARED_DIR,
+    SLACK_ICON_START,
     MessageOperator,
     default_args,
     pg_params,

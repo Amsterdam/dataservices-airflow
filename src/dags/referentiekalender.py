@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import OTAP_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import OTAP_ENVIRONMENT, SLACK_ICON_START, MessageOperator, default_args, slack_webhook_token
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_referentiekalender import load_from_dwh

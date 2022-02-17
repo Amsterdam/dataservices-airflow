@@ -6,6 +6,7 @@ from airflow.models import Variable
 from common import (
     OTAP_ENVIRONMENT,
     SHARED_DIR,
+    SLACK_ICON_START,
     MessageOperator,
     default_args,
     quote_string,

@@ -9,6 +9,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.settings import TIMEZONE
 from common import (
     OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,

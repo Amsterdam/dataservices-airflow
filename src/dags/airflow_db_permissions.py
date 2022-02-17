@@ -1,7 +1,7 @@
 import logging
 
 from airflow import DAG
-from common import OTAP_ENVIRONMENT, MessageOperator, default_args, slack_webhook_token
+from common import OTAP_ENVIRONMENT, SLACK_ICON_START, MessageOperator, default_args, slack_webhook_token
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "airflow_db_permissions"

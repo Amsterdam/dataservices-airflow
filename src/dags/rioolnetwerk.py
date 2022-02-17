@@ -6,6 +6,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     OTAP_ENVIRONMENT,
     DATASTORE_TYPE,
+    SLACK_ICON_START,
     MessageOperator,
     default_args,
     quote_string,

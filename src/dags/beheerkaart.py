@@ -5,6 +5,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from bash_env_operator import BashEnvOperator
 from common import (
     OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
     DATASTORE_TYPE,
     EPHEMERAL_DIR,
     MessageOperator,

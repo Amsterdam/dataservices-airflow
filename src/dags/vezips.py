@@ -6,6 +6,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     OTAP_ENVIRONMENT,
     SHARED_DIR,
+    SLACK_ICON_START,
     MessageOperator,
     slack_webhook_token,
     vsd_default_args,

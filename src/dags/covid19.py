@@ -7,6 +7,7 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from common import (
     OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,
