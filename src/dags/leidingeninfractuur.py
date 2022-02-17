@@ -10,6 +10,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
 from common import (
     OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,

@@ -8,6 +8,7 @@ from airflow.operators.dummy import DummyOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,

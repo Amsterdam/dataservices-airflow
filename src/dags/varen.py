@@ -2,6 +2,7 @@ from airflow import DAG
 from common import (
     OTAP_ENVIRONMENT,
     DATASTORE_TYPE,
+    SLACK_ICON_START,
     MessageOperator,
     default_args,
     slack_webhook_token,

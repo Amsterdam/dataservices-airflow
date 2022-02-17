@@ -6,7 +6,7 @@ from typing import Any, DefaultDict, Final, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from common import DATAPUNT_ENVIRONMENT, OTAP_ENVIRONMENT, MessageOperator, default_args, env, slack_webhook_token
+from common import DATAPUNT_ENVIRONMENT, OTAP_ENVIRONMENT, SLACK_ICON_START, MessageOperator, default_args, env, slack_webhook_token
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from http_gob_operator import HttpGobOperator

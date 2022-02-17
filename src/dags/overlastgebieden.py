@@ -9,6 +9,7 @@ from airflow.operators.postgres_operator import PostgresOperator
 from airflow.providers.sftp.operators.sftp import SFTPOperator
 from common import (
     OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,
