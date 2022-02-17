@@ -6,7 +6,7 @@ from airflow.models.dagrun import DagRun
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.settings import Session
 from airflow.utils.state import State
-from dags.common import SLACK_ICON_START
+from common import SLACK_ICON_START
 from sqlalchemy import not_
 
 
