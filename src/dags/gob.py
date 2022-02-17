@@ -116,7 +116,7 @@ def create_gob_dag(
             task_id=f"slack_at_start_{dataset_table_id}",
             http_conn_id="slack",
             webhook_token=slack_webhook_token,
-            message=f":runner: Starting {dag_id} ({OTAP_ENVIRONMENT})",
+            message=f"{SLACK_ICON_START} Starting {dag_id} ({OTAP_ENVIRONMENT})",
             username="admin",
         )
 

@@ -51,7 +51,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f":runner: Starting {DAG_ID} ({OTAP_ENVIRONMENT})",
+        message=f"{SLACK_ICON_START} Starting {DAG_ID} ({OTAP_ENVIRONMENT})",
         username="admin",
     )
 
