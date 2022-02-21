@@ -88,7 +88,7 @@ with DAG(
             sql_statement="SELECT *"  # noqa: S608
             f" FROM {quote_string(values['geopackage_layer'])}"
             f" WHERE zone_zzv = {quote_string(values['data_filter'])}",
-            input_file=f"{TMP_DIR}/{resource_name}.{extention['file_type']}",
+            input_file=f"{TMP_DIR}/{resource_name}.{extension['file_type']}",
             t_srs="EPSG:28992",
             mode="PostgreSQL",
             nln_options=[f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"],
@@ -96,7 +96,7 @@ with DAG(
         )
         for values in data_values.values()
         if values["source"] == "zone_zwaar_verkeer"
-        for resource_name, extention in files_to_download.items()
+        for resource_name, extension in files_to_download.items()
         if resource_name == values["source"]
     ]
 
@@ -105,14 +105,14 @@ with DAG(
         Ogr2OgrOperator(
             task_id=f"import_geojson_{values['table']}",
             target_table_name=f"{DAG_ID}_{values['table']}_new",
-            input_file=f"{TMP_DIR}/{values['table']}.{extention['file_type']}",
+            input_file=f"{TMP_DIR}/{values['table']}.{extension['file_type']}",
             t_srs="EPSG:28992",
             mode="PostgreSQL",
             db_conn=db_conn,
         )
         for values in data_values.values()
         if values["source"] in ("routes_gevaarlijke_stoffen", "tunnels_gevaarlijke_stoffen")
-        for resource_name, extention in files_to_download.items()
+        for resource_name, extension in files_to_download.items()
         if resource_name == values["source"]
     ]
 
@@ -265,7 +265,7 @@ clean_ups >> grant_db_permissions
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains data about city accesibility routes/zones for heavy classified traffic.
+    This DAG contains data about city accessibility routes/zones for heavy classified traffic.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
