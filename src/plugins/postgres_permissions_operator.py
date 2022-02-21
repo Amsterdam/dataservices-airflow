@@ -26,20 +26,20 @@ default_schema_url = env("SCHEMA_URL")
 # where dag_id does not match dataschema name, the relation between the dag_id and
 # schema name is held in this constant.
 DAG_DATASET: Final = {
-    "basiskaart_": "basiskaart",
-    "bag_": "bag",
-    "brk_": "brk",
-    "gebieden_": "gebieden",
-    "nap_": "nap",
-    "meetbouten_": "meetbouten",
-    "woz_": "woz",
-    "hr_": "hr",
-    "horeca_": "horeca",
-    "beschermde_": "beschermdestadsdorpsgezichten",
-    "hoofdroutes_": "hoofdroutes",
-    "reclamebelasting": "belastingen",
-    "processenverbaalverkiezingen": "verkiezingen",
-    "financien_": "financien",
+    "basiskaart_": ["basiskaart"],
+    "bag_": ["bag"],
+    "brk_": ["brk"],
+    "gebieden_": ["gebieden"],
+    "nap_": ["nap"],
+    "meetbouten_": ["meetbouten"],
+    "woz_": ["woz"],
+    "hr_": ["hr"],
+    "horeca_": ["horeca"],
+    "beschermde_": ["beschermdestadsdorpsgezichten"],
+    "hoofdroutes_": ["hoofdroutes"],
+    "reclamebelasting": ["belastingen"],
+    "processenverbaalverkiezingen": ["verkiezingen"],
+    "financien_": ["financien"],
     "wegenbestand": ["wegenbestandZoneZwaarVerkeer", "wegenbestand"],
 }
 
@@ -149,10 +149,10 @@ class PostgresPermissionsOperator(BaseOperator):
                     # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
                     for key in DAG_DATASET.keys():
                         if self.dataset_name and key in self.dataset_name:
-                            dataset_name.append(DAG_DATASET[key])
-                        elif self.dataset_name:
-                            dataset_name.append(self.dataset_name)
-                        break
+                            for item in DAG_DATASET[key]:
+                                dataset_name.append(item)
+                    if not dataset_name and self.dataset_name:
+                        dataset_name.append(self.dataset_name)
 
                     for dataset in dataset_name:
 
@@ -194,10 +194,10 @@ class PostgresPermissionsOperator(BaseOperator):
             # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
             for key in DAG_DATASET.keys():
                 if key in self.dataset_name:
-                    dataset_name.append(DAG_DATASET[key])
-                else:
-                    dataset_name.append(self.dataset_name)
-                break
+                    for item in DAG_DATASET[key]:
+                        dataset_name.append(item)
+            if not dataset_name:
+                dataset_name.append(self.dataset_name)
 
             for dataset in dataset_name:
 
