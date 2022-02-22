@@ -73,7 +73,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
                    CASE
                        WHEN v.aantal_passanten < 15 THEN 0
                        ELSE v.aantal_passanten
-                   END AS aantal_passanten
+                   END AS aantal_passanten,
                    s.gebied,
                    ST_Transform(s.geom, 28992) AS geometrie  -- Ref DB only uses SRID 28992
                 FROM cmsa v
