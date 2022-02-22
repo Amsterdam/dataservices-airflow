@@ -74,7 +74,8 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
                    s.gebied,
                    ST_Transform(s.geom, 28992) AS geometrie  -- Ref DB only uses SRID 28992
                 FROM cmsa v
-                         JOIN peoplemeasurement_sensors s ON s.objectnummer = v.sensor;
+                         JOIN peoplemeasurement_sensors s ON s.objectnummer = v.sensor
+                WHERE s.is_public IS TRUE;
             """
         )
         while True:
