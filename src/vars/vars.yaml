@@ -368,5 +368,5 @@ wegenbestand:
     table_1: {"table":"binnen", "geopackage_layer": "vma400_20212201_undirected","data_filter": "binnen", "source": "zone_zwaar_verkeer"}
     table_2: {"table":"buiten", "geopackage_layer": "vma400_20212201_undirected","data_filter": "buiten", "source": "zone_zwaar_verkeer"}
     table_3: {"table":"breed_opgezette_wegen", "geopackage_layer": "vma400_20212201_undirected", "data_filter": "binnen - breed opgezette wegen", "source": "zone_zwaar_verkeer"}
-    table_4: {"table":"routes_gevaarlijke_stoffen", "data_filter": None, "source": "routes_gevaarlijke_stoffen"}
-    table_5: {"table":"tunnels_gevaarlijke_stoffen", "data_filter": None, "source": "tunnels_gevaarlijke_stoffen"}
+    table_4: {"table":"routes_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
+    table_5: {"table":"tunnels_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
