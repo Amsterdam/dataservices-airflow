@@ -10,6 +10,7 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
     SHARED_DIR,
+    SLACK_ICON_START,
     MessageOperator,
     default_args,
     quote_string,
@@ -59,7 +60,7 @@ with DAG(
         task_id="slack_at_start",
         http_conn_id="slack",
         webhook_token=slack_webhook_token,
-        message=f"Starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
+        message=f"{SLACK_ICON_START} starting {DAG_ID} ({DATAPUNT_ENVIRONMENT})",
         username="admin",
     )
 
@@ -111,9 +112,9 @@ with DAG(
             db_conn=db_conn,
         )
         for values in data_values.values()
-        if values["source"] in ("routes_gevaarlijke_stoffen", "tunnels_gevaarlijke_stoffen")
-        for resource_name, extension in files_to_download.items()
-        if resource_name == values["source"]
+        if values["source"] == "wegenbestand"
+        for table_name, extension in files_to_download.items()
+        if table_name == values["table"]
     ]
 
     # 4. Dummy operator acts as an interface between parallel tasks to another parallel
@@ -124,17 +125,21 @@ with DAG(
     # for sublevel zonezwaarverkeer
     provenance_trans = [
         ProvenanceRenameOperator(
-            task_id=f"provenance_rename_{values['table']}",
-            dataset_name=DATASET_ID_ZZV if values["source"] == "zone_zwaar_verkeer" else DAG_ID,
+            task_id=f"provenance_rename_{values}",
+            dataset_name=DATASET_ID_ZZV if values == "zone_zwaar_verkeer" else DAG_ID,
             prefix_table_name=f"{DATASET_ID_ZZV_DATABASE}_"
-            if values["source"] == "zone_zwaar_verkeer"
+            if values == "zone_zwaar_verkeer"
             else f"{DAG_ID}_",
             postfix_table_name="_new",
             rename_indexes=False,
             pg_schema="public",
         )
-        for values in data_values.values()
+        for values in {values["source"] for values in data_values.values()}
     ]
+
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel
+    # tasks with different number of lanes (without this intermediar, Airflow will raise an error)
+    Interface3 = DummyOperator(task_id="interface3")
 
     # 7. Make geometry valid
     make_geo_valid = [
@@ -256,10 +261,15 @@ for import_geojson in zip(load_geojson):
 load_geopackage >> Interface2
 load_geojson >> Interface2 >> provenance_trans
 
-for (renames, geo_valid, multi_check, capture_data, clean_up) in zip(
-    provenance_trans, make_geo_valid, multi_checks, change_data_capture, clean_ups
+for renames in zip(provenance_trans):
+    [renames]
+
+provenance_trans >> Interface3 >> make_geo_valid
+
+for (geo_valid, multi_check, capture_data, clean_up) in zip(
+    make_geo_valid, multi_checks, change_data_capture, clean_ups
 ):
-    [renames >> geo_valid >> multi_check >> capture_data >> clean_up]
+    [geo_valid >> multi_check >> capture_data >> clean_up]
 
 clean_ups >> grant_db_permissions
 
