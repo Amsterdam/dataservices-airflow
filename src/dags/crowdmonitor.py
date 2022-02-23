@@ -63,7 +63,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
                 SELECT sensor,
                        DATE_TRUNC('hour', timestamp_rounded) AS datum_uur,
                        SUM(total_count) AS aantal_passanten
-                    FROM cmsa_15min_view_v10_materialized
+                    FROM continuousaggregate_cmsa15min
                     WHERE timestamp_rounded > TO_DATE('2019-01-01', 'YYYY-MM-DD')
                     GROUP BY sensor, datum_uur)
             SELECT v.sensor,
