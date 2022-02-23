@@ -18,6 +18,7 @@ from common import (
 )
 from common.db import DatabaseEngine
 from common.path import mk_dir
+from common.sql import SQL_DROP_TABLE, SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -26,7 +27,6 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from schematools.utils import to_snake_case
-from sql.common_queries import SQL_DROP_TMP_TABLE, SQL_GEOMETRY_VALID
 
 logger = logging.getLogger(__name__)
 db_conn = DatabaseEngine()
@@ -225,7 +225,7 @@ with DAG(
     clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{values['table']}",
-            sql=SQL_DROP_TMP_TABLE,
+            sql=SQL_DROP_TABLE,
             params={
                 "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
                 if values["source"] == "zone_zwaar_verkeer"
