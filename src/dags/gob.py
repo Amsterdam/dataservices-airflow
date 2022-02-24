@@ -73,6 +73,7 @@ class DatasetInfo:
     sub_table_id: str
     dataset_table_id: str
     db_table_name: str
+    nested_db_table_names: list[str]
 
 
 def create_gob_dag(
@@ -134,10 +135,15 @@ def create_gob_dag(
 
         def _create_dataset_info(dataset_id: str, table_id: str, sub_table_id: str) -> DatasetInfo:
             dataset = dataset_schema_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
+
             # Fetch the db_name for this dataset and table
             if sub_table_id is not None:
                 table_id = f"{table_id}_{sub_table_id}"
             db_table_name = dataset.get_table_by_id(table_id).db_name()
+            nested_db_table_names = [t.db_name() for t in dataset.nested_tables]
+            nested_db_table_names = [
+                db_name for db_name in nested_db_table_names if db_name.startswith(db_table_name)
+            ]
 
             # We do not pass the dataset through xcom, but only the id.
             # The methodtools.lru_cache decorator is not pickleable
@@ -145,7 +151,13 @@ def create_gob_dag(
             # provide the dataset_table_id as fully qualified name, for convenience
             dataset_table_id = f"{dataset_id}_{table_id}"
             return DatasetInfo(
-                SCHEMA_URL, dataset_id, table_id, sub_table_id, dataset_table_id, db_table_name
+                SCHEMA_URL,
+                dataset_id,
+                table_id,
+                sub_table_id,
+                dataset_table_id,
+                db_table_name,
+                nested_db_table_names,
             )
 
         # 2. Create Dataset info to put on the xcom channel for later use
@@ -158,6 +170,7 @@ def create_gob_dag(
 
         def init_assigner(o: Any, x: Any) -> None:
             o.table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"
+            o.nested_db_table_names = [f"{n}{TMP_TABLE_POSTFIX}" for n in x.nested_db_table_names]
 
         # 3. drop temp table if exists
         init_table = PostgresTableInitOperator(
@@ -173,6 +186,7 @@ def create_gob_dag(
 
         def copy_assigner(o: Any, x: Any) -> None:
             o.source_table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"
+            o.nested_db_table_names = [f"{n}{TMP_TABLE_POSTFIX}" for n in x.nested_db_table_names]
             o.target_table_name = x.db_table_name
 
         # 5. truncate target table and insert data from temp table
