@@ -65,11 +65,10 @@ SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE: Final = """
     kabeltype.naam as kabeltype,
     kabeldiameter.naam as kabeldiameter,
     voltage,
-    fase.naam as fase,
     bouwtype.naam as bouwtype,
     bereikbaar,
-    datum,
-    lengte
+    lengte,
+    Zegel as zegel
     FROM  kabels k
     INNER JOIN inwinningstype ON inwinningstype.code = k.wijzeinw
     INNER JOIN hoofdcategorie ON hoofdcategorie.code = k.hoofdcat
@@ -89,7 +88,7 @@ SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE: Final = """
     where LOWER(bovenonder)='{{ params.filter }}';
 """
 
-# CREATING KABELSBOVEN/ONDERGRONDS TABLE
+# CREATING PUNTEN TABLE
 SQL_PUNTEN_TABLE: Final = """
 DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
 CREATE TABLE {{ params.tablename }} AS SELECT
@@ -107,9 +106,7 @@ CREATE TABLE {{ params.tablename }} AS SELECT
     nauwkeurigheid2.naam as nauwkeurigheid_hoogte,
     hoofdcategorie.naam as hoofdcategorie,
     eigenaar.naam as eigenaar,
-    jva,
-    gebruiker,
-    datum as mutatiedatum
+    jva
     FROM  punten k
     INNER JOIN inwinningstype ON inwinningstype.code = k.wijzeinw
     INNER JOIN hoofdcategorie ON hoofdcategorie.code = k.hoofdcat

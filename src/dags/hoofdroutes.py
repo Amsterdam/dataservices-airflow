@@ -17,6 +17,7 @@ from common import (
 )
 from common.db import DatabaseEngine
 from common.path import mk_dir
+from common.sql import SQL_DROP_TABLE
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -24,7 +25,6 @@ from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOp
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.common_queries import SQL_DROP_TMP_TABLE
 
 logger = logging.getLogger(__name__)
 db_conn = DatabaseEngine()
@@ -157,7 +157,7 @@ with DAG(
     clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{resource_name}",
-            sql=SQL_DROP_TMP_TABLE,
+            sql=SQL_DROP_TABLE,
             params={"tablename": f"{DAG_ID}_{resource_name}_new"},
         )
         for resource_name in files_to_download
