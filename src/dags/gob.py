@@ -6,7 +6,15 @@ from typing import Any, DefaultDict, Final, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from common import DATAPUNT_ENVIRONMENT, OTAP_ENVIRONMENT, SLACK_ICON_START, MessageOperator, default_args, env, slack_webhook_token
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
+    MessageOperator,
+    default_args,
+    env,
+    slack_webhook_token,
+)
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from http_gob_operator import HttpGobOperator
@@ -27,9 +35,13 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 # Schedule information is stored in an environment variable,
 # and not an Airflow variable (that needs to call the database),
 # because the DAG python module is executed very often.
-SCHEDULES: Final[str] = env(
-    "GOB_SCHEDULES", "bag,gebieden,woz,hr:0 6 * * 0;brk,nap,meetbouten:0 6 * * 3"
-)
+GOB_SCHEDULES = """bag,gebieden,meetbouten,nap:15 7 * * 2
+brk,gbd,meetbouten,nap:0 15 * * 3
+bag,gebieden,meetbouten,nap:0 23 * * 4
+gebieden,meetbouten,nap,woz:0 18 * * 5
+brk:0 23 * * 0"""
+SCHEDULES: Final[str] = env("GOB_SCHEDULES", ";".join(GOB_SCHEDULES.split("\n")))
+
 
 SCHEDULE_LOOKUP: dict[str, str] = {}
 # Every dataset needs a reference to the 'other' datasets that are sharing
