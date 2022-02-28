@@ -35,8 +35,8 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 # Schedule information is stored in an environment variable,
 # and not an Airflow variable (that needs to call the database),
 # because the DAG python module is executed very often.
-GOB_SCHEDULES = """bag,gebieden,meetbouten,nap:15 7 * * 2
-brk,gbd,meetbouten,nap:0 15 * * 3
+GOB_SCHEDULES = """meetbouten,gebieden,bag,nap:15 7 * * 2
+nap,gbd,meetbouten,brk:0 15 * * 3
 bag,gebieden,meetbouten,nap:0 23 * * 4
 gebieden,meetbouten,nap,woz:0 18 * * 5
 brk:0 23 * * 0"""

@@ -26,20 +26,21 @@ default_schema_url = env("SCHEMA_URL")
 # where dag_id does not match dataschema name, the relation between the dag_id and
 # schema name is held in this constant.
 DAG_DATASET: Final = {
-    "basiskaart_": "basiskaart",
-    "bag_": "bag",
-    "brk_": "brk",
-    "gebieden_": "gebieden",
-    "nap_": "nap",
-    "meetbouten_": "meetbouten",
-    "woz_": "woz",
-    "hr_": "hr",
-    "horeca_": "horeca",
-    "beschermde_": "beschermdestadsdorpsgezichten",
-    "hoofdroutes_": "hoofdroutes",
-    "reclamebelasting": "belastingen",
-    "processenverbaalverkiezingen": "verkiezingen",
-    "financien_": "financien",
+    "basiskaart_": ["basiskaart"],
+    "bag_": ["bag"],
+    "brk_": ["brk"],
+    "gebieden_": ["gebieden"],
+    "nap_": ["nap"],
+    "meetbouten_": ["meetbouten"],
+    "woz_": ["woz"],
+    "hr_": ["hr"],
+    "horeca_": ["horeca"],
+    "beschermde_": ["beschermdestadsdorpsgezichten"],
+    "hoofdroutes_": ["hoofdroutes"],
+    "reclamebelasting": ["belastingen"],
+    "processenverbaalverkiezingen": ["verkiezingen"],
+    "financien_": ["financien"],
+    "wegenbestand": ["wegenbestandZoneZwaarVerkeer", "wegenbestand"],
 }
 
 
@@ -109,7 +110,7 @@ class PostgresPermissionsOperator(BaseOperator):
         # setup database connection where the database objects are present
         engine = _get_engine(self.db_conn)
 
-        # Option ONE: batch grant
+        # Option ONE: batch grant (for a single Airflow DAG that sets permissions)
         if self.batch_ind:
 
             # get current datetime and make it aware of the TZ (mandatory)
@@ -142,38 +143,43 @@ class PostgresPermissionsOperator(BaseOperator):
 
             if executed_dags_after_delta:
 
-                for dataset_name in executed_dags_after_delta:
+                for self.dataset_name in executed_dags_after_delta:
+                    dataset_name = []
 
                     # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
                     for key in DAG_DATASET.keys():
-                        if key in dataset_name:
-                            dataset_name = DAG_DATASET[key]
-                            break
+                        if self.dataset_name and key in self.dataset_name:
+                            for item in DAG_DATASET[key]:
+                                dataset_name.append(item)
+                    if not dataset_name and self.dataset_name:
+                        dataset_name.append(self.dataset_name)
 
-                    logger.info("set grants for %s", dataset_name)
+                    for dataset in dataset_name:
 
-                    try:
-                        ams_schema = dataset_schema_from_url(
-                            schemas_url=self.schema_url,
-                            dataset_name=dataset_name,
-                            prefetch_related=True,
-                        )
+                        logger.info("set grants for %s", dataset)
 
-                        apply_schema_and_profile_permissions(
-                            engine=engine,
-                            pg_schema=self.db_schema,
-                            ams_schema=ams_schema,
-                            profiles=self.profiles,
-                            role=self.role,
-                            scope=self.scope,
-                            dry_run=self.dry_run,
-                            create_roles=self.create_roles,
-                            revoke=self.revoke,
-                        )
+                        try:
+                            ams_schema = dataset_schema_from_url(
+                                schemas_url=self.schema_url,
+                                dataset_name=dataset,
+                                prefetch_related=True,
+                            )
 
-                    except HTTPError:
-                        logger.error("Could not get data schema for %s", dataset_name)
-                        continue
+                            apply_schema_and_profile_permissions(
+                                engine=engine,
+                                pg_schema=self.db_schema,
+                                ams_schema=ams_schema,
+                                profiles=self.profiles,
+                                role=self.role,
+                                scope=self.scope,
+                                dry_run=self.dry_run,
+                                create_roles=self.create_roles,
+                                revoke=self.revoke,
+                            )
+
+                        except HTTPError:
+                            logger.error("Could not get data schema for %s", dataset)
+                            continue
 
             else:
                 logger.error(
@@ -181,36 +187,41 @@ class PostgresPermissionsOperator(BaseOperator):
                     self.batch_timewindow,
                 )
 
-        # Option TWO: grant on single dataset (can be used as a final step within a dag run)
+        # Option TWO: grant on single dataset (can be used as a final step within a single DAG run)
         elif self.dataset_name and not self.batch_ind:
+            dataset_name = []
 
             # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
             for key in DAG_DATASET.keys():
                 if key in self.dataset_name:
-                    self.dataset_name = DAG_DATASET[key]
-                    break
+                    for item in DAG_DATASET[key]:
+                        dataset_name.append(item)
+            if not dataset_name:
+                dataset_name.append(self.dataset_name)
 
-            logger.info("set grants for %s", self.dataset_name)
+            for dataset in dataset_name:
 
-            try:
-                ams_schema = dataset_schema_from_url(
-                    schemas_url=self.schema_url,
-                    dataset_name=self.dataset_name,
-                    prefetch_related=True,
-                )
+                logger.info("set grants for %s", dataset)
 
-                apply_schema_and_profile_permissions(
-                    engine=engine,
-                    pg_schema=self.db_schema,
-                    ams_schema=ams_schema,
-                    profiles=self.profiles,
-                    role=self.role,
-                    scope=self.scope,
-                    dry_run=self.dry_run,
-                    create_roles=self.create_roles,
-                    revoke=self.revoke,
-                )
+                try:
+                    ams_schema = dataset_schema_from_url(
+                        schemas_url=self.schema_url,
+                        dataset_name=dataset,
+                        prefetch_related=True,
+                    )
 
-            except HTTPError:
-                logger.error("Could not get data schema for %s", self.dataset_name)
-                pass
+                    apply_schema_and_profile_permissions(
+                        engine=engine,
+                        pg_schema=self.db_schema,
+                        ams_schema=ams_schema,
+                        profiles=self.profiles,
+                        role=self.role,
+                        scope=self.scope,
+                        dry_run=self.dry_run,
+                        create_roles=self.create_roles,
+                        revoke=self.revoke,
+                    )
+
+                except HTTPError:
+                    logger.error("Could not get data schema for %s", dataset)
+                    pass

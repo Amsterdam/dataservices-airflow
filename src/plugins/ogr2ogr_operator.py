@@ -31,6 +31,7 @@ class Ogr2OgrOperator(BaseOperator):
         promote_to_multi: bool = False,
         sqlite_source: bool = False,
         twodimenional: bool = False,
+        nln_options: Optional[list[str]] = None,
         **kwargs: Any,
     ) -> None:
         """Setup params.
@@ -60,6 +61,7 @@ class Ogr2OgrOperator(BaseOperator):
                 set to True all points are set to multipoints as well.
             twodimenional: Indicator if the data should be converted to 2D. If set to True
                 an extra argument is placed to explicitly convert to 2D.
+            nln_options: ogr2ogr argument -nln to add to command. This is a list, can be multiple.
         """
         super().__init__(**kwargs)
         self.conn_id = conn_id
@@ -80,6 +82,7 @@ class Ogr2OgrOperator(BaseOperator):
         self.encoding_schema = encoding_schema
         self.promote_to_multi = promote_to_multi
         self.twodimenional = twodimenional
+        self.nln_options = nln_options
 
     def execute(self, context: Context) -> None:
         """Proces the input file with OGR2OGR to SQL output.
@@ -115,7 +118,7 @@ class Ogr2OgrOperator(BaseOperator):
                 ogr2ogr_cmd.extend(["-dim 2"])
 
         # Option 2 DIRECT LOAD: load data directly into DB; no file created in between
-        else:
+        elif self.mode == "PostgreSQL":
 
             ogr2ogr_cmd.append(
                 f"PG:host={getattr(self.db_conn, 'host')} "  # noqa: B009
@@ -126,6 +129,10 @@ class Ogr2OgrOperator(BaseOperator):
             )
             if not self.sqlite_source:
                 ogr2ogr_cmd.append(input_file.as_posix())
+
+            if self.nln_options:
+                for option in self.nln_options:
+                    ogr2ogr_cmd.extend(["-nln", option])
 
         # generic parameters for all options
         if self.s_srs:
