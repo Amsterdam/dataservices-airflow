@@ -115,10 +115,15 @@ class PostgresMultiCheckOperator(BaseOperator):
         *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.checks = checks
         self.params = kwargs.get("params", {}) | make_params(self.checks)
+        # Since Airflow 2.2.0 the super class will serialize params dict for
+        # a DAG/Task by the `private` method `_serialize_params_dict`. However
+        # because the multichecker is using nested params, the self.params (after
+        # the function `make_params` has `dictionary-ized` the params) has to
+        # fed explicitly to the `params` parameter of Super.
+        super().__init__(params=self.params, *args, **kwargs)
 
     def execute(self, context=None):
 
