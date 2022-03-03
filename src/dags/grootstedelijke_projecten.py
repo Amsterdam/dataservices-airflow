@@ -41,6 +41,7 @@ check_name = {}
 with DAG(
     DAG_ID,
     description="locaties en metadata rondom grootstedelijke projecten.",
+    schedule_interval="@monthly",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
