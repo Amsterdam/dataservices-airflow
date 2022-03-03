@@ -370,3 +370,5 @@ wegenbestand:
     table_3: {"table":"breed_opgezette_wegen", "geopackage_layer": "vma400_20212201_undirected", "data_filter": "binnen - breed opgezette wegen", "source": "zone_zwaar_verkeer"}
     table_4: {"table":"routes_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
     table_5: {"table":"tunnels_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
+grootstedelijke_projecten:
+  files_to_download: [GBD_grootstedelijke_projecten.dbf, GBD_grootstedelijke_projecten.shp, GBD_grootstedelijke_projecten.shx]

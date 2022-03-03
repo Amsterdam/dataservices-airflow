@@ -151,7 +151,7 @@ with DAG(
                 if values["source"] == "zone_zwaar_verkeer"
                 else f"{DAG_ID}_{values['table']}_new",
                 "geo_column": "geometry",
-                "geom_type_number": 2,
+                "geom_type_number": "2",
             },
         )
         for values in data_values.values()
