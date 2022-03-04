@@ -163,15 +163,6 @@ SELECT "BGT_OBW_overkapping".identificatie_lokaalid || 'BGT_OBW_overkapping' AS 
        22 AS maxzoom
 FROM bgt."BGT_OBW_overkapping"
 UNION
-SELECT "BGT_OBW_transitie".identificatie_lokaalid || 'BGT_OBW_transitie' AS id,
-       "BGT_OBW_transitie".bgt_type AS type,
-       ST_makeValid("BGT_OBW_transitie".geometrie) AS geometrie,
-       "BGT_OBW_transitie".relatievehoogteligging,
-       'bgt' AS bron,
-       16 AS minzoom,
-       22 AS maxzoom
-FROM bgt."BGT_OBW_transitie"
-UNION
 SELECT "BGT_OBW_windturbine".identificatie_lokaalid || 'BGT_OBW_windturbine' AS id,
        "BGT_OBW_windturbine".bgt_type AS type,
        ST_makeValid("BGT_OBW_windturbine".geometrie) AS geometrie,
