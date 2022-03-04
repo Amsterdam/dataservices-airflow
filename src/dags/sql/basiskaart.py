@@ -316,15 +316,6 @@ SELECT "BGTPLUS_OSDG_kademuur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_kademuu
        NULL::INT AS maxzoom
 FROM bgt."BGTPLUS_OSDG_kademuur_L"
 UNION
-SELECT "BGTPLUS_OSDG_muur_L".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_L' AS id,
-       "BGTPLUS_OSDG_muur_L".plus_type AS type,
-       ST_makeValid("BGTPLUS_OSDG_muur_L".geometrie) AS geometrie,
-       "BGTPLUS_OSDG_muur_L".relatievehoogteligging,
-       'bgtplus' AS bron,
-       16 AS minzoom,
-       NULL::INT AS maxzoom
-FROM bgt."BGTPLUS_OSDG_muur_L"
-UNION
 SELECT "BGTPLUS_OSDG_walbescherming".identificatie_lokaalid || 'BGTPLUS_OSDG_walbescherming' AS id,
        "BGTPLUS_OSDG_walbescherming".plus_type AS type,
        ST_makeValid("BGTPLUS_OSDG_walbescherming".geometrie) AS geometrie,
@@ -1127,15 +1118,6 @@ SELECT "BGTPLUS_KDL_keermuur".identificatie_lokaalid || 'BGTPLUS_KDL_keermuur' A
        16 AS minzoom,
        22 AS maxzoom
 FROM bgt."BGTPLUS_KDL_keermuur"
-UNION
-SELECT "BGTPLUS_OSDG_muur_V".identificatie_lokaalid || 'BGTPLUS_OSDG_muur_V' AS id,
-       "BGTPLUS_OSDG_muur_V".plus_type AS type,
-       ST_makeValid("BGTPLUS_OSDG_muur_V".geometrie) AS geometrie,
-       "BGTPLUS_OSDG_muur_V".relatievehoogteligging,
-       'bgtplus' AS bron,
-       16 AS minzoom,
-       22 AS maxzoom
-FROM bgt."BGTPLUS_OSDG_muur_V"
 UNION
 SELECT "BGTPLUS_VGT_haag_V".identificatie_lokaalid || 'BGTPLUS_VGT_haag_V' AS id,
        "BGTPLUS_VGT_haag_V".plus_type AS type,
