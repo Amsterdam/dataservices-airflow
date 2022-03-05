@@ -96,14 +96,5 @@ def data_import_gevallen_opnames(source_data_gevallen: str, source_data_ziekenhu
         },
         if_exists='replace'
     )
+
     log.info("Data loaded into DB")
-
-
-    result = ziekenhuis_df
-    result.to_sql(
-        "ziekenhuis",
-        engine,
-        if_exists='replace'
-        )
-
-
