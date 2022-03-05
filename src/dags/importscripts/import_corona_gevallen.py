@@ -75,8 +75,8 @@ def data_import_gevallen_opnames(source_data_gevallen: str, source_data_ziekenhu
     # join the two datasets
     result = result_gevallen.join(result_ziekenhuis.set_index('date'), on='date', lsuffix='', rsuffix='_ignore')
 
-       # drop unused cols
-    result.drop(columns=['date', 'municipality_code_ignore', 'municipality_name_ignore'])
+    # drop unused cols
+    result = result.drop(columns=['date', 'date_of_statistics', 'municipality_code_ignore', 'municipality_name_ignore'])
 
     log.info(f"Starting import")
     engine = get_engine()

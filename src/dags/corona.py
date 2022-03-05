@@ -45,7 +45,7 @@ db_conn: object = DatabaseEngine()
 
 with DAG(
     DAG_ID,
-    description = "corona gevallen, ziekenhuisopnames en handhavingacties.",
+    description = "corona gevallen, ziekenhuisopnames en handhavingsacties.",
     default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters={"quote": quote_string},
