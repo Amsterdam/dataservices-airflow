@@ -70,7 +70,7 @@ services:
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD: ${dataservices_bouwstroompunten_passwd}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER: ${dataservices_bouwstroompunten_user}
       AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL: "https://maps.nrgaccounting.nl/https"
-      AIRFLOW_CONN_RIVM_BASE_URL: "https://data.rivm.nl/covid-19/"
+      AIRFLOW_CONN_RIVM_BASE_URL: "https://data.rivm.nl/https"
       AIRFLOW_CONN_WIOR_PASSWD: ${dataservices_wior_passwd}
       AIRFLOW_CONN_WIOR_USER: ${dataservices_wior_user}
       AIRFLOW_CONN_WIOR_BASE_URL: "https://data-wior-amsterdam.webgis.nl"
@@ -86,7 +86,8 @@ services:
       AIRFLOW_CONN_STROOMSTORING_BASE_URL: "https://services1.arcgis.com/https"
       AIRFLOW_CONN_OOV_BRIEVENBUS_GEBIEDEN: "sftp://${oov_brievenbus_user_overlastgebieden}:\
         ${oov_brievenbus_password_overlastgebieden}@${oov_brievenbus_host}:${oov_brievenbus_port}"
-
+      AIRFLOW_CONN_OOV_BRIEVENBUS_CORONA: "sftp://${oov_brievenbus_user_corona}:\
+        ${oov_brievenbus_password_corona}@${oov_brievenbus_host}:${oov_brievenbus_port}"
       AIRFLOW__API__AUTH_BACKEND: ${AIRFLOW__API__AUTH_BACKEND:-airflow.api.auth.backend.deny_all}
       GOB_PUBLIC_ENDPOINT: "gob/public/graphql/streaming/"
       GOB_SECURE_ENDPOINT: "gob/graphql/streaming/"
@@ -103,10 +104,6 @@ services:
       OS_PASSWORD: ${VSD_PASSWD}
       OS_TENANT_NAME: 4028c44d91dc48b8990069433c203c1f
       OS_AUTH_URL: https://identity.stack.cloudvps.com/v2.0
-      OOV_BRIEVENBUS_USER: ${oov_brievenbus_user}
-      OOV_BRIEVENBUS_PASSWORD: ${oov_brievenbus_password}
-      OOV_BRIEVENBUS_HOST: ${oov_brievenbus_host}
-      OOV_BRIEVENBUS_PORT: ${oov_brievenbus_port}
       SHARED_DIR: /tmp
       OPENBARE_VERLICHTING_DATA_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/objecten
       OPENBARE_VERLICHTING_DATA_TYPES_SRC: https://asd2.techtek.eu/asd/services/rest_sia.php/SIAService/types

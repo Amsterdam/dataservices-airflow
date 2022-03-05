@@ -370,3 +370,9 @@ wegenbestand:
     table_3: {"table":"breed_opgezette_wegen", "geopackage_layer": "vma400_20212201_undirected", "data_filter": "binnen - breed opgezette wegen", "source": "zone_zwaar_verkeer"}
     table_4: {"table":"routes_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
     table_5: {"table":"tunnels_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
+corona:
+  data_endpoints:
+    gevallen: {"data": "data/covid-19/COVID-19_aantallen_gemeente_per_dag.json", "dataset": "gevallen" }
+    ziekenhuisopnames: {"data": "data/covid-19/COVID-19_ziekenhuisopnames.json", "dataset": "gevallen" }
+  files_to_download:
+    handhaving: {"data": "corona_handhaving.csv", "dataset": "handhaving" }
