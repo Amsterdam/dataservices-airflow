@@ -123,6 +123,7 @@ with DAG(
             params={
                 "table_name": f"{DB_TABLE_NAME}_new ",
                 "geotype": ["MULTIPOINT", "MULTIPOLYGON"],
+                "geo_column": "geometrie",
             },
             pass_value=1,
         )
