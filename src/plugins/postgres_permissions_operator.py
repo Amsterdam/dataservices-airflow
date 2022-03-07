@@ -210,6 +210,10 @@ class PostgresPermissionsOperator(BaseOperator):
                         prefetch_related=True,
                     )
 
+                    # TODO: there is no option yet to
+                    # grant permissions on a single table
+                    # only on the whole dataset. Need to
+                    # adjust package schema-tools for it.
                     apply_schema_and_profile_permissions(
                         engine=engine,
                         pg_schema=self.db_schema,

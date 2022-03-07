@@ -376,3 +376,6 @@ corona:
     ziekenhuisopnames: {"data": "data/covid-19/COVID-19_ziekenhuisopnames.json", "dataset": "gevallen" }
   files_to_download:
     handhaving: {"data": "corona_handhaving.csv", "dataset": "handhaving" }
+grootstedelijke_projecten:
+  files_to_download: [GBD_grootstedelijke_projecten.dbf, GBD_grootstedelijke_projecten.shp, GBD_grootstedelijke_projecten.shx]
+
