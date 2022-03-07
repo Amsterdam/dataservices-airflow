@@ -50,7 +50,7 @@ def data_import_gevallen_opnames(source_data_gevallen: str, source_data_ziekenhu
     # group data first before joining
     result_gevallen = (
         gevallen_df.groupby(
-            ["date_of_publication", "municipality_code", "municipality_name"]
+            ["date_of_publication", "municipality_code", "municipality_name", "province"]
         )
         .agg(
             total_reported=("total_reported", "sum"),
