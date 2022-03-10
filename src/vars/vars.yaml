@@ -133,6 +133,7 @@ overlastgebieden:
     algemeenoverlast: AOG
     messenverbod: MVG
     groepsfietsverbod: GFG
+    straatartiestverbod: SAV
 milieuzones:
   files_to_download: [milieuzones.json]
   tables_to_create:
