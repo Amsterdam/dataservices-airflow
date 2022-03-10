@@ -1,6 +1,6 @@
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
-from airflow.models import XCOM_RETURN_KEY
+from airflow.models.xcom import XCOM_RETURN_KEY
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
@@ -12,6 +12,7 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
     def __init__(
         self,
         table_name: Optional[str] = None,
+        nested_db_table_names: Optional[list[str]] = None,
         postgres_conn_id: str = "postgres_default",
         task_id: str = "table_init",
         drop_table: bool = False,
@@ -25,6 +26,9 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
 
         Args:
             table_name: Name of the table that needs to be initialized (dropped).
+            nested_db_table_names: Optional list of names of nested tables that need
+                to be processed.
+            sub_table_prefix: Prefix of associated
             task_id: Task ID
             drop_table: Indicates if table needs to be dropped. If false, table will be truncated.
             postgres_conn_id: The PostgreSQL connection id.
@@ -38,13 +42,16 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
         """
         super().__init__(task_id=task_id, sql=[], postgres_conn_id=postgres_conn_id, **kwargs)
         self.table_name = table_name
+        self.nested_db_table_names: list[str] = (
+            nested_db_table_names if nested_db_table_names is not None else []
+        )
         self.drop_table = drop_table
 
         self.xcom_task_ids = xcom_task_ids
         self.xcom_key = xcom_key
         self.xcom_attr_assigner = xcom_attr_assigner
 
-    def execute(self, context: dict[str, Any]) -> None:
+    def execute(self, context: dict[str, Any]) -> None:  # noqa: D102
         # First get all index names, so it's known which indices to rename
         hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
@@ -52,7 +59,7 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
         self._assign(context)
 
         # Start a list to hold rename information
-        table_drops = [self.table_name]
+        table_drops = [cast(str, self.table_name)]
 
         # Find the cross-tables for n-m relations, we assume they have
         # a name that start with f"{table_name}_"
@@ -73,7 +80,8 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
         # This supports executing multiple statements in a single transaction:
         init_operation = "DROP TABLE IF EXISTS" if self.drop_table else "TRUNCATE TABLE"
         self.sql = [
-            f"{init_operation} {table_name} CASCADE" for table_name in table_drops + cross_tables
+            f"{init_operation} {table_name} CASCADE"
+            for table_name in table_drops + cross_tables + self.nested_db_table_names
         ]
 
         super().execute(context)

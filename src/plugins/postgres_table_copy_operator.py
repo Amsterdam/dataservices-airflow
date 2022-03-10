@@ -98,6 +98,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         self,
         source_table_name: str,
         target_table_name: str,
+        nested_db_table_names: Optional[list[str]] = None,
         dataset_name: Optional[str] = None,
         source_schema_name: str = "public",
         target_schema_name: str = "public",
@@ -124,6 +125,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             source_table_name: Name of the temporary table that needs to be copied.
             source_schema_name: Name of the schema of the source table.
             target_table_name: Name of the table that needs to be created and data copied to.
+            nested_db_table_names: Optional set of names for nested tables that
+                need to be processed.
             target_schema_name: Name of the schema of the target table.
             truncate_target: Whether the target table should be truncated before being copied to.
             drop_target_if_unequal: Whether the target table should be dropped if it is not
@@ -147,6 +150,9 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         self.source_table_name = source_table_name
         self.source_schema_name = source_schema_name
         self.target_table_name = target_table_name
+        self.nested_db_table_names: list[str] = (
+            nested_db_table_names if nested_db_table_names is not None else []
+        )
         self.target_schema_name = target_schema_name
         self.truncate_target = truncate_target
         self.drop_target_if_unequal = drop_target_if_unequal
@@ -415,8 +421,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 else:
                     self.log.info("Did not find any junction tables.")
 
-                junction_table_copies: list[TableMapping] = []
-                for source_table_name in junction_tables:
+                linked_table_copies: list[TableMapping] = []
+                for source_table_name in junction_tables + tuple(self.nested_db_table_names):
                     original_target_junction_table_name = source_table_name.replace(
                         TMP_TABLE_POSTFIX, ""
                     )
@@ -425,7 +431,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         target_table_name,
                         junction_is_view,
                     ) = self._find_actual_table_name(cursor, original_target_junction_table_name)
-                    junction_table_copies.append(
+                    linked_table_copies.append(
                         TableMapping(
                             source=Table(name=source_table_name, schema=self.source_schema_name),
                             target=Table(name=target_table_name, schema=target_schema_name),
@@ -436,7 +442,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                     )
 
                 # Check if there are structural differences between targets and sources.
-                all_table_copies: list[TableMapping] = table_copies + junction_table_copies
+                all_table_copies: list[TableMapping] = table_copies + linked_table_copies
                 diff_results = self._validate_tables_equality(cursor, all_table_copies)
 
                 for table_mapping, diff_check in diff_results.items():
@@ -522,7 +528,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         )
                     )
 
-                for table_mapping in itertools.chain(table_copies, junction_table_copies):
+                for table_mapping in itertools.chain(table_copies, linked_table_copies):
 
                     columns = columns_for_diffs.get(table_mapping)
                     from_columns = None

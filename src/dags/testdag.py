@@ -1,7 +1,6 @@
 import operator
 
 from airflow import DAG
-from check_helpers import make_params
 from common import default_args
 
 # from airflow.operators.bash import BashOperator
@@ -30,6 +29,7 @@ from swift_operator import SwiftOperator
 
 
 def create_error(*args, **kwargs):
+    """Generic error raiser."""
     raise Exception
 
 
@@ -41,8 +41,9 @@ with DAG(
     swift_task = SwiftOperator(
         task_id="swift_task",
         container="Dataservices",
-        object_id="beschermde_stads_en_dorpsgezichten/acceptance/beschermde_stadsdorpsgezichten.zip",
-        output_path="/tmp/bsd.zip",
+        object_id="beschermde_stads_en_dorpsgezichten/"
+        "acceptance/beschermde_stadsdorpsgezichten.zip",
+        output_path="/tmp/bsd.zip",  # noqa: S108
         # container="afval",
         # object_id="acceptance/afval_cluster.zip",
         # output_path="/tmp/blaat/out2.zip",
@@ -53,7 +54,7 @@ with DAG(
     count_check = COUNT_CHECK.make_check(
         check_id="count_check",
         pass_value=1587,
-        params=dict(table_name="fietspaaltjes"),
+        params={"table_name": "fietspaaltjes"},
         result_checker=operator.ge,
     )
 
@@ -66,12 +67,12 @@ with DAG(
 
     geo_check = GEO_CHECK.make_check(
         check_id="geo_check",
-        params=dict(table_name="fietspaaltjes", geotype="POINT"),
+        params={"table_name": "fietspaaltjes", "geotype": "POINT"},
         pass_value=1,
     )
 
     checks = [count_check, colname_check, geo_check]
-    multi = PostgresMultiCheckOperator(task_id="multi", checks=checks, params=make_params(checks))
+    multi = PostgresMultiCheckOperator(task_id="multi", checks=checks)
 
     # swift_task
     # sqls = [

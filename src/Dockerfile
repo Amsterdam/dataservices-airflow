@@ -57,11 +57,6 @@ RUN update-ca-certificates
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
-# Fix airflow bug with a patch. This fix comes from upstream Airflow v2.2.0
-# however, we cannot upgrade to that version atm.
-COPY patches/views.py.patch /tmp/views.py.patch
-RUN patch -d/ -p0 < /tmp/views.py.patch
-
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 COPY scripts/run.sh /run.sh
 COPY scripts/mkvars.py ${AIRFLOW_USER_HOME}/scripts/mkvars.py

@@ -4,9 +4,18 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, DefaultDict, Final, Optional
 
+import pendulum
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from common import DATAPUNT_ENVIRONMENT, OTAP_ENVIRONMENT, SLACK_ICON_START, MessageOperator, default_args, env, slack_webhook_token
+from common import (
+    DATAPUNT_ENVIRONMENT,
+    OTAP_ENVIRONMENT,
+    SLACK_ICON_START,
+    MessageOperator,
+    default_args,
+    env,
+    slack_webhook_token,
+)
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from http_gob_operator import HttpGobOperator
@@ -25,22 +34,27 @@ OAUTH_TOKEN_EXPIRES_MARGIN: Final = env.int("OAUTH_TOKEN_EXPIRES_MARGIN", 5)
 SCHEMA_URL: Final = env("SCHEMA_URL")
 
 # Schedule information is stored in an environment variable,
-# and not an Airflow variable (that needs to call the database),
-# because the DAG python module is executed very often.
-SCHEDULES: Final[str] = env(
-    "GOB_SCHEDULES", "bag,gebieden,woz,hr:0 6 * * 0;brk,nap,meetbouten:0 6 * * 3"
-)
+# and not an Airflow variable. According to the Airflow
+# docs, variables should be used sparingly outside of operators.
 
+# There are several crontab-based schedules,
+# and every schedule has a list of datasets
+# that need to run in a sequential fashion (the estafette run).
+# Every first item of the lists of datasets should be
+# unique, because this should be the dataset that starts
+# a particular estafette run.
+GOB_SCHEDULES = """meetbouten,gebieden,bag,nap:15 7 * * 2
+nap,gebieden,meetbouten,brk:0 15 * * 3
+bag,gebieden,meetbouten,nap:0 23 * * 4
+gebieden,meetbouten,nap,woz:0 18 * * 5
+brk:0 23 * * 0"""
+SCHEDULES: Final[str] = env("GOB_SCHEDULES", ";".join(GOB_SCHEDULES.split("\n")))
 SCHEDULE_LOOKUP: dict[str, str] = {}
+
 # Every dataset needs a reference to the 'other' datasets that are sharing
 # the same schedule, to be able to feed the DynamicDagRunOperator with
-# a set of labels for selection of DAGs.
-
+# a set of labels(tags) for selection of DAGs.
 SAME_SCHEDULE_DATASETS: DefaultDict[str, set[str]] = defaultdict(set)
-# Because the DynamicDagRunOperator triggers dags in alphabetic order
-# only the first dataset in a group of dataset with an identical schedule
-# should get a schedule to start the estafette run.
-FIRST_IN_GROUP_DATASETS = set()
 
 dag_id = "gob"
 owner = "gob"
@@ -61,6 +75,7 @@ class DatasetInfo:
     sub_table_id: str
     dataset_table_id: str
     db_table_name: str
+    nested_db_table_names: list[str]
 
 
 def create_gob_dag(
@@ -90,9 +105,21 @@ def create_gob_dag(
             if protected:
                 extra_kwargs["endpoint"] = GOB_SECURE_ENDPOINT
 
+    new_default_args = default_args.copy()
+    new_default_args["owner"] = owner
+
+    # The default `start_date` parameter is two days in the past,
+    # however, that does not work for the GOB schedules
+    # because those are running less frequently.
+    # Furthermore, setting `start_date` to a dynamic data is
+    # currently frowned upon in the Airflow documentation.
+    # The `catchup` parameter should be set to `False` though,
+    # to avoid lots of DAG runs.
+    new_default_args["start_date"] = pendulum.datetime(2022, 1, 1, tz="UTC")
+
     dag = DAG(
         f"{dag_id}_{dataset_table_id}",
-        default_args={"owner": owner, **default_args},
+        default_args=new_default_args,
         schedule_interval=schedule_interval,
         tags=["gob"] + [gob_dataset_id],
         on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
@@ -122,10 +149,15 @@ def create_gob_dag(
 
         def _create_dataset_info(dataset_id: str, table_id: str, sub_table_id: str) -> DatasetInfo:
             dataset = dataset_schema_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
+
             # Fetch the db_name for this dataset and table
             if sub_table_id is not None:
                 table_id = f"{table_id}_{sub_table_id}"
             db_table_name = dataset.get_table_by_id(table_id).db_name()
+            nested_db_table_names = [t.db_name() for t in dataset.nested_tables]
+            nested_db_table_names = [
+                db_name for db_name in nested_db_table_names if db_name.startswith(db_table_name)
+            ]
 
             # We do not pass the dataset through xcom, but only the id.
             # The methodtools.lru_cache decorator is not pickleable
@@ -133,7 +165,13 @@ def create_gob_dag(
             # provide the dataset_table_id as fully qualified name, for convenience
             dataset_table_id = f"{dataset_id}_{table_id}"
             return DatasetInfo(
-                SCHEMA_URL, dataset_id, table_id, sub_table_id, dataset_table_id, db_table_name
+                SCHEMA_URL,
+                dataset_id,
+                table_id,
+                sub_table_id,
+                dataset_table_id,
+                db_table_name,
+                nested_db_table_names,
             )
 
         # 2. Create Dataset info to put on the xcom channel for later use
@@ -146,6 +184,7 @@ def create_gob_dag(
 
         def init_assigner(o: Any, x: Any) -> None:
             o.table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"
+            o.nested_db_table_names = [f"{n}{TMP_TABLE_POSTFIX}" for n in x.nested_db_table_names]
 
         # 3. drop temp table if exists
         init_table = PostgresTableInitOperator(
@@ -161,6 +200,7 @@ def create_gob_dag(
 
         def copy_assigner(o: Any, x: Any) -> None:
             o.source_table_name = f"{x.db_table_name}{TMP_TABLE_POSTFIX}"
+            o.nested_db_table_names = [f"{n}{TMP_TABLE_POSTFIX}" for n in x.nested_db_table_names]
             o.target_table_name = x.db_table_name
 
         # 5. truncate target table and insert data from temp table
@@ -217,13 +257,19 @@ def create_gob_dag(
     return dag
 
 
+first_in_group_datasets = set()
 for dss_schedule in SCHEDULES.split(";"):
     dataset_names_str, schedule = dss_schedule.split(":")
-    dataset_names = set(dataset_names_str.split(","))
-    FIRST_IN_GROUP_DATASETS.add(first(sorted(dataset_names)))
+    dataset_names = dataset_names_str.split(",")
+    first_in_group_dataset = first(dataset_names)
+    # Check if SCHEDULES are set up correctly.
+    if first_in_group_dataset in first_in_group_datasets:
+        raise ValueError("First datasets should be unique among all groups.")
+    first_in_group_datasets.add(first_in_group_dataset)
     for dataset_name in dataset_names:
-        SCHEDULE_LOOKUP[dataset_name] = schedule
-        SAME_SCHEDULE_DATASETS[dataset_name] = dataset_names
+        if dataset_name == first_in_group_dataset:
+            SCHEDULE_LOOKUP[dataset_name] = schedule
+        SAME_SCHEDULE_DATASETS[dataset_name] = set(dataset_names)
 
 # We need to group the dags on the name of the dataset,
 # because one or more datasets are sharing the same schedule
@@ -236,11 +282,7 @@ for gob_gql_dir in sorted(graphql_path.glob("*")):
 
 for dataset_name, dag_params in grouped_dag_params.items():
     for i, ds_table_parts in enumerate(dag_params):
-        schedule_interval = (
-            SCHEDULE_LOOKUP[dataset_name]
-            if (i == 0 and dataset_name in FIRST_IN_GROUP_DATASETS)
-            else None
-        )
+        schedule_interval = None if i > 0 else SCHEDULE_LOOKUP.get(dataset_name)
         dag_id_postfix = "_".join(ds_table_parts)
         globals()[f"gob_{dag_id_postfix}"] = create_gob_dag(
             schedule_interval,

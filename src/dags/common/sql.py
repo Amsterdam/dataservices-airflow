@@ -6,9 +6,22 @@ SQL_DROP_TABLE: Final = """
     COMMIT;
 """
 
+# In case of a collectionGeometry, that is flagged as invalid when using `ST_IsValid`,
+# we need to extract the relevant geometry that will be expected in the database.
+# To do so, specifiy the value for `geom_type_number` for the geometry type want to extract
+# like so: 1 == POINT, 2 == LINESTRING, 3 == POLYGON
 SQL_GEOMETRY_VALID: Final = """
+    {% set srid = params.srid|default(28992, true) %}
     UPDATE {{ params.tablename }}
+    {% if params.geom_type_number|length %}
+    SET GEOMETRY = ST_MakeValid(
+      ST_SetSRID(
+        ST_GeomFromText(
+          ST_AsText(
+            ST_CollectionExtract(GEOMETRY, {{ params.geom_type_number }}))), {{ srid }}))
+    {% else %}
     SET GEOMETRY = ST_MakeValid(GEOMETRY)
+    {% endif %}
     WHERE ST_IsValid(GEOMETRY) = false;
     COMMIT;
 """

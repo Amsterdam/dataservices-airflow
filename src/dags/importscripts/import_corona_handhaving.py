@@ -49,8 +49,12 @@ def strip(text: str) -> str:
         return text
 
 
-def main() -> None:
+def data_import_handhaving(csv_file: str, db_table_name: str) -> None:
     """Reads, converts and import csv data to table database
+
+    args:
+        csv_file: Name of handhaving file.csv to import.
+        db_table_name: Name of database to import data to.
 
     Executes:
         SQL insert statement
@@ -62,11 +66,8 @@ def main() -> None:
         so it's dropped before proces.
 
     """
-    parser: argparse.ArgumentParser = argparse.ArgumentParser()
-    parser.add_argument("input_csv", type=str, help="CSV file to process")
-    args: argparse.Namespace = parser.parse_args()
     df: pd.DataFrame = pd.read_csv(
-        args.input_csv,
+        csv_file,
         sep=";",
         names=[
             "organisatie",
@@ -112,11 +113,8 @@ def main() -> None:
 
     engine: sqlalchemy.engine.Engine = get_engine()
     df.to_sql(
-        "corona_handhaving_new",
+        db_table_name,
         engine,
         dtype={"id": Integer(), "aantal": Integer(), "week_nummer": Integer(), "jaar": Integer()},
+        if_exists='replace'
     )
-
-
-if __name__ == "__main__":
-    main()
