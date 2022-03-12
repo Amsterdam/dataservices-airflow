@@ -13,7 +13,7 @@ SQL_DROP_TABLE: Final = """
 SQL_GEOMETRY_VALID: Final = """
     {% set srid = params.srid|default(28992, true) %}
     UPDATE {{ params.tablename }}
-    {% if params.geom_type_number|length %}
+    {% if params.geom_type_number is defined %}
     SET GEOMETRY = ST_MakeValid(
       ST_SetSRID(
         ST_GeomFromText(
