@@ -10,14 +10,15 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
     OTAP_ENVIRONMENT,
-    SLACK_ICON_START,
     SHARED_DIR,
+    SLACK_ICON_START,
     MessageOperator,
     default_args,
     quote_string,
     slack_webhook_token,
 )
 from common.db import DatabaseEngine
+from common.sql import SQL_DROP_TABLE, SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 
@@ -28,7 +29,7 @@ from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOp
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS, SQL_DROP_TMP_TABLE, SQL_GEOMETRY_VALID
+from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from typeahead_location_operator import TypeAHeadLocationOperator
 
@@ -337,7 +338,7 @@ with DAG(
     clean_ups = [
         PostgresOperator(
             task_id=f"clean_up_{resource}",
-            sql=SQL_DROP_TMP_TABLE,
+            sql=SQL_DROP_TABLE,
             params={"tablename": f"{dag_id}_{resource}_new"},
         )
         for resources in files_to_import.values()
