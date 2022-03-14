@@ -37,9 +37,8 @@ ADD_GEOMETRY_COL: Final = """
                 ST_Transform(ST_SetSRID(ST_MakePoint(REPLACE(x::text, ',', '.')::double precision,
                 REPLACE(y::text, ',', '.')::double precision), 4326), 28992)
             END
-        WHERE 1=1
-        AND CASE WHEN x::text !~* '[a-z]+' then true else false end = true
-        AND CASE WHEN y::text !~* '[a-z]+' then true else false end = true
+        WHERE x::text !~* '[a-z]+'
+        AND y::text !~* '[a-z]+'
         AND (length(x::text) > 0 AND length(y::text) > 0);
         DROP INDEX IF EXISTS {{ params.tablename }}_new_geom_idx;
         CREATE INDEX {{ params.tablename }}_new_geom_idx ON {{ params.tablename }}_new
