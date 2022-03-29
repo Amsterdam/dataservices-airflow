@@ -1,6 +1,6 @@
 amsterdam-schema-tools == 3.4.1
 cattrs == 1.1.2
-apache-airflow[crypto,postgres,sentry,sendgrid] == 2.2.3
+apache-airflow[crypto,postgres,sentry,sendgrid] == 2.2.4
 apache-airflow-providers-microsoft-azure==3.2.0
 apache-airflow-providers-slack[http]==2.0.0
 apache-airflow-providers-oracle==2.0.1
@@ -26,7 +26,7 @@ python-keystoneclient == 4.0.0
 python-swiftclient == 3.9.0
 environs == 9.3.3
 flask_bcrypt == 0.7.1
-flask-appbuilder == 3.4.5   # Dependency of apache-airflow, with vuln fix.
+flask-appbuilder == 3.4.4   # Dependency apache-airflow[crypto,postgres,sendgrid,sentry] 2.2.4 depends on flask-appbuilder==3.4.4
 docker == 4.4.4
 supervisor == 4.1.0
 yamlip == 0.0.2
