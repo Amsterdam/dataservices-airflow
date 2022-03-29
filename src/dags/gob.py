@@ -1,11 +1,13 @@
 import json
+import logging
 import pathlib
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Any, DefaultDict, Final, Optional
+from typing import Any, Callable, DefaultDict, Final, Iterable, Optional
 
 import pendulum
 from airflow import DAG
+from airflow.models.dag import DagModel
 from airflow.operators.python import PythonOperator
 from common import (
     DATAPUNT_ENVIRONMENT,
@@ -49,17 +51,31 @@ bag,gebieden,meetbouten,nap:0 23 * * 4
 gebieden,meetbouten,nap,woz:0 18 * * 5
 brk:0 23 * * 0"""
 SCHEDULES: Final[str] = env("GOB_SCHEDULES", ";".join(GOB_SCHEDULES.split("\n")))
+
+# Lookup for dataset ids mapped to a cron-style schedule.
+# This lookup is only used for the first dataset in a series with an identical schedule.
 SCHEDULE_LOOKUP: dict[str, str] = {}
 
-# Every dataset needs a reference to the 'other' datasets that are sharing
-# the same schedule, to be able to feed the DynamicDagRunOperator with
-# a set of labels(tags) for selection of DAGs.
-SAME_SCHEDULE_DATASETS: DefaultDict[str, set[str]] = defaultdict(set)
+
+# Lookup that maps a cron-style schedule to a list of datasets.
+# This lookup is needed for the ordering of dagruns, that needs
+# to reflect the ordering in the list of datasets.
+SCHEDULE2DATASETS: dict[str, list[str]] = {}
+
+# Lookup that maps every dataset to a set of cron-style schedules.
+# These schedules are attached to the dataset as labels (aka tags).
+# Those labels are needed by the "estafette" system to determine
+# the next dag that needs to be run.
+SCHEDULE_LABELS_LOOKUP: DefaultDict[str, set[str]] = defaultdict(set)
 
 dag_id = "gob"
 owner = "gob"
 
 graphql_path = pathlib.Path(__file__).resolve().parents[0] / "graphql"
+
+# Convenience logger, to be able to log to the logs that
+# are visible from the Web UI.
+logger = logging.getLogger("airflow.task")
 
 
 @dataclass
@@ -84,7 +100,7 @@ def create_gob_dag(
     gob_table_id: str,
     sub_table_id: Optional[str] = None,
     *,
-    labels_group: Optional[set[str]] = None,
+    schedule_labels: Iterable[str] = (),
 ) -> DAG:
     """Create the DAG."""
     dataset_table_id = f"{gob_dataset_id}_{gob_table_id}"
@@ -121,8 +137,10 @@ def create_gob_dag(
         f"{dag_id}_{dataset_table_id}",
         default_args=new_default_args,
         schedule_interval=schedule_interval,
-        tags=["gob"] + [gob_dataset_id],
+        tags=["gob"] + [gob_dataset_id] + list(schedule_labels),
         on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+        render_template_as_native_obj=True,
+        params={"schedule": schedule_interval},
     )
 
     kwargs = {
@@ -229,12 +247,55 @@ def create_gob_dag(
             xcom_attr_assigner=index_assigner,
         )
 
+        def _get_labels_group(schedule: Optional[str]) -> Optional[set[str]]:
+            if schedule is not None:
+                return {schedule}
+            # We need a fallback if there is no schedule
+            # in the dag_run.
+            if not schedule_labels:
+                return None
+            return set(schedule_labels)
+
+        def _get_sort_key(schedule: Optional[str]) -> Callable[[DagModel], Any]:
+            def dag_sort_key(dag: DagModel) -> Any:
+                # For GOB datasets not included in a schedule (eg HR)
+                # we order by `dag_id`, the default.
+                if schedule is None:
+                    return dag.dag_id
+
+                # For GOB dags, dataset_id does not have `_`
+                # so this split is safe.
+                dataset_id = dag.dag_id.split("_")[1]
+                ordered_datasets = SCHEDULE2DATASETS[schedule]
+                position = ordered_datasets.index(dataset_id)
+
+                # A tuple is used for ordering
+                # Dominant order is the position in the list of dataset
+                # for a particular schedule. Second ordering is done
+                # on the `dag_id`.
+                return position, dag.dag_id
+
+            return dag_sort_key
+
         # 7. trigger next DAG (estafette / relay run)
+
+        # The `conf` parameter is jinja-parametrised.
+        # So, we can use the `dag_run.conf` information
+        # to get the schedule that could have been passed in
+        # when the DAG has been triggered (typically in the triggering
+        # of the previous DAG in the estafette run).
+        # If no schedule is provided, the schedule
+        # will be taken from `params`, where `params`
+        # is initialized from `schedule_interval` when the DAG
+        # is instantiated.
+
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag",
             dag_id_prefix="gob_",
             trigger_rule="all_done",
-            labels_group=labels_group,
+            labels_group_getter=_get_labels_group,
+            sort_key_getter=_get_sort_key,
+            conf={"schedule": "{{ dag_run.conf.get('schedule', params.get('schedule')) }}"},
         )
 
         # 9. Grant database permissions
@@ -257,10 +318,14 @@ def create_gob_dag(
     return dag
 
 
+# We need to initialized the lookups that have been
+# defined at the top of this DAG module from the
+# `SCHEDULES` variable with the schedule definitions.
 first_in_group_datasets = set()
 for dss_schedule in SCHEDULES.split(";"):
     dataset_names_str, schedule = dss_schedule.split(":")
     dataset_names = dataset_names_str.split(",")
+    SCHEDULE2DATASETS[schedule] = dataset_names
     first_in_group_dataset = first(dataset_names)
     # Check if SCHEDULES are set up correctly.
     if first_in_group_dataset in first_in_group_datasets:
@@ -269,10 +334,10 @@ for dss_schedule in SCHEDULES.split(";"):
     for dataset_name in dataset_names:
         if dataset_name == first_in_group_dataset:
             SCHEDULE_LOOKUP[dataset_name] = schedule
-        SAME_SCHEDULE_DATASETS[dataset_name] = set(dataset_names)
+        SCHEDULE_LABELS_LOOKUP[dataset_name].add(schedule)
 
 # We need to group the dags on the name of the dataset,
-# because one or more datasets are sharing the same schedule
+# because some datasets are sharing the same schedule
 # and need to be initialized properly.
 grouped_dag_params = defaultdict(list)
 for gob_gql_dir in sorted(graphql_path.glob("*")):
@@ -282,10 +347,17 @@ for gob_gql_dir in sorted(graphql_path.glob("*")):
 
 for dataset_name, dag_params in grouped_dag_params.items():
     for i, ds_table_parts in enumerate(dag_params):
-        schedule_interval = None if i > 0 else SCHEDULE_LOOKUP.get(dataset_name)
+        schedule_for_ds = SCHEDULE_LOOKUP.get(dataset_name)
+        # The schedule_interval is the parameter that Airflow needs
+        # for its scheduler.
+        # This should only be set for the first DAG in series
+        schedule_interval = None if i > 0 else schedule_for_ds
         dag_id_postfix = "_".join(ds_table_parts)
+        # Every DAG is tagged with a set of labels
+        # representing the other schedules that this
+        # particular DAG is part of.
         globals()[f"gob_{dag_id_postfix}"] = create_gob_dag(
             schedule_interval,
             *ds_table_parts,
-            labels_group=SAME_SCHEDULE_DATASETS[dataset_name],
+            schedule_labels=tuple(SCHEDULE_LABELS_LOOKUP.get(dataset_name, ())),
         )
