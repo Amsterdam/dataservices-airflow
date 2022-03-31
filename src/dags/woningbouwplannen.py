@@ -3,12 +3,9 @@ from typing import Final
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
-    OTAP_ENVIRONMENT,
     DATASTORE_TYPE,
-    SLACK_ICON_START,
     MessageOperator,
-    default_args,
-    slack_webhook_token,
+    default_args
 )
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -59,13 +56,9 @@ with DAG(
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
-    # 1. Post message on slack
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{SLACK_ICON_START} Starting {dag_id} ({OTAP_ENVIRONMENT})",
-        username="admin",
+        task_id="slack_at_start"
     )
 
     # 2. Drop tables in target schema PTE

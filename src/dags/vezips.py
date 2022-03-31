@@ -4,11 +4,8 @@ from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from common import (
-    OTAP_ENVIRONMENT,
     SHARED_DIR,
-    SLACK_ICON_START,
     MessageOperator,
-    slack_webhook_token,
     vsd_default_args,
 )
 from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_TABLE_RENAME
@@ -48,12 +45,9 @@ with DAG(
         "bijzonderheden",
     ]
 
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{SLACK_ICON_START} Starting {dag_id} ({OTAP_ENVIRONMENT})",
-        username="admin",
+        task_id="slack_at_start"
     )
 
     fetch_json = HttpFetchOperator(

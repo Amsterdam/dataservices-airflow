@@ -8,13 +8,10 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.sftp.operators.sftp import SFTPOperator
 
 from common import (
-    OTAP_ENVIRONMENT,
-    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,
-    quote_string,
-    slack_webhook_token,
+    quote_string
 )
 
 from common.db import DatabaseEngine
@@ -52,13 +49,9 @@ with DAG(
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
-    # 1. Post info message on slack
+     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{SLACK_ICON_START} Starting {DAG_ID} ({OTAP_ENVIRONMENT})",
-        username="admin",
+        task_id="slack_at_start"
     )
 
     # 2. Create temp directory to store files
