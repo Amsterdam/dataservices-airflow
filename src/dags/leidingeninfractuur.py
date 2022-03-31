@@ -9,13 +9,10 @@ from airflow.models.baseoperator import chain
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
 from common import (
-    OTAP_ENVIRONMENT,
-    SLACK_ICON_START,
     SHARED_DIR,
     MessageOperator,
     default_args,
-    quote_string,
-    slack_webhook_token,
+    quote_string
 )
 from common.db import DatabaseEngine
 from common.path import mk_dir
@@ -87,11 +84,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{SLACK_ICON_START} Starting {DAG_ID} ({OTAP_ENVIRONMENT})",
-        username="admin",
+        task_id="slack_at_start"
     )
 
     # 2. Create temp directory to store files

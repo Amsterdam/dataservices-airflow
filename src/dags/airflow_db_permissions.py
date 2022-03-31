@@ -1,7 +1,7 @@
 import logging
 
 from airflow import DAG
-from common import OTAP_ENVIRONMENT, SLACK_ICON_START, MessageOperator, default_args, slack_webhook_token
+from common import  MessageOperator, default_args
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "airflow_db_permissions"
@@ -15,13 +15,9 @@ with DAG(
     description="set grants on database objects to database roles based upon schema auth definition, based upon successfully executed dags within specified time window.",
 ) as dag:
 
-    # 1. Post info message on slack
+   # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{SLACK_ICON_START} Starting {dag_id} ({OTAP_ENVIRONMENT})",
-        username="admin",
+        task_id="slack_at_start"
     )
 
     # 2. Add grants (in batch mode)

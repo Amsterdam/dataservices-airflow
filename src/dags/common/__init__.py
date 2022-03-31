@@ -1,18 +1,14 @@
 import logging
 import os
-import traceback
-from datetime import timedelta
-from hashlib import blake2s
-from inspect import cleandoc
-from typing import Any, Iterable, Optional, Union, cast
-
 import pendulum
-from airflow.exceptions import AirflowException
 from airflow.hooks.base import BaseHook
 from airflow.models.taskinstance import Context
-from airflow.providers.slack.hooks.slack_webhook import SlackWebhookHook
-from airflow.providers.slack.operators.slack_webhook import SlackWebhookOperator
+from airflow.providers.slack.operators.slack import SlackAPIPostOperator
+from airflow.providers.slack.hooks.slack import SlackHook
 from airflow.settings import TIMEZONE
+from datetime import timedelta
+from hashlib import blake2s
+from typing import Any, Iterable, cast
 from environs import Env
 from log_message_operator import LogMessageOperator
 from psycopg2.extensions import QuotedString
@@ -22,8 +18,6 @@ env: Env = Env()
 
 # define logger for output to console
 logger: logging.Logger = logging.getLogger(__name__)
-
-slack_webhook_token: str = env("SLACK_WEBHOOK")
 
 # the DATAPUNT_ENVIRONMENT is set in CloudVPS (Openstack repo) for
 # environment `acceptance` or `production`. These values are also
@@ -39,10 +33,6 @@ DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 # we for now still need to account for DATAPUNT_ENVIRONMENT as value.
 # When fully migrated to Azure we can remove the second entry.
 OTAP_ENVIRONMENT: str =env("AZURE_OTAP_ENVIRONMENT", env("DATAPUNT_ENVIRONMENT", "acceptance"))
-
-# Emoij for indicator starting or failing DAG's in Slack message.
-SLACK_ICON_START: str = ":arrow_forward:"
-SLACK_ICON_FAIL: str = ":red_circle:"
 
 # Defines the environments in which sending of email is enabled.
 # After we are fully migrated to Azure, we can remove the list item
@@ -63,43 +53,36 @@ DATASTORE_TYPE: str = (
     "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )
 
-class SlackFailsafeWebhookOperator(SlackWebhookOperator):  # noqa: D101 (it's temporary after all)
-    def execute(self, context: Context) -> None:  # noqa: D102 (it's temporary after all)
-        self.hook = SlackWebhookHook(
-            self.http_conn_id,
-            self.webhook_token,
-            self.message,
-            self.attachments,
-            self.blocks,
-            self.channel,
-            self.username,
-            self.icon_emoji,
-            self.icon_url,
-            self.link_names,
-            self.proxy,
-        )
-        try:
-            self.hook.execute()
-        except (AirflowException, ConnectionError):
-            self.log.warning("Unable to reach Slack!! Falling back to logger.")
-            self.log.info(self.message)
+# SLACK variables
+SLACK_CHANNEL: str = env('SLACK_CHANNEL') #i.e. `#airflow` or for a private channel without #
+SLACK_ICON_START: str = ":arrow_forward:" # Emoij for indicator starting DAG
+SLACK_ICON_FAIL: str = ":red_circle:" # Emoij for failing DAG
+SLACK_WEBHOOK: str = env("SLACK_WEBHOOK")
+
+class SlackMessageOperator(SlackAPIPostOperator):
+    """Class definition for sending Slack message.
+
+    NOTE: To post a message in a Slack channel, you need to get a
+    webhook for each channel defined in Slack. And the web-app needs
+    to be added to that channel.
+    """
+    def execute(self, context: Context) -> None:
+        message = """
+                {0} DAG started ({1})'
+                *Dag*: {2}
+                *Execution Time*: {3}
+                """.format(
+                        SLACK_ICON_START,
+                        OTAP_ENVIRONMENT,
+                        context.get('task_instance').dag_id,
+                        context.get('logical_date'))
+        slack_hook = SlackHook(token=SLACK_WEBHOOK)
+        slack_hook.call("chat.postMessage", json={"channel": SLACK_CHANNEL, "text": message})
 
 
 MessageOperator = (
-    LogMessageOperator if DATAPUNT_ENVIRONMENT == "development" else SlackFailsafeWebhookOperator
+    LogMessageOperator if DATAPUNT_ENVIRONMENT == "development" else SlackMessageOperator
 )
-
-
-def pg_params(conn_id: str = "postgres_default") -> str:
-    """Add "stop on error" argument to connection string.
-
-    Args:
-        conn_id: database connection that is provided with default parameters
-    returns:
-        connection string with default params
-    """
-    connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
-    return f"{connection_uri} -X --set ON_ERROR_STOP=1"
 
 
 def slack_failed_task(context: Context) -> None:
@@ -112,28 +95,22 @@ def slack_failed_task(context: Context) -> None:
     executes:
         MessageOperator instance
     """
-    dag_id: str = context["dag"].dag_id
-    task_id: str = context["task"].task_id
-    exception: Optional[BaseException] = context.get("exception")
-    formatted_exception = ""
-    if exception is not None:
-        formatted_exception = "".join(
-            traceback.format_exception(
-                etype=type(exception), value=exception, tb=exception.__traceback__
-            )
-        ).strip()
-    message: str = f"""{SLACK_ICON_FAIL} Failure info ({OTAP_ENVIRONMENT}):
-        dag_id: {dag_id}
-        task_id: {task_id}
-    """
-    failed_alert = MessageOperator(
-        task_id="failed_alert",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{cleandoc(message)}\n\n{formatted_exception}",
-        username="admin",
-    )
-    failed_alert.execute(context=context)
+    failed_message = """
+                {0} DAG failed ({1})'
+                *Task*: {2}
+                *Dag*: {3}
+                *Execution Time*: {4}
+                *Log Url*: {5}
+                """.format(
+                        SLACK_ICON_FAIL,
+                        OTAP_ENVIRONMENT,
+                        context.get('task_instance').task_id,
+                        context.get('task_instance').dag_id,
+                        context.get('logical_date'),
+                        context.get('task_instance').log_url)
+
+    slack_hook = SlackHook(token=SLACK_WEBHOOK)
+    slack_hook.call("chat.postMessage", json={"channel": SLACK_CHANNEL, "text": failed_message})
 
 
 default_args: Context = {
@@ -148,6 +125,19 @@ default_args: Context = {
     "retry_delay": timedelta(minutes=1),
     "catchup": False,  # do not backfill
 }
+
+
+def pg_params(conn_id: str = "postgres_default") -> str:
+    """Add "stop on error" argument to connection string.
+
+    Args:
+        conn_id: database connection that is provided with default parameters
+    returns:
+        connection string with default params
+    """
+    connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
+    return f"{connection_uri} -X --set ON_ERROR_STOP=1"
+
 
 vsd_default_args: Context = default_args.copy()
 vsd_default_args["postgres_conn_id"] = "postgres_default"

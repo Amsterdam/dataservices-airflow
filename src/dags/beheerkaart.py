@@ -5,12 +5,10 @@ from airflow.providers.postgres.operators.postgres import PostgresOperator
 from bash_env_operator import BashEnvOperator
 from common import (
     OTAP_ENVIRONMENT,
-    SLACK_ICON_START,
     DATASTORE_TYPE,
     EPHEMERAL_DIR,
     MessageOperator,
     default_args,
-    slack_webhook_token,
 )
 from common.db import fetch_pg_env_vars
 from common.path import mk_dir
@@ -47,13 +45,10 @@ with DAG(
     schedule_interval="0 0 * * 4,6",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dataset_name),
 ) as dag:
-    # 1. Post message on slack
+
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-        http_conn_id="slack",
-        webhook_token=slack_webhook_token,
-        message=f"{SLACK_ICON_START} Starting {dag_id} ({OTAP_ENVIRONMENT})",
-        username="admin",
+        task_id="slack_at_start"
     )
 
     # 2. Drop tables in target schema PTE

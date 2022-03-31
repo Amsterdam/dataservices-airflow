@@ -30,9 +30,7 @@ apache-airflow-providers-cncf-kubernetes==2.2.0
 apache-airflow-providers-ftp==2.0.1
     # via apache-airflow
 apache-airflow-providers-http==2.0.1
-    # via
-    #   apache-airflow
-    #   apache-airflow-providers-slack
+    # via apache-airflow
 apache-airflow-providers-imap==2.0.1
     # via apache-airflow
 apache-airflow-providers-microsoft-azure==3.2.0
@@ -45,7 +43,7 @@ apache-airflow-providers-sendgrid==2.0.1
     # via apache-airflow
 apache-airflow-providers-sftp==2.4.1
     # via -r requirements.in
-apache-airflow-providers-slack[http]==2.0.0
+apache-airflow-providers-slack==4.2.1
     # via -r requirements.in
 apache-airflow-providers-sqlite==2.0.1
     # via apache-airflow

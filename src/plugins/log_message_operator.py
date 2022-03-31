@@ -1,9 +1,12 @@
+from environs import Env
 import inspect
-from typing import Any, Optional
+from typing import Any
 
 from airflow.models import BaseOperator
 from airflow.models.taskinstance import Context
 
+env = Env()
+SLACK_CHANNEL: str = env('SLACK_CHANNEL')
 
 class LogMessageOperator(BaseOperator):
     """Log messages to default logger.
@@ -11,10 +14,9 @@ class LogMessageOperator(BaseOperator):
     To proxy SlackWebhookOperator for local development.
     """
 
-    def __init__(self, *, message: str = "", channel: Optional[str] = None, **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """Initialize LogMessageOperator."""
-        self.message = message
-        self.channel = channel
+        self.channel = SLACK_CHANNEL
 
         # Only pass along arguments that the BaseOperator super class defines.
         # Reason being that by default BaseOperator does not accept arguments it didn't
@@ -29,4 +31,4 @@ class LogMessageOperator(BaseOperator):
 
     def execute(self, context: Context) -> None:
         """Log message to default logger."""
-        self.log.info("%s for channel %s", self.message, self.channel)
+        self.log.info("start DAG %s for channel %s",  context.get('task_instance').dag_id, self.channel)
