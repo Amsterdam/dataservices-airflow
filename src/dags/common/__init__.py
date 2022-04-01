@@ -1,18 +1,16 @@
 import logging
-import os
+from datetime import timedelta
+from hashlib import blake2s
+from typing import Iterable, cast
+
 import pendulum
 from airflow.hooks.base import BaseHook
 from airflow.models.taskinstance import Context
-from airflow.providers.slack.operators.slack import SlackAPIPostOperator
-from airflow.providers.slack.hooks.slack import SlackHook
 from airflow.settings import TIMEZONE
-from datetime import timedelta
-from hashlib import blake2s
-from typing import Any, Iterable, cast
 from environs import Env
 from log_message_operator import LogMessageOperator
 from psycopg2.extensions import QuotedString
-from requests.exceptions import ConnectionError
+from slack_message_operator import SlackMessageOperator
 
 env: Env = Env()
 
@@ -32,7 +30,7 @@ DATAPUNT_ENVIRONMENT: str = env("DATAPUNT_ENVIRONMENT", "acceptance")
 # Since we have to deal with the hybride situation of CloudVPS and Azure
 # we for now still need to account for DATAPUNT_ENVIRONMENT as value.
 # When fully migrated to Azure we can remove the second entry.
-OTAP_ENVIRONMENT: str =env("AZURE_OTAP_ENVIRONMENT", env("DATAPUNT_ENVIRONMENT", "acceptance"))
+OTAP_ENVIRONMENT: str = env("AZURE_OTAP_ENVIRONMENT", env("DATAPUNT_ENVIRONMENT", "acceptance"))
 
 # Defines the environments in which sending of email is enabled.
 # After we are fully migrated to Azure, we can remove the list item
@@ -44,6 +42,7 @@ ELIGIBLE_EMAIL_ENVIRONMENTS: tuple[str, ...] = tuple(
     )
 )
 
+# used for storing temporary files like when downloading.
 SHARED_DIR: str = env("SHARED_DIR", "/tmp")  # noqa: S108
 
 # defines the an ephermeral directory used on an AKS pod non-mounted as a share.
@@ -53,64 +52,9 @@ DATASTORE_TYPE: str = (
     "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )
 
-# SLACK variables
-SLACK_CHANNEL: str = env('SLACK_CHANNEL') #i.e. `#airflow` or for a private channel without #
-SLACK_ICON_START: str = ":arrow_forward:" # Emoij for indicator starting DAG
-SLACK_ICON_FAIL: str = ":red_circle:" # Emoij for failing DAG
-SLACK_WEBHOOK: str = env("SLACK_WEBHOOK")
-
-class SlackMessageOperator(SlackAPIPostOperator):
-    """Class definition for sending Slack message.
-
-    NOTE: To post a message in a Slack channel, you need to get a
-    webhook for each channel defined in Slack. And the web-app needs
-    to be added to that channel.
-    """
-    def execute(self, context: Context) -> None:
-        message = """
-                {0} DAG started ({1})'
-                *Dag*: {2}
-                *Execution Time*: {3}
-                """.format(
-                        SLACK_ICON_START,
-                        OTAP_ENVIRONMENT,
-                        context.get('task_instance').dag_id,
-                        context.get('logical_date'))
-        slack_hook = SlackHook(token=SLACK_WEBHOOK)
-        slack_hook.call("chat.postMessage", json={"channel": SLACK_CHANNEL, "text": message})
-
-
 MessageOperator = (
     LogMessageOperator if DATAPUNT_ENVIRONMENT == "development" else SlackMessageOperator
 )
-
-
-def slack_failed_task(context: Context) -> None:
-    """Fire off a message to Slack in case of a DAG failure.
-
-    This function defines an ``on_failure_callback` function.
-
-    Args:
-        context: parameters in dict format
-    executes:
-        MessageOperator instance
-    """
-    failed_message = """
-                {0} DAG failed ({1})'
-                *Task*: {2}
-                *Dag*: {3}
-                *Execution Time*: {4}
-                *Log Url*: {5}
-                """.format(
-                        SLACK_ICON_FAIL,
-                        OTAP_ENVIRONMENT,
-                        context.get('task_instance').task_id,
-                        context.get('task_instance').dag_id,
-                        context.get('logical_date'),
-                        context.get('task_instance').log_url)
-
-    slack_hook = SlackHook(token=SLACK_WEBHOOK)
-    slack_hook.call("chat.postMessage", json={"channel": SLACK_CHANNEL, "text": failed_message})
 
 
 default_args: Context = {
@@ -120,11 +64,14 @@ default_args: Context = {
     "email": "example@airflow.com",
     "email_on_failure": False,
     "email_on_retry": False,
-    "on_failure_callback": slack_failed_task,
+    "on_failure_callback": SlackMessageOperator(task_id="error").slack_failed_task,
     "retries": 1,
     "retry_delay": timedelta(minutes=1),
     "catchup": False,  # do not backfill
 }
+
+vsd_default_args: Context = default_args.copy()
+vsd_default_args["postgres_conn_id"] = "postgres_default"
 
 
 def pg_params(conn_id: str = "postgres_default") -> str:
@@ -137,10 +84,6 @@ def pg_params(conn_id: str = "postgres_default") -> str:
     """
     connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
     return f"{connection_uri} -X --set ON_ERROR_STOP=1"
-
-
-vsd_default_args: Context = default_args.copy()
-vsd_default_args["postgres_conn_id"] = "postgres_default"
 
 
 def addloopvariables(iterable: Iterable) -> Iterable:

@@ -7,7 +7,6 @@ from airflow.models.dagrun import DagRun
 from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.settings import Session
 from airflow.utils.state import State
-from common import SLACK_ICON_START
 from sqlalchemy import not_
 
 
@@ -89,7 +88,7 @@ class TriggerDynamicDagRunOperator(TriggerDagRunOperator):
             self.log.info("Not starting next dag ('no_next_dag' in dag_run config)!")
             return
         current_dag_id = self.dag.dag_id
-        self.log.info(f"{SLACK_ICON_START} Starting dag %s", current_dag_id)  # noqa: G004
+        self.log.info("Starting dag %s", current_dag_id)  # noqa: G004
         session = Session()
         query = (
             session.query(DagModel)
