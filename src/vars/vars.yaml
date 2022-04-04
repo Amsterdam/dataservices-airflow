@@ -314,7 +314,7 @@ bbga:
   data_endpoints:
     bbga_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/2
     metadata_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/4
-    bbga_std_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/5
+    bbga_std_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/3
   table_mappings:
     bbga_latest_and_greatest: bbga_kerncijfers
     metadata_latest_and_greatest: bbga_indicatoren_definities
@@ -379,4 +379,3 @@ corona:
     handhaving: {"data": "corona_handhaving.csv", "dataset": "handhaving" }
 grootstedelijke_projecten:
   files_to_download: [GBD_grootstedelijke_projecten.dbf, GBD_grootstedelijke_projecten.shp, GBD_grootstedelijke_projecten.shx]
-
