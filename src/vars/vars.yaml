@@ -314,7 +314,7 @@ bbga:
   data_endpoints:
     bbga_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/2
     metadata_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/4
-    bbga_std_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/5
+    bbga_std_latest_and_greatest: dcatd/datasets/rl6-35tFAw2Ljw/purls/3
   table_mappings:
     bbga_latest_and_greatest: bbga_kerncijfers
     metadata_latest_and_greatest: bbga_indicatoren_definities
