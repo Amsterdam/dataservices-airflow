@@ -379,4 +379,3 @@ corona:
     handhaving: {"data": "corona_handhaving.csv", "dataset": "handhaving" }
 grootstedelijke_projecten:
   files_to_download: [GBD_grootstedelijke_projecten.dbf, GBD_grootstedelijke_projecten.shp, GBD_grootstedelijke_projecten.shx]
-

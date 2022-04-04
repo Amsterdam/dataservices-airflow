@@ -1,7 +1,7 @@
 import logging
 
 from airflow import DAG
-from common import  MessageOperator, default_args
+from common import MessageOperator, default_args
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 dag_id = "airflow_db_permissions"
@@ -12,13 +12,12 @@ with DAG(
     default_args=default_args,
     schedule_interval="*/15 * * * *",
     catchup=False,
-    description="set grants on database objects to database roles based upon schema auth definition, based upon successfully executed dags within specified time window.",
+    description="set grants on database objects to database roles based upon schema"
+    "auth definition, based upon successfully executed dags within specified time window.",
 ) as dag:
 
-   # 1. Post info message on slack
-    slack_at_start = MessageOperator(
-        task_id="slack_at_start"
-    )
+    # 1. Post info message on slack
+    slack_at_start = MessageOperator(task_id="slack_at_start")
 
     # 2. Add grants (in batch mode)
     # seeks for dags that successfully executed within time window
