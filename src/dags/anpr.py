@@ -8,12 +8,7 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    DATASTORE_TYPE,
-    SHARED_DIR,
-    MessageOperator,
-    default_args
-)
+from common import DATASTORE_TYPE, SHARED_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
@@ -76,7 +71,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     mk_tmp_dir = mk_dir(TMP_DIR, clean_if_exists=True)

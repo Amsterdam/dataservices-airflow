@@ -7,13 +7,7 @@ from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    default_args,
-    pg_params,
-    quote_string
-)
+from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -55,7 +49,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. create download temp directory to store the data

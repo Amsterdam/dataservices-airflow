@@ -4,11 +4,7 @@ from pathlib import Path
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    default_args
-)
+from common import SHARED_DIR, MessageOperator, default_args
 from common.db import DatabaseEngine
 from common.objectstore import fetch_objectstore_credentials
 from common.path import mk_dir
@@ -49,7 +45,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. Create temp directory to store files

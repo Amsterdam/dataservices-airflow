@@ -3,13 +3,7 @@ from pathlib import Path
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from bash_env_operator import BashEnvOperator
-from common import (
-    OTAP_ENVIRONMENT,
-    DATASTORE_TYPE,
-    EPHEMERAL_DIR,
-    MessageOperator,
-    default_args,
-)
+from common import DATASTORE_TYPE, EPHEMERAL_DIR, OTAP_ENVIRONMENT, MessageOperator, default_args
 from common.db import fetch_pg_env_vars
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -48,7 +42,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. Drop tables in target schema PTE

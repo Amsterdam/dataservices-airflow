@@ -5,12 +5,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    default_args,
-    quote_string
-)
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -63,7 +58,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. Create temp directory to store files
@@ -98,10 +93,10 @@ with DAG(
     ]
 
     keepalive_kwargs = {
-    "keepalives": 1,
-    "keepalives_idle": 60,
-    "keepalives_interval": 10,
-    "keepalives_count": 5
+        "keepalives": 1,
+        "keepalives_idle": 60,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
     }
 
     # 5. SETUP tmp TABLE
@@ -109,7 +104,7 @@ with DAG(
         task_id="create_tmp_table",
         sql=SQL_CREATE_TMP_TABLE,
         autocommit=True,
-        parameters={**keepalive_kwargs}
+        parameters={**keepalive_kwargs},
     )
 
     # 6. Rename COLUMNS based on provenance (if specified)

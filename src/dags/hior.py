@@ -6,12 +6,7 @@ from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    default_args,
-    pg_params
-)
+from common import SHARED_DIR, MessageOperator, default_args, pg_params
 from importscripts.import_hior import import_hior
 from postgres_permissions_operator import PostgresPermissionsOperator
 
@@ -47,7 +42,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # fetch_xls = HttpFetchOperator(

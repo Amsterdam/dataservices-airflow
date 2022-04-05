@@ -7,11 +7,7 @@ from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    EPHEMERAL_DIR,
-    MessageOperator,
-    default_args,
-)
+from common import EPHEMERAL_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
@@ -46,7 +42,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     mkdir = mk_dir(EXPORT_DIR)

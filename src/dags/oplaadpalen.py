@@ -5,11 +5,7 @@ from airflow import DAG
 from airflow.operators.python_operator import BranchPythonOperator, PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    vsd_default_args
-)
+from common import SHARED_DIR, MessageOperator, vsd_default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.oplaadpalen.import_oplaadpalen_allego import import_oplaadpalen
@@ -58,7 +54,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     check_table_exists = PostgresXcomOperator(
