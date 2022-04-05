@@ -9,14 +9,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    default_args,
-    env,
-    logger,
-    quote_string
-)
+from common import SHARED_DIR, MessageOperator, default_args, env, logger, quote_string
 from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -89,7 +82,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. Create temp directory to store files

@@ -2,11 +2,7 @@ from typing import Final
 
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    DATASTORE_TYPE,
-    MessageOperator,
-    default_args,
-)
+from common import DATASTORE_TYPE, MessageOperator, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
@@ -66,9 +62,9 @@ with DAG(
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
-     # 1. Post info message on slack
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     drop_tables = PostgresOperator(task_id="drop_tables", sql=DROP_IMPORT_TABLES)

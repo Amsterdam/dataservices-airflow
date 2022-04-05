@@ -3,12 +3,7 @@ from typing import Final
 
 from airflow import DAG
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    DATASTORE_TYPE,
-    MessageOperator,
-    default_args,
-    quote_string,
-)
+from common import DATASTORE_TYPE, MessageOperator, default_args, quote_string
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
     COLNAMES_CHECK,
@@ -54,7 +49,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     drop_tables = PostgresOperator(

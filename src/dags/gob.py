@@ -9,12 +9,7 @@ import pendulum
 from airflow import DAG
 from airflow.models.dag import DagModel
 from airflow.operators.python import PythonOperator
-from common import (
-    DATAPUNT_ENVIRONMENT,
-    MessageOperator,
-    default_args,
-    env
-)
+from common import DATAPUNT_ENVIRONMENT, MessageOperator, default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dynamic_dagrun_operator import TriggerDynamicDagRunOperator
 from http_gob_operator import HttpGobOperator
@@ -153,9 +148,9 @@ def create_gob_dag(
 
     with dag:
 
-         # 1. Post info message on slack
+        # 1. Post info message on slack
         slack_at_start = MessageOperator(
-            task_id="slack_at_start"
+            task_id="slack_at_start",
         )
 
         def _create_dataset_info(dataset_id: str, table_id: str, sub_table_id: str) -> DatasetInfo:

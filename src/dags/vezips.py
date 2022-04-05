@@ -3,11 +3,7 @@ import pathlib
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    vsd_default_args,
-)
+from common import SHARED_DIR, MessageOperator, vsd_default_args
 from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_TABLE_RENAME
 from http_fetch_operator import HttpFetchOperator
 from postgres_check_operator import PostgresCheckOperator, PostgresValueCheckOperator
@@ -47,7 +43,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     fetch_json = HttpFetchOperator(

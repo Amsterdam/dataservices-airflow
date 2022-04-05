@@ -9,7 +9,7 @@ from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
 from airflow.utils.task_group import TaskGroup
-from common import  MessageOperator, default_args, env
+from common import MessageOperator, default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
@@ -194,7 +194,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     rm_tmp_tables_pre = rm_tmp_tables("_pre", TABLES)

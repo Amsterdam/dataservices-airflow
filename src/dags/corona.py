@@ -1,19 +1,12 @@
 from pathlib import Path
-from typing import List, Final, Set
+from typing import Final, List, Set
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.sftp.operators.sftp import SFTPOperator
-
-from common import (
-    SHARED_DIR,
-    MessageOperator,
-    default_args,
-    quote_string
-)
-
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.db import DatabaseEngine
 from common.path import mk_dir
 from common.sql import SQL_CHECK_COUNT
@@ -34,24 +27,26 @@ TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 variables: dict[str, dict[str, str]] = Variable.get(DAG_ID, deserialize_json=True)
 RIVM_data: dict[str, dict[str, str]] = variables["data_endpoints"]
 OOV_data: dict[str, dict[str, str]] = variables["files_to_download"]
-database_table_names: Set = {value["dataset"] for value in OOV_data.values()} | {value["dataset"] for value in RIVM_data.values()}
-total_checks: List = []
-count_checks: List = []
+database_table_names: set = {value["dataset"] for value in OOV_data.values()} | {
+    value["dataset"] for value in RIVM_data.values()
+}
+total_checks: list = []
+count_checks: list = []
 check_name: dict = {}
 db_conn: object = DatabaseEngine()
 
 with DAG(
     DAG_ID,
-    description = "corona gevallen, ziekenhuisopnames en handhavingsacties.",
+    description="corona gevallen, ziekenhuisopnames en handhavingsacties.",
     default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
-     # 1. Post info message on slack
+    # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. Create temp directory to store files
@@ -72,12 +67,12 @@ with DAG(
 
     # 3b. Import handhaving data (OOV source)
     import_OOV_data = PythonOperator(
-            task_id=f"import_OOV_data",
-            python_callable=data_import_handhaving,
-            op_kwargs={
-                "csv_file": TMP_DIR / OOV_data["handhaving"]["data"],
-                "db_table_name": f"{DAG_ID}_handhaving_new",
-            },
+        task_id=f"import_OOV_data",
+        python_callable=data_import_handhaving,
+        op_kwargs={
+            "csv_file": TMP_DIR / OOV_data["handhaving"]["data"],
+            "db_table_name": f"{DAG_ID}_handhaving_new",
+        },
     )
 
     # 4a. Download gevallen en ziekenhuisopnames data (RIVM source)
@@ -93,13 +88,14 @@ with DAG(
 
     # 4b. Import gevallen en ziekenhuisopnames data (RIVM source)
     import_RIVM_data = PythonOperator(
-            task_id=f"import_RIVM_data",
-            python_callable=data_import_gevallen_opnames,
-            op_kwargs={
-                "source_data_gevallen": TMP_DIR / RIVM_data["gevallen"]["data"].split("/")[2],
-                "source_data_ziekenhuis": TMP_DIR / RIVM_data["ziekenhuisopnames"]["data"].split("/")[2],
-                "db_table_name": f"{DAG_ID}_gevallen_new",
-            },
+        task_id=f"import_RIVM_data",
+        python_callable=data_import_gevallen_opnames,
+        op_kwargs={
+            "source_data_gevallen": TMP_DIR / RIVM_data["gevallen"]["data"].split("/")[2],
+            "source_data_ziekenhuis": TMP_DIR
+            / RIVM_data["ziekenhuisopnames"]["data"].split("/")[2],
+            "db_table_name": f"{DAG_ID}_gevallen_new",
+        },
     )
 
     # 5. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
@@ -119,9 +115,9 @@ with DAG(
     # 7. Rename TABLES
     rename_tables = [
         PostgresTableRenameOperator(
-        task_id=f"rename_table_{table_name}",
-        old_table_name=f"{DAG_ID}_{table_name}_new",
-        new_table_name=f"{DAG_ID}_{table_name}",
+            task_id=f"rename_table_{table_name}",
+            old_table_name=f"{DAG_ID}_{table_name}_new",
+            new_table_name=f"{DAG_ID}_{table_name}",
         )
         for table_name in database_table_names
     ]
@@ -138,7 +134,6 @@ with DAG(
 
     # 9. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
-
 
     # FLOW
     # Path 1: OOV
@@ -160,7 +155,7 @@ with DAG(
     Interface >> provenance_translation >> rename_tables
 
     for table, check in zip(rename_tables, check_count):
-        [ table >> check] >> grant_db_permissions
+        [table >> check] >> grant_db_permissions
 
     grant_db_permissions
 

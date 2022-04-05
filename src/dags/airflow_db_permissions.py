@@ -17,7 +17,9 @@ with DAG(
 ) as dag:
 
     # 1. Post info message on slack
-    slack_at_start = MessageOperator(task_id="slack_at_start")
+    slack_at_start = MessageOperator(
+        task_id="slack_at_start",
+    )
 
     # 2. Add grants (in batch mode)
     # seeks for dags that successfully executed within time window

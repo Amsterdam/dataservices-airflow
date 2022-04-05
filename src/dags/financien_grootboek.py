@@ -1,7 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import  MessageOperator, default_args
+from common import MessageOperator, default_args
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_financien_grootboek import load_from_dwh
@@ -28,7 +28,7 @@ with DAG(
 
     # 1. Post info message on slack
     slack_at_start = MessageOperator(
-        task_id="slack_at_start"
+        task_id="slack_at_start",
     )
 
     # 2. Load finance data into DB
