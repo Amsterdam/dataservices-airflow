@@ -9,9 +9,28 @@ python scripts/mkvars.py
 # creating an admin and regular users (nessacary when using RABC=True in the airflow.cnf)
 airflow users create -r Admin -u admin -e admin@example.com -f admin -l admin -p ${AIRFLOW_USER_ADMIN_PASSWD:-admin}
 
+# NOTE: Only needed for CloudVPS on Azure each datateam has its own Airflow instance.
+# create custom users
 airflow users create -r User -u dataservices -e dataservices@example.com -f dataservices -l dataservices -p ${AIRFLOW_USER_DATASERVICES_PASSWD:-dataservices}
 airflow users create -r User -u team_ruimte -e team_ruimte@example.com -f team_ruimte -l team_ruimte -p ${AIRFLOW_USER_TEAM_RUIMTE_PASSWD:-team_ruimte}
-airflow users create -r User -u team_beeldschoon -e team_beeldschoon@example.com -f team_beeldschoon -l team_beeldschoon -p ${AIRFLOW_USER_TEAM_BEELDSCHOON_PASSWD:-team_beeldschoon}
+airflow users create -r User -u team_benk -e team_benk@example.com -f team_benk -l team_benk -p ${AIRFLOW_USER_TEAM_BENK_PASSWD:-team_benk}
+
+# NOTE: Only needed for CloudVPS. On Azure each datateam has its own Airflow instance.
+# create custom roles. These need to be created before the DAG's are loaded and add DAG
+# level permissions to these roles.
+airflow roles create -v dataservices
+airflow roles create -v team_ruimte
+airflow roles create -v team_benk
+
+# NOTE: Only needed for CloudVPS. On Azure each datateam has its own Airflow instance.
+# create role-bindings for custom users and custom roles. It is needed to remove the User role
+# from the users since it will allow to see/interact with all DAGs.
+airflow users remove-role -r User -u team_benk
+airflow users remove-role -r User -u team_ruimte
+airflow users remove-role -r User -u dataservices
+airflow users add-role -r team_benk -u team_benk
+airflow users add-role -r team_ruimte -u team_ruimte
+airflow users add-role -r dataservices -u dataservices
 
 # Airflow does not support slack connection config through environment var
 # So we (re-)create the slack connection on startup.

@@ -32,6 +32,7 @@ owner = "team_ruimte"
 with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:

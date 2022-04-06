@@ -36,6 +36,7 @@ with DAG(
     default_args=default_args | {"owner": owner},
     # New data is delivered every wednesday and friday evening,
     # So we schedule the import on friday and saturday morning
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     schedule_interval="0 0 * * 4,6",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dataset_name),
 ) as dag:

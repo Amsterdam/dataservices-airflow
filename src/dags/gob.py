@@ -61,7 +61,10 @@ SCHEDULE2DATASETS: dict[str, list[str]] = {}
 SCHEDULE_LABELS_LOOKUP: DefaultDict[str, set[str]] = defaultdict(set)
 
 dag_id = "gob"
-owner = "gob"
+
+# owner: Only needed for CloudVPS. On Azure
+# each team has its own Airflow instance.
+owner = "team_benk"
 
 graphql_path = pathlib.Path(__file__).resolve().parents[0] / "graphql"
 
@@ -128,6 +131,9 @@ def create_gob_dag(
     dag = DAG(
         f"{dag_id}_{dataset_table_id}",
         default_args=new_default_args,
+        # access_control: Only needed for CloudVPS on Azure
+        # each team has its own Airflow instance.
+        access_control={owner: {"can_dag_read", "can_dag_edit"}},
         schedule_interval=schedule_interval,
         tags=["gob"] + [gob_dataset_id] + list(schedule_labels),
         on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
