@@ -18,6 +18,8 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swap_schema_operator import SwapSchemaOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
+# owner: Only needed for CloudVPS. On Azure
+# each team has its own Airflow instance.
 owner = "team_ruimte"
 dag_id: str = "huishoudelijkafval"
 tables: dict[str, Union[list[str], str]] = {
@@ -41,6 +43,9 @@ with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
+    # access_control: Only needed for CloudVPS on Azure
+    # each team has its own Airflow instance.
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 

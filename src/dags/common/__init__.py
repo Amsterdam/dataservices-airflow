@@ -59,6 +59,7 @@ MessageOperator = (
 
 default_args: Context = {
     "owner": "dataservices",
+    "access_control": {"dataservices": {"can_dag_read", "can_dag_edit"}},
     "depends_on_past": False,
     "start_date": pendulum.yesterday(TIMEZONE),
     "email": "example@airflow.com",
