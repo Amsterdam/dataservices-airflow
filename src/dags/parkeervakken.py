@@ -449,7 +449,7 @@ def get_modes(row):
             row.record.TVM_OPMERK,
         ]
     ):
-        # TVM
+        # TVM (tijdelijke verkeersmaatregel)
         tvm_mode = base.copy()
         tvm_mode.update(
             dict(
