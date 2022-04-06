@@ -517,7 +517,6 @@ def days_from_row(row):
     else:
         # One day permit
         days = [day for day in WEEK_DAYS if getattr(row.record, day.upper()) is not False]
-        logger.info("One day permit", days)
         setattr(row.record, days[0].upper(), False)
 
     return days
