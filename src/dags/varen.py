@@ -12,6 +12,8 @@ owner = "team_ruimte"
 with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
