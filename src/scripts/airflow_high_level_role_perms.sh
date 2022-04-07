@@ -22,14 +22,14 @@ echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo 'Airflow is ***AWAKE***. Setting generic permissions to custom roles.......'
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
-users="team_benk team_ruimte dataservices"
+roles="team_benk team_ruimte dataservices"
 
-for user in ${users[@]}; do \
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/$user" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
+for role in ${roles[@]}; do \
+curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/$role" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
 -d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Logs\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Runs\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Code\"}},\
-    {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"$user\"}"; done
+    {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"$role\"}"; done
