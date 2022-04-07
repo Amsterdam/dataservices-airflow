@@ -58,11 +58,11 @@ ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
 
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
-COPY scripts/airlow_high_level_role_perms.sh /airlow_high_level_role_perms.sh
+COPY scripts/airflow_high_level_role_perms.sh /airflow_high_level_role_perms.sh
 COPY scripts/run.sh /run.sh
 COPY scripts/mkvars.py ${AIRFLOW_USER_HOME}/scripts/mkvars.py
 COPY scripts/checkdags.py ${AIRFLOW_USER_HOME}/scripts/checkdags.py
-RUN chmod +x /docker-entrypoint.sh /run.sh /airlow_high_level_role_perms.sh
+RUN chmod +x /docker-entrypoint.sh /run.sh /airflow_high_level_role_perms.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 RUN mkdir ${AIRFLOW_USER_HOME}/etc
 COPY config/supervisord.conf ${AIRFLOW_USER_HOME}/etc/supervisord.conf
@@ -81,4 +81,4 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 # The & puts scheduler in background (not &&)
 # CMD ["sh", "-c", "airflow variables -i vars/vars.json & airflow scheduler & airflow webserver"]
 # CMD /run.sh
-CMD ["sh", "-c", "/airlow_high_level_role_perms.sh & /run.sh"]
+CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]
