@@ -22,9 +22,10 @@ echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo 'Airflow is ***AWAKE***. Setting generic permissions to custom roles.......'
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
+# list roles names and space separated
 roles="team_benk team_ruimte dataservices"
 
-for role in ${roles[@]}; do \
+for role in $roles; do \
 curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/$role" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
 -d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
