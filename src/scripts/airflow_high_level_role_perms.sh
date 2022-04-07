@@ -22,7 +22,7 @@ echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo 'Airflow is ***AWAKE***. Setting generic permissions to custom roles.......'
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
-users=('team_benk' 'team_ruimte' 'dataservices')
+users="team_benk team_ruimte dataservices"
 
 for user in ${users[@]}; do \
 curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/$user" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
