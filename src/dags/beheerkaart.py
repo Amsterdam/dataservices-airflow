@@ -34,9 +34,11 @@ owner = "team_ruimte"
 with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     # New data is delivered every wednesday and friday evening,
     # So we schedule the import on friday and saturday morning
-    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     schedule_interval="0 0 * * 4,6",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dataset_name),
 ) as dag:

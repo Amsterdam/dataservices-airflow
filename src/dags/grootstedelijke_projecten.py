@@ -38,8 +38,8 @@ with DAG(
     description="locaties en metadata rondom grootstedelijke projecten.",
     schedule_interval="@monthly",
     default_args=default_args | {"owner": owner},
-    # access_control: Only needed for CloudVPS on Azure
-    # each team has its own Airflow instance.
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],

@@ -42,10 +42,10 @@ tables: dict[str, Union[list[str], str]] = {
 with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
-    description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
-    # access_control: Only needed for CloudVPS on Azure
-    # each team has its own Airflow instance.
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
+    description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 

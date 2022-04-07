@@ -13,17 +13,16 @@
 # process (that is allowed to crash without stopping Airflow itself).
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
 
-until $(curl --output /dev/null --silent --head --fail ${AIRFLOW__WEBSERVER__BASE_URL}); do
+until $(curl --output /dev/null --silent --head --fail ${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}); do
     echo '*** Message from "airlow_high_level_role_perms.sh": Waiting for Airflow to fully start... ***'
-    sleep 20
+    sleep 30
 done
 
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 echo 'Airflow is ***AWAKE***. Setting generic permissions to custom roles.......'
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
-# to make sure the CURL cmd does not stop Airflow when in error the `|| true` is added
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}/api/v1/roles/team_benk" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
+curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/team_benk" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
 -d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\
@@ -32,7 +31,7 @@ curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}/api/v1/roles/team_benk" --user ad
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Code\"}},\
     {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"team_benk\"}"
 
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}/api/v1/roles/team_ruimte" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
+curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/team_ruimte" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
 -d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\
@@ -41,7 +40,7 @@ curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}/api/v1/roles/team_ruimte" --user 
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Code\"}},\
     {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"team_ruimte\"}"
 
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}/api/v1/roles/dataservices" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
+curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/dataservices" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
 -d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\

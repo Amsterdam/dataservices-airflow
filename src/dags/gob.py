@@ -131,8 +131,8 @@ def create_gob_dag(
     dag = DAG(
         f"{dag_id}_{dataset_table_id}",
         default_args=new_default_args,
-        # access_control: Only needed for CloudVPS on Azure
-        # each team has its own Airflow instance.
+        # the access_control defines perms on DAG level. Not needed in Azure
+        # since each datateam will get its own instance.
         access_control={owner: {"can_dag_read", "can_dag_edit"}},
         schedule_interval=schedule_interval,
         tags=["gob"] + [gob_dataset_id] + list(schedule_labels),
