@@ -13,6 +13,7 @@
 # process (that is allowed to crash without stopping Airflow itself).
 # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ #
 
+# wait for Airflow to fully started
 until $(curl --output /dev/null --silent --head --fail ${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}); do
     echo '*** Message from "airlow_high_level_role_perms.sh": Waiting for Airflow to fully start... ***'
     sleep 30
@@ -25,6 +26,7 @@ echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 # list roles names and space separated
 roles="team_benk team_ruimte dataservices"
 
+# apply the generic perms to the custom roles
 for role in $roles; do \
 curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/$role" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
