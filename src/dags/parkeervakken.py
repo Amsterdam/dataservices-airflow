@@ -1,4 +1,5 @@
 import datetime
+import logging
 import operator
 import os
 import pathlib
@@ -21,9 +22,11 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
 
+logger = logging.getLogger(__name__)
+
 dag_id = "parkeervakken"
 postgres_conn_id = "parkeervakken_postgres"
-
+TMP_TABLE_PREFIX = 'temp'
 # CONFIG = Variable.get(DAG_ID, deserialize_json=True)
 
 TABLES: Final = dict(
@@ -126,7 +129,7 @@ def import_data(shp_file, ids):
     parkeervakken_sql = []
     regimes_sql = []
     duplicates = []
-    print(f"Processing: {shp_file}")
+    logger.info(f"Processing: {shp_file}")
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
             if int(row.record.PARKEER_ID) in ids:
@@ -184,7 +187,7 @@ def import_data(shp_file, ids):
         except Exception as e:
             raise Exception(f"Failed to create regimes: {str(e)[0:150]}")
 
-    print(f"Created: {len(parkeervakken_sql)} parkeervakken and {len(regimes_sql)} regimes")
+    logger.info(f"Created: {len(parkeervakken_sql)} parkeervakken and {len(regimes_sql)} regimes")
     return duplicates
 
 
@@ -225,6 +228,7 @@ def download_latest_export_file(swift_conn_id, container, name_regex, *args, **k
     except subprocess.CalledProcessError as e:
         raise AirflowException(f"Failed to extract zip: {e.stderr}")
 
+    logger.info(f"downloading {latest['name']}")
     return latest["name"]
 
 
@@ -237,11 +241,13 @@ def run_imports(*args, **kwargs):
         duplicates = import_data(str(shp_file), ids)
 
         if len(duplicates):
-            print("Duplicates found: {}".format(", ".join(duplicates)))
-
+            logger.warn("Duplicates found: {}".format(", ".join(duplicates)))
 
 args = default_args.copy()
 
+# TODO: Re-design this DAG: Separate ingestion logic form this DAG definition
+# clean up code, make use of standard ways to do task in this DAG, make more
+# doc strings and comments of the functions used.
 with DAG(
     dag_id,
     default_args=args,
@@ -351,8 +357,6 @@ def create_regimes(row):
 
     output = []
 
-    days = days_from_row(row)
-
     base_data = dict(
         parent_id=row.record.PARKEER_ID or "",
         soort="FISCAAL",
@@ -385,6 +389,13 @@ def create_regimes(row):
         return [x]
 
     for mode in modes:
+
+        # since there can be multiple modes
+        # per row with each different days
+        # we need to run per mode the days
+        # calculation.
+        days = days_from_row(row)
+
         if mode.get("begin_tijd", datetime.time(0, 0)) > mode_start:
             # Time bound. Start of the day mode.
             sod_mode = base_data.copy()
@@ -399,12 +410,12 @@ def create_regimes(row):
         output.append(mode_data)
         mode_start = add_a_minute(mode["eind_tijd"])
 
-    if mode.get("eind_tijd", datetime.time(23, 59)) < mode_end:
-        # Time bound. End of the day mode.
-        eod_mode = base_data.copy()
-        eod_mode["dagen"] = days
-        eod_mode["begin_tijd"] = add_a_minute(mode["eind_tijd"])
-        output.append(eod_mode)
+        if mode.get("eind_tijd", datetime.time(23, 59)) < mode_end:
+            # Time bound. End of the day mode.
+            eod_mode = base_data.copy()
+            eod_mode["dagen"] = days
+            eod_mode["begin_tijd"] = add_a_minute(mode["eind_tijd"])
+            output.append(eod_mode)
     return output
 
 
@@ -438,7 +449,7 @@ def get_modes(row):
             row.record.TVM_OPMERK,
         ]
     ):
-        # TVM
+        # TVM (tijdelijke verkeersmaatregel)
         tvm_mode = base.copy()
         tvm_mode.update(
             dict(
@@ -482,21 +493,31 @@ def get_modes(row):
 def days_from_row(row):
     """
     Parse week days from row.
+
+    NOTE: Since a single row can hold two start and endtimes, correspondending to
+    the first true value to the `BEGINTIJD1 and EINDTIJD1` attributes and the second true value
+    to the `BEGINTIJD2 and EINDTIJD2` for days, we need to set the first true value for found days
+    to false, so the next mode (BEGINTIJD2 and EINDTIJD2) can be bound to the second true value.
     """
 
     if row.record.MA_VR:
         # Monday to Friday
         days = WEEK_DAYS[:4]
+        row.record.MA_VR = False
+
     elif row.record.MA_ZA:
         # Monday to Saturday
         days = WEEK_DAYS[:5]
+        row.record.MA_ZA = False
 
     elif not any([getattr(row.record, day.upper()) for day in WEEK_DAYS]):
         # All days apply
         days = WEEK_DAYS
+
     else:
         # One day permit
-        days = [day for day in WEEK_DAYS if getattr(row.record, day.upper()) is not None]
+        days = [day for day in WEEK_DAYS if getattr(row.record, day.upper()) is not False]
+        setattr(row.record, days[0].upper(), False)
 
     return days
 
