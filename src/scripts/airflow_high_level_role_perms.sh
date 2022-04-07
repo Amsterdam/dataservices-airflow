@@ -22,29 +22,14 @@ echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 echo 'Airflow is ***AWAKE***. Setting generic permissions to custom roles.......'
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/team_benk" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
--H  "accept: application/json" -H  "Content-Type: application/json" \
--d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Logs\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Runs\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Code\"}},\
-    {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"team_benk\"}"
+users=('team_benk' 'team_ruimte' 'dataservices')
 
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/team_ruimte" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
+for user in ${users[@]}; do \
+curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/$user" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
 -H  "accept: application/json" -H  "Content-Type: application/json" \
 -d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Logs\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Runs\"}},\
     {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Code\"}},\
-    {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"team_ruimte\"}"
-
-curl -X PATCH "${AIRFLOW__WEBSERVER__BASE_URL}:${AIRFLOW__WEBSERVER__BASE_URL_PORT}/api/v1/roles/dataservices" --user admin:${AIRFLOW_USER_ADMIN_PASSWD:-admin} \
--H  "accept: application/json" -H  "Content-Type: application/json" \
--d "{\"actions\":[{\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Website\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Instances\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"Task Logs\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Runs\"}},\
-    {\"action\":{\"name\":\"can_read\"},\"resource\":{\"name\":\"DAG Code\"}},\
-    {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"dataservices\"}"
+    {\"action\":{\"name\":\"can_create\"},\"resource\":{\"name\":\"DAG Runs\"}}],\"name\":\"$user\"}"; done
