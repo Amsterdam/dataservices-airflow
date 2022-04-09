@@ -4,7 +4,7 @@ from airflow.utils.log.file_processor_handler import FileProcessorHandler
 from airflow.utils.log.file_task_handler import FileTaskHandler
 from airflow.utils.log.logging_mixin import RedirectStdHandler
 
-from custom_logging.logging_formatter import CustomJsonFormatter
+from structured_logging.logging_formatter import CustomJsonFormatter
 
 
 class JsonStreamHandler(RedirectStdHandler):
