@@ -63,15 +63,21 @@ COPY scripts/mkvars.py ${AIRFLOW_USER_HOME}/scripts/mkvars.py
 COPY scripts/checkdags.py ${AIRFLOW_USER_HOME}/scripts/checkdags.py
 RUN chmod +x /docker-entrypoint.sh /run.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
+# COPY config/log_config.py ${AIRFLOW_USER_HOME}/log_config.py
 RUN mkdir ${AIRFLOW_USER_HOME}/etc
 COPY config/supervisord.conf ${AIRFLOW_USER_HOME}/etc/supervisord.conf
 COPY data/ ${AIRFLOW_USER_HOME}/data/
 
 # copy dags and plugins here
+COPY custom_logging ${AIRFLOW_USER_HOME}/custom_logging/
 COPY dags ${AIRFLOW_USER_HOME}/dags/
 COPY plugins ${AIRFLOW_USER_HOME}/plugins/
 COPY vars ${AIRFLOW_USER_HOME}/vars/
 COPY vsd ${AIRFLOW_USER_HOME}/vsd
+
+# add the AIRFLOW_USER_HOME to PythonPath so custom_logging
+# for instance can be located and used as a reference.
+ENV PYTHONPATH=$PYTHONPATH:$AIRFLOW_USER_HOME
 
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]

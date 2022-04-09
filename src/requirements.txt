@@ -647,6 +647,8 @@ python-dotenv==0.15.0
     # via environs
 python-http-client==3.3.2
     # via sendgrid
+python-json-logger==2.0.2
+    # via -r requirements.in
 python-keystoneclient==4.0.0
     # via
     #   -r requirements.in
