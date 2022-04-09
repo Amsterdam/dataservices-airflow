@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime
 
 from pythonjsonlogger import jsonlogger
@@ -6,7 +7,7 @@ from pythonjsonlogger import jsonlogger
 class CustomJsonFormatter(jsonlogger.JsonFormatter):
     """A custom JSON formater based on Python pythonjsonlogger."""
 
-    def add_fields(self, log_record: dict, record: dict, message_dict: dict) -> None:
+    def add_fields(self, log_record: dict, record: logging.LogRecord, message_dict: dict) -> None:
         """Overwriting out of the log fields to be logged.
 
         Which attributes to log are defined in the logging_handler.py
@@ -20,4 +21,4 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
         if log_record.get("level"):
             log_record["level"] = log_record["level"].upper()
         else:
-            log_record["level"] = record.get("levelname")
+            log_record["level"] = record.levelname
