@@ -69,13 +69,13 @@ COPY config/supervisord.conf ${AIRFLOW_USER_HOME}/etc/supervisord.conf
 COPY data/ ${AIRFLOW_USER_HOME}/data/
 
 # copy dags and plugins here
-COPY custom_logging ${AIRFLOW_USER_HOME}/custom_logging/
+COPY structured_logging ${AIRFLOW_USER_HOME}/structured_logging/
 COPY dags ${AIRFLOW_USER_HOME}/dags/
 COPY plugins ${AIRFLOW_USER_HOME}/plugins/
 COPY vars ${AIRFLOW_USER_HOME}/vars/
 COPY vsd ${AIRFLOW_USER_HOME}/vsd
 
-# add the AIRFLOW_USER_HOME to PythonPath so custom_logging
+# add the AIRFLOW_USER_HOME to PythonPath so structured_logging
 # for instance can be located and used as a reference.
 ENV PYTHONPATH=$PYTHONPATH:$AIRFLOW_USER_HOME
 

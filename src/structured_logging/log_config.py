@@ -72,14 +72,14 @@ LOGGING_CONFIG: dict[str, Any] = {
     "handlers": {
         "console": {
             # CUSTOM: added reference to the custom log handler class.
-            "class": "custom_logging.logging_handler.JsonStreamHandler",
+            "class": "structured_logging.logging_handler.JsonStreamHandler",
             # 'formatter': 'airflow_coloured',
             "stream": "sys.stdout",
             "filters": ["mask_secrets"],
         },
         "task": {
             # CUSTOM: added reference to the custom log handler class.
-            "class": "custom_logging.logging_handler.JsonFileTaskHandler",
+            "class": "structured_logging.logging_handler.JsonFileTaskHandler",
             # 'formatter': 'airflow',
             "base_log_folder": os.path.expanduser(BASE_LOG_FOLDER),
             "filename_template": FILENAME_TEMPLATE,
@@ -87,7 +87,7 @@ LOGGING_CONFIG: dict[str, Any] = {
         },
         "processor": {
             # CUSTOM: added reference to the custom log handler class.
-            "class": "custom_logging.logging_handler.JsonFileProcessorHandler",
+            "class": "structured_logging.logging_handler.JsonFileProcessorHandler",
             # 'formatter': 'airflow',
             "base_log_folder": os.path.expanduser(PROCESSOR_LOG_FOLDER),
             "filename_template": PROCESSOR_FILENAME_TEMPLATE,
@@ -135,7 +135,7 @@ DEFAULT_DAG_PARSING_LOGGING_CONFIG: dict[str, dict[str, dict[str, Any]]] = {
     "handlers": {
         "processor_manager": {
             # CUSTOM: added reference to the custom log handler class.
-            "class": "custom_logging.logging_handler.JsonRotatingFileHandler",
+            "class": "structured_logging.logging_handler.JsonRotatingFileHandler",
             # 'formatter': 'airflow',
             "filename": DAG_PROCESSOR_MANAGER_LOG_LOCATION,
             "mode": "a",
