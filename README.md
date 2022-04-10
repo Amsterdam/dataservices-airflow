@@ -222,11 +222,35 @@ the Git pre-commit hook will notcomplain about the layout of your code.
 
 # Structured logging
 
-Airflow's DAG's execution logs are configured to output in JSON format instead of plain text. Located in the `src/structured_logging`
-folder, Airflow's default logging configuration is overwritten by the `log_config.py` file. In this file the log handlers
-reference custom log handlers classes found in the `loggin_handler.py` file.
-The custom log handlers overwrite Airflow's default log handlers by subclassing them and binding them to a custom log formatter. The custom
-log handlers also define the log attributes that will be logged by adding them to the instantiation of the custom formatter.
-The custom log formatter is defined in the `logging_formatter.py` file. Here it uses the Python package `pythonjsonlogger`
-(which is based on Python logger) which be the enabler for outputting logs to json. In the custom log formatter you will have also the
-possibility to overwrite the default log attributes values if needed.
+Airflow's DAG's execution logs are configured to output in JSON format instead of plain text.
+
+To make use of a custom JSON log definition (since this is not the Airflow's default), Airflow
+needs to know what custom defintions to use. This can be accomplished by setting in the
+`src/config/airflow.cfg` the variable `logging_config_class` with the path to the custom-log-configuration-file
+and its variable `LOGGING_CONFIG`.
+
+`Example` of setting the `logging_config_class` variable in `src/config/airflow.cfg`:
+
+```
+logging_config_class = my.path.to.my.custom.log.configuration.python.file.LOGGING_CONFIG
+```
+When setting the `logging_config_class` variables, as given as an example above, Airflow knows that you are
+overwritting the log default behaviour.
+
+---
+
+NOTE: <br>
+On Azure the value of `logging_config_class` is defined as an `environment variable` since we do not use a `src/config/airflow.cfg` file there.
+
+---
+
+The custom-log-configuration-file is defined in `src/structured_logging/log_config.py`. In this file
+the log handlers referencethe custom log handlers classes as defined in the `src/structured_logging/loggin_handler.py`.
+
+In `src/structured_logging/loggin_handler.py` the custom log handlers overwrite Airflow's default log handlers by
+subclassing them and binding them to a custom log formatter. The custom log handlers also define the log attributes
+that will be logged by adding them to the custom formatter during instantiation.
+
+The custom log formatter is defined in `src/structured_logging/logging_formatter.py`. It uses the Python package
+`pythonjsonlogger` (which is based on Python logger) which enables for outputting logs to JSON. In the custom log
+formatter you can overwrite the default log attributes values or add custom attribues if needed.
