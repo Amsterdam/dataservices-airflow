@@ -219,3 +219,14 @@ Go to:
 
 If you regularly reformat the Python module under development using `Ctrl + Alt + L`,
 the Git pre-commit hook will notcomplain about the layout of your code.
+
+# Structured logging
+
+Airflow's DAG's execution logs are configured to output in JSON format instead of plain text. Located in the `src/structured_logging`
+folder, Airflow's default logging configuration is overwritten by the `log_config.py` file. In this file the log handlers
+reference custom log handlers classes found in the `loggin_handler.py` file.
+The custom log handlers overwrite Airflow's default log handlers by subclassing them and binding them to a custom log formatter. The custom
+log handlers also define the log attributes that will be logged by adding them to the instantiation of the custom formatter.
+The custom log formatter is defined in the `logging_formatter.py` file. Here it uses the Python package `pythonjsonlogger`
+(which is based on Python logger) which be the enabler for outputting logs to json. In the custom log formatter you will have also the
+possibility to overwrite the default log attributes values if needed.
