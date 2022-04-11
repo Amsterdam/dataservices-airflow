@@ -11,7 +11,7 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
         """Overwriting out of the log fields to be logged.
 
         Which attributes to log are defined in the logging_handler.py
-        This method can overwrite he default values for those attributes if needed.
+        This method can overwrite the default values for those attributes if needed.
         """
         super().add_fields(log_record, record, message_dict)
 

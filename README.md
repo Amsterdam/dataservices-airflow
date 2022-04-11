@@ -245,12 +245,12 @@ On Azure the value of `logging_config_class` is defined as an `environment varia
 ---
 
 The custom-log-configuration-file is defined in `src/structured_logging/log_config.py`. In this file
-the log handlers referencethe custom log handlers classes as defined in the `src/structured_logging/loggin_handler.py`.
+the log handlers reference the  custom log handlers classes as defined in the `src/structured_logging/loggin_handler.py`.
 
 In `src/structured_logging/loggin_handler.py` the custom log handlers overwrite Airflow's default log handlers by
 subclassing them and binding them to a custom log formatter. The custom log handlers also define the log attributes
 that will be logged by adding them to the custom formatter during instantiation.
 
 The custom log formatter is defined in `src/structured_logging/logging_formatter.py`. It uses the Python package
-`pythonjsonlogger` (which is based on Python logger) which enables for outputting logs to JSON. In the custom log
+`pythonjsonlogger` (which is based on Python logger) which enables outputting logs in JSON format. In the custom log. In the custom log
 formatter you can overwrite the default log attributes values or add custom attribues if needed.

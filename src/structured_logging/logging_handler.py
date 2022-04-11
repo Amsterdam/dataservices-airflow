@@ -10,7 +10,7 @@ from structured_logging.logging_formatter import CustomJsonFormatter
 class JsonStreamHandler(RedirectStdHandler):
     """Custom handler for streaming logs to sys.stdout, sys.stderr.
 
-    Content content is in JSON format.
+    Content is in JSON format.
     """
 
     def __init__(self, stream: str) -> None:
@@ -27,7 +27,7 @@ class JsonStreamHandler(RedirectStdHandler):
 class JsonFileTaskHandler(FileTaskHandler):
     """Custom handler for reading/saving task instances logs to disk.
 
-    Content content is in JSON format.
+    Content is in JSON format.
     """
 
     def __init__(self, base_log_folder: str, filename_template: str) -> None:
@@ -44,7 +44,7 @@ class JsonFileTaskHandler(FileTaskHandler):
 class JsonFileProcessorHandler(FileProcessorHandler):
     """Custom handler for handling DAG processor logs.
 
-    Content content is in JSON format.
+    Content is in JSON format.
     """
 
     def __init__(self, base_log_folder: str, filename_template: str) -> None:
@@ -61,10 +61,10 @@ class JsonFileProcessorHandler(FileProcessorHandler):
 class JsonRotatingFileHandler(RotatingFileHandler):
     """Supports rotation of disk log files.
 
-    Content content is in JSON format.
+    Content is in JSON format.
 
-    Rotation is an automated process which log files are  compressed, moved (archived),
-    renamed or deleted once they are too old or too big (or other metrics that apply).
+    Rotation is an automated process in which log files are compressed, moved (archived),
+    renamed or deleted once they are too old or too big (or meet other metrics).
     New incoming log data is directed into a new fresh file (at the same location).
     """
 
