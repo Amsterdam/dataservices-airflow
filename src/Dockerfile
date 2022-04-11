@@ -63,7 +63,6 @@ COPY scripts/mkvars.py ${AIRFLOW_USER_HOME}/scripts/mkvars.py
 COPY scripts/checkdags.py ${AIRFLOW_USER_HOME}/scripts/checkdags.py
 RUN chmod +x /docker-entrypoint.sh /run.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
-# COPY config/log_config.py ${AIRFLOW_USER_HOME}/log_config.py
 RUN mkdir ${AIRFLOW_USER_HOME}/etc
 COPY config/supervisord.conf ${AIRFLOW_USER_HOME}/etc/supervisord.conf
 COPY data/ ${AIRFLOW_USER_HOME}/data/
