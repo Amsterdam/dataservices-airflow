@@ -321,7 +321,7 @@ bbga:
     bbga_std_latest_and_greatest: bbga_statistieken
 wior:
   data_endpoints:
-    wfs: /ows?service=wfs&version=2.0.0&request=GetFeature&TYPENAMES=WIOR_AMS:datapunt_liv_alg_ww_projecten&outputFormat=application/json
+    wfs: /ows?service=wfs&version=2.0.0&request=GetFeature&TYPENAMES=WIOR_AMS:datapunt_opendata&outputFormat=application/json
 deelmobiliteit:
   scooters:
     data_endpoints:
