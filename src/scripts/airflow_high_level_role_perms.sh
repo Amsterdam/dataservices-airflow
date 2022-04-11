@@ -2,11 +2,11 @@
 # NOTE: Only needed for CloudVPS. On Azure each datateam has its own Airflow instance.
 #
 # To add generic permissions to the defined roles in `run.sh`, the Airflow API can be used.
-# Unfortuneatly, this cannot be done by the Aiflow CLI. Alternatively you can add the permissions
+# Unfortunately, this cannot be done by the Aiflow CLI. Alternatively you can add the permissions
 # by hand in the Airflow GUI but that cannot be automated.
 #
-# The specific DAG LEVEL permissions are defined at DAG definition level since some DAG's
-# like GOB are generated. Listing all DAG's by hand for read and access roles can be
+# The specific DAG LEVEL permissions are defined at DAG definition level since some DAGs
+# such as GOB are generated. Listing all DAGs by hand for read and access roles can be
 # therefore quite cumbersome / error prone.
 #
 # The API can only be called when Airflow is running. This is why we run this as a background
