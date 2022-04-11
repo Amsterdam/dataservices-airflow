@@ -18,6 +18,8 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swap_schema_operator import SwapSchemaOperator
 from swift_load_sql_operator import SwiftLoadSqlOperator
 
+# owner: Only needed for CloudVPS. On Azure
+# each team has its own Airflow instance.
 owner = "team_ruimte"
 dag_id: str = "huishoudelijkafval"
 tables: dict[str, Union[list[str], str]] = {
@@ -40,6 +42,9 @@ tables: dict[str, Union[list[str], str]] = {
 with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:

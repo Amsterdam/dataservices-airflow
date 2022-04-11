@@ -18,6 +18,9 @@ from swift_operator import SwiftOperator
 
 DAG_ID = "grootstedelijke_projecten"
 DATASET = "gebieden"
+# owner: Only needed for CloudVPS. On Azure
+# each team has its own Airflow instance.
+owner = 'team_benk'
 DB_TABLE_NAME = f"{DATASET}_{DAG_ID}"
 TMP_PATH = f"{SHARED_DIR}/{DAG_ID}"
 variables_aardgasvrijezones = Variable.get(DAG_ID, deserialize_json=True)
@@ -34,7 +37,10 @@ with DAG(
     DAG_ID,
     description="locaties en metadata rondom grootstedelijke projecten.",
     schedule_interval="@monthly",
-    default_args=default_args,
+    default_args=default_args | {"owner": owner},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
