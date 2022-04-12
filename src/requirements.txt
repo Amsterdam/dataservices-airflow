@@ -217,8 +217,8 @@ datapunt-objectstore==2020.9.7
     # via -r requirements.in
 debtcollector==2.2.0
     # via
-    #   oslo.config
-    #   oslo.utils
+    #   oslo-config
+    #   oslo-utils
     #   python-keystoneclient
 decorator==5.1.0
     # via jsonpath-rw
@@ -305,7 +305,7 @@ flask-appbuilder==3.4.4
     #   apache-airflow
 flask-babel==1.0.0
     # via flask-appbuilder
-flask_bcrypt==0.7.1
+flask-bcrypt==0.7.1
     # via -r requirements.in
 flask-caching==1.10.1
     # via apache-airflow
@@ -368,7 +368,7 @@ iso8601==0.1.16
     # via
     #   apache-airflow
     #   keystoneauth1
-    #   oslo.utils
+    #   oslo-utils
 isodate==0.6.0
     # via msrest
 itsdangerous==1.1.0
@@ -464,7 +464,7 @@ msal==1.15.0
 msal-extensions==0.3.0
     # via azure-identity
 msgpack==1.0.2
-    # via oslo.serialization
+    # via oslo-serialization
 msrest==0.6.21
     # via
     #   azure-batch
@@ -486,10 +486,10 @@ ndjson==0.3.1
     # via amsterdam-schema-tools
 netaddr==0.8.0
     # via
-    #   oslo.config
-    #   oslo.utils
+    #   oslo-config
+    #   oslo-utils
 netifaces==0.10.9
-    # via oslo.utils
+    # via oslo-utils
 numpy==1.21.0
     # via pandas
 oauthlib==3.1.1
@@ -500,28 +500,28 @@ ordered-set==4.0.2
     # via deepdiff
 os-service-types==1.7.0
     # via keystoneauth1
-oslo.config==8.8.0
+oslo-config==8.8.0
     # via python-keystoneclient
-oslo.i18n==5.1.0
+oslo-i18n==5.1.0
     # via
-    #   oslo.config
-    #   oslo.utils
+    #   oslo-config
+    #   oslo-utils
     #   python-keystoneclient
-oslo.serialization==4.3.0
+oslo-serialization==4.3.0
     # via python-keystoneclient
-oslo.utils==4.12.2
+oslo-utils==4.12.2
     # via
-    #   oslo.serialization
+    #   oslo-serialization
     #   python-keystoneclient
 packaging==21.0
     # via
     #   apache-airflow
     #   connexion
-    #   oslo.utils
+    #   oslo-utils
     #   pytest
 pandas==1.3.3
     # via clevercsv
-paramiko==2.7.2
+paramiko==2.10.3
     # via
     #   -r requirements.in
     #   apache-airflow-providers-sftp
@@ -533,9 +533,9 @@ pbr==5.5.1
     #   debtcollector
     #   keystoneauth1
     #   os-service-types
-    #   oslo.i18n
-    #   oslo.serialization
-    #   oslo.utils
+    #   oslo-i18n
+    #   oslo-serialization
+    #   oslo-utils
     #   python-keystoneclient
     #   stevedore
 pendulum==2.1.2
@@ -602,7 +602,7 @@ pyodbc==4.0.32
     # via -r requirements.in
 pyparsing==2.4.7
     # via
-    #   oslo.utils
+    #   oslo-utils
     #   packaging
 pyrsistent==0.18.0
     # via jsonschema
@@ -675,8 +675,8 @@ pytz==2021.1
     # via
     #   babel
     #   flask-babel
-    #   oslo.serialization
-    #   oslo.utils
+    #   oslo-serialization
+    #   oslo-utils
     #   pandas
 pytzdata==2020.1
     # via pendulum
@@ -688,7 +688,7 @@ pyyaml==5.4.1
     #   connexion
     #   datapunt-config-loader
     #   kubernetes
-    #   oslo.config
+    #   oslo-config
     #   yamlip
 regex==2020.11.13
     # via clevercsv
@@ -708,7 +708,7 @@ requests==2.26.0
     #   kubernetes
     #   msal
     #   msrest
-    #   oslo.config
+    #   oslo-config
     #   python-keystoneclient
     #   python-swiftclient
     #   requests-oauthlib
@@ -719,7 +719,7 @@ requests-oauthlib==1.3.0
 rfc3986[idna2008]==1.5.0
     # via
     #   httpx
-    #   oslo.config
+    #   oslo-config
 rfc3987==1.3.8
     # via jsonschema
 rich==10.9.0
@@ -763,6 +763,7 @@ six==1.16.0
     #   keystoneauth1
     #   kubernetes
     #   msrestazure
+    #   paramiko
     #   prison
     #   pynacl
     #   python-dateutil
@@ -810,7 +811,7 @@ stevedore==3.3.0
     # via
     #   bandit
     #   keystoneauth1
-    #   oslo.config
+    #   oslo-config
     #   python-keystoneclient
 strict-rfc3339==0.7
     # via jsonschema
