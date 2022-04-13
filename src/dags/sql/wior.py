@@ -30,7 +30,6 @@ SQL_ADD_PK: Final = """
 SQL_SET_DATE_DATA_TYPES: Final = """
 SET datestyle = "ISO, DMY";
 ALTER TABLE {{ params.tablename }}
-ALTER COLUMN datum_registratie TYPE date USING datum_registratie::date,
 ALTER COLUMN datum_start_uitvoering TYPE date USING datum_start_uitvoering::date,
 ALTER COLUMN datum_einde_uitvoering TYPE date USING datum_einde_uitvoering::date;
 """
