@@ -9,7 +9,7 @@
         code
         beginGeldigheid
         eindGeldigheid
-        ligtInBuurt {
+        ligtInBuurt(active: false) {
           edges {
             node {
               identificatie

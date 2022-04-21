@@ -13,7 +13,7 @@
         documentdatum
         documentnummer
         cbsCode
-        ligtInWijk {
+        ligtInWijk(active: false) {
           edges {
             node {
               identificatie
@@ -21,7 +21,7 @@
             }
           }
         }
-        ligtInGgpgebied {
+        ligtInGgpgebied(active: false) {
           edges {
             node {
               identificatie
@@ -29,7 +29,7 @@
             }
           }
         }
-        ligtInGgwgebied {
+        ligtInGgwgebied(active: false) {
           edges {
             node {
               identificatie
