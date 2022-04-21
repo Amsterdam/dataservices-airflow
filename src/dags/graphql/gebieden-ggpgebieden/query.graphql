@@ -12,7 +12,7 @@
         eindGeldigheid
         documentdatum
         documentnummer
-        ligtInStadsdeel {
+        ligtInStadsdeel(active: false) {
           edges {
             node {
               identificatie

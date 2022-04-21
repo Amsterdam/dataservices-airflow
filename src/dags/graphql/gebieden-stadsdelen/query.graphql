@@ -12,7 +12,7 @@
         eindGeldigheid 
         documentdatum 
         documentnummer 
-        ligtInGemeente {
+        ligtInGemeente(active: false) {
           edges {
             node {
               identificatie 

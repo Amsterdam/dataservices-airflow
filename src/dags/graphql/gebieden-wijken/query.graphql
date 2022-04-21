@@ -13,7 +13,7 @@
         documentdatum
         documentnummer
         cbsCode
-        ligtInStadsdeel {
+        ligtInStadsdeel(active: false) {
           edges {
             node {
               identificatie
@@ -21,7 +21,7 @@
             }
           }
         }
-        ligtInGgwgebied {
+        ligtInGgwgebied(active: false) {
           edges {
             node {
               identificatie
