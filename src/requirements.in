@@ -35,7 +35,7 @@ jsonpointer==2.1
 kubernetes==11.0.0
 more-ds==0.0.4
 openpyxl==3.0.7
-paramiko==2.7.2
+paramiko==2.10.4
 pendulum==2.1.2
 psycopg[binary]==3.0.3
 pyodbc==4.0.32
