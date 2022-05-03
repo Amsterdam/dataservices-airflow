@@ -132,36 +132,39 @@ def import_data(shp_file, ids):
     logger.info(f"Processing: {shp_file}")
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
-            if int(row.record.PARKEER_ID) in ids:
-                # Exclude dupes
-                duplicates.append(row.record.PARKEER_ID)
-                continue
-            ids.append(int(row.record.PARKEER_ID))
+            # select just one parkeervak to test
+            if row.record.PARKEER_ID == "120368488400":
+                logger.info(f"Processing 120368488400!!: {row.record.PARKEER_ID}")
+                if int(row.record.PARKEER_ID) in ids:
+                    # Exclude dupes
+                    duplicates.append(row.record.PARKEER_ID)
+                    continue
+                ids.append(int(row.record.PARKEER_ID))
 
-            regimes = create_regimes(row=row)
-            soort = "FISCAAL"
-            if len(regimes) == 1:
-                soort = regimes[0]["soort"]
+                regimes = create_regimes(row=row)
+                soort = "FISCAAL"
+                if len(regimes) == 1:
+                    soort = regimes[0]["soort"]
 
-            parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
-            regimes_sql += [
-                base_regime_sql.format(
-                    parent_id=row.record.PARKEER_ID,
-                    soort=mode["soort"],
-                    e_type=mode["e_type"],
-                    e_type_description=E_TYPES.get(mode["e_type"], ""),
-                    bord=mode["bord"],
-                    begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
-                    eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
-                    opmerking=mode["opmerking"],
-                    dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
-                    kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
-                    begin_datum=f"'{mode['begin_datum']}'" if mode["begin_datum"] else "NULL",
-                    eind_datum=f"'{mode['eind_datum']}'" if mode["eind_datum"] else "NULL",
-                    aantal=row.record.AANTAL,
-                )
-                for mode in regimes
-            ]
+                parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
+                regimes_sql += [
+                    base_regime_sql.format(
+                        parent_id=row.record.PARKEER_ID,
+                        soort=mode["soort"],
+                        e_type=mode["e_type"],
+                        e_type_description=E_TYPES.get(mode["e_type"], ""),
+                        bord=mode["bord"],
+                        begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
+                        eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
+                        opmerking=mode["opmerking"],
+                        dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
+                        kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
+                        begin_datum=f"'{mode['begin_datum']}'" if mode["begin_datum"] else "NULL",
+                        eind_datum=f"'{mode['eind_datum']}'" if mode["eind_datum"] else "NULL",
+                        aantal=row.record.AANTAL,
+                    )
+                    for mode in regimes
+                ]
 
     create_parkeervakken_sql = (
         "INSERT INTO {} ("
@@ -499,15 +502,21 @@ def days_from_row(row):
     to the `BEGINTIJD2 and EINDTIJD2` for days, we need to set the first true value for found days
     to false, so the next mode (BEGINTIJD2 and EINDTIJD2) can be bound to the second true value.
     """
+    logger.warning("row.record.MA_VR = ",row.record.MA_VR )
+    logger.warning("row.record.MA_ZA = ",row.record.MA_ZA )
+    logger.warning("[getattr(row.record, day.upper()) for day in WEEK_DAYS] = ",[getattr(row.record, day.upper()) for day in WEEK_DAYS] )
 
     if row.record.MA_VR:
+        logger.warning("JA MA_VR = ",row.record.MA_VR )
         # Monday to Friday
-        days = WEEK_DAYS[:4]
+        days = WEEK_DAYS[:5]
         row.record.MA_VR = False
 
     elif row.record.MA_ZA:
         # Monday to Saturday
-        days = WEEK_DAYS[:5]
+        logger.warning("JA MA_ZA = ",row.record.MA_ZA )
+        days = WEEK_DAYS[:6]
+        logger.warning("days = ",days )
         row.record.MA_ZA = False
 
     elif not any([getattr(row.record, day.upper()) for day in WEEK_DAYS]):
