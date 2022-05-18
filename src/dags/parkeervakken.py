@@ -514,21 +514,14 @@ def days_from_row(row):
     to the `BEGINTIJD2 and EINDTIJD2` for days, we need to set the first true value for found days
     to false, so the next mode (BEGINTIJD2 and EINDTIJD2) can be bound to the second true value.
     """
-    logger.warning("row.record.MA_VR = ",row.record.MA_VR )
-    logger.warning("row.record.MA_ZA = ",row.record.MA_ZA )
-    logger.warning("[getattr(row.record, day.upper()) for day in WEEK_DAYS] = ",[getattr(row.record, day.upper()) for day in WEEK_DAYS] )
-
     if row.record.MA_VR:
-        logger.warning("JA MA_VR = ",row.record.MA_VR )
         # Monday to Friday
         days = WEEK_DAYS[:5]
         row.record.MA_VR = False
 
     elif row.record.MA_ZA:
         # Monday to Saturday
-        logger.warning("JA MA_ZA = ",row.record.MA_ZA )
         days = WEEK_DAYS[:6]
-        logger.warning("days = ",days )
         row.record.MA_ZA = False
 
     elif not any([getattr(row.record, day.upper()) for day in WEEK_DAYS]):
