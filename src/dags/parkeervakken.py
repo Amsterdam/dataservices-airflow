@@ -132,39 +132,36 @@ def import_data(shp_file, ids):
     logger.info(f"Processing: {shp_file}")
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
-            # select just one parkeervak to test
-            if row.record.PARKEER_ID == "120368488400":
-                logger.info(f"Processing 120368488400!!: {row.record.PARKEER_ID}")
-                if int(row.record.PARKEER_ID) in ids:
-                    # Exclude dupes
-                    duplicates.append(row.record.PARKEER_ID)
-                    continue
-                ids.append(int(row.record.PARKEER_ID))
+            if int(row.record.PARKEER_ID) in ids:
+                # Exclude dupes
+                duplicates.append(row.record.PARKEER_ID)
+                continue
+            ids.append(int(row.record.PARKEER_ID))
 
-                regimes = create_regimes(row=row)
-                soort = "FISCAAL"
-                if len(regimes) == 1:
-                    soort = regimes[0]["soort"]
+            regimes = create_regimes(row=row)
+            soort = "FISCAAL"
+            if len(regimes) == 1:
+                soort = regimes[0]["soort"]
 
-                parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
-                regimes_sql += [
-                    base_regime_sql.format(
-                        parent_id=row.record.PARKEER_ID,
-                        soort=mode["soort"],
-                        e_type=mode["e_type"],
-                        e_type_description=E_TYPES.get(mode["e_type"], ""),
-                        bord=mode["bord"],
-                        begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
-                        eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
-                        opmerking=mode["opmerking"],
-                        dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
-                        kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
-                        begin_datum=f"'{mode['begin_datum']}'" if mode["begin_datum"] else "NULL",
-                        eind_datum=f"'{mode['eind_datum']}'" if mode["eind_datum"] else "NULL",
-                        aantal=row.record.AANTAL,
-                    )
-                    for mode in regimes
-                ]
+            parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
+            regimes_sql += [
+                base_regime_sql.format(
+                    parent_id=row.record.PARKEER_ID,
+                    soort=mode["soort"],
+                    e_type=mode["e_type"],
+                    e_type_description=E_TYPES.get(mode["e_type"], ""),
+                    bord=mode["bord"],
+                    begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
+                    eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
+                    opmerking=mode["opmerking"],
+                    dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
+                    kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
+                    begin_datum=f"'{mode['begin_datum']}'" if mode["begin_datum"] else "NULL",
+                    eind_datum=f"'{mode['eind_datum']}'" if mode["eind_datum"] else "NULL",
+                    aantal=row.record.AANTAL,
+                )
+                for mode in regimes
+            ]
 
     create_parkeervakken_sql = (
         "INSERT INTO {} ("
@@ -405,6 +402,13 @@ def create_regimes(row):
             sod_mode["dagen"] = days
             sod_mode["begin_tijd"] = mode_start
             sod_mode["eind_tijd"] = remove_a_minute(mode["begin_tijd"])
+            # NOTE: if there is a TVM (a mode) on a parkeervak, then the generated start
+            # and end times surrounding the TVM time span, within a 24 hrs time frame,
+            # are inheriting the `begin_datum` and `eind_datum` of the TVM itself.
+            # NOTE: not all modes have a begin_datum or eind_datum key, depending if
+            # it is set @ source
+            sod_mode["begin_datum"] = mode.get("begin_datum")
+            sod_mode["eind_datum"] = mode.get("eind_datum")
             output.append(sod_mode)
 
         mode_data = base_data.copy()
@@ -418,7 +422,15 @@ def create_regimes(row):
             eod_mode = base_data.copy()
             eod_mode["dagen"] = days
             eod_mode["begin_tijd"] = add_a_minute(mode["eind_tijd"])
+            # NOTE: if there is a TVM (a mode) on a parkeervak, then the generated start
+            # and end times surrounding the TVM time span, within a 24 hrs time frame,
+            # are inheriting the `begin_datum` and `eind_datum` of the TVM itself.
+            # NOTE: not all modes have a begin_datum or eind_datum key, depending if
+            # it is set @ source
+            eod_mode["begin_datum"] = mode.get("begin_datum")
+            eod_mode["eind_datum"] = mode.get("eind_datum")
             output.append(eod_mode)
+
     return output
 
 
