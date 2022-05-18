@@ -515,12 +515,12 @@ def days_from_row(row):
     to false, so the next mode (BEGINTIJD2 and EINDTIJD2) can be bound to the second true value.
     """
     if row.record.MA_VR:
-        # Monday to Friday
+        # Monday incl Friday
         days = WEEK_DAYS[:5]
         row.record.MA_VR = False
 
     elif row.record.MA_ZA:
-        # Monday to Saturday
+        # Monday incl Saturday
         days = WEEK_DAYS[:6]
         row.record.MA_ZA = False
 
