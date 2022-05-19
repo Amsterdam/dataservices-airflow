@@ -15,7 +15,7 @@ reclamebelasting:
     shp_file: Reclame_tariefgebieden.shp
     zip_file: reclame-tarief-gebieden.zip
 bekendmakingen:
-  wfs_endpoint: wfs
+  data_endpoint: wfs
   wfs_params:
     request: GetFeature
     SERVICE: WFS

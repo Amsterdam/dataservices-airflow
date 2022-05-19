@@ -1,34 +1,38 @@
 import operator
 from pathlib import Path
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from airflow.operators.python import PythonOperator
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from http_fetch_operator import HttpFetchOperator
+from importscripts.import_bekendmakingen import import_data_batch
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sql.bekendmakingen import CONVERT_TO_GEOM
+from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
-dag_id = "bekendmakingen"
-variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
+DAG_ID: Final = "bekendmakingen"
+TABLE_ID: Final = f"{DAG_ID}_{DAG_ID}"
+TMP_DIR: Final = f"{SHARED_DIR}/{DAG_ID}"
+TMP_TABLE_POSTFIX: Final = "_new"
+
+variables = Variable.get(DAG_ID, deserialize_json=True)
 total_checks = []
 count_checks = []
 geo_checks = []
 
 with DAG(
-    dag_id,
-    description="bekendmakingen en kennisgevingen",
+    DAG_ID,
+    description="bekendmakingen en kennisgevingen from overheid.nl",
     default_args=default_args,
     template_searchpath=["/"],
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -37,50 +41,42 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = mk_dir(Path(tmp_dir))
+    mkdir = mk_dir(Path(TMP_DIR))
 
-    # 3. Download data
-    download_data = HttpFetchOperator(
-        task_id="wfs_fetch",
-        endpoint=variables["wfs_endpoint"],
-        http_conn_id="geozet_conn_id",
-        data=variables["wfs_params"],
-        output_type="text",
-        tmp_file=f"{tmp_dir}/{dag_id}.json",
+    # 3. Create TARGET table based on Amsterdam Schema (if not present)
+    sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
+        task_id="sqlalchemy_create_objects_from_schema",
+        data_schema_name=DAG_ID,
+        ind_extra_index=True,
     )
 
-    # 4. Create SQL
-    JSON_to_SQL = BashOperator(
-        task_id="JSON_to_SQL",
-        bash_command="ogr2ogr -f 'PGDump' "
-        "-t_srs EPSG:28992 "
-        f"-nln {dag_id}_{dag_id}_new "
-        f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.json "
-        "-lco GEOMETRY_NAME=geometry "
-        "-lco FID=id",
+    # 4. Create TEMP tables in database based on TARGET
+    create_temp_table = PostgresTableCopyOperator(
+        task_id="create_temp_table",
+        dataset_name=DAG_ID,
+        source_table_name=TABLE_ID,
+        target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
+        # truncate TEMP table if exists and copy table definitions. Don't do anything else.
+        truncate_target=True,
+        copy_data=False,
+        drop_source=False,
     )
 
-    # 5. Create TABLE
-    create_table = BashOperator(
-        task_id="create_table",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
-    )
-
-    # 6. Convert BBOX (array of floats) to GEOM datatype
-    convert_to_geom = PostgresOperator(
-        task_id="convert_bbox_to_geom",
-        sql=CONVERT_TO_GEOM,
-        params=dict(tablename=f"{dag_id}_{dag_id}_new"),
-    )
-
-    # 7. Rename COLUMNS based on Provenance
+    # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=dag_id,
-        prefix_table_name=f"{dag_id}_",
-        postfix_table_name="_new",
+        dataset_name=DAG_ID,
+        prefix_table_name=f"{DAG_ID}_",
+        postfix_table_name=TMP_TABLE_POSTFIX,
         rename_indexes=False,
         pg_schema="public",
+    )
+
+    # 7. Import source data into TEMP table
+    import_data = PythonOperator(
+        task_id="import_data",
+        python_callable=import_data_batch,
+        op_kwargs={"tablename": f"{TABLE_ID}{TMP_TABLE_POSTFIX}"},
     )
 
     # PREPARE CHECKS
@@ -88,7 +84,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=50,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new "),
+            params={"table_name": f"{TABLE_ID}{TMP_TABLE_POSTFIX}"},
             result_checker=operator.ge,
         )
     )
@@ -96,37 +92,36 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}_new",
-                geotype=["POINT"],
-            ),
             pass_value=1,
+            params={
+                "table_name": f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
+                "geotype": ["POINT", "MULTIPOINT"],
+            },
         )
     )
 
     total_checks = count_checks + geo_checks
 
-    # 8. RUN bundled CHECKS
+    # 7. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 9. Rename TABLE
+    # 8. Rename TABLE
     rename_table = PostgresTableRenameOperator(
-        task_id=f"rename_table_{dag_id}",
-        old_table_name=f"{dag_id}_{dag_id}_new",
-        new_table_name=f"{dag_id}_{dag_id}",
+        task_id="rename_table",
+        old_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
+        new_table_name=TABLE_ID,
     )
 
-    # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    # 9. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 (
     slack_at_start
     >> mkdir
-    >> download_data
-    >> JSON_to_SQL
-    >> create_table
-    >> convert_to_geom
+    >> sqlalchemy_create_objects_from_schema
+    >> create_temp_table
     >> provenance_translation
+    >> import_data
     >> multi_checks
     >> rename_table
     >> grant_db_permissions
