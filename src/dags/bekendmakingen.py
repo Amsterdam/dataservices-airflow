@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Final
 
 from airflow import DAG
-from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.path import mk_dir
@@ -21,7 +20,6 @@ TABLE_ID: Final = f"{DAG_ID}_{DAG_ID}"
 TMP_DIR: Final = f"{SHARED_DIR}/{DAG_ID}"
 TMP_TABLE_POSTFIX: Final = "_new"
 
-variables = Variable.get(DAG_ID, deserialize_json=True)
 total_checks = []
 count_checks = []
 geo_checks = []

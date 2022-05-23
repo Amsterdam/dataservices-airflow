@@ -14,22 +14,6 @@ reclamebelasting:
   files_to_download:
     shp_file: Reclame_tariefgebieden.shp
     zip_file: reclame-tarief-gebieden.zip
-bekendmakingen:
-  data_endpoint: wfs
-  wfs_params:
-    request: GetFeature
-    SERVICE: WFS
-    VERSION: 1.2.0
-    TYPENAME: geozet:bekendmakingen_punt
-    FILTER: |
-      <Filter>
-        <PropertyIsEqualTo>
-          <PropertyName>geozet:overheid</PropertyName>
-          <Literal>Amsterdam</Literal>
-        </PropertyIsEqualTo>
-      </Filter>
-    outputFormat: application/json
-  geotype: ST_Point
 asbestdaken:
   zip_file: Amsterdam_Asbestverdachte_daken_Shape.zip
   shp_files:
