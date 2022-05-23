@@ -257,7 +257,9 @@ with DAG(
 
     source = pathlib.Path(TMP_DIR)
 
-    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"mkdir -p {TMP_DIR}")
+    # temporary fix: Older downloads must be cleaned up before new download get executed
+    # to avoid importing old data since there is no removal of old data yet.
+    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"rm -rf {TMP_DIR} && mkdir -p {TMP_DIR}")
 
     download_and_extract_zip = PythonOperator(
         task_id="download_and_extract_zip",
