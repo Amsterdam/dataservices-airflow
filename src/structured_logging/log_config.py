@@ -71,15 +71,14 @@ LOGGING_CONFIG: dict[str, Any] = {
     },
     "handlers": {
         "console": {
-            # CUSTOM: added reference to the custom log handler class.
-            "class": "structured_logging.logging_handler.JsonStreamHandler",
-            # 'formatter': 'airflow_coloured',
+            "class": "airflow.utils.log.logging_mixin.RedirectStdHandler",
+            "formatter": "airflow_coloured",
             "stream": "sys.stdout",
             "filters": ["mask_secrets"],
         },
         "task": {
             # CUSTOM: added reference to the custom log handler class.
-            "class": "structured_logging.logging_handler.JsonFileTaskHandler",
+            "class": "structured_logging.logging_handler.JsonFileTaskHandlerAzureLogs",
             # 'formatter': 'airflow',
             "base_log_folder": os.path.expanduser(BASE_LOG_FOLDER),
             "filename_template": FILENAME_TEMPLATE,
