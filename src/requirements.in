@@ -6,6 +6,7 @@ apache-airflow-providers-sftp==2.4.1
 apache-airflow-providers-slack==4.2.1
 apache-airflow-providers-ssh==2.4.0
 apache-airflow[crypto,postgres,sentry,sendgrid]==2.2.4
+authlib==1.0.1
 cattrs==1.1.2
 clevercsv==0.1.4
 cx-Oracle==8.2.1
