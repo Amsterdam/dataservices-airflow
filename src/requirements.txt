@@ -66,6 +66,8 @@ attrs==20.3.0
     #   jsonschema
     #   pg-grant
     #   pytest
+authlib==1.0.1
+    # via -r requirements.in
 azure-batch==11.0.0
     # via apache-airflow-providers-microsoft-azure
 azure-common==1.1.27
@@ -200,6 +202,7 @@ cryptography==3.4.8
     #   adal
     #   apache-airflow
     #   apache-airflow-providers-cncf-kubernetes
+    #   authlib
     #   azure-identity
     #   azure-keyvault-keys
     #   azure-storage-blob
