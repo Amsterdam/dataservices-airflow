@@ -3,11 +3,16 @@
     edges {
       node {
         identificatie 
-        cursor 
         id 
         typeSubject 
         beschikkingsbevoegdheid 
-        heeftBsnVoor 
+        heeftBsnVoor {
+          edges {
+            node {
+              bronwaarde
+            }
+          }
+        }
         voornamen 
         voorvoegsels 
         geslachtsnaam 
@@ -22,7 +27,13 @@
         voorvoegselsPartner 
         geslachtsnaamPartner 
         heeftRsinVoor 
-        heeftKvknummerVoor 
+        heeftKvknummerVoor {
+          edges {
+            node {
+              id
+            }
+          }
+        } 
         rechtsvorm 
         statutaireNaam 
         statutaireZetel 
