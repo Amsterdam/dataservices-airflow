@@ -27,13 +27,7 @@
         voorvoegselsPartner 
         geslachtsnaamPartner 
         heeftRsinVoor 
-        heeftKvknummerVoor {
-          edges {
-            node {
-              id
-            }
-          }
-        } 
+        heeftKvknummerVoor
         rechtsvorm 
         statutaireNaam 
         statutaireZetel 
