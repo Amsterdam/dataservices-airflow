@@ -27,6 +27,11 @@ OIDC_TOKEN_ENDPOINT: Final = env("OIDC_TOKEN_ENDPOINT")
 OIDC_CLIENT_ID: Final = env("OIDC_CLIENT_ID")
 OIDC_CLIENT_SECRET: Final = env("OIDC_CLIENT_SECRET")
 
+# value used by GOB to connect relations: [{"bronwaarde": <value>}, {"bronwaarde": <value>}, ...] (json)
+# output format: [<value>, <value>]
+# https://github.com/Amsterdam/GOB-API/blob/develop/src/gobapi/graphql_streaming/response_custom.py
+GOB_SRC_VALUE = 'bronwaarde'
+
 
 class HttpGobOperator(BaseOperator):
     """Operator for fetching data from Gob."""
@@ -94,7 +99,7 @@ class HttpGobOperator(BaseOperator):
 
     def _fetch_params(self, dataset_table_id: str) -> dict[str, str]:
         params = {
-            "condens": "node,edges,id",
+            "condens": f"node,edges,id,{GOB_SRC_VALUE}",
             "schema": dataset_table_id,
         }
         if self.geojson is not None:
