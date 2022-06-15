@@ -6,13 +6,7 @@
         id 
         typeSubject 
         beschikkingsbevoegdheid 
-        heeftBsnVoor {
-          edges {
-            node {
-              bronwaarde
-            }
-          }
-        }
+        heeftBsnVoor
         voornamen 
         voorvoegsels 
         geslachtsnaam 
