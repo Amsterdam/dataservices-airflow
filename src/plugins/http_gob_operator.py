@@ -195,6 +195,9 @@ class HttpGobOperator(BaseOperator):
             with self.graphql_query_path.open() as gql_file:
                 query = gql_file.read()
 
+            if "cursor" not in query:
+                raise AirflowException("`cursor` field is required in graphql query.")
+
             # Sometime GOB-API fail with 500 error, caught by Airflow
             # We retry several times
             while True:
