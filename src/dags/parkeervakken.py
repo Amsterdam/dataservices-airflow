@@ -4,8 +4,8 @@ import operator
 import os
 import pathlib
 import re
-import subprocess
-from typing import Final
+import subprocess  # noqa: S404
+from typing import Any, Final, Iterable, Union
 
 import dateutil.parser
 import shapefile
@@ -19,6 +19,7 @@ from common import SHARED_DIR, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
+from psycopg2 import Date, Time
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
 
@@ -26,28 +27,31 @@ logger = logging.getLogger(__name__)
 
 dag_id = "parkeervakken"
 postgres_conn_id = "parkeervakken_postgres"
-TMP_TABLE_PREFIX = 'temp'
+TMP_TABLE_PREFIX = "temp"
 # CONFIG = Variable.get(DAG_ID, deserialize_json=True)
 
-TABLES: Final = dict(
-    BASE=f"{dag_id}_{dag_id}",
-    BASE_TEMP=f"{dag_id}_{dag_id}_temp",
-    REGIMES=f"{dag_id}_{dag_id}_regimes",
-    REGIMES_TEMP=f"{dag_id}_{dag_id}_regimes_temp",
-)
+TABLES: Final = {
+    "BASE": f"{dag_id}_{dag_id}",
+    "BASE_TEMP": f"{dag_id}_{dag_id}_temp",
+    "REGIMES": f"{dag_id}_{dag_id}_regimes",
+    "REGIMES_TEMP": f"{dag_id}_{dag_id}_regimes_temp",
+}
 WEEK_DAYS: Final = ["ma", "di", "wo", "do", "vr", "za", "zo"]
 
 
 SQL_CREATE_TEMP_TABLES: Final = """
+    -- ################## PARKEERVAKKEN #####################
     DROP TABLE IF EXISTS {{ params.base_table }}_temp;
     CREATE TABLE {{ params.base_table }}_temp (
-        LIKE {{ params.base_table }} INCLUDING ALL);
+        LIKE {{ params.base_table }} EXCLUDING INDEXES);
     ALTER TABLE {{ params.base_table }}_temp
         ALTER COLUMN geometry TYPE geometry(Polygon,28992)
         USING ST_Transform(geometry, 28992);
+
+    -- ############## PARKEERVAKKEN_REGIMES ###################
     DROP TABLE IF EXISTS {{ params.base_table }}_regimes_temp;
     CREATE TABLE {{ params.base_table }}_regimes_temp (
-        LIKE {{ params.base_table }}_regimes INCLUDING ALL);
+        LIKE {{ params.base_table }}_regimes EXCLUDING INDEXES);
     DROP SEQUENCE IF EXISTS {{ params.base_table }}_regimes_temp_id_seq
        CASCADE;
     CREATE SEQUENCE {{ params.base_table }}_regimes_temp_id_seq
@@ -57,57 +61,74 @@ SQL_CREATE_TEMP_TABLES: Final = """
         NEXTVAL('{{ params.base_table }}_regimes_temp_id_seq');
     ALTER TABLE {{ params.base_table }}_regimes_temp
         ADD COLUMN IF NOT EXISTS e_type_description VARCHAR;
+    ALTER TABLE {{ params.base_table }}_regimes_temp ALTER COLUMN id
+        SET DEFAULT nextval('{{ params.base_table }}_regimes_temp_id_seq'::regclass);
 """
 
 SQL_RENAME_TEMP_TABLES: Final = """
+    -- ################## PARKEERVAKKEN #####################
     DROP TABLE IF EXISTS {{ params.base_table }}_old;
     ALTER TABLE IF EXISTS {{ params.base_table }}
         RENAME TO {{ params.base_table }}_old;
-    ALTER TABLE {{ params.base_table }}_temp
+    DROP TABLE IF EXISTS {{ params.base_table }}_old;
+    ALTER TABLE IF EXISTS {{ params.base_table }}_temp
         RENAME TO {{ params.base_table }};
+    ALTER INDEX IF EXISTS {{ params.base_table }}_temp_pkey1
+        RENAME TO {{ params.base_table }}_pkey;
+    CREATE INDEX {{ params.base_table }}_geometry_idx
+        ON {{ params.base_table }} USING gist(geometry);
+     ALTER TABLE {{ params.base_table }} DROP CONSTRAINT IF EXISTS
+        {{ params.base_table }}_pkey;
+    ALTER TABLE {{ params.base_table }} ADD CONSTRAINT
+        {{ params.base_table }}_pkey PRIMARY KEY (id);
+
+    -- ############## PARKEERVAKKEN_REGIMES ###################
     DROP TABLE IF EXISTS {{ params.base_table }}_regimes_old;
     ALTER TABLE IF EXISTS {{ params.base_table }}_regimes
         RENAME TO {{ params.base_table }}_regimes_old;
-    ALTER TABLE {{ params.base_table }}_regimes_temp
+    DROP TABLE IF EXISTS {{ params.base_table }}_regimes_old;
+    ALTER TABLE IF EXISTS {{ params.base_table }}_regimes_temp
         RENAME TO {{ params.base_table }}_regimes;
-    ALTER INDEX IF EXISTS {{ params.base_table }}_regimes_parent_id_idx
-        RENAME TO {{ params.base_table }}_regimes_old_parent_id_idx;
+    ALTER INDEX IF EXISTS {{ params.base_table }}_regimes_temp_pkey1
+        RENAME TO {{ params.base_table }}_regimes_pkey;
     CREATE INDEX {{ params.base_table }}_regimes_parent_id_idx
         ON {{ params.base_table }}_regimes(parent_id);
-    ALTER INDEX IF EXISTS {{ params.base_table }}_geometry_idx
-        RENAME TO {{ params.base_table }}_old_geometry_idx;
-    CREATE INDEX {{ params.base_table }}_geometry_idx
-        ON {{ params.base_table }} USING gist(geometry);
+    DROP SEQUENCE IF EXISTS {{ params.base_table }}_regimes_id_seq;
+    ALTER SEQUENCE IF EXISTS {{ params.base_table }}_regimes_temp_id_seq
+        RENAME TO {{ params.base_table }}_regimes_id_seq;
+    ALTER TABLE {{ params.base_table }}_regimes DROP CONSTRAINT IF EXISTS
+        {{ params.base_table }}_regimes_pkey;
+    ALTER TABLE {{ params.base_table }}_regimes ADD CONSTRAINT
+        {{ params.base_table }}_regimes_pkey PRIMARY KEY (id);
 """
 
 TMP_DIR: Final = f"{SHARED_DIR}/{dag_id}"
 
-E_TYPES: Final = dict(
-    E1="Parkeerverbod",
-    E2="Verbod stil te staan",
-    E3="Verbod fietsen en bromfietsen te plaatsen",
-    E4="Parkeergelegenheid",
-    E5="Taxistandplaats",
-    E6="Gehandicaptenparkeerplaats",
-    E6a="Gehandicaptenparkeerplaats algemeen",
-    E6b="Gehandicaptenparkeerplaats op kenteken",
-    E7="Gelegenheid bestemd voor het onmiddellijk laden en lossen van goederen",
-    E8="Parkeergelegenheid alleen bestemd voor de voertuigcategorie of groep voertuigen die op het bord is aangegeven",
-    E9="Parkeergelegenheid alleen bestemd voor vergunninghouders",
-    E10=(
-        "Parkeerschijf-zone met verplicht gebruik van parkeerschijf, tevens parkeerverbod indien er langer wordt "
-        "geparkeerd dan de parkeerduur die op het bord is aangegeven"
+E_TYPES: Final = {
+    "E1": "Parkeerverbod",
+    "E2": "Verbod stil te staan",
+    "E3": "Verbod fietsen en bromfietsen te plaatsen",
+    "E4": "Parkeergelegenheid",
+    "E5": "Taxistandplaats",
+    "E6": "Gehandicaptenparkeerplaats",
+    "E6a": "Gehandicaptenparkeerplaats algemeen",
+    "E6b": "Gehandicaptenparkeerplaats op kenteken",
+    "E7": "Gelegenheid bestemd voor het onmiddellijk laden en lossen van goederen",
+    "E8": "Parkeergelegenheid alleen bestemd voor de voertuigcategorie of groep voertuigen die "
+    "op het bord is aangegeven",
+    "E9": "Parkeergelegenheid alleen bestemd voor vergunninghouders",
+    "E10": (
+        "Parkeerschijf-zone met verplicht gebruik van parkeerschijf, tevens parkeerverbod indien "
+        "er langer wordt geparkeerd dan de parkeerduur die op het bord is aangegeven"
     ),
-    E11="Einde parkeerschijf-zone met verplicht gebruik van parkeerschijf",
-    E12="Parkeergelegenheid ten behoeve van overstappers op het openbaar vervoer",
-    E13="Parkeergelegenheid ten behoeve van carpoolers",
-)
+    "E11": "Einde parkeerschijf-zone met verplicht gebruik van parkeerschijf",
+    "E12": "Parkeergelegenheid ten behoeve van overstappers op het openbaar vervoer",
+    "E13": "Parkeergelegenheid ten behoeve van carpoolers",
+}
 
 
-def import_data(shp_file, ids):
-    """
-    Import Shape File into database.
-    """
+def import_data(shp_file: str, ids: list) -> list[str]:
+    """Import Shape File into database."""
     base_regime_sql = (
         "("
         "'{parent_id}',"
@@ -129,7 +150,7 @@ def import_data(shp_file, ids):
     parkeervakken_sql = []
     regimes_sql = []
     duplicates = []
-    logger.info(f"Processing: {shp_file}")
+    logger.info("Processing: %s", shp_file)
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
             if int(row.record.PARKEER_ID) in ids:
@@ -140,7 +161,7 @@ def import_data(shp_file, ids):
 
             regimes = create_regimes(row=row)
             soort = "FISCAAL"
-            if len(regimes) == 1:
+            if len(regimes) == 1 and isinstance(regimes, list):
                 soort = regimes[0]["soort"]
 
             parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
@@ -164,16 +185,17 @@ def import_data(shp_file, ids):
             ]
 
     create_parkeervakken_sql = (
-        "INSERT INTO {} ("
+        "INSERT INTO {table} ("
         "id, buurtcode, straatnaam, soort, type, aantal, geometry, e_type"
-        ") VALUES {};"
-    ).format(TABLES["BASE_TEMP"], ",".join(parkeervakken_sql))
+        ") VALUES {values};"
+    ).format(table=TABLES["BASE_TEMP"], values=",".join(parkeervakken_sql))
+
     create_regimes_sql = (
-        "INSERT INTO {} ("
-        "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd, opmerking, dagen, "
-        "kenteken, begin_datum, eind_datum, aantal"
-        ") VALUES {};"
-    ).format(TABLES["REGIMES_TEMP"], ",".join(regimes_sql))
+        "INSERT INTO {table} ("
+        "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd,"
+        "opmerking, dagen, kenteken, begin_datum, eind_datum, aantal"
+        ") VALUES {values};"
+    ).format(table=TABLES["REGIMES_TEMP"], values=",".join(regimes_sql))
 
     hook = PostgresHook()
     if len(parkeervakken_sql):
@@ -187,14 +209,16 @@ def import_data(shp_file, ids):
         except Exception as e:
             raise Exception(f"Failed to create regimes: {str(e)[0:150]}")
 
-    logger.info(f"Created: {len(parkeervakken_sql)} parkeervakken and {len(regimes_sql)} regimes")
+    logger.info(
+        "Created: %s parkeervakken and %s regimes", len(parkeervakken_sql), len(regimes_sql)
+    )
     return duplicates
 
 
-def download_latest_export_file(swift_conn_id, container, name_regex, *args, **kwargs):
-    """
-    Find latest export filename
-    """
+def download_latest_export_file(
+    swift_conn_id: str, container: str, name_regex: str, *args: Iterable, **kwargs: Iterable
+) -> Any:
+    """Find latest export filename."""
     hook = SwiftHook(swift_conn_id=swift_conn_id)
     latest = None
 
@@ -222,26 +246,25 @@ def download_latest_export_file(swift_conn_id, container, name_regex, *args, **k
     hook.download(container=container, object_id=latest["name"], output_path=zip_path)
 
     try:
-        subprocess.run(
+        subprocess.run(  # noqa: S603 S607 S607
             ["unzip", "-o", zip_path, "-d", TMP_DIR], stderr=subprocess.PIPE, check=True
         )
     except subprocess.CalledProcessError as e:
         raise AirflowException(f"Failed to extract zip: {e.stderr}")
 
-    logger.info(f"downloading {latest['name']}")
+    logger.info("downloading %s", latest["name"])
     return latest["name"]
 
 
-def run_imports(*args, **kwargs):
-    """
-    Run imports for all files in zip that match date.
-    """
-    ids = []
+def run_imports(*args: Iterable, **kwargs: Iterable) -> None:
+    """Run imports for all files in zip that match date."""
+    ids: list[str] = []
     for shp_file in source.glob("*.shp"):
         duplicates = import_data(str(shp_file), ids)
 
         if len(duplicates):
-            logger.warn("Duplicates found: {}".format(", ".join(duplicates)))
+            logger.warning("Duplicates found: %s", ", ".join(duplicates))
+
 
 args = default_args.copy()
 
@@ -259,32 +282,34 @@ with DAG(
 
     # temporary fix: Older downloads must be cleaned up before new download get executed
     # to avoid importing old data since there is no removal of old data yet.
-    mk_tmp_dir = BashOperator(task_id="mk_tmp_dir", bash_command=f"rm -rf {TMP_DIR} && mkdir -p {TMP_DIR}")
+    mk_tmp_dir = BashOperator(
+        task_id="mk_tmp_dir", bash_command=f"rm -rf {TMP_DIR} && mkdir -p {TMP_DIR}"
+    )
 
     download_and_extract_zip = PythonOperator(
         task_id="download_and_extract_zip",
         python_callable=download_latest_export_file,
-        op_kwargs=dict(
-            swift_conn_id="objectstore_parkeervakken",
-            container="tijdregimes",
-            name_regex=r"^nivo_\d+\.zip",
-        ),
+        op_kwargs={
+            "swift_conn_id": "objectstore_parkeervakken",
+            "container": "tijdregimes",
+            "name_regex": r"^nivo_\d+\.zip",
+        },
     )
 
     download_and_extract_nietfiscaal_zip = PythonOperator(
         task_id="download_and_extract_nietfiscaal_zip",
         python_callable=download_latest_export_file,
-        op_kwargs=dict(
-            swift_conn_id="objectstore_parkeervakken",
-            container="Parkeervakken",
-            name_regex=r"^\d+\_nietfiscaal\.zip",
-        ),
+        op_kwargs={
+            "swift_conn_id": "objectstore_parkeervakken",
+            "container": "Parkeervakken",
+            "name_regex": r"^\d+\_nietfiscaal\.zip",
+        },
     )
 
     create_temp_tables = PostgresOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLES,
-        params=dict(base_table=f"{dag_id}_{dag_id}"),
+        params={"base_table": f"{dag_id}_{dag_id}"},
     )
 
     run_import_task = PythonOperator(
@@ -299,7 +324,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id="non_zero_check",
                 pass_value=10,
-                params=dict(table_name=f"{dag_id}_{dag_id}_temp"),
+                params={"table_name": f"{dag_id}_{dag_id}_temp"},
                 result_checker=operator.ge,
             )
         ],
@@ -308,7 +333,7 @@ with DAG(
     rename_temp_tables = PostgresOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLES,
-        params=dict(base_table=f"{dag_id}_{dag_id}"),
+        params={"base_table": f"{dag_id}_{dag_id}"},
     )
 
     # Grant database permissions
@@ -327,7 +352,8 @@ with DAG(
 
 
 # Internals
-def create_parkeervaak(row, soort=None):
+def create_parkeervaak(row: shapefile.ShapeRecord, soort: Union[None, str] = None) -> str:
+    """Creating a parkeervak record."""
     geometry = "''"
     if row.shape.shapeTypeName == "POLYGON":
         geometry = f"ST_GeometryFromText('{str(Polygon(row.shape.points))}', 28992)"
@@ -355,23 +381,23 @@ def create_parkeervaak(row, soort=None):
     return sql
 
 
-def create_regimes(row):
-
+def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any]]:
+    """Creating a parkeervak regime record."""
     output = []
 
-    base_data = dict(
-        parent_id=row.record.PARKEER_ID or "",
-        soort="FISCAAL",
-        e_type="",
-        bord="",
-        begin_tijd=datetime.time(0, 0),
-        eind_tijd=datetime.time(23, 59),
-        opmerking=row.record.OPMERKING or "",
-        dagen=WEEK_DAYS,
-        kenteken=None,
-        begin_datum=None,
-        eind_datum=None,
-    )
+    base_data = {
+        "parent_id": row.record.PARKEER_ID or "",
+        "soort": "FISCAAL",
+        "e_type": "",
+        "bord": "",
+        "begin_tijd": datetime.time(0, 0),
+        "eind_tijd": datetime.time(23, 59),
+        "opmerking": row.record.OPMERKING or "",
+        "dagen": WEEK_DAYS,
+        "kenteken": None,
+        "begin_datum": None,
+        "eind_datum": None,
+    }
 
     mode_start = datetime.time(0, 0)
     mode_end = datetime.time(23, 59)
@@ -381,12 +407,12 @@ def create_regimes(row):
         # No time modes, but could have full override.
         x = base_data.copy()
         x.update(
-            dict(
-                soort=row.record.SOORT or "FISCAAL",
-                bord=row.record.BORD or "",
-                e_type=row.record.E_TYPE or "",
-                kenteken=row.record.KENTEKEN,
-            )
+            {
+                "soort": row.record.SOORT or "FISCAAL",
+                "bord": row.record.BORD or "",
+                "e_type": row.record.E_TYPE or "",
+                "kenteken": row.record.KENTEKEN,
+            }
         )
         return [x]
 
@@ -436,27 +462,30 @@ def create_regimes(row):
     return output
 
 
-def add_a_minute(time):
+def add_a_minute(time: Time) -> Time:
+    """Adding minute to time span of a parkeervakregime."""
     return (
         datetime.datetime.combine(datetime.date.today(), time) + datetime.timedelta(minutes=1)
     ).time()
 
 
-def remove_a_minute(time):
+def remove_a_minute(time: Time) -> Time:
+    """Removing minute to time span of a parkeervakregime."""
     return (
         datetime.datetime.combine(datetime.date.today(), time) - datetime.timedelta(minutes=1)
     ).time()
 
 
-def get_modes(row):
+def get_modes(row: shapefile.ShapeRecord) -> list:
+    """Get the parkeerregimes instances (a.k.a. modes) of a parkeervak."""
     modes = []
 
-    base = dict(
-        soort=row.record.SOORT or "FISCAAL",
-        bord=row.record.BORD or "",
-        e_type=row.record.E_TYPE or "",
-        kenteken=row.record.KENTEKEN,
-    )
+    base = {
+        "soort": row.record.SOORT or "FISCAAL",
+        "bord": row.record.BORD or "",
+        "e_type": row.record.E_TYPE or "",
+        "kenteken": row.record.KENTEKEN,
+    }
     if any(
         [
             row.record.TVM_BEGINT,
@@ -469,14 +498,14 @@ def get_modes(row):
         # TVM (tijdelijke verkeersmaatregel)
         tvm_mode = base.copy()
         tvm_mode.update(
-            dict(
-                soort=row.record.E_TYPE or "FISCAAL",
-                begin_datum=row.record.TVM_BEGIND or "",
-                eind_datum=row.record.TVM_EINDD or "",
-                opmerking=(row.record.TVM_OPMERK or "").replace("'", "\\'"),
-                begin_tijd=parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
-                eind_tijd=parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
-            )
+            {
+                "soort": row.record.E_TYPE or "FISCAAL",
+                "begin_datum": row.record.TVM_BEGIND or "",
+                "eind_datum": row.record.TVM_EINDD or "",
+                "opmerking": (row.record.TVM_OPMERK or "").replace("'", "\\'"),
+                "begin_tijd": parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
+                "eind_tijd": parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
+            }
         )
         modes.append(tvm_mode)
 
@@ -485,31 +514,30 @@ def get_modes(row):
         eind_tijd = parse_time(row.record.EINDTIJD1, datetime.time(23, 59))
         if begin_tijd < eind_tijd:
             x = base.copy()
-            x.update(dict(begin_tijd=begin_tijd, eind_tijd=eind_tijd))
+            x.update({"begin_tijd": begin_tijd, "eind_tijd": eind_tijd})
             modes.append(x)
         else:
             # Mode: 20:00, 06:00
             x = base.copy()
-            x.update(dict(begin_tijd=datetime.time(0, 0), eind_tijd=eind_tijd))
+            x.update({"begin_tijd": datetime.time(0, 0), "eind_tijd": eind_tijd})
             y = base.copy()
-            y.update(dict(begin_tijd=begin_tijd, eind_tijd=datetime.time(23, 59)))
+            y.update({"begin_tijd": begin_tijd, "eind_tijd": datetime.time(23, 59)})
             modes.append(x)
             modes.append(y)
     if any([row.record.BEGINTIJD2, row.record.EINDTIJD2]):
         x = base.copy()
         x.update(
-            dict(
-                begin_tijd=parse_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
-                eind_tijd=parse_time(row.record.EINDTIJD2, datetime.time(23, 59)),
-            )
+            {
+                "begin_tijd": parse_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
+                "eind_tijd": parse_time(row.record.EINDTIJD2, datetime.time(23, 59)),
+            }
         )
         modes.append(x)
     return modes
 
 
-def days_from_row(row):
-    """
-    Parse week days from row.
+def days_from_row(row: shapefile.ShapeRecord) -> Iterable:
+    """Parse week days from row.
 
     NOTE: Since a single row can hold two start and endtimes, correspondending to
     the first true value to the `BEGINTIJD1 and EINDTIJD1` attributes and the second true value
@@ -538,10 +566,8 @@ def days_from_row(row):
     return days
 
 
-def parse_time(value, default=None):
-    """
-    Parse time or return default
-    """
+def parse_time(value: str, default: Date) -> Date:
+    """Parse time or return default."""
     if value is not None:
         if value == "24:00":
             value = "23:59"
@@ -550,7 +576,7 @@ def parse_time(value, default=None):
 
         try:
             parsed = dateutil.parser.parse(value)
-        except dateutil.parser._parser.ParserError:
+        except dateutil.parser.ParserError:
             pass
         else:
             return parsed.time()
