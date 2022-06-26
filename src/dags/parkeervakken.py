@@ -19,7 +19,7 @@ from common import SHARED_DIR, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from psycopg2 import Date, Time, sql
+from psycopg2 import Date, Time
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
 
@@ -184,17 +184,18 @@ def import_data(shp_file: str, ids: list) -> list[str]:
                 for mode in regimes
             ]
 
-    create_parkeervakken_sql = sql.SQL(
+    create_parkeervakken_sql = (
         "INSERT INTO {table} ("
         "id, buurtcode, straatnaam, soort, type, aantal, geometry, e_type"
         ") VALUES {values};"
-    ).format(table=sql.Identifier(TABLES["BASE_TEMP"]), values=",".join(parkeervakken_sql))
-    create_regimes_sql = sql.SQL(
+    ).format(table=TABLES["BASE_TEMP"], values=",".join(parkeervakken_sql))
+
+    create_regimes_sql = (
         "INSERT INTO {table} ("
-        "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd, "
+        "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd,"
         "opmerking, dagen, kenteken, begin_datum, eind_datum, aantal"
         ") VALUES {values};"
-    ).format(table=sql.Identifier(TABLES["REGIMES_TEMP"]), values=",".join(regimes_sql))
+    ).format(table=TABLES["REGIMES_TEMP"], values=",".join(regimes_sql))
 
     hook = PostgresHook()
     if len(parkeervakken_sql):
