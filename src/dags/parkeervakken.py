@@ -188,13 +188,13 @@ def import_data(shp_file: str, ids: list) -> list[str]:
         "INSERT INTO {table} ("
         "id, buurtcode, straatnaam, soort, type, aantal, geometry, e_type"
         ") VALUES {values};"
-    ).format(table=TABLES["BASE_TEMP"], values=",".join(parkeervakken_sql))
+    ).format(table=sql.Identifier(TABLES["BASE_TEMP"]), values=",".join(parkeervakken_sql))
     create_regimes_sql = sql.SQL(
         "INSERT INTO {table} ("
         "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd, "
         "opmerking, dagen, kenteken, begin_datum, eind_datum, aantal"
         ") VALUES {values};"
-    ).format(table=TABLES["REGIMES_TEMP"], values=",".join(regimes_sql))
+    ).format(table=sql.Identifier(TABLES["REGIMES_TEMP"]), values=",".join(regimes_sql))
 
     hook = PostgresHook()
     if len(parkeervakken_sql):
