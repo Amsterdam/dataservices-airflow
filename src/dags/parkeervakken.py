@@ -531,23 +531,31 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
             )
             output.append(sod_mode)
 
-            # adding the in-between-dates of the TVM; each day will be an own record.
+            # adding the in-between-dates of the TVM; the in-between-dates will be
+            # given one record summarizing the range.
             if mode.get("eind_datum") > mode.get("begin_datum"):
+
                 days_to_add = daterange(mode["begin_datum"], mode["eind_datum"])
+
                 # skip the first result since that is the begin_datum
                 # and already added as a record by `sod_mode` above.
                 next(days_to_add)
-                for day in days_to_add:
-                    in_between_data = base_data.copy()
-                    in_between_data["dagen"] = days
-                    in_between_data["begin_datum"] = day
-                    in_between_data["eind_datum"] = day
-                    in_between_data["begin_tijd"] = mode_start
-                    in_between_data["eind_tijd"] = mode_end
-                    output.append(in_between_data)
+
+                # iterate through all in-between-days
+                in_between_days = list(days_to_add)
+
                 # delete the last result since that is the eind_datum
                 # and will already added as a record by `eod_mode` below.
-                del output[-1]
+                in_between_days = in_between_days[:-1]
+
+                # create the final in-between-days record
+                in_between_data = base_data.copy()
+                in_between_data["dagen"] = days
+                in_between_data["begin_datum"] = min(in_between_days)
+                in_between_data["eind_datum"] = max(in_between_days)
+                in_between_data["begin_tijd"] = mode_start
+                in_between_data["eind_tijd"] = mode_end
+                output.append(in_between_data)
 
             # end of the TVM (tijdelijke verkeersmaatregel) record.
             if mode.get("eind_datum") > mode.get("begin_datum"):
