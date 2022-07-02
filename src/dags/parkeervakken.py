@@ -537,16 +537,12 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
 
                 days_to_add = daterange(mode["begin_datum"], mode["eind_datum"])
 
-                # skip the first result since that is the begin_datum
-                # and already added as a record by `sod_mode` above.
-                next(days_to_add)
-
                 # iterate through all in-between-days
-                in_between_days = list(days_to_add)
-
-                # delete the last result since that is the eind_datum
-                # and will already added as a record by `eod_mode` below.
-                in_between_days = in_between_days[:-1]
+                # delete the first and last result since that
+                # is the start_datum and eind_datum and will
+                # already added as a record by `sod_mode` and
+                # `eod_mode`.
+                in_between_days = list(days_to_add)[1:-1]
 
                 # create the final in-between-days record
                 in_between_data = base_data.copy()
