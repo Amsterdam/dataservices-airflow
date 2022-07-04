@@ -5,9 +5,12 @@ import os
 import pathlib
 import re
 import subprocess  # noqa: S404
-from typing import Any, Final, Iterable, Union
+from datetime import timedelta
+from typing import Any, Final, Iterable, Iterator, Union
+from xmlrpc.client import boolean
 
 import dateutil.parser
+import psycopg2
 import shapefile
 from airflow import DAG
 from airflow.exceptions import AirflowException
@@ -19,7 +22,7 @@ from common import SHARED_DIR, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from psycopg2 import Date, Time
+from psycopg2 import Date, Time, sql
 from shapely.geometry import Polygon
 from swift_hook import SwiftHook
 
@@ -129,24 +132,6 @@ E_TYPES: Final = {
 
 def import_data(shp_file: str, ids: list) -> list[str]:
     """Import Shape File into database."""
-    base_regime_sql = (
-        "("
-        "'{parent_id}',"
-        "'{soort}',"
-        "'{e_type}',"
-        "'{e_type_description}',"
-        "'{bord}',"
-        "'{begin_tijd}',"
-        "'{eind_tijd}',"
-        "E'{opmerking}',"
-        "{dagen},"
-        "{kenteken},"
-        "{begin_datum},"
-        "{eind_datum},"
-        "'{aantal}'"
-        ")"
-    )
-
     parkeervakken_sql = []
     regimes_sql = []
     duplicates = []
@@ -166,52 +151,93 @@ def import_data(shp_file: str, ids: list) -> list[str]:
 
             parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
             regimes_sql += [
-                base_regime_sql.format(
-                    parent_id=row.record.PARKEER_ID,
-                    soort=mode["soort"],
-                    e_type=mode["e_type"],
-                    e_type_description=E_TYPES.get(mode["e_type"], ""),
-                    bord=mode["bord"],
-                    begin_tijd=mode["begin_tijd"].strftime("%H:%M"),
-                    eind_tijd=mode["eind_tijd"].strftime("%H:%M"),
-                    opmerking=mode["opmerking"],
-                    dagen="'{" + ",".join([f'"{day}"' for day in mode["dagen"]]) + "}'",
-                    kenteken=f"'{mode['kenteken']}'" if mode["kenteken"] else "NULL",
-                    begin_datum=f"'{mode['begin_datum']}'" if mode["begin_datum"] else "NULL",
-                    eind_datum=f"'{mode['eind_datum']}'" if mode["eind_datum"] else "NULL",
-                    aantal=row.record.AANTAL,
+                (
+                    row.record.PARKEER_ID,
+                    mode["soort"],
+                    mode["e_type"],
+                    E_TYPES.get(mode["e_type"], ""),
+                    mode["bord"],
+                    mode["begin_tijd"].strftime("%H:%M"),
+                    mode["eind_tijd"].strftime("%H:%M"),
+                    mode["opmerking"],
+                    "{" + ",".join(mode["dagen"]) + "}",
+                    f"{mode['kenteken']}" if mode["kenteken"] else None,
+                    f"{mode['begin_datum']}" if mode["begin_datum"] else None,
+                    f"{mode['eind_datum']}" if mode["eind_datum"] else None,
+                    row.record.AANTAL,
                 )
                 for mode in regimes
             ]
 
-    create_parkeervakken_sql = (
-        "INSERT INTO {table} ("
-        "id, buurtcode, straatnaam, soort, type, aantal, geometry, e_type"
-        ") VALUES {values};"
-    ).format(table=TABLES["BASE_TEMP"], values=",".join(parkeervakken_sql))
+    # enitity: Parkeervakken (define cols for record inserts)
+    table_col_names_parkeervakken = [
+        "id",
+        "buurtcode",
+        "straatnaam",
+        "soort",
+        "type",
+        "aantal",
+        "geometry",
+        "e_type",
+    ]
+    col_names_parkeervakken = sql.SQL(", ").join(
+        sql.Identifier(n) for n in table_col_names_parkeervakken
+    )
+    query_base_parkeervakken = sql.SQL(
+        """INSERT INTO {table_name} ({col_names})
+            VALUES (%s,%s,%s,%s,%s,%s,ST_GeometryFromText(%s, 28992),%s)"""
+    ).format(table_name=sql.Identifier(TABLES["BASE_TEMP"]), col_names=col_names_parkeervakken)
 
-    create_regimes_sql = (
-        "INSERT INTO {table} ("
-        "parent_id, soort, e_type, e_type_description, bord, begin_tijd, eind_tijd,"
-        "opmerking, dagen, kenteken, begin_datum, eind_datum, aantal"
-        ") VALUES {values};"
-    ).format(table=TABLES["REGIMES_TEMP"], values=",".join(regimes_sql))
+    # enitity: Parkeervakkenregimes (define cols for record inserts)
+    table_col_names_parkeervakkenregimes = [
+        "parent_id",
+        "soort",
+        "e_type",
+        "e_type_description",
+        "bord",
+        "begin_tijd",
+        "eind_tijd",
+        "opmerking",
+        "dagen",
+        "kenteken",
+        "begin_datum",
+        "eind_datum",
+        "aantal",
+    ]
+    col_names_parkeervakkenregimes = sql.SQL(", ").join(
+        sql.Identifier(n) for n in table_col_names_parkeervakkenregimes
+    )
+    place_holders = sql.SQL(", ").join(
+        sql.Placeholder() * len(table_col_names_parkeervakkenregimes)
+    )
+    query_base_parkeervakkenregimes = sql.SQL(
+        "INSERT INTO {table_name} ({col_names}) VALUES ({values})"
+    ).format(
+        table_name=sql.Identifier(TABLES["REGIMES_TEMP"]),
+        col_names=col_names_parkeervakkenregimes,
+        values=place_holders,
+    )
 
     hook = PostgresHook()
-    if len(parkeervakken_sql):
-        try:
-            hook.run(create_parkeervakken_sql)
-        except Exception as e:
-            raise Exception(f"Failed to create parkeervakken: {str(e)[0:150]}")
-    if len(regimes_sql):
-        try:
-            hook.run(create_regimes_sql)
-        except Exception as e:
-            raise Exception(f"Failed to create regimes: {str(e)[0:150]}")
+    conn = hook.get_conn()
+    cursor = conn.cursor()
+    with cursor as cur:
+        if len(parkeervakken_sql):
+            try:
+                psycopg2.extras.execute_batch(cur, query_base_parkeervakken, parkeervakken_sql)
+                conn.commit()
+            except Exception as e:
+                raise Exception(f"Failed to create parkeervakken: {str(e)[0:150]}")
+        if len(regimes_sql):
+            try:
+                psycopg2.extras.execute_batch(cur, query_base_parkeervakkenregimes, regimes_sql)
+                conn.commit()
+            except Exception as e:
+                raise Exception(f"Failed to create regimes: {str(e)[0:150]}")
 
-    logger.info(
-        "Created: %s parkeervakken and %s regimes", len(parkeervakken_sql), len(regimes_sql)
-    )
+        logger.info(
+            "Created: %s parkeervakken and %s regimes", len(parkeervakken_sql), len(regimes_sql)
+        )
     return duplicates
 
 
@@ -352,31 +378,21 @@ with DAG(
 
 
 # Internals
-def create_parkeervaak(row: shapefile.ShapeRecord, soort: Union[None, str] = None) -> str:
+def create_parkeervaak(row: shapefile.ShapeRecord, soort: Union[None, str] = None) -> tuple:
     """Creating a parkeervak record."""
     geometry = "''"
     if row.shape.shapeTypeName == "POLYGON":
-        geometry = f"ST_GeometryFromText('{str(Polygon(row.shape.points))}', 28992)"
+        geometry = str(Polygon(row.shape.points))
+
     sql = (
-        "("
-        "'{parkeer_id}',"
-        "'{buurtcode}',"
-        "E'{straatnaam}',"
-        "'{soort}',"
-        "'{type}',"
-        "'{aantal}',"
-        "{geometry},"
-        "'{e_type}'"
-        ")"
-    ).format(
-        parkeer_id=row.record.PARKEER_ID,
-        buurtcode=row.record.BUURTCODE,
-        straatnaam=row.record.STRAATNAAM.replace("'", "\\'"),
-        soort=row.record.SOORT or soort,
-        type=row.record.TYPE or "",
-        aantal=row.record.AANTAL,
-        geometry=geometry,
-        e_type=row.record.E_TYPE or "",
+        row.record.PARKEER_ID,
+        row.record.BUURTCODE,
+        row.record.STRAATNAAM.replace("'", "\\'"),
+        row.record.SOORT or soort,
+        row.record.TYPE or "",
+        row.record.AANTAL,
+        geometry,
+        row.record.E_TYPE or "",
     )
     return sql
 
@@ -399,14 +415,11 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
         "eind_datum": None,
     }
 
-    mode_start = datetime.time(0, 0)
-    mode_end = datetime.time(23, 59)
-
     modes = get_modes(row)
     if len(modes) == 0:
         # No time modes, but could have full override.
-        x = base_data.copy()
-        x.update(
+        parkeervak_with_no_modes = base_data.copy()
+        parkeervak_with_no_modes.update(
             {
                 "soort": row.record.SOORT or "FISCAAL",
                 "bord": row.record.BORD or "",
@@ -414,9 +427,27 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
                 "kenteken": row.record.KENTEKEN,
             }
         )
-        return [x]
+        return [parkeervak_with_no_modes]
 
-    for mode in modes:
+    # get index positions of the non-TVM modes so it
+    # can be used to idenity the very first and very last
+    # record. That is important so the surrounding time range
+    # records can be added dependent on the start and end times.
+    # group 1: are the modes that belong to the record with begintijd1.
+    # group 2: are the modes that belong to the record with begintijd2 (if present).
+    # group 1 and 2 can be a separate group with their own surrounding times slots.
+    indexes_of_no_tvm_modes_group1 = [
+        idx
+        for idx, mode in enumerate(modes)
+        if not mode.get("ind_tvm") and not mode.get("ind_separate_group")
+    ]
+    indexes_of_no_tvm_modes_group2 = [
+        idx
+        for idx, mode in enumerate(modes)
+        if not mode.get("ind_tvm") and mode.get("ind_separate_group")
+    ]
+
+    for index, mode in enumerate(modes):
 
         # since there can be multiple modes
         # per row with each different days
@@ -424,40 +455,114 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
         # calculation.
         days = days_from_row(row)
 
-        if mode.get("begin_tijd", datetime.time(0, 0)) > mode_start:
-            # Time bound. Start of the day mode.
+        # start off with start time and end time for first non-TVM mode found.
+        if not mode.get("ind_tvm") and indexes_of_no_tvm_modes_group1:
+            if index == min(indexes_of_no_tvm_modes_group1):
+                mode_start = datetime.time(0, 0)
+                mode_end = datetime.time(23, 59)
+        if not mode.get("ind_tvm") and indexes_of_no_tvm_modes_group2:
+            if index == min(indexes_of_no_tvm_modes_group2):
+                mode_start = datetime.time(0, 0)
+                mode_end = datetime.time(23, 59)
+
+        # fictional first time range record for mode (defaults to 00:00 - xxx)
+        if not mode.get("ind_tvm"):
+            if mode.get("begin_tijd", datetime.time(0, 0)) > mode_start:
+                # Time bound. Start of the day mode.
+                sod_mode = base_data.copy()
+                sod_mode["dagen"] = days
+                sod_mode["begin_tijd"] = mode_start
+                sod_mode["eind_tijd"] = remove_a_minute(mode["begin_tijd"])
+                output.append(sod_mode)
+
+            # time range record for mode as found in source
+            mode_data = base_data.copy()
+            mode_data.update(mode)
+            mode_data["dagen"] = days
+            output.append(mode_data)
+            mode_start = add_a_minute(mode["eind_tijd"])
+
+            # check if the non-TVM mode is the last in its group
+            # and if so then add the fictional last record.
+            ind_add_fictional_time_range_record = False
+
+            if indexes_of_no_tvm_modes_group1:
+                if index == max(indexes_of_no_tvm_modes_group1):
+                    ind_add_fictional_time_range_record = True
+            if indexes_of_no_tvm_modes_group2:
+                if index == max(indexes_of_no_tvm_modes_group2):
+                    ind_add_fictional_time_range_record = True
+
+            # fictional last time range record for mode (defaults to xxx - 23:59)
+            if (
+                mode.get("eind_tijd", datetime.time(23, 59)) < mode_end
+                and ind_add_fictional_time_range_record
+            ):
+                # Time bound. End of the day mode.
+                eod_mode = base_data.copy()
+                eod_mode["dagen"] = days
+                eod_mode["begin_tijd"] = add_a_minute(mode["eind_tijd"])
+                output.append(eod_mode)
+
+        if mode.get("ind_tvm"):
+
+            mode_start = datetime.time(0, 0)
+            mode_end = datetime.time(23, 59)
+
+            # start of the TVM (tijdelijke verkeersmaatregel) record
+            # the TVM is cut up in days between start and end date;
+            # so each day will be added as a record.
+            # The first record will hold the very first start time
+            # when the TVM is applicable. The last record will hold
+            # the end time of the time at the TVM will be valid.
             sod_mode = base_data.copy()
             sod_mode["dagen"] = days
-            sod_mode["begin_tijd"] = mode_start
-            sod_mode["eind_tijd"] = remove_a_minute(mode["begin_tijd"])
-            # NOTE: if there is a TVM (a mode) on a parkeervak, then the generated start
-            # and end times surrounding the TVM time span, within a 24 hrs time frame,
-            # are inheriting the `begin_datum` and `eind_datum` of the TVM itself.
-            # NOTE: not all modes have a begin_datum or eind_datum key, depending if
-            # it is set @ source
+            sod_mode["begin_tijd"] = mode.get("begin_tijd", mode_start)
+            sod_mode["eind_tijd"] = (
+                mode.get("eind_tijd", mode_end)
+                if mode.get("eind_datum") == mode.get("begin_datum")
+                else mode_end
+            )
             sod_mode["begin_datum"] = mode.get("begin_datum")
-            sod_mode["eind_datum"] = mode.get("eind_datum")
+            sod_mode["eind_datum"] = (
+                mode.get("eind_datum")
+                if mode.get("eind_datum") == mode.get("begin_datum")
+                else mode.get("begin_datum")
+            )
             output.append(sod_mode)
 
-        mode_data = base_data.copy()
-        mode_data.update(mode)
-        mode_data["dagen"] = days
-        output.append(mode_data)
-        mode_start = add_a_minute(mode["eind_tijd"])
+            # adding the in-between-dates of the TVM; the in-between-dates will be
+            # given one record summarizing the range.
+            if mode.get("eind_datum") > mode.get("begin_datum"):
 
-        if mode.get("eind_tijd", datetime.time(23, 59)) < mode_end:
-            # Time bound. End of the day mode.
-            eod_mode = base_data.copy()
-            eod_mode["dagen"] = days
-            eod_mode["begin_tijd"] = add_a_minute(mode["eind_tijd"])
-            # NOTE: if there is a TVM (a mode) on a parkeervak, then the generated start
-            # and end times surrounding the TVM time span, within a 24 hrs time frame,
-            # are inheriting the `begin_datum` and `eind_datum` of the TVM itself.
-            # NOTE: not all modes have a begin_datum or eind_datum key, depending if
-            # it is set @ source
-            eod_mode["begin_datum"] = mode.get("begin_datum")
-            eod_mode["eind_datum"] = mode.get("eind_datum")
-            output.append(eod_mode)
+                days_to_add = daterange(mode["begin_datum"], mode["eind_datum"])
+
+                # iterate through all in-between-days
+                # delete the first and last result since that
+                # is the start_datum and eind_datum and will
+                # already added as a record by `sod_mode` and
+                # `eod_mode`.
+                in_between_days = list(days_to_add)[1:-1]
+
+                # create the final in-between-days record
+                in_between_data = base_data.copy()
+                in_between_data["dagen"] = days
+                in_between_data["begin_datum"] = min(in_between_days)
+                in_between_data["eind_datum"] = max(in_between_days)
+                in_between_data["begin_tijd"] = mode_start
+                in_between_data["eind_tijd"] = mode_end
+                output.append(in_between_data)
+
+            # end of the TVM (tijdelijke verkeersmaatregel) record.
+            if mode.get("eind_datum") > mode.get("begin_datum"):
+                # Time bound. End of the day mode.
+                eod_mode = base_data.copy()
+                eod_mode["dagen"] = days
+                eod_mode["begin_tijd"] = mode_start
+                eod_mode["eind_tijd"] = mode.get("eind_tijd", mode_end)
+                eod_mode["begin_datum"] = mode.get("eind_datum")
+                eod_mode["eind_datum"] = mode.get("eind_datum")
+                output.append(eod_mode)
 
     return output
 
@@ -474,6 +579,18 @@ def remove_a_minute(time: Time) -> Time:
     return (
         datetime.datetime.combine(datetime.date.today(), time) - datetime.timedelta(minutes=1)
     ).time()
+
+
+def daterange(start_date: datetime.date, end_date: datetime.date) -> Iterator:
+    """Calculating in-between-dates between two dates.
+
+    This function is used for addding the dates between a
+    TVM (tijdelijke verkeersmaatregel) period, that is is defined
+    as a single start and end date.
+    For each in-between-date a record is created.
+    """
+    for n in range(int((end_date - start_date).days) + 1):
+        yield start_date + timedelta(days=n)
 
 
 def get_modes(row: shapefile.ShapeRecord) -> list:
@@ -505,6 +622,7 @@ def get_modes(row: shapefile.ShapeRecord) -> list:
                 "opmerking": (row.record.TVM_OPMERK or "").replace("'", "\\'"),
                 "begin_tijd": parse_time(row.record.TVM_BEGINT, datetime.time(0, 0)),
                 "eind_tijd": parse_time(row.record.TVM_EINDT, datetime.time(23, 59)),
+                "ind_tvm": True,
             }
         )
         modes.append(tvm_mode)
@@ -530,29 +648,57 @@ def get_modes(row: shapefile.ShapeRecord) -> list:
             {
                 "begin_tijd": parse_time(row.record.BEGINTIJD2, datetime.time(0, 0)),
                 "eind_tijd": parse_time(row.record.EINDTIJD2, datetime.time(23, 59)),
+                "ind_separate_group": ind_multiple_different_day_period(row),
             }
         )
         modes.append(x)
     return modes
 
 
+def ind_multiple_different_day_period(row: shapefile.ShapeRecord) -> boolean:
+    """Returns the number of day selections with one parkeervak enitity.
+
+    Within a parkeervak entity there could be multiple applicable days/dayperiods
+    that have each their own time slots. These time slots belong to their own
+    day/dayperiod. I.e. ma_vr: from 0900 till 1700, zo: from 1300 till 1600.
+    This function tells if that is the case.
+    """
+    num_of_day_selections = [getattr(row.record, day.upper()) for day in WEEK_DAYS] + [
+        row.record.MA_VR,
+        row.record.MA_ZA,
+    ]
+    if sum(num_of_day_selections) > 1:
+        return True
+    return False
+
+
 def days_from_row(row: shapefile.ShapeRecord) -> Iterable:
     """Parse week days from row.
 
-    NOTE: Since a single row can hold two start and endtimes, correspondending to
-    the first true value to the `BEGINTIJD1 and EINDTIJD1` attributes and the second true value
-    to the `BEGINTIJD2 and EINDTIJD2` for days, we need to set the first true value for found days
+    NOTE: Since a single row can hold two start and endtimes, where the first `true` value
+    correspondents to the `BEGINTIJD1 and EINDTIJD1` attributes and the second `true` value
+    to the `BEGINTIJD2 and EINDTIJD2`, we need to set the first true value for found days
     to false, so the next mode (BEGINTIJD2 and EINDTIJD2) can be bound to the second true value.
     """
     if row.record.MA_VR:
         # Monday incl Friday
         days = WEEK_DAYS[:5]
-        row.record.MA_VR = False
+        # If there are more then one days registered within parkeervak,
+        # then the first register applies to `BEGINTIJD1 and EINDTIJD1`
+        # and these days are then set to false for the next run. So the
+        # second day register are applied to `BEGINTIJD2 and EINDTIJD2`.
+        if ind_multiple_different_day_period(row):
+            row.record.MA_VR = False
 
     elif row.record.MA_ZA:
         # Monday incl Saturday
         days = WEEK_DAYS[:6]
-        row.record.MA_ZA = False
+        # If there are more then one days registered within parkeervak,
+        # then the first register applies to `BEGINTIJD1 and EINDTIJD1`
+        # and these days are then set to false for the next run. So the
+        # second day register are applied to `BEGINTIJD2 and EINDTIJD2`.
+        if ind_multiple_different_day_period(row):
+            row.record.MA_ZA = False
 
     elif not any([getattr(row.record, day.upper()) for day in WEEK_DAYS]):
         # All days apply
