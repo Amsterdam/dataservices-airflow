@@ -545,13 +545,14 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
                 in_between_days = list(days_to_add)[1:-1]
 
                 # create the final in-between-days record
-                in_between_data = base_data.copy()
-                in_between_data["dagen"] = days
-                in_between_data["begin_datum"] = min(in_between_days)
-                in_between_data["eind_datum"] = max(in_between_days)
-                in_between_data["begin_tijd"] = mode_start
-                in_between_data["eind_tijd"] = mode_end
-                output.append(in_between_data)
+                if len(in_between_days) > 1:
+                    in_between_data = base_data.copy()
+                    in_between_data["dagen"] = days
+                    in_between_data["begin_datum"] = min(in_between_days)
+                    in_between_data["eind_datum"] = max(in_between_days)
+                    in_between_data["begin_tijd"] = mode_start
+                    in_between_data["eind_tijd"] = mode_end
+                    output.append(in_between_data)
 
             # end of the TVM (tijdelijke verkeersmaatregel) record.
             if mode.get("eind_datum") > mode.get("begin_datum"):
