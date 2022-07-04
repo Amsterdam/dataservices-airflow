@@ -545,7 +545,7 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
                 in_between_days = list(days_to_add)[1:-1]
 
                 # create the final in-between-days record
-                if len(in_between_days) > 1:
+                if len(in_between_days) > 0:
                     in_between_data = base_data.copy()
                     in_between_data["dagen"] = days
                     in_between_data["begin_datum"] = min(in_between_days)
