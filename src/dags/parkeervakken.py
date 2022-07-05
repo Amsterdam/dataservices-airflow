@@ -138,36 +138,44 @@ def import_data(shp_file: str, ids: list) -> list[str]:
     logger.info("Processing: %s", shp_file)
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
-            if int(row.record.PARKEER_ID) in ids:
-                # Exclude dupes
-                duplicates.append(row.record.PARKEER_ID)
-                continue
-            ids.append(int(row.record.PARKEER_ID))
+            # select just one parkeervak to test
+            if row.record.PARKEER_ID in (
+                "118286487999",
+                "121810485512",
+                "120904486918",
+                "120980486942",
+            ):
+                #     logger.info(f"Processing 118286487999!!: {row.record.PARKEER_ID}")
+                if int(row.record.PARKEER_ID) in ids:
+                    # Exclude dupes
+                    duplicates.append(row.record.PARKEER_ID)
+                    continue
+                ids.append(int(row.record.PARKEER_ID))
 
-            regimes = create_regimes(row=row)
-            soort = "FISCAAL"
-            if len(regimes) == 1 and isinstance(regimes, list):
-                soort = regimes[0]["soort"]
+                regimes = create_regimes(row=row)
+                soort = "FISCAAL"
+                if len(regimes) == 1 and isinstance(regimes, list):
+                    soort = regimes[0]["soort"]
 
-            parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
-            regimes_sql += [
-                (
-                    row.record.PARKEER_ID,
-                    mode["soort"],
-                    mode["e_type"],
-                    E_TYPES.get(mode["e_type"], ""),
-                    mode["bord"],
-                    mode["begin_tijd"].strftime("%H:%M"),
-                    mode["eind_tijd"].strftime("%H:%M"),
-                    mode["opmerking"],
-                    "{" + ",".join(mode["dagen"]) + "}",
-                    f"{mode['kenteken']}" if mode["kenteken"] else None,
-                    f"{mode['begin_datum']}" if mode["begin_datum"] else None,
-                    f"{mode['eind_datum']}" if mode["eind_datum"] else None,
-                    row.record.AANTAL,
-                )
-                for mode in regimes
-            ]
+                parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
+                regimes_sql += [
+                    (
+                        row.record.PARKEER_ID,
+                        mode["soort"],
+                        mode["e_type"],
+                        E_TYPES.get(mode["e_type"], ""),
+                        mode["bord"],
+                        mode["begin_tijd"].strftime("%H:%M"),
+                        mode["eind_tijd"].strftime("%H:%M"),
+                        mode["opmerking"],
+                        "{" + ",".join(mode["dagen"]) + "}",
+                        f"{mode['kenteken']}" if mode["kenteken"] else None,
+                        f"{mode['begin_datum']}" if mode["begin_datum"] else None,
+                        f"{mode['eind_datum']}" if mode["eind_datum"] else None,
+                        row.record.AANTAL,
+                    )
+                    for mode in regimes
+                ]
 
     # enitity: Parkeervakken (define cols for record inserts)
     table_col_names_parkeervakken = [
@@ -516,6 +524,7 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
             # when the TVM is applicable. The last record will hold
             # the end time of the time at the TVM will be valid.
             sod_mode = base_data.copy()
+            sod_mode["opmerking"] = row.record.TVM_OPMERK or ""
             sod_mode["dagen"] = days
             sod_mode["begin_tijd"] = mode.get("begin_tijd", mode_start)
             sod_mode["eind_tijd"] = (
@@ -545,18 +554,21 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
                 in_between_days = list(days_to_add)[1:-1]
 
                 # create the final in-between-days record
-                in_between_data = base_data.copy()
-                in_between_data["dagen"] = days
-                in_between_data["begin_datum"] = min(in_between_days)
-                in_between_data["eind_datum"] = max(in_between_days)
-                in_between_data["begin_tijd"] = mode_start
-                in_between_data["eind_tijd"] = mode_end
-                output.append(in_between_data)
+                if len(in_between_days) > 0:
+                    in_between_data = base_data.copy()
+                    in_between_data["opmerking"] = row.record.TVM_OPMERK or ""
+                    in_between_data["dagen"] = days
+                    in_between_data["begin_datum"] = min(in_between_days)
+                    in_between_data["eind_datum"] = max(in_between_days)
+                    in_between_data["begin_tijd"] = mode_start
+                    in_between_data["eind_tijd"] = mode_end
+                    output.append(in_between_data)
 
             # end of the TVM (tijdelijke verkeersmaatregel) record.
             if mode.get("eind_datum") > mode.get("begin_datum"):
                 # Time bound. End of the day mode.
                 eod_mode = base_data.copy()
+                eod_mode["opmerking"] = row.record.TVM_OPMERK or ""
                 eod_mode["dagen"] = days
                 eod_mode["begin_tijd"] = mode_start
                 eod_mode["eind_tijd"] = mode.get("eind_tijd", mode_end)
