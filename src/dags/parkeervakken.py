@@ -138,44 +138,36 @@ def import_data(shp_file: str, ids: list) -> list[str]:
     logger.info("Processing: %s", shp_file)
     with shapefile.Reader(shp_file, encodingErrors="ignore") as shape:
         for row in shape:
-            # select just one parkeervak to test
-            if row.record.PARKEER_ID in (
-                "118286487999",
-                "121810485512",
-                "120904486918",
-                "120980486942",
-            ):
-                #     logger.info(f"Processing 118286487999!!: {row.record.PARKEER_ID}")
-                if int(row.record.PARKEER_ID) in ids:
-                    # Exclude dupes
-                    duplicates.append(row.record.PARKEER_ID)
-                    continue
-                ids.append(int(row.record.PARKEER_ID))
+            if int(row.record.PARKEER_ID) in ids:
+                # Exclude dupes
+                duplicates.append(row.record.PARKEER_ID)
+                continue
+            ids.append(int(row.record.PARKEER_ID))
 
-                regimes = create_regimes(row=row)
-                soort = "FISCAAL"
-                if len(regimes) == 1 and isinstance(regimes, list):
-                    soort = regimes[0]["soort"]
+            regimes = create_regimes(row=row)
+            soort = "FISCAAL"
+            if len(regimes) == 1 and isinstance(regimes, list):
+                soort = regimes[0]["soort"]
 
-                parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
-                regimes_sql += [
-                    (
-                        row.record.PARKEER_ID,
-                        mode["soort"],
-                        mode["e_type"],
-                        E_TYPES.get(mode["e_type"], ""),
-                        mode["bord"],
-                        mode["begin_tijd"].strftime("%H:%M"),
-                        mode["eind_tijd"].strftime("%H:%M"),
-                        mode["opmerking"],
-                        "{" + ",".join(mode["dagen"]) + "}",
-                        f"{mode['kenteken']}" if mode["kenteken"] else None,
-                        f"{mode['begin_datum']}" if mode["begin_datum"] else None,
-                        f"{mode['eind_datum']}" if mode["eind_datum"] else None,
-                        row.record.AANTAL,
-                    )
-                    for mode in regimes
-                ]
+            parkeervakken_sql.append(create_parkeervaak(row=row, soort=soort))
+            regimes_sql += [
+                (
+                    row.record.PARKEER_ID,
+                    mode["soort"],
+                    mode["e_type"],
+                    E_TYPES.get(mode["e_type"], ""),
+                    mode["bord"],
+                    mode["begin_tijd"].strftime("%H:%M"),
+                    mode["eind_tijd"].strftime("%H:%M"),
+                    mode["opmerking"],
+                    "{" + ",".join(mode["dagen"]) + "}",
+                    f"{mode['kenteken']}" if mode["kenteken"] else None,
+                    f"{mode['begin_datum']}" if mode["begin_datum"] else None,
+                    f"{mode['eind_datum']}" if mode["eind_datum"] else None,
+                    row.record.AANTAL,
+                )
+                for mode in regimes
+            ]
 
     # enitity: Parkeervakken (define cols for record inserts)
     table_col_names_parkeervakken = [
