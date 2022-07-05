@@ -79,6 +79,9 @@ COPY vsd ${AIRFLOW_USER_HOME}/vsd
 # for instance can be located and used as a reference.
 ENV PYTHONPATH=$PYTHONPATH:$AIRFLOW_USER_HOME
 
+# temporary path adjustment for vsd biz and meldingen specific (TODO: need to convert it to standard dags)
+ENV PYTHONPATH=$PYTHONPATH:$AIRFLOW_USER_HOME/dags:$AIRFLOW_USER_HOME/vsd
+
 WORKDIR ${AIRFLOW_USER_HOME}
 ENTRYPOINT ["/docker-entrypoint.sh"]
 # CMD ["sleep", "infinity"]
