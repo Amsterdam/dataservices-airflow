@@ -516,6 +516,7 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
             # when the TVM is applicable. The last record will hold
             # the end time of the time at the TVM will be valid.
             sod_mode = base_data.copy()
+            sod_mode["opmerking"] = row.record.TVM_OPMERK or ""
             sod_mode["dagen"] = days
             sod_mode["begin_tijd"] = mode.get("begin_tijd", mode_start)
             sod_mode["eind_tijd"] = (
@@ -547,6 +548,7 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
                 # create the final in-between-days record
                 if len(in_between_days) > 0:
                     in_between_data = base_data.copy()
+                    in_between_data["opmerking"] = row.record.TVM_OPMERK or ""
                     in_between_data["dagen"] = days
                     in_between_data["begin_datum"] = min(in_between_days)
                     in_between_data["eind_datum"] = max(in_between_days)
@@ -558,6 +560,7 @@ def create_regimes(row: shapefile.ShapeRecord) -> Union[list[Any], dict[Any, Any
             if mode.get("eind_datum") > mode.get("begin_datum"):
                 # Time bound. End of the day mode.
                 eod_mode = base_data.copy()
+                eod_mode["opmerking"] = row.record.TVM_OPMERK or ""
                 eod_mode["dagen"] = days
                 eod_mode["begin_tijd"] = mode_start
                 eod_mode["eind_tijd"] = mode.get("eind_tijd", mode_end)
