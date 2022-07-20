@@ -1,0 +1,10 @@
+{
+	"name": "Airflow DevContainer",
+	"dockerComposeFile": "../docker-compose.yml",
+	"service": "airflow",
+	"workspaceFolder": "/usr/local/airflow",
+	"shutdownAction": "stopCompose",
+	"forwardPorts": [
+		8080
+	]
+}
