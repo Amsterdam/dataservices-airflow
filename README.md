@@ -2,6 +2,16 @@
 
 Airflow setup for Dataservices, running in a Docker container.
 
+# Devcontainer
+
+By running the development in a [devcontainer](https://code.visualstudio.com/docs/remote/containers), you can develop without first needing to setup code dependencies. Also it keeps your system clean - all DAG development work can be done inside the container.
+
+When the docker container needs to be updated, press `F1` and select `Remote-Containers: Rebuild and Reopen in Container`.
+
+It will take some time to start the container - you can right-click on the development container instance and select `Show container logs` to see the progress.
+
+Also, you can inspect that the forwarded port `localhost:8080` has become green along with a recognized process in the `Ports` panel.
+
 # Requirements
 
     Python >= 3.9
