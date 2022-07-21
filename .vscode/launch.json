@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // https://davidgriffiths-data.medium.com/debugging-airflow-in-a-container-with-vs-code-7cc26734444
+            "name": "Airflow Test",
+            "type": "python",
+            "request": "launch",
+            "program": "/usr/local/bin/airflow",
+            "console": "integratedTerminal",
+            "args": [
+                "dags",
+                "test",
+                "testdag",
+                "2022-12-31"
+            ]
+        }
+    ]
+}
