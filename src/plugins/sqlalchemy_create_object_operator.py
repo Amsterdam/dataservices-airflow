@@ -4,7 +4,6 @@ from typing import Any, Callable, Final, Optional, Union
 
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
-from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
@@ -36,7 +35,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         "data_table_name",
     ]
 
-    @apply_defaults  # type: ignore [misc]
+    # type: ignore [misc]
     def __init__(
         self,
         data_schema_name: str,

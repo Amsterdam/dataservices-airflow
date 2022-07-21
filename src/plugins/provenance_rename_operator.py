@@ -4,7 +4,6 @@ from typing import Any, Final, Iterable, Optional
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from psycopg2 import sql
@@ -17,7 +16,7 @@ SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 class ProvenanceRenameOperator(BaseOperator):
     """Rename columns and indices according to the provenance field in the schema."""
 
-    @apply_defaults  # type: ignore [misc]
+    # type: ignore [misc]
     def __init__(  # noqa: D107
         self,
         dataset_name: str,
