@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // https://davidgriffiths-data.medium.com/debugging-airflow-in-a-container-with-vs-code-7cc26734444
+            "name": "Airflow Test",
+            "type": "python",
+            "request": "launch",
+            "program": "/usr/local/bin/airflow",
+            "console": "integratedTerminal",
+            "args": [
+                "dags",
+                "test",
+                "testdag",
+                // TODO change this date to the date of today, because this governs when the dag will run
+                // unfortunately it is not possible at the moment to run `date -I` because of
+                // https://github.com/microsoft/vscode/issues/149910
+                "2022-07-21"
+            ]
+        }
+    ]
+}

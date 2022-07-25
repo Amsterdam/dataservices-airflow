@@ -2,7 +2,6 @@ import tempfile
 from pathlib import Path
 
 from airflow.models import BaseOperator
-from airflow.utils.decorators import apply_defaults
 from psql_cmd_hook import PsqlCmdHook
 from swift_hook import SwiftHook
 from zip_hook import ZipHook
@@ -27,7 +26,6 @@ class SwiftLoadSqlOperator(BaseOperator):
     cannot be executed (object already exists).
     """
 
-    @apply_defaults
     def __init__(
         self,
         container,

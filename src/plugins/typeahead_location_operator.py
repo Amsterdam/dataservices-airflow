@@ -5,7 +5,6 @@ from urllib.parse import ParseResult, urlparse
 from airflow.hooks.http_hook import HttpHook
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.decorators import apply_defaults
 
 
 class TypeAHeadLocationOperator(BaseOperator):
@@ -31,7 +30,6 @@ class TypeAHeadLocationOperator(BaseOperator):
     The default name of this column is 'geometry' and can be overwritten if needed.
     """
 
-    @apply_defaults
     def __init__(
         self,
         source_table: str,

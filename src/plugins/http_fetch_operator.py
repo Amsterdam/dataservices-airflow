@@ -8,7 +8,6 @@ from airflow.hooks.http_hook import HttpHook
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
-from airflow.utils.decorators import apply_defaults
 
 
 class HttpFetchOperator(BaseOperator):
@@ -24,7 +23,7 @@ class HttpFetchOperator(BaseOperator):
         "headers",
     ]
 
-    @apply_defaults  # type: ignore[misc]
+    # type: ignore[misc]
     def __init__(
         self,
         endpoint: str,

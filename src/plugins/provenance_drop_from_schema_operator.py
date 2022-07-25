@@ -2,7 +2,6 @@ from typing import Final
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.decorators import apply_defaults
 from environs import Env
 from schematools.utils import dataset_schema_from_url, to_snake_case
 
@@ -11,7 +10,6 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 
 
 class ProvenanceDropFromSchemaOperator(BaseOperator):
-    @apply_defaults
     def __init__(
         self,
         dataset_name,

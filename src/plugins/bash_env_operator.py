@@ -1,5 +1,4 @@
 from airflow.operators.bash import BashOperator
-from airflow.utils.decorators import apply_defaults
 
 
 class BashEnvOperator(BashOperator):
@@ -9,7 +8,6 @@ class BashEnvOperator(BashOperator):
     with an extra dict.
     """
 
-    @apply_defaults
     def __init__(self, *args, **kwargs):
         env_expander = kwargs.pop("env_expander")
         super().__init__(*args, **kwargs)

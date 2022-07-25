@@ -4,14 +4,13 @@ from typing import Any
 from airflow.models.taskinstance import Context
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.providers.postgres.operators.postgres import PostgresOperator
-from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name
 
 
 class PostgresTableRenameOperator(PostgresOperator):
     """Rename a table."""
 
-    @apply_defaults  # type: ignore [misc]
+    # type: ignore [misc]
     def __init__(
         self,
         old_table_name: str,

@@ -4,12 +4,10 @@ from urllib.parse import urlparse
 import requests
 from airflow import AirflowException
 from airflow.models.baseoperator import BaseOperator
-from airflow.utils.decorators import apply_defaults
 from swift_hook import SwiftHook
 
 
 class DCATSwiftOperator(BaseOperator):
-    @apply_defaults
     def __init__(
         self,
         dataset_title: str,

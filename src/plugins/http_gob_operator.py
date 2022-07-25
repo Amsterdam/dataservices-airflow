@@ -11,7 +11,6 @@ from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.http.hooks.http import HttpHook
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.decorators import apply_defaults
 from environs import Env
 from http_params_hook import HttpParamsHook
 from schematools import TMP_TABLE_POSTFIX
@@ -36,7 +35,7 @@ GOB_SRC_VALUE = 'bronwaarde'
 class HttpGobOperator(BaseOperator):
     """Operator for fetching data from Gob."""
 
-    @apply_defaults  # type: ignore [misc]
+    # type: ignore [misc]
     def __init__(
         self,
         endpoint: str,

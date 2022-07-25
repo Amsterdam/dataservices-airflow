@@ -6,7 +6,6 @@ from typing import Any, Optional
 
 from airflow.models import BaseOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.utils.decorators import apply_defaults
 from psycopg2 import sql
 from psycopg2.extras import execute_batch
 
@@ -46,7 +45,6 @@ class PostgresInsertCsvOperator(BaseOperator):
     .. warning:: Currently this operator assumes that an empty string represents a NULL value!
     """
 
-    @apply_defaults
     def __init__(
         self,
         data: tuple[FileTable, ...],
