@@ -5,15 +5,17 @@ from common import default_args
 
 # from airflow.operators.bash import BashOperator
 # from airflow.operators.python import PythonOperator
-from postgres_check_operator import (
-    COLNAMES_CHECK,
-    COUNT_CHECK,
-    GEO_CHECK,
-    PostgresMultiCheckOperator,
-)
-from swift_operator import SwiftOperator
+# from postgres_check_operator import (
+#     COLNAMES_CHECK,
+#     COUNT_CHECK,
+#     GEO_CHECK,
+#     PostgresMultiCheckOperator,
+# )
+# from swift_operator import SwiftOperator
 
-# from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_update_azure_token_operator import PostgresUpdateAzureTokenOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 
 
 # from airflow.providers.postgres.operators.postgres import PostgresOperator
@@ -38,48 +40,56 @@ with DAG(
     default_args=default_args,
 ) as dag:
 
-    swift_task = SwiftOperator(
-        task_id="swift_task",
-        container="Dataservices",
-        object_id="beschermde_stads_en_dorpsgezichten/"
-        "acceptance/beschermde_stadsdorpsgezichten.zip",
-        output_path="/tmp/bsd.zip",  # noqa: S108
-        # container="afval",
-        # object_id="acceptance/afval_cluster.zip",
-        # output_path="/tmp/blaat/out2.zip",
-        # conn_id="afval",
-        swift_conn_id="objectstore_dataservices",
-    )
+    # swift_task = SwiftOperator(
+    #     task_id="swift_task",
+    #     container="Dataservices",
+    #     object_id="beschermde_stads_en_dorpsgezichten/"
+    #     "acceptance/beschermde_stadsdorpsgezichten.zip",
+    #     output_path="/tmp/bsd.zip",  # noqa: S108
+    #     # container="afval",
+    #     # object_id="acceptance/afval_cluster.zip",
+    #     # output_path="/tmp/blaat/out2.zip",
+    #     # conn_id="afval",
+    #     swift_conn_id="objectstore_dataservices",
+    # )
 
-    count_check = COUNT_CHECK.make_check(
-        check_id="count_check",
-        pass_value=1587,
-        params={"table_name": "fietspaaltjes"},
-        result_checker=operator.ge,
-    )
+    # count_check = COUNT_CHECK.make_check(
+    #     check_id="count_check",
+    #     pass_value=1587,
+    #     params={"table_name": "fietspaaltjes"},
+    #     result_checker=operator.ge,
+    # )
 
-    colname_check = COLNAMES_CHECK.make_check(
-        check_id="colname_check",
-        parameters=["fietspaaltjes"],
-        pass_value={"id"},
-        result_checker=operator.ge,
-    )
+    # colname_check = COLNAMES_CHECK.make_check(
+    #     check_id="colname_check",
+    #     parameters=["fietspaaltjes"],
+    #     pass_value={"id"},
+    #     result_checker=operator.ge,
+    # )
 
-    geo_check = GEO_CHECK.make_check(
-        check_id="geo_check",
-        params={"table_name": "fietspaaltjes", "geotype": "POINT"},
-        pass_value=1,
-    )
+    # geo_check = GEO_CHECK.make_check(
+    #     check_id="geo_check",
+    #     params={"table_name": "fietspaaltjes", "geotype": "POINT"},
+    #     pass_value=1,
+    # )
 
-    checks = [count_check, colname_check, geo_check]
-    multi = PostgresMultiCheckOperator(task_id="multi", checks=checks)
+    # checks = [count_check, colname_check, geo_check]
+    # multi = PostgresMultiCheckOperator(task_id="multi", checks=checks)
 
     # swift_task
-    # sqls = [
-    #     "delete from biz_data where biz_id = {{ params.tba }}",
-    #     "insert into biz_data (biz_id, naam) values (123456789, 'testje')",
-    # ]
-    # pgtest = PostgresOperator(task_id="pgtest", sql=sqls)
+    sqls = [
+        # "delete from biz_data where biz_id = {{ params.tba }}",
+        "SELECT * FROM public.covid_19_alcoholverkoopverbod;",
+    ]
+    pg_update_azure_token_test = PostgresUpdateAzureTokenOperator(
+        task_id="pg_update_azure_token_test", postgres_conn_id="airflow_db"
+    )
+    pgtest = PostgresOperator(
+        task_id="pgtest", postgres_conn_id="airflow_db", sql=sqls
+    )
+    pg_update_azure_token_test >> pgtest
+
+    # pg_azure_test = PostgresOnAzureOperator(task_id="pgtest", postgres_conn_id="postgres_azure", sql=sqls)
 
     # bashtest = BashOperator(
     #     task_id="bashtest", bash_command=f"psql {pg_params} < /tmp/doit.sql",

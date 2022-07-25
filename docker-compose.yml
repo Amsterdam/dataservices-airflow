@@ -29,6 +29,11 @@ services:
       - database
       - dso_database
     environment:
+      AZURE_CLIENT_ID: f24e8603-a66f-46a5-a18f-db0dcc6fa86e
+      AZURE_TENANT_ID: 72fca1b1-2c2e-4376-a445-294d80196804
+      AIRFLOW_CONN_AIRFLOW_DB:
+        "postgresql://mid-airflow-generic1-ont-weu-01@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
+        /mdbdataservices?cursor=dictcursor&iam=true"
       AIRFLOW_CONN_POSTGRES_DEFAULT:
         "postgresql://dataservices:insecure@dso_database:5432\
         /dataservices?cursor=dictcursor&"
@@ -127,6 +132,7 @@ services:
       - ./src/vars:/usr/local/airflow/vars
       - ./src/vsd:/usr/local/airflow/vsd
       - ./develop:/usr/local/airflow/develop
+      - ./.vscode:/usr/local/airflow/.vscode
       - /var/run/docker.sock:/var/run/docker.sock
     # extra_hosts:
     #- "dockerhost:$DOCKERHOST"
