@@ -12,6 +12,8 @@ It will take some time to start the container - you can right-click on the devel
 
 Also, you can inspect that the forwarded port `localhost:8080` has become green along with a recognized process in the `Ports` panel.
 
+You can debug a DAG with the prepared debug command in `launch.json`. However, note that the current date needs to be set in the command for Airflow to schedule the dag today.
+
 # Requirements
 
     Python >= 3.9
