@@ -12,7 +12,10 @@
                 "dags",
                 "test",
                 "testdag",
-                "2022-12-31"
+                // TODO change this date to the date of today, because this governs when the dag will run
+                // unfortunately it is not possible at the moment to run `date -I` because of
+                // https://github.com/microsoft/vscode/issues/149910
+                "2022-07-21"
             ]
         }
     ]
