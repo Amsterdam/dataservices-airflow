@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Sequence, U
 from postgres_on_azure_hook import PostgresOnAzureHook
 
 from airflow.models import BaseOperator
-from airflow.utils.db import provide_session
-airflow.utils.db
+from airflow.utils.db import merge_conn
 
 class PostgresUpdateAzureTokenOperator(BaseOperator):
     """
@@ -37,8 +36,9 @@ class PostgresUpdateAzureTokenOperator(BaseOperator):
         # the updated token in the password field
         conn = self.hook.get_conn()
 
-        # generate new connection based on current connection because the new connection
-        # should not have the iam field (as that will trigger the AWS code of the vanilla postgres operator)
+        # generate new connection based on current connection because
+        # the new connection should not have the iam field
+        # (as that will trigger the AWS code of the vanilla postgres operator)
         conn_with_token = Connection(
             conn_id=self.generated_postgres_conn_id, conn_type='postgres',
             login=conn.login,
