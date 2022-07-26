@@ -35,12 +35,7 @@ class PostgresOnAzureHook(PostgresHook):
         return login, password, port
 
     def get_token_with_msi(self):
-        mid_client_id = os.getenv("USER_ASSIGNED_MANAGED_IDENTITY")
-
-        if not mid_client_id:
-            credential = DefaultAzureCredential(managed_identity_client_id=mid_client_id)
-            scope = "https://ossrdbms-aad.database.windows.net/.default"
-            token = credential.get_token(scope).token
-            return token
-        else:
-            raise UserWarning("USER_ASSIGNED_MANAGED_IDENTITY env var was not set")
+        credential = DefaultAzureCredential()
+        scope = "https://ossrdbms-aad.database.windows.net/.default"
+        token = credential.get_token(scope).token
+        return token
