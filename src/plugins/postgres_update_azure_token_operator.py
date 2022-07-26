@@ -2,9 +2,7 @@ from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Sequence, U
 
 from postgres_on_azure_hook import PostgresOnAzureHook
 
-from airflow import settings
 from airflow.models import BaseOperator
-from airflow.models import Connection
 from airflow.utils.db import provide_session
 
 
