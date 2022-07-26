@@ -82,10 +82,10 @@ with DAG(
         "SELECT * FROM public.covid_19_alcoholverkoopverbod;",
     ]
     pg_update_azure_token_test = PostgresUpdateAzureTokenOperator(
-        task_id="pg_update_azure_token_test", postgres_conn_id="postgres_default"
+        task_id="pg_update_azure_token_test", postgres_conn_id="postgres_default", generated_postgres_conn_id="postgres_azure"
     )
     pgtest = PostgresOperator(
-        task_id="pgtest", postgres_conn_id="postgres_default", sql=sqls
+        task_id="pgtest", postgres_conn_id="postgres_azure", sql=sqls
     )
     pg_update_azure_token_test >> pgtest
 

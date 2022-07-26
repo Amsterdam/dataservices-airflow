@@ -4,7 +4,7 @@ from postgres_on_azure_hook import PostgresOnAzureHook
 
 from airflow.models import BaseOperator
 from airflow.utils.db import provide_session
-
+airflow.utils.db
 
 class PostgresUpdateAzureTokenOperator(BaseOperator):
     """
@@ -15,19 +15,19 @@ class PostgresUpdateAzureTokenOperator(BaseOperator):
     def __init__(
         self,
         postgres_conn_id: str = "postgres_default",
+        generated_postgres_conn_id: str = "postgres_azure",
         database: Optional[str] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.postgres_conn_id = postgres_conn_id
+        self.generated_postgres_conn_id = generated_postgres_conn_id
         self.database = database
         self.hook: Optional[PostgresOnAzureHook] = None
 
     def execute(self, context: 'Context'):
-        self.set_password()
+        from airflow.models.connection import Connection
 
-    @provide_session
-    def set_password(self, session=None):
         self.hook = PostgresOnAzureHook(
             postgres_conn_id=self.postgres_conn_id, schema=self.database
         )
@@ -36,7 +36,16 @@ class PostgresUpdateAzureTokenOperator(BaseOperator):
         # the PostgresOnAzureHook will be called and conn will contain
         # the updated token in the password field
         conn = self.hook.get_conn()
-        
-        # save the connection
-        session.add(conn)
-        session.commit()
+
+        # generate new connection based on current connection because the new connection
+        # should not have the iam field (as that will trigger the AWS code of the vanilla postgres operator)
+        conn_with_token = Connection(
+            conn_id=self.generated_postgres_conn_id, conn_type='postgres',
+            login=conn.login,
+            password=conn.password,
+            schema=conn.schema,
+            host=conn.host,
+            port=conn.port
+            )
+
+        merge_conn(conn_with_token)
