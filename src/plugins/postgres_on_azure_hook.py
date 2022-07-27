@@ -4,7 +4,9 @@ from typing import Tuple
 from airflow.models.connection import Connection
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from azure.identity import DefaultAzureCredential
+import logging
 
+_LOGGER = logging.getLogger(__name__)
 
 class PostgresOnAzureHook(PostgresHook):
     def get_iam_token(self, conn: Connection) -> Tuple[str, str, int]:
@@ -12,8 +14,9 @@ class PostgresOnAzureHook(PostgresHook):
         Override PostgresHook get_iam_token with Azure logic
         """
 
-        # Make sure that USER_ASSIGNED_MANAGED_IDENTITY is set to the client id of
-        # the managed identity. Then set the connection using an env var like this:
+        # This class uses DefaultAzureCredential which will pick up the managed identity
+        # using the AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables.
+        # Then set the connection using an env var like this:
         # AIRFLOW_CONN_POSTGRES_AZURE:
         # "postgresql://mid-airflow-generic1-ont-weu-01@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
         # /dataservices?cursor=dictcursor&iam=true"
@@ -26,6 +29,9 @@ class PostgresOnAzureHook(PostgresHook):
 
         login = conn.login  # <mid_db_username>@<server_name>
         password = self.get_token_with_msi()
+
+        _LOGGER.info(conn.get_uri())
+        _LOGGER.info(f"username: {login} password: {password}")
 
         if conn.port is None:
             port = 5432
