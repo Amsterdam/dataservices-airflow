@@ -35,11 +35,15 @@ class PostgresOnAzureOperator(BaseOperator):
         Template references are recognized by str ending in '.sql'
     :param postgres_conn_id: The :ref:`postgres conn id <howto/connection:postgres>`
         reference to a specific postgres database.
-        Make sure that USER_ASSIGNED_MANAGED_IDENTITY is set to the client id of
-        the managed identity. Then set the connection using an env var like this:
-        AIRFLOW_CONN_POSTGRES_AZURE:
-        "postgresql://mid-airflow-generic1-ont-weu-01@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
-        /dataservices?cursor=dictcursor&iam=true"
+        DefaultAzureCredential is used which will pick up the managed identity
+        using the AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables.
+        Then set the connection using an env var like this:
+        AIRFLOW_CONN_POSTGRES_DEFAULT:
+        postgresql://EM4W-DATA-dataset-ot-covid_19-rw@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432/mdbdataservices?cursor=dictcursor&iam=true
+        Note that for managed identities the group name needs to be used in the connection string.
+        Beware! The group or user needs to be registered in the database as an AAD related user.
+        See https://docs.microsoft.com/en-us/azure/postgresql/single-server/how-to-configure-sign-in-azure-ad-authentication#authenticate-with-azure-ad-as-a-group-member
+        for reference
     :param autocommit: if True, each command is automatically committed.
         (default value: False)
     :param parameters: (optional) the parameters to render the SQL query with.

@@ -1,4 +1,3 @@
-import os
 from typing import Tuple
 
 from airflow.models.connection import Connection
@@ -17,15 +16,15 @@ class PostgresOnAzureHook(PostgresHook):
         # This class uses DefaultAzureCredential which will pick up the managed identity
         # using the AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables.
         # Then set the connection using an env var like this:
-        # AIRFLOW_CONN_POSTGRES_AZURE:
-        # "postgresql://mid-airflow-generic1-ont-weu-01@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
-        # /dataservices?cursor=dictcursor&iam=true"
+        # AIRFLOW_CONN_POSTGRES_DEFAULT:
+        # "postgresql://EM4W-DATA-dataset-ot-covid_19-rw@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
+        # /mdbdataservices?cursor=dictcursor&iam=true"
 
-        # host = conn.host        # <server_name>.postgres.database.azure.com'
-        # server_name = host.partition('.')[0]
+        # Note that for managed identities the group name needs to be used in the connection string.
 
-        # mid_db_username is something like: `mid_airflow_benkbbn1_ont_weu_01`.
-        # Beware! This DB user needs to be created in the referentie DB as an AAD related user.
+        # Beware! The group or user needs to be registered in the database as an AAD related user.
+        # See https://docs.microsoft.com/en-us/azure/postgresql/single-server/how-to-configure-sign-in-azure-ad-authentication#authenticate-with-azure-ad-as-a-group-member
+        # for reference
 
         login = conn.login  # <mid_db_username>@<server_name>
         password = self.get_token_with_msi()
