@@ -32,7 +32,7 @@ services:
       AZURE_CLIENT_ID: f24e8603-a66f-46a5-a18f-db0dcc6fa86e
       AZURE_TENANT_ID: 72fca1b1-2c2e-4376-a445-294d80196804
       AIRFLOW_CONN_POSTGRES_DEFAULT:
-        "postgresql://mid-airflow-generic1-ont-weu-01@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
+        "postgresql://EM4W-DATA-dataset-ot-covid_19-rw@dev-bbn1-00-dbhost:replacedbymidtoken@dev-bbn1-00-dbhost.postgres.database.azure.com:5432\
         /mdbdataservices?cursor=dictcursor&iam=true"
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
       AIRFLOW_CONN_ORACLE_DWH_STADSDELEN: "oracle://oracle_user:insecure@localhost:1521/SID001?encoding=UTF-8&nencoding=UTF-8"
