@@ -3,9 +3,6 @@ from typing import Tuple
 from airflow.models.connection import Connection
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from azure.identity import DefaultAzureCredential
-import logging
-
-_LOGGER = logging.getLogger(__name__)
 
 class PostgresOnAzureHook(PostgresHook):
     def get_iam_token(self, conn: Connection) -> Tuple[str, str, int]:
@@ -28,9 +25,6 @@ class PostgresOnAzureHook(PostgresHook):
 
         login = conn.login  # <group_name>@<server_name>
         password = self.get_token_with_msi()
-
-        _LOGGER.info("uri: %s".format(conn.get_uri()))
-        _LOGGER.info(f"username: {login} password: {password}")
 
         if conn.port is None:
             port = 5432
