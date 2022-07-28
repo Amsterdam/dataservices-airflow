@@ -76,20 +76,39 @@ with DAG(
     # checks = [count_check, colname_check, geo_check]
     # multi = PostgresMultiCheckOperator(task_id="multi", checks=checks)
 
-    # swift_task
     sqls = [
-        # "delete from biz_data where biz_id = {{ params.tba }}",
         "SELECT * FROM public.covid_19_alcoholverkoopverbod;",
     ]
-    pg_update_azure_token_test = PostgresUpdateAzureTokenOperator(
-        task_id="pg_update_azure_token_test", postgres_conn_id="postgres_default", generated_postgres_conn_id="postgres_azure"
-    )
-    pgtest = PostgresOperator(
-        task_id="pgtest", postgres_conn_id="postgres_azure", sql=sqls
-    )
-    pg_update_azure_token_test >> pgtest
 
-    # pg_azure_test = PostgresOnAzureOperator(task_id="pgtest", postgres_conn_id="postgres_azure", sql=sqls)
+    # This DAG part demonstrates two routes:
+    # - use PostgresOnAzureOperator and PostgresOnAzureHook.
+    # - use PostgresUpdateAzureTokenOperator to generate a temporary connection
+    #   containing the token that can then be used by PostgresOperator
+
+    # use PostgresOnAzureOperator and PostgresOnAzureHook.
+    # PostgresOnAzureOperator will call PostgresOnAzureHook under the hood,
+    # and therefore it can use the postgres_default connection.
+    pg_azure_test = PostgresOnAzureOperator(
+        task_id="pg_azure_test", postgres_conn_id="postgres_default", sql=sqls
+    )
+
+    pg_azure_test
+
+    # use PostgresUpdateAzureTokenOperator to generate a temporary connection
+    # containing the token that can then be used by PostgresOperator
+    # (this is a workaround so that modifying the PostgresHook is not needed)
+    # The vanilla PostgresOperator cannot use our custom PostgresOnAzureHook,
+    # and therefore it needs that patched connection.
+
+    # pg_update_azure_token_test = PostgresUpdateAzureTokenOperator(
+    #     task_id="pg_update_azure_token_test",
+    #     postgres_conn_id="postgres_default",
+    #     generated_postgres_conn_id="postgres_azure"
+    # )
+    # pgtest = PostgresOperator(
+    #     task_id="pgtest", postgres_conn_id="postgres_azure", sql=sqls
+    # )
+    # pg_update_azure_token_test >> pgtest
 
     # bashtest = BashOperator(
     #     task_id="bashtest", bash_command=f"psql {pg_params} < /tmp/doit.sql",
