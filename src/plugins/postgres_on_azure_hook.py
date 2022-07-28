@@ -26,7 +26,7 @@ class PostgresOnAzureHook(PostgresHook):
         # See https://docs.microsoft.com/en-us/azure/postgresql/single-server/how-to-configure-sign-in-azure-ad-authentication#authenticate-with-azure-ad-as-a-group-member
         # for reference
 
-        login = conn.login  # <mid_db_username>@<server_name>
+        login = conn.login  # <group_name>@<server_name>
         password = self.get_token_with_msi()
 
         _LOGGER.info(conn.get_uri())

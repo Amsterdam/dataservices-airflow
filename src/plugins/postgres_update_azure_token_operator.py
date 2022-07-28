@@ -7,8 +7,8 @@ from airflow.utils.db import merge_conn
 
 class PostgresUpdateAzureTokenOperator(BaseOperator):
     """
-    Fetch an Azure AD token for the managed identity and update
-    the password field in the referenced Connection with it.
+    Fetch an Azure AD token for the managed identity and generate a new connection
+    containing the token for the managed identity as password.
     """
 
     def __init__(
