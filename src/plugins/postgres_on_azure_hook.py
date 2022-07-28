@@ -29,7 +29,7 @@ class PostgresOnAzureHook(PostgresHook):
         login = conn.login  # <group_name>@<server_name>
         password = self.get_token_with_msi()
 
-        _LOGGER.info(conn.get_uri())
+        _LOGGER.info("uri: %s".format(conn.get_uri()))
         _LOGGER.info(f"username: {login} password: {password}")
 
         if conn.port is None:
