@@ -12,17 +12,18 @@ SQL_DROP_TABLE: Final = """
 # like so: 1 == POINT, 2 == LINESTRING, 3 == POLYGON
 SQL_GEOMETRY_VALID: Final = """
     {% set srid = params.srid|default(28992, true) %}
+    {% set geo_column = params.geo_column|default("GEOMETRY", true) %}
     UPDATE {{ params.tablename }}
     {% if params.geom_type_number is defined %}
-    SET GEOMETRY = ST_MakeValid(
+    SET {{ geo_column }} = ST_MakeValid(
       ST_SetSRID(
         ST_GeomFromText(
           ST_AsText(
-            ST_CollectionExtract(GEOMETRY, {{ params.geom_type_number }}))), {{ srid }}))
+            ST_CollectionExtract({{ geo_column }}, {{ params.geom_type_number }}))), {{ srid }}))
     {% else %}
-    SET GEOMETRY = ST_MakeValid(GEOMETRY)
+    SET {{ geo_column }} = ST_MakeValid({{ geo_column }})
     {% endif %}
-    WHERE ST_IsValid(GEOMETRY) = false;
+    WHERE ST_IsValid({{ geo_column }}) = false;
     COMMIT;
 """
 
