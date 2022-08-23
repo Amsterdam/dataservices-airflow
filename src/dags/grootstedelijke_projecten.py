@@ -20,7 +20,7 @@ DAG_ID = "grootstedelijke_projecten"
 DATASET = "gebieden"
 # owner: Only needed for CloudVPS. On Azure
 # each team has its own Airflow instance.
-owner = 'team_benk'
+owner = "team_benk"
 DB_TABLE_NAME = f"{DATASET}_{DAG_ID}"
 TMP_PATH = f"{SHARED_DIR}/{DAG_ID}"
 variables_aardgasvrijezones = Variable.get(DAG_ID, deserialize_json=True)
@@ -58,9 +58,9 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            swift_conn_id="SWIFT_DEFAULT",
-            container="grootstedelijkegebieden",
-            object_id=file,
+            swift_conn_id="OBJECTSTORE_GOB",
+            container="productie",
+            object_id=f"/gebieden/SHP/{file}",
             output_path=f"{TMP_PATH}/{file}",
         )
         for file in files_to_download
@@ -104,7 +104,7 @@ with DAG(
     # Prepare the checks and added them per source to a dictionary
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id=f"count_check",
+            check_id="count_check",
             pass_value=2,
             params={"table_name": f"{DB_TABLE_NAME}_new"},
             result_checker=operator.ge,
@@ -113,7 +113,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id=f"geo_check",
+            check_id="geo_check",
             params={
                 "table_name": f"{DB_TABLE_NAME}_new ",
                 "geotype": ["MULTIPOINT", "MULTIPOLYGON"],
@@ -131,7 +131,7 @@ with DAG(
 
     # 8. Rename TABLE
     rename_tables = PostgresTableRenameOperator(
-        task_id=f"rename_table",
+        task_id="rename_table",
         old_table_name=f"{DB_TABLE_NAME}_new",
         new_table_name=DB_TABLE_NAME,
     )
