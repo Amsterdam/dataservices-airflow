@@ -79,18 +79,7 @@ with DAG(
         db_conn=db_conn,
     )
 
-    # 5. Make geometry valid
-    make_geo_valid = PostgresOperator(
-        task_id="make_geo_valid",
-        sql=SQL_GEOMETRY_VALID,
-        params={
-            "tablename": f"{DB_TABLE_NAME}_new",
-            "geo_column": "geometrie",
-            "geom_type_number": "3",
-        },
-    )
-
-    # 6. Rename COLUMNS based on Provenance
+    # 5. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=DATASET,
@@ -99,6 +88,17 @@ with DAG(
         subset_tables=[DAG_ID],
         rename_indexes=False,
         pg_schema="public",
+    )
+
+    # 6. Make geometry valid
+    make_geo_valid = PostgresOperator(
+        task_id="make_geo_valid",
+        sql=SQL_GEOMETRY_VALID,
+        params={
+            "tablename": f"{DB_TABLE_NAME}_new",
+            "geo_column": "geometrie",
+            "geom_type_number": "3",
+        },
     )
 
     # Prepare the checks and added them per source to a dictionary
@@ -148,8 +148,8 @@ for data in zip(download_data):
 
 (
     import_data
-    >> make_geo_valid
     >> provenance_translation
+    >> make_geo_valid
     >> multi_checks
     >> rename_tables
     >> grant_db_permissions
