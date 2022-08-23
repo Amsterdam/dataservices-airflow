@@ -1,5 +1,3 @@
-from contextlib import closing
-
 import pandas as pd
 from common.db import get_engine, get_ora_engine, get_postgreshook_instance
 from psycopg2 import sql
@@ -166,9 +164,19 @@ def load_from_dwh(table_name: str) -> None:
         df.columns = map(str.lower, df.columns)
         df.to_sql(table_name, db_engine, if_exists="replace", dtype=dtype, index=False)
 
-        with closing(postgreshook_instance.get_conn().cursor()) as cur:
-            cur.execute(
-                sql.SQL("ALTER TABLE {table_name} ADD PRIMARY KEY (ID)").format(
-                    table_name=sql.Identifier(table_name)
+        # Since Oracle DB does not differentiate between a DATE and DATETIME type
+        # an explicit cast is needed. The DATE type of SQLAlchemy is ignored assumingly
+        # due to Oracle override. As for now only applicable for field DATUM.
+        with postgreshook_instance.get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    sql.SQL("ALTER TABLE {table_name} ADD PRIMARY KEY (ID);").format(
+                        table_name=sql.Identifier(table_name)
+                    )
                 )
-            )
+                cur.execute(
+                    sql.SQL(
+                        "ALTER TABLE {table_name} ALTER COLUMN DATUM TYPE DATE USING DATUM::DATE;"
+                    ).format(table_name=sql.Identifier(table_name))
+                )
+            conn.commit()
