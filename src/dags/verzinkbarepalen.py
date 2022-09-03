@@ -64,7 +64,8 @@ with DAG(
 
     # 5. Import data into DB
     create_table = PostgresFilesOperator(
-        task_id="create_table", sql_files=[f"{tmp_dir}/{dag_id}_{dag_id}_new.sql"]
+        task_id="create_table",
+        sql_files=[f"{tmp_dir}/{dag_id}_{dag_id}_new.sql"],
     )
 
     # 6. Rename COLUMNS based on Provenance

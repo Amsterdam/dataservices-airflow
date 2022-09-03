@@ -2,12 +2,14 @@
 import logging
 
 import psycopg2
-from common.db import fetch_pg_env_vars
+
+# from functools import partial
+from common.db import DatabaseEngine
 from validator_collection import checkers
 
 log = logging.getLogger(__name__)
 
-pg_env_vars = fetch_pg_env_vars()
+pg_env_vars = DatabaseEngine().fetch_pg_env_vars()
 dbname = pg_env_vars["PGDATABASE"]
 user = pg_env_vars["PGUSER"]
 password = pg_env_vars["PGPASSWORD"]

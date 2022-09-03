@@ -1,39 +1,50 @@
 import operator
 import re
+from functools import partial
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import define_temp_db_schema, pg_params
+from common.sql import SQL_DROP_TABLE
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.precariobelasting_add import ADD_GEBIED_COLUMN, ADD_TITLE, RENAME_DATAVALUE_GEBIED
 from swift_operator import SwiftOperator
 
-dag_id: str = "precariobelasting"
-variables: dict = Variable.get(dag_id, deserialize_json=True)
-tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
+DAG_ID: Final = "precariobelasting"
+variables: dict = Variable.get(DAG_ID, deserialize_json=True)
+tmp_dir: str = f"{SHARED_DIR}/{DAG_ID}"
+tmp_database_schema: str = define_temp_db_schema(dataset_name=DAG_ID)
 data_endpoints: dict[str, str] = variables["temp_data"]
 total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
 check_name: dict = {}
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DAG_ID)
 
-# remove space hyphen characters
+
 def clean_data(file_name: str) -> None:
     """Cleans the data content of the given file.
-    Translates non-ASCII characters: '\xc2\xad' to None
 
-    Args:
-        file_name: Name of file to clean data
-    """
+    Translates non-ASCII characters: \xc2\xad to None.
+    Will remove space hyphen characters.
+
+    Params:
+        file_name: Name of file to clean data.
+    """  # noqa: D301
     data = open(file_name).read()
     result = re.sub(r"[\xc2\xad]", "", data)
     with open(file_name, "w") as output:
@@ -41,10 +52,10 @@ def clean_data(file_name: str) -> None:
 
 
 with DAG(
-    dag_id,
+    DAG_ID,
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -77,29 +88,42 @@ with DAG(
         for file_name, url in data_endpoints.items()
     ]
 
-    # 5.create the SQL for creating the table using ORG2OGR PGDump
-    extract_geojsons = [
-        BashOperator(
-            task_id=f"extract_geojson_{file_name}",
-            bash_command="ogr2ogr -f 'PGDump' "
-            "-t_srs EPSG:28992 "
-            f"-nln {file_name} "
-            f"{tmp_dir}/{file_name}.sql {tmp_dir}/{url} "
-            "-lco FID=ID -lco GEOMETRY_NAME=geometry ",
+    # 5. drop TEMP table on the database
+    # PostgresOperator will execute SQL in safe mode.
+    drop_if_exists_tmp_tables = [
+        PostgresOnAzureOperator(
+            task_id=f"drop_if_exists_tmp_table_{key}",
+            sql=SQL_DROP_TABLE,
+            params={"schema": tmp_database_schema, "tablename": f"{DAG_ID}_{key}_new"},
+        )
+        for key in data_endpoints.keys()
+    ]
+
+    # 6. Dummy operator acts as an interface between parallel tasks
+    # to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface = DummyOperator(task_id="interface")
+
+    # 7. Import data
+    # NOTE: ogr2ogr demands the PK is of type integer.
+    import_data = [
+        Ogr2OgrOperator(
+            task_id=f"import_data_{file_name}",
+            target_table_name=f"{DAG_ID}_{file_name}_new",
+            db_schema=tmp_database_schema,
+            input_file=f"{tmp_dir}/{url}",
+            s_srs="EPSG:28992",
+            t_srs="EPSG:28992",
+            fid="id",
+            auto_detect_type="YES",
+            mode="PostgreSQL",
+            geometry_name="geometry",
+            promote_to_multi=True,
         )
         for file_name, url in data_endpoints.items()
     ]
 
-    # 6. Load data into the table
-    load_tables = [
-        BashOperator(
-            task_id=f"load_table_{file_name}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{file_name}.sql",
-        )
-        for file_name in data_endpoints.keys()
-    ]
-
-    # 7. Prepare the checks and added them per source to a dictionary
+    # 8. Prepare the checks and added them per source to a dictionary
     for file_name in data_endpoints.keys():
 
         total_checks.clear()
@@ -110,7 +134,11 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{file_name}",
                 pass_value=2,
-                params={"table_name": file_name},
+                params={
+                    "table_name": "{tmp_schema}.{dataset}_{table}_new".format(
+                        tmp_schema=tmp_database_schema, dataset=DAG_ID, table=file_name
+                    )
+                },
                 result_checker=operator.ge,
             )
         )
@@ -118,7 +146,12 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{file_name}",
-                params={"table_name": file_name, "geotype": ["POLYGON", "MULTIPOLYGON"]},
+                params={
+                    "table_name": "{tmp_schema}.{dataset}_{table}_new".format(
+                        tmp_schema=tmp_database_schema, dataset=DAG_ID, table=file_name
+                    ),
+                    "geotype": ["POLYGON", "MULTIPOLYGON"],
+                },
                 pass_value=1,
             )
         )
@@ -126,115 +159,107 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[file_name] = total_checks
 
-    # 8. Execute bundled checks (step 7) on database
+    # 9. Execute bundled checks (step 7) on database
     multi_checks = [
         PostgresMultiCheckOperator(
-            task_id=f"multi_check_{file_name}", checks=check_name[file_name]
+            task_id=f"multi_check_{file_name}",
+            checks=check_name[file_name],
+            dataset_name=DAG_ID,
         )
         for file_name in data_endpoints.keys()
     ]
 
     # 10. RENAME columns based on PROVENANCE
     provenance_translation = ProvenanceRenameOperator(
-        task_id="rename_columns", dataset_name=dag_id, pg_schema="public"
+        task_id="rename_columns",
+        dataset_name=DAG_ID,
+        prefix_table_name=f"{DAG_ID}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema=tmp_database_schema,
     )
 
-    # 11. DROP Exisiting TABLE
-    drop_tables = [
-        PostgresOperator(
-            task_id=f"drop_existing_table_{file_name}",
-            sql=[
-                f"DROP TABLE IF EXISTS {dag_id}_{file_name} CASCADE",
-            ],
-        )
-        for file_name in data_endpoints.keys()
-    ]
-
-    # 12. Rename the table from <tablename>_new to <tablename>
-    rename_tables = [
-        PostgresTableRenameOperator(
-            task_id=f"rename_table_{file_name}",
-            old_table_name=file_name,
-            new_table_name=f"{dag_id}_{file_name}",
-        )
-        for file_name in data_endpoints.keys()
-    ]
-
-    # 13. Add column TITLE as its was set in the display property in the metadataschema
+    # 11. Add column TITLE as its was set in the display property in the metadataschema
     add_title_columns = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_title_column_{file_name}",
             sql=ADD_TITLE,
-            params={"tablenames": [f"{dag_id}_{file_name}"]},
+            params={
+                "schema": tmp_database_schema,
+                "tablenames": [f"{DAG_ID}_{file_name}_new"],
+            },
         )
         for file_name in data_endpoints.keys()
     ]
 
-    # 14. Dummy operator is used act as an interface
+    # 12. Dummy operator is used act as an interface
     # between one set of parallel tasks to another parallel taks set
     # (without this intermediar Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
+    Interface2 = DummyOperator(task_id="interface2")
 
-    # 15. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
+    # 13. Add derived columns (only woonschepen en bedrijfsvaartuigen are missing gebied as column)
     add_gebied_columns = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_gebied_{file_name}",
             sql=ADD_GEBIED_COLUMN,
-            params={"tablenames": [f"{dag_id}_{file_name}"]},
+            params={
+                "schema": tmp_database_schema,
+                "tablenames": [f"{DAG_ID}_{file_name}_new"],
+            },
         )
         for file_name in ["woonschepen", "bedrijfsvaartuigen"]
     ]
 
-    # 16. rename values in column gebied for terrassen en passagiersvaartuigen
+    # 14. rename values in column gebied for terrassen en passagiersvaartuigen
     # (woonschepen en bedrijfsvaartuigen are added in the previous step)
     rename_value_gebieden = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"rename_value_{file_name}",
             sql=RENAME_DATAVALUE_GEBIED,
-            params={"tablenames": [f"{dag_id}_{file_name}"]},
+            params={
+                "schema": tmp_database_schema,
+                "tablenames": [f"{DAG_ID}_{file_name}_new"],
+            },
         )
         for file_name in ["terrassen", "passagiersvaartuigen"]
     ]
 
-    # 17. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    # 15. Insert data from temp to target table
+    copy_data_to_target = [
+        PostgresTableCopyOperator(
+            task_id=f"copy_data_to_target_{key}",
+            dataset_name_lookup=DAG_ID,
+            dataset_name=DAG_ID,
+            source_table_name=f"{DAG_ID}_{key}_new",
+            source_schema_name=tmp_database_schema,
+            target_table_name=f"{DAG_ID}_{key}",
+            drop_target_if_unequal=False,
+        )
+        for key in data_endpoints.keys()
+    ]
 
     # FLOW. define flow with parallel executing of serial tasks for each file
     slack_at_start >> mk_tmp_dir >> download_data
 
-    for (
-        data,
-        clean_up_data,
-        extract_geojson,
-        load_table,
-        multi_check,
-        add_title_column,
-        drop_table,
-        rename_table,
-    ) in zip(
-        download_data,
-        clean_up_data,
-        extract_geojsons,
-        load_tables,
-        multi_checks,
-        add_title_columns,
-        drop_tables,
-        rename_tables,
+    for (data, clean_up, drop_table, ingest_data, add_title_col) in zip(
+        download_data, clean_up_data, drop_if_exists_tmp_tables, import_data, add_title_columns
     ):
 
-        [
-            data >> clean_up_data >> extract_geojson >> load_table >> multi_check
-        ] >> provenance_translation
+        [data >> clean_up >> drop_table >> ingest_data] >> provenance_translation
 
-        [drop_table >> rename_table >> add_title_column] >> Interface
+        add_title_col >> Interface
 
-    provenance_translation >> drop_tables
+    provenance_translation >> add_title_columns
     Interface >> add_gebied_columns
 
     for add_gebied_column, rename_value_gebied in zip(add_gebied_columns, rename_value_gebieden):
         add_gebied_column >> rename_value_gebied
 
-    rename_value_gebieden >> grant_db_permissions
+    rename_value_gebieden >> Interface2 >> multi_checks
+
+    for data_checks, copy_data in zip(multi_checks, copy_data_to_target):
+
+        [data_checks >> copy_data]
 
     dag.doc_md = """
     #### DAG summary

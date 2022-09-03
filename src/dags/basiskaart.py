@@ -6,8 +6,9 @@ from typing import Final, Iterable
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.utils.context import Context
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.utils.task_group import TaskGroup
 from common import MessageOperator, default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -71,7 +72,7 @@ TABLES: Final[list[Table]] = [
 
 
 def copy_basiskaartdb_to_masterdb(
-    source_connection: str, source_select_statement: str, target_base_table: str
+    source_connection: str, source_select_statement: str, target_base_table: str, **context: Context
 ) -> None:
     """Copy data from basiskaart DB to master DB.
 
@@ -94,14 +95,14 @@ def copy_basiskaartdb_to_masterdb(
         cursor: ResultProxy = src_conn.execute(source_select_statement)
         while True:
             rows: list[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
-            batch_count = insert_rows(target_base_table, rows, cursor.keys())
+            batch_count = insert_rows(target_base_table, rows, cursor.keys(), context)
             count += batch_count
             if batch_count < IMPORT_STEP:
                 break
     logger.info("Total records imported: %d", count)
 
 
-def insert_rows(target_base_table: str, rows: list[RowProxy], col_names: Iterable[str]) -> int:
+def insert_rows(target_base_table: str, rows: list[RowProxy], col_names: Iterable[str], context: Context) -> int:
     """Insert data from iterator into target table."""
     # TODO:
     # This function is enormously inefficient;
@@ -109,10 +110,10 @@ def insert_rows(target_base_table: str, rows: list[RowProxy], col_names: Iterabl
     # - it inserts each row one by one into the database (<- by far slowest part)
     #
     # It should have used:
-    # - PostgresHook's `bulk_load` (though that function is rather limited in functionality)
+    # - PostgresOnAzureHook's `bulk_load` (though that function is rather limited in functionality)
     # - Or use a prepare statement in conjunction with psycopg2.extras.execute_batch as
     #   `PostgresInsertCsvOperator` has done
-    masterdb_hook = PostgresHook()
+    masterdb_hook = PostgresOnAzureHook(dataset_name=DAG_ID, context=context)
 
     if row_count := len(rows):
         try:
@@ -125,9 +126,9 @@ def insert_rows(target_base_table: str, rows: list[RowProxy], col_names: Iterabl
     return row_count
 
 
-def rm_tmp_tables(task_id_postfix: str, tables: Iterable[Table]) -> PostgresOperator:
+def rm_tmp_tables(task_id_postfix: str, tables: Iterable[Table]) -> PostgresOnAzureOperator:
     """Remove tmp tables."""
-    return PostgresOperator(
+    return PostgresOnAzureOperator(
         task_id=f"rm_tmp_tables{task_id_postfix}",
         sql="DROP TABLE IF EXISTS {tables}".format(
             tables=", ".join(map(operator.attrgetter("tmp_id"), tables))
@@ -141,7 +142,7 @@ def table_task_group(table: Table) -> DAG:
 
         create_temp_table = PostgresTableCopyOperator(
             task_id=f"create_temp_table_{table.tmp_id}",
-            dataset_name=DAG_ID,
+            dataset_name_lookup=DAG_ID,
             source_table_name=table.id,
             target_table_name=table.tmp_id,
             # Only copy table definitions. Don't do anything else.
@@ -158,6 +159,7 @@ def table_task_group(table: Table) -> DAG:
                 "source_select_statement": globals()[table.select],
                 "target_base_table": table.tmp_id,
             },
+            provide_context=True,
         )
 
         change_data_capture = PostgresTableCopyOperator(
@@ -168,7 +170,7 @@ def table_task_group(table: Table) -> DAG:
         )
 
         # Create mviews for T-REX tile server
-        create_mviews = PostgresOperator(
+        create_mviews = PostgresOnAzureOperator(
             task_id=f"create_mviews_for_{table.id}",
             sql=CREATE_MVIEWS,
             params={"base_table": table.base_id, "dag_id": DAG_ID},

@@ -1,13 +1,15 @@
 import pathlib
+from functools import partial
 from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params
+from common import SHARED_DIR, MessageOperator, default_args
+from common.db import pg_params
 from importscripts.import_hior import import_hior
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 
 SQL_TABLE_RENAME: Final = """
@@ -33,6 +35,11 @@ SQL_TABLE_RENAME: Final = """
 dag_id = "hior"
 sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 dag_config = Variable.get(dag_id, deserialize_json=True)
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
@@ -66,7 +73,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
 
     create_table = BashOperator(
         task_id="create_table",
-        bash_command=f"psql {pg_params()} < {sql_path}/hior_data_create.sql",
+        bash_command=f"psql {db_conn_string()} < {sql_path}/hior_data_create.sql",
     )
 
     for path in (
@@ -78,7 +85,7 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         import_tables.append(
             BashOperator(
                 task_id=f"create_{name}",
-                bash_command=f"psql {pg_params()} < {path}",
+                bash_command=f"psql {db_conn_string()} < {path}",
             )
         )
     for path in (
@@ -89,11 +96,11 @@ with DAG(dag_id, default_args=default_args, template_searchpath=["/"]) as dag:
         import_linked_tables.append(
             BashOperator(
                 task_id=f"create_{name}",
-                bash_command=f"psql {pg_params()} < {path}",
+                bash_command=f"psql {db_conn_string()} < {path}",
             )
         )
 
-    rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
+    rename_table = PostgresOnAzureOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
     # Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)

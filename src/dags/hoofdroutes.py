@@ -5,9 +5,8 @@ from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from common.sql import SQL_DROP_TABLE
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -19,7 +18,6 @@ from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 
 logger = logging.getLogger(__name__)
-db_conn = DatabaseEngine()
 
 DAG_ID: Final = "hoofdroutes"
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
@@ -29,6 +27,7 @@ total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
 check_name: dict = {}
+
 
 
 with DAG(
@@ -73,7 +72,6 @@ with DAG(
             geometry_name="geometry",
             mode="PostgreSQL",
             fid="id",
-            db_conn=db_conn,
         )
         for resource_name in files_to_download
     ]
@@ -133,7 +131,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource_name}",
-            dataset_name=DAG_ID,
+            dataset_name_lookup=DAG_ID,
             source_table_name=f"{DAG_ID}_{resource_name}_new",
             target_table_name=f"{DAG_ID}_{resource_name}",
             drop_target_if_unequal=True,
@@ -143,7 +141,7 @@ with DAG(
 
     # 8. Clean up (remove temp table _new)
     clean_ups = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"clean_up_{resource_name}",
             sql=SQL_DROP_TABLE,
             params={"tablename": f"{DAG_ID}_{resource_name}_new"},

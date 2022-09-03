@@ -1,13 +1,14 @@
 from pathlib import Path
+from typing import Any
 
 from airflow import DAG
-from airflow.providers.postgres.operators.postgres import PostgresOperator
 from bash_env_operator import BashEnvOperator
 from common import DATASTORE_TYPE, EPHEMERAL_DIR, OTAP_ENVIRONMENT, MessageOperator, default_args
-from common.db import fetch_pg_env_vars
+from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dcat_swift_operator import DCATSwiftOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -31,6 +32,14 @@ dataset_name_database = to_snake_case(dataset_name)
 gpkg_path = f"{export_dir}/{dataset_name_database}.gpkg"
 
 owner = "team_ruimte"
+
+
+def fetch_env_vars(**args: Any) -> Any:
+    """Get the Postgres default DSN connection info as a dictionary."""
+    pg_env_vars = DatabaseEngine(context=args).fetch_pg_env_vars()
+    return pg_env_vars
+
+
 with DAG(
     dag_id,
     default_args=default_args | {"owner": owner},
@@ -74,7 +83,7 @@ with DAG(
     ]
 
     # 4. Rename COLUMNS to source name before insert data
-    rename_cols = PostgresOperator(
+    rename_cols = PostgresOnAzureOperator(
         task_id="rename_cols",
         sql=RENAME_COLS,
     )
@@ -84,6 +93,7 @@ with DAG(
         task_id="swift_load_task",
         container="Dataservices",
         object_id=f"beheerkaart_pr/{dataset_name_database}/{DATASTORE_TYPE}/bkt.zip",
+        dataset_name=dag_id,
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -113,7 +123,7 @@ with DAG(
     create_geopackage = BashEnvOperator(
         task_id="create_geopackage",
         env={},
-        env_expander=fetch_pg_env_vars,
+        env_expander=fetch_env_vars,
         bash_command=f"rm -f {gpkg_path} &&"
         f'ogr2ogr -f GPKG {gpkg_path} PG:"tables={",".join(tables)}"',
     )
@@ -122,7 +132,7 @@ with DAG(
     zip_geopackage = BashEnvOperator(
         task_id="zip_geopackage",
         env={},
-        env_expander=fetch_pg_env_vars,
+        env_expander=fetch_env_vars,
         bash_command=f"zip -j {gpkg_path}.zip {gpkg_path}",
     )
 

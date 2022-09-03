@@ -2,7 +2,7 @@ from typing import Union
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -70,6 +70,7 @@ with DAG(
         task_id="load_dump_file",
         container="Dataservices",
         object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/afval_api.zip",
+        dataset_name=dag_id,
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -89,7 +90,7 @@ with DAG(
     # 5. DUMP FILE SOURCE
     # Swap tables to target schema public
     swap_schema = SwapSchemaOperator(
-        task_id="swap_schema", dataset_name="huishoudelijkafval", subset_tables=tables["dump_file"]
+        task_id="swap_schema", subset_tables=tables["dump_file"]
     )
 
     # 6. DWH STADSDELEN SOURCE
@@ -97,7 +98,8 @@ with DAG(
     load_dwh = PythonOperator(
         task_id="load_from_dwh_stadsdelen",
         python_callable=load_from_dwh,
-        op_args=[f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"],
+        provide_context=True,
+        op_args=[dag_id, f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"],
     )
 
     # 7. Check minimum number of records
@@ -138,7 +140,7 @@ with DAG(
     # Check for changes to merge in target table by using CDC
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        dataset_name=dag_id,
+        dataset_name_lookup=dag_id,
         source_table_name=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new",
         target_table_name=f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}",
         drop_target_if_unequal=True,
@@ -146,7 +148,7 @@ with DAG(
 
     # 11. DWH STADSDELEN SOURCE
     # Clean up; delete temp table
-    clean_up = PostgresOperator(
+    clean_up = PostgresOnAzureOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params={"tablename": f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"},

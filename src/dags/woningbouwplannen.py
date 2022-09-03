@@ -1,7 +1,7 @@
 from typing import Final
 
 from airflow import DAG
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -80,6 +80,7 @@ with DAG(
         task_id="swift_load_task",
         container="Dataservices",
         object_id=f"woningbouwplannen/{DATASTORE_TYPE}/woningbouwplannen.zip",
+        dataset_name=dag_id,
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -95,10 +96,10 @@ with DAG(
     )
 
     # 5. Swap tables to target schema public
-    swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name="woningbouwplannen")
+    swap_schema = SwapSchemaOperator(task_id="swap_schema")
 
     # 6. Extra manual renaming for the nm-tables
-    nm_tables_rename = PostgresOperator(
+    nm_tables_rename = PostgresOnAzureOperator(
         task_id="nm_tables_rename",
         sql=NM_RENAMES_SQL,
     )

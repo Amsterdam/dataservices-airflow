@@ -7,7 +7,7 @@ from typing import Iterator, Optional
 
 import pandas as pd
 import requests
-from common.db import get_engine
+from common.db import DatabaseEngine
 from dateutil import tz
 from geoalchemy2 import Geometry, WKTElement
 from more_ds.network.url import URL
@@ -221,7 +221,7 @@ def import_scooter_data(
 
     df = pd.DataFrame([vars(row) for row in scooter_dataset])
     df["geometrie"] = df["geometrie"].apply(lambda g: WKTElement(g.wkt, srid=4326))
-    db_engine = get_engine()
+    db_engine = DatabaseEngine().get_engine()
     df.to_sql(
         table_name,
         db_engine,
@@ -381,7 +381,7 @@ def import_auto_data(
 
     df = pd.DataFrame([vars(row) for row in mywheels])
     df["geometrie"] = df["geometrie"].apply(lambda g: WKTElement(g.wkt, srid=4326))
-    db_engine = get_engine()
+    db_engine = DatabaseEngine().get_engine()
     df.to_sql(
         table_name,
         db_engine,

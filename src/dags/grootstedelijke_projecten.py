@@ -3,9 +3,9 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -26,7 +26,7 @@ TMP_PATH = f"{SHARED_DIR}/{DAG_ID}"
 variables_aardgasvrijezones = Variable.get(DAG_ID, deserialize_json=True)
 files_to_download = variables_aardgasvrijezones["files_to_download"]
 shp_file_to_use_during_ingest = [file for file in files_to_download if "shp" in file][0]
-db_conn = DatabaseEngine()
+
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -76,11 +76,10 @@ with DAG(
         auto_detect_type="YES",
         mode="PostgreSQL",
         fid="id",
-        db_conn=db_conn,
     )
 
     # 5. Make geometry valid
-    make_geo_valid = PostgresOperator(
+    make_geo_valid = PostgresOnAzureOperator(
         task_id="make_geo_valid",
         sql=SQL_GEOMETRY_VALID,
         params={

@@ -5,6 +5,7 @@ from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from psql_cmd_hook import PsqlCmdHook
 from swift_hook import SwiftHook
+from typing import Optional
 from zip_hook import ZipHook
 
 
@@ -25,13 +26,22 @@ class SwiftLoadSqlOperator(BaseOperator):
     Because tables are removed before a new insert based on existence
     in the Amsterdam schema definition. If not, it remains and the insert
     cannot be executed (object already exists).
+
+    args:
+        dataset_name: Name of the dataset as known in the Amsterdam schema.
+            Since the DAG name can be different from the dataset name, the latter
+            can be explicity given. Only applicable for Azure referentie db connection.
+            Defaults to None. If None, it will use the execution context to get the
+            DAG id as surrogate. Assuming that the DAG id equals the dataset name
+            as defined in Amsterdam schema.
     """
 
     @apply_defaults
     def __init__(
         self,
-        container,
-        object_id,
+        container:str,
+        object_id:str,
+        dataset_name:Optional[str] = None,
         db_target_schema=None,
         swift_conn_id="swift_default",
         *args,
@@ -39,6 +49,7 @@ class SwiftLoadSqlOperator(BaseOperator):
     ):
         self.container = container
         self.object_id = object_id
+        self.dataset_name = dataset_name
         self.swift_conn_id = swift_conn_id
         self.db_target_schema = db_target_schema
         super().__init__(*args, **kwargs)
@@ -54,5 +65,5 @@ class SwiftLoadSqlOperator(BaseOperator):
                 filenames = zip_hook.unzip(tmpdirname)
             else:
                 filenames = [object_path]
-            psql_cmd_hook = PsqlCmdHook(db_target_schema=self.db_target_schema)
+            psql_cmd_hook = PsqlCmdHook(db_target_schema=self.db_target_schema, dataset_name=self.dataset_name)
             psql_cmd_hook.run(Path(tmpdirname) / fn for fn in filenames)

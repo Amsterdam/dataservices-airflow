@@ -5,9 +5,9 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -21,7 +21,7 @@ from swift_operator import SwiftOperator
 dag_id = "ondergrond"
 variables = Variable.get(dag_id, deserialize_json=True)
 files_to_download = variables["files_to_download"]
-db_conn = DatabaseEngine()
+
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 total_checks: list[int] = []
 count_checks: list[int] = []
@@ -101,7 +101,6 @@ with DAG(
             t_srs="EPSG:28992",
             geometry_name="geometrie",
             mode="PostgreSQL",
-            db_conn=db_conn,
         )
         for table_name, data_file in files_to_download.items()
     ]
@@ -165,7 +164,7 @@ with DAG(
 
     # 9. Drop cols - that do not show up in the API
     drop_unnecessary_cols = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_unnecessary_cols_{dag_id}_{table_name}_new",
             sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
             params={"tablename": f"{dag_id}_{table_name}_new"},
@@ -183,7 +182,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table_name}",
-            dataset_name=dag_id,
+            dataset_name_lookup=dag_id,
             source_table_name=f"{dag_id}_{table_name}_new",
             target_table_name=f"{dag_id}_{table_name}",
             drop_target_if_unequal=True,
@@ -193,7 +192,7 @@ with DAG(
 
     # 12. Clean up
     clean_up = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id="clean_up",
             sql=SQL_DROP_TMP_TABLE,
             params={"tablename": f"{dag_id}_{table_name}_new"},

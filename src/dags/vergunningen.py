@@ -4,7 +4,7 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import EPHEMERAL_DIR, OTAP_ENVIRONMENT, MessageOperator, default_args, quote_string
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
@@ -104,7 +104,7 @@ with DAG(
 
     # 6. Recreate tmp table in DB
     recreate_tmp_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"recreate_{target_name}_new",
             sql=SQL_RECREATE_TMP_TABLES,
             params={"tablename": f"{dag_id}_{target_name}"},
@@ -115,7 +115,8 @@ with DAG(
     # 7. Load data into DB (execute source sql)
     import_table = [
         PostgresFilesOperator(
-            task_id=f"insert_data_into_{target_name}_new", sql_files=[f"{tmp_dir}/{file}"]
+            task_id=f"insert_data_into_{target_name}_new",
+            sql_files=[f"{tmp_dir}/{file}"],
         )
         for file, _, target_name in table_renames
     ]
@@ -165,7 +166,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{target_name}",
-            dataset_name=dag_id,
+            dataset_name_lookup=dag_id,
             source_table_name=f"{dag_id}_{target_name}_new",
             target_table_name=f"{dag_id}_{target_name}",
             drop_target_if_unequal=True,
@@ -174,7 +175,7 @@ with DAG(
     ]
     # 10. Clean up
     drop_tmp_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_tmp_{target_name}_new",
             sql=SQL_DROP_TMP_TABLES,
             params={"tablename": f"{dag_id}_{target_name}"},

@@ -4,7 +4,6 @@ from hashlib import blake2s
 from typing import Iterable, cast
 
 import pendulum
-from airflow.hooks.base import BaseHook
 from airflow.models.taskinstance import Context
 from airflow.settings import TIMEZONE
 from environs import Env
@@ -52,6 +51,7 @@ DATASTORE_TYPE: str = (
     "acceptance" if DATAPUNT_ENVIRONMENT == "development" else DATAPUNT_ENVIRONMENT
 )
 
+
 MessageOperator = (
     LogMessageOperator if DATAPUNT_ENVIRONMENT == "development" else SlackMessageOperator
 )
@@ -72,18 +72,6 @@ default_args: Context = {
 
 vsd_default_args: Context = default_args.copy()
 vsd_default_args["postgres_conn_id"] = "postgres_default"
-
-
-def pg_params(conn_id: str = "postgres_default") -> str:
-    """Add "stop on error" argument to connection string.
-
-    Args:
-        conn_id: database connection that is provided with default parameters
-    returns:
-        connection string with default params
-    """
-    connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
-    return f"{connection_uri} -X --set ON_ERROR_STOP=1"
 
 
 def addloopvariables(iterable: Iterable) -> Iterable:

@@ -5,7 +5,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -73,7 +73,7 @@ with DAG(
         ],
     )
 
-    rm_tmp_tables = PostgresOperator(
+    rm_tmp_tables = PostgresOnAzureOperator(
         task_id="rm_tmp_tables",
         sql="DROP TABLE IF EXISTS {tables} CASCADE".format(
             tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", TABLES))
@@ -83,7 +83,7 @@ with DAG(
     # Drop the identity on the `id` column, otherwise SqlAlchemyCreateObjectOperator
     # gets seriously confused; as in: its finds something it didn't create and errors out.
     drop_identity_from_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_identity_from_table_{table}",
             sql="""
                 ALTER TABLE IF EXISTS {{ params.table }}
@@ -101,7 +101,7 @@ with DAG(
     )
 
     add_identity_to_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_identity_to_table_{table}",
             sql="""
                 ALTER TABLE {{ params.table }}
@@ -117,7 +117,7 @@ with DAG(
     postgres_create_tables_like = [
         PostgresTableCopyOperator(
             task_id=f"postgres_create_tables_like_{table}",
-            dataset_name=DAG_ID,
+            dataset_name_lookup=DAG_ID,
             source_table_name=table,
             target_table_name=f"{TMP_TABLE_PREFIX}{table}",
             # Only copy table definitions. Don't do anything else.
@@ -136,7 +136,7 @@ with DAG(
         ],
     )
 
-    fill_markering = PostgresOperator(
+    fill_markering = PostgresOnAzureOperator(
         task_id="fill_markering",
         sql="""
             INSERT INTO {{ params.tmp_table_prefix }}cmsa_markering (sensor_id,

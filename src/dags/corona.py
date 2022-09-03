@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Final, List, Set
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -7,7 +7,6 @@ from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
 from airflow.providers.sftp.operators.sftp import SFTPOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -25,15 +24,14 @@ env = Env()
 DAG_ID: Final = "corona"
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 variables: dict[str, dict[str, str]] = Variable.get(DAG_ID, deserialize_json=True)
-RIVM_data: dict[str, dict[str, str]] = variables["data_endpoints"]
-OOV_data: dict[str, dict[str, str]] = variables["files_to_download"]
+RIVM_data: dict[str, dict[str, str]] = variables["data_endpoints"]  # type: ignore[assignment]
+OOV_data: dict[str, dict[str, str]] = variables["files_to_download"]  # type: ignore[assignment]
 database_table_names: set = {value["dataset"] for value in OOV_data.values()} | {
     value["dataset"] for value in RIVM_data.values()
 }
 total_checks: list = []
 count_checks: list = []
 check_name: dict = {}
-db_conn: object = DatabaseEngine()
 
 with DAG(
     DAG_ID,
@@ -67,8 +65,9 @@ with DAG(
 
     # 3b. Import handhaving data (OOV source)
     import_OOV_data = PythonOperator(
-        task_id=f"import_OOV_data",
+        task_id="import_OOV_data",
         python_callable=data_import_handhaving,
+        provide_context=True,
         op_kwargs={
             "csv_file": TMP_DIR / OOV_data["handhaving"]["data"],
             "db_table_name": f"{DAG_ID}_handhaving_new",
@@ -88,8 +87,9 @@ with DAG(
 
     # 4b. Import gevallen en ziekenhuisopnames data (RIVM source)
     import_RIVM_data = PythonOperator(
-        task_id=f"import_RIVM_data",
+        task_id="import_RIVM_data",
         python_callable=data_import_gevallen_opnames,
+        provide_context=True,
         op_kwargs={
             "source_data_gevallen": TMP_DIR / RIVM_data["gevallen"]["data"].split("/")[2],
             "source_data_ziekenhuis": TMP_DIR
@@ -98,7 +98,8 @@ with DAG(
         },
     )
 
-    # 5. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    # 5. Dummy operator acts as an interface between parallel tasks to another
+    # parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
@@ -161,7 +162,8 @@ with DAG(
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains data about Corona (covid-19) related enforcement actions, infected cases and hosptial admissions.
+    This DAG contains data about Corona (covid-19) related enforcement actions,
+        infected cases and hosptial admissions.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions

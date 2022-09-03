@@ -1,7 +1,7 @@
 from typing import Final
 
 from airflow.models.baseoperator import BaseOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from schematools.utils import dataset_schema_from_url, to_snake_case
@@ -15,12 +15,23 @@ class ProvenanceDropFromSchemaOperator(BaseOperator):
     def __init__(
         self,
         dataset_name,
-        pg_schema="public",
-        additional_table_names=None,
-        postgres_conn_id="postgres_default",
+        pg_schema:str="public",
+        additional_table_names:list=None,
+        postgres_conn_id:str="postgres_default",
         *args,
         **kwargs,
     ):
+        """Initialize.
+
+        args:
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
+
+        """
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.dataset_name = dataset_name
@@ -29,7 +40,7 @@ class ProvenanceDropFromSchemaOperator(BaseOperator):
 
     def execute(self, context=None):
         dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
-        pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
+        pg_hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
 
         table_names = self.additional_table_names or []
         for table in dataset.tables:

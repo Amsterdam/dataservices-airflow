@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from airflow.models import BaseOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
 from psycopg2 import sql
 from psycopg2.extras import execute_batch
@@ -50,6 +50,7 @@ class PostgresInsertCsvOperator(BaseOperator):
     def __init__(
         self,
         data: tuple[FileTable, ...],
+        dataset_name: Optional[str] = None,
         base_dir_task_id: Optional[str] = None,
         page_size: int = 1000,
         postgres_conn_id: str = "postgres_default",
@@ -61,6 +62,12 @@ class PostgresInsertCsvOperator(BaseOperator):
 
         Args:
             data: files with associated table names
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
             base_dir_task_id: Task ID of task that specifies a base dir (eg tmp dir) to resolve
                 relative :attr:`FileTable.file` paths against.
             page_size: Determines how many rows can be inserted in one go. See
@@ -74,6 +81,7 @@ class PostgresInsertCsvOperator(BaseOperator):
         """
         super().__init__(*args, **kwargs)
         self.data = data
+        self.dataset_name = dataset_name
         self.base_dir_task_id = base_dir_task_id
         self.page_size = page_size
         self.postgres_conn_id = postgres_conn_id
@@ -84,7 +92,7 @@ class PostgresInsertCsvOperator(BaseOperator):
         if self.base_dir_task_id is not None:
             base_dir = Path(context["task_instance"].xcom_pull(task_ids=self.base_dir_task_id))
             self.log.info("Setting base_dir to '%s'.", base_dir)
-        hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
+        hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
         with closing(hook.get_conn()) as conn:
             if hook.supports_autocommit:
                 self.log.debug("Setting autocommit to '%s'.", self.autocommit)

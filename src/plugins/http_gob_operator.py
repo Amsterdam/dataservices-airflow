@@ -10,7 +10,8 @@ from airflow.exceptions import AirflowException
 from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.http.hooks.http import HttpHook
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+#from airflow.providers.postgres.hooks.postgres import PostgresHook
+from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from http_params_hook import HttpParamsHook
@@ -174,7 +175,7 @@ class HttpGobOperator(BaseOperator):
 
             # we know the schema, can be an input param (dataset_schema_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
-            pg_hook = PostgresHook()
+            pg_hook = PostgresOnAzureHook(dataset_name=dataset_info.dataset_id, context=context)
             dataset = dataset_schema_from_url(
                 dataset_info.schema_url, dataset_info.dataset_id, prefetch_related=True
             )

@@ -5,9 +5,8 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_milieuzones import import_milieuzones
@@ -28,7 +27,6 @@ total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
 check_name: dict = {}
-db_conn: object = DatabaseEngine()
 
 
 with DAG(
@@ -88,14 +86,13 @@ with DAG(
             auto_detect_type="YES",
             mode="PostgreSQL",
             fid="fid",
-            db_conn=db_conn,
         )
         for key, code in tables_to_create.items()
     ]
 
     # 6. Drop unnecessary cols
     drop_cols = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_cols_{key}",
             sql=DROP_COLS,
             params=dict(tablename=f"{dag_id}_{key}_new"),
@@ -105,7 +102,7 @@ with DAG(
 
     # 7. Drop unnecessary cols
     del_rows = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"del_rows_{key}",
             sql=DEL_ROWS,
             params=dict(tablename=f"{dag_id}_{key}_new"),
@@ -127,7 +124,7 @@ with DAG(
     # the source has some invalid records
     # to do: inform the source maintainer
     revalidate_geometry_records = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"revalidate_geometry_{key}",
             sql=[
                 f"""UPDATE {dag_id}_{key}_new

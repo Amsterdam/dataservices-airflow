@@ -23,7 +23,7 @@ from swift_operator import SwiftOperator
 # from airflow.operators.dummy import DummyOperator
 
 
-# from common import pg_params
+# from common.db import pg_params
 
 # from airflow.operators.docker_operator import DockerOperator
 

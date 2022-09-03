@@ -26,7 +26,9 @@ class Ogr2OgrOperator(BaseOperator):
         input_file_sep: Optional[str] = None,
         auto_detect_type: Optional[str] = None,
         mode: str = "PGDump",
+        dataset_name: Optional[str] = None,
         db_conn: Optional[DatabaseEngine] = None,
+        db_schema: Optional[str] = None,
         encoding_schema: str = "UTF-8",
         promote_to_multi: bool = False,
         sqlite_source: bool = False,
@@ -54,7 +56,15 @@ class Ogr2OgrOperator(BaseOperator):
             auto_detect_type: Can be set to "YES" to auto detect datatype. Defaults to None.
             mode: If set to `PostgreSQL` data is directly imported into database.
                 Defaults to "PGDump" which output a file.
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
             db_conn: Database engine instance. Defaults to None.
+            db_schema: The active database schema to perform SQL statements. Defaults to
+                None. If None, it will use the defined `temp_db_schema` from DatabaseEngine.
             encoding_schema: Source character schema. Defaults to "UTF-8".
             promote_to_multi: Should geometry be converted to an multigeometry object?
                 This can be needed if the source has e.g. points and multipoints. With this option
@@ -78,7 +88,9 @@ class Ogr2OgrOperator(BaseOperator):
         self.geometry_name = geometry_name
         self.sql_statement = sql_statement
         self.mode = mode
+        self.dataset_name = dataset_name
         self.db_conn = db_conn
+        self.db_schema = db_schema
         self.encoding_schema = encoding_schema
         self.promote_to_multi = promote_to_multi
         self.twodimenional = twodimenional
@@ -88,17 +100,23 @@ class Ogr2OgrOperator(BaseOperator):
         """Proces the input file with OGR2OGR to SQL output.
 
         Args:
-            context: 'PGDump' will generate a sql file (the default)
-                'PostgreSQL' will load data directly into database
+            context: Based on the calling DAG, its ID will
+                be used as a surrogate dataset_name as part
+                of the database user name.
+                Only used if dataset_name is None.
         Executes:
                 A batch ogr2ogr cmd
         """
+        if self.db_conn is None:
+            self.db_conn = DatabaseEngine(dataset_name=self.dataset_name, context=context)
+
         input_file: Path = Path(self.input_file)
         input_file.parents[0].mkdir(parents=True, exist_ok=True)
 
         # setup the cmd to execute
         program = "ogr2ogr"
-        ogr2ogr_cmd: list[str] = [program, "-f", self.mode]
+        ogr2ogr_cmd: list[str] = [program, "-overwrite", "-f", self.mode]
+        self.db_schema = self.db_schema if self.db_schema else self.db_conn.temp_db_schema
 
         # Option 1 SQL (default): create sql file
         if self.mode == "PGDump":
@@ -113,7 +131,7 @@ class Ogr2OgrOperator(BaseOperator):
             if self.source_table_name and self.sqlite_source:
                 ogr2ogr_cmd.extend([input_file.as_posix(), *self.source_table_name])
             if self.target_table_name:
-                ogr2ogr_cmd.extend(["-nln", self.target_table_name, "-overwrite"])
+                ogr2ogr_cmd.extend(["-nln", f"{self.db_schema}.{self.target_table_name}"])
             if self.twodimenional:
                 ogr2ogr_cmd.extend(["-dim 2"])
 
@@ -121,11 +139,12 @@ class Ogr2OgrOperator(BaseOperator):
         elif self.mode == "PostgreSQL":
 
             ogr2ogr_cmd.append(
-                f"PG:host={getattr(self.db_conn, 'host')} "  # noqa: B009
-                f"dbname={getattr(self.db_conn, 'db')} "  # noqa: B009
-                f"user={getattr(self.db_conn, 'user')} "  # noqa: B009
-                f"password={getattr(self.db_conn, 'password')} "  # noqa: B009
-                f"port={getattr(self.db_conn, 'port')}"  # noqa: B009
+                f"PG:host={self.db_conn.host} "
+                f"dbname={self.db_conn.db} "
+                f"user={self.db_conn.user} "
+                f"password={self.db_conn.password} "
+                f"port={self.db_conn.port} "
+                f"active_schema={self.db_schema if self.db_schema else self.db_conn.temp_db_schema}"  # noqa: E501
             )
             if not self.sqlite_source:
                 ogr2ogr_cmd.append(input_file.as_posix())
@@ -152,7 +171,7 @@ class Ogr2OgrOperator(BaseOperator):
         if self.source_table_name and self.sqlite_source:
             ogr2ogr_cmd.extend([input_file.as_posix(), *self.source_table_name])
         if self.target_table_name:
-            ogr2ogr_cmd.extend(["-nln", self.target_table_name, "-overwrite"])
+            ogr2ogr_cmd.extend(["-nln", f"{self.db_schema}.{self.target_table_name}"])
         if self.twodimenional:
             ogr2ogr_cmd.extend(["-dim 2"])
 

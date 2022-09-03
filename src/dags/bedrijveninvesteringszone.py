@@ -1,4 +1,5 @@
 import operator
+from functools import partial
 from pathlib import Path
 from typing import Final
 
@@ -7,12 +8,13 @@ from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.convert_bedrijveninvesteringszones_data import convert_biz_data
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
@@ -28,6 +30,11 @@ total_checks = []
 count_checks = []
 geo_checks = []
 check_name = {}
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 TABLE_ID: Final = f"{dag_id}_{dag_id}"
 TMP_TABLE_POSTFIX: Final = "_new"
@@ -105,7 +112,7 @@ with DAG(
 
     create_temp_table = PostgresTableCopyOperator(
         task_id="create_temp_table",
-        dataset_name=dag_id,
+        dataset_name_lookup=dag_id,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
         # Only copy table definitions. Don't do anything else.
@@ -116,10 +123,10 @@ with DAG(
 
     import_data = BashOperator(
         task_id="import_data",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}_updated_data_insert.sql",
+        bash_command=f"psql {db_conn_string()} < {tmp_dir}/{dag_id}_updated_data_insert.sql",
     )
 
-    update_table = PostgresOperator(
+    update_table = PostgresOnAzureOperator(
         task_id="update_target_table",
         sql=UPDATE_TABLE,
         params={"tablename": f"{dag_id}_{dag_id}_new"},

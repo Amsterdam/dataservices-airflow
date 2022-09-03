@@ -1,14 +1,14 @@
 import re
-from typing import Any
+from typing import Any, Optional
 
 from airflow.models.taskinstance import Context
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name
 
 
-class PostgresTableRenameOperator(PostgresOperator):
+class PostgresTableRenameOperator(PostgresOnAzureOperator):
     """Rename a table."""
 
     @apply_defaults  # type: ignore [misc]
@@ -16,21 +16,44 @@ class PostgresTableRenameOperator(PostgresOperator):
         self,
         old_table_name: str,
         new_table_name: str,
+        dataset_name: Optional[str] = None,
         postgres_conn_id: str = "postgres_default",
         task_id: str = "rename_table",
         cascade: bool = False,
         **kwargs: Any,
     ) -> None:
+        """Initialize.
+
+        params:
+            old_table_name: Table to be renamed.
+            new_table_name: Table to rename to.
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
+            postgres_conn_id: Connection string to referentie database. Defaults to name
+                `postgres_default`.
+            task_id: Name of task that will be used for parent class PostgresOperator.
+                Defaults to `rename_table`.
+            cascade: Option to do a DROP table with the CASCADE option added. Defaults
+                to False.
+
+        Executes:
+            SQL ALTER TABLE statements to rename tables within context.
+        """
         check_safe_name(old_table_name)
         check_safe_name(new_table_name)
         super().__init__(task_id=task_id, sql="", postgres_conn_id=postgres_conn_id, **kwargs)
         self.old_table_name = old_table_name
         self.new_table_name = new_table_name
         self.cascade = cascade
+        self.dataset_name = dataset_name
 
     def execute(self, context: Context) -> None:
         # First get all index names, so it's known which indices to rename
-        hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
+        hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id, schema=self.database)
 
         # Start a list to hold rename information
         table_renames = [

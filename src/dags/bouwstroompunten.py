@@ -8,9 +8,8 @@ import requests
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Variable
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
@@ -35,8 +34,6 @@ base_url = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL")
 total_checks = []
 count_checks = []
 geo_checks = []
-
-db_conn: object = DatabaseEngine()
 
 
 @task  # type: ignore[misc]
@@ -118,11 +115,10 @@ with DAG(
         fid="ogc_fid",
         auto_detect_type="YES",
         mode="PostgreSQL",
-        db_conn=db_conn,
     )
 
     # 5. Drop Exisiting TABLE
-    drop_tables = PostgresOperator(
+    drop_tables = PostgresOnAzureOperator(
         task_id="drop_existing_table",
         sql="DROP TABLE IF EXISTS {{ params.table_id }} CASCADE",
         params={"table_id": f"{dag_id}_{dag_id}"},
@@ -146,7 +142,7 @@ with DAG(
     )
 
     # 8. RE-define PK(see step 4 why)
-    redefine_pk = PostgresOperator(
+    redefine_pk = PostgresOnAzureOperator(
         task_id="re-define_pk",
         sql=ADD_PK,
         params={"tablename": f"{dag_id}_{dag_id}"},

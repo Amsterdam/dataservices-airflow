@@ -3,9 +3,8 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args
-from common.db import DatabaseEngine
 from common.objectstore import fetch_objectstore_credentials
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -28,7 +27,6 @@ conn: dict = fetch_objectstore_credentials("OBJECTSTORE_PROCESSENVERBAALVERKIEZI
 conn_id: str = "OBJECTSTORE_PROCESSENVERBAALVERKIEZINGEN"
 tenant: str = conn["TENANT_ID"]
 base_url = URL(f"https://{tenant}.objectstore.eu")
-db_conn: object = DatabaseEngine()
 count_checks: list = []
 check_name: dict = {}
 
@@ -72,11 +70,10 @@ with DAG(
         auto_detect_type="YES",
         mode="PostgreSQL",
         fid="fid",
-        db_conn=db_conn,
     )
 
     # 6. Redefine PK
-    set_pk = PostgresOperator(
+    set_pk = PostgresOnAzureOperator(
         task_id="set_pk",
         sql=SQL_REDEFINE_PK,
         params={"tablename": f"{schema_name}_{table_name}_new"},
@@ -123,14 +120,14 @@ with DAG(
     # 10. Check for changes to merge in target table
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        dataset_name=schema_name,
+        dataset_name_lookup=schema_name,
         source_table_name=f"{schema_name}_{table_name}_new",
         target_table_name=f"{schema_name}_{table_name}",
         drop_target_if_unequal=True,
     )
 
     # 11. Clean up (remove temp table _new)
-    clean_up = PostgresOperator(
+    clean_up = PostgresOnAzureOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params={"tablename": f"{schema_name}_{table_name}_new"},

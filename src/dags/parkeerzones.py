@@ -1,14 +1,16 @@
 import operator
 import pathlib
+from functools import partial
 from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -24,6 +26,11 @@ total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
 check_name: dict = {}
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 
 SQL_MAKE_VALID_GEOM: Final = """
@@ -109,7 +116,7 @@ with DAG(
     load_tables = [
         BashOperator(
             task_id=f"load_table_{subject}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/UTF8_{dag_id}_{subject}.sql",
+            bash_command=f"psql {db_conn_string()} < {tmp_dir}/UTF8_{dag_id}_{subject}.sql",
         )
         for subject in files_to_proces.keys()
     ]
@@ -118,7 +125,7 @@ with DAG(
     # the source has some invalid records
     # to do: inform the source maintainer
     revalidate_geometry_records = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"revalidate_geom_{subject}",
             sql=SQL_MAKE_VALID_GEOM,
             params={"tablename": f"{dag_id}_{subject}_new"},
@@ -178,14 +185,14 @@ with DAG(
     # update color codes based on temp table
     load_map_colors = BashOperator(
         task_id="load_map_colors",
-        bash_command=f"psql {pg_params()} < {sql_path}/parkeerzones_map_color.sql",
+        bash_command=f"psql {db_conn_string()} < {sql_path}/parkeerzones_map_color.sql",
     )
-    add_color = PostgresOperator(task_id="add_color", sql=SQL_ADD_COLOR)
-    update_colors = PostgresOperator(task_id="update_colors", sql=SQL_UPDATE_COLORS)
+    add_color = PostgresOnAzureOperator(task_id="add_color", sql=SQL_ADD_COLOR)
+    update_colors = PostgresOnAzureOperator(task_id="update_colors", sql=SQL_UPDATE_COLORS)
 
     # 12. Remove records which are marked as SHOW = False
     delete_unuseds = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"delete_show_false_{subject}",
             sql=SQL_DELETE_UNUSED,
             params={"tablename": f"{dag_id}_{subject}_new"},

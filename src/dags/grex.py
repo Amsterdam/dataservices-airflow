@@ -4,9 +4,9 @@ from typing import Final
 import pandas as pd
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import default_args
-from common.db import get_engine, get_ora_engine, get_postgreshook_instance, wkt_loads_wrapped
+from common.db import DatabaseEngine, get_ora_engine, wkt_loads_wrapped
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from geoalchemy2 import Geometry
@@ -28,18 +28,21 @@ SQL_TABLE_RENAME: Final = f"""
 """
 
 
-def load_grex_from_dwh(table_name: str, source_srid: int) -> None:
+def load_grex_from_dwh(table_name: str, source_srid: int, **context) -> None:
     """Imports data from source into target database.
 
     Args:
         table_name: Name of target table to import data.
         source_srid: SRID of source.
+        dataset_name: Name of dataset that will be used as the database user
+            only applicable on Azure.
 
     Executes:
         SQL statements
     """
-    postgreshook_instance = get_postgreshook_instance()
-    db_engine = get_engine()
+    context = context['dag'].dag_id
+    postgreshook_instance = DatabaseEngine(context=context).get_postgreshook_instance()
+    db_engine = DatabaseEngine(context=context).get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
     with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(
@@ -115,7 +118,8 @@ with DAG(
     load_data = PythonOperator(
         task_id="load_data",
         python_callable=load_grex_from_dwh,
-        op_args=[table_name_new, 4326],
+        provide_context=True,
+        op_args=[dag_id, table_name_new, 4326],
     )
 
     check_count = PostgresCheckOperator(
@@ -134,7 +138,7 @@ with DAG(
         },
     )
 
-    rename_table = PostgresOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
+    rename_table = PostgresOnAzureOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
     # Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)

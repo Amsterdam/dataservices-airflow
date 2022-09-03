@@ -4,7 +4,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import MessageOperator, default_args, quote_string
 from common.db import DatabaseEngine
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -37,7 +37,7 @@ endpoint_autos: dict = variables["autos"]["data_endpoints"]
 mywheels_base_url: str = URL(env("AIRFLOW_CONN_MYWHEELS_BASE_URL"))
 mywheels_api_key: str = env("AIRFLOW_CONN_MYWHEELS_API_KEY")
 
-db_conn: object = DatabaseEngine()
+db_conn: object = DatabaseEngine
 total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
@@ -69,7 +69,7 @@ with DAG(
 
     # 3. Flag recent data version
     flag_not_recent = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"flag_not_recent_{resource}",
             sql=SQL_FLAG_NOT_RECENT_DATA,
             params={"tablename": f"{dag_id}_{resource}"},
@@ -185,7 +185,7 @@ with DAG(
 
     # 11. Set GEO type
     set_geom = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"set_geom_{resource}",
             sql=SQL_SET_GEOM,
             params={"tablename": f"{dag_id}_{resource}_new"},
@@ -197,7 +197,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource}",
-            dataset_name=dag_id,
+            dataset_name_lookup=dag_id,
             source_table_name=f"{dag_id}_{resource}_new",
             target_table_name=f"{dag_id}_{resource}",
             drop_target_if_unequal=True,
@@ -207,7 +207,7 @@ with DAG(
 
     # 13. Clean up; delete temp table
     clean_up = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"clean_up_{resource}",
             sql=SQL_DROP_TMP_TABLE,
             params={"tablename": f"{dag_id}_{resource}_new"},
@@ -217,7 +217,7 @@ with DAG(
 
     # 14. Set HISTORY window (keep data from now till one month ago)
     history_window = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"history_window_{resource}",
             sql=SQL_SET_GEOM,
             params={"tablename": f"{dag_id}_{resource}"},

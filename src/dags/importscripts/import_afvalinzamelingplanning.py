@@ -1,16 +1,23 @@
 from contextlib import closing
+from typing import Optional
 
 import pandas as pd
-from common.db import get_engine, get_ora_engine, get_postgreshook_instance
+from common.db import DatabaseEngine, get_ora_engine
 from psycopg2 import sql
 from sqlalchemy.types import Date, DateTime, Integer, Numeric, Text
 
 
-def load_from_dwh(table_name: str) -> None:
+def load_from_dwh(table_name: str, dataset_name:Optional[str]=None, **context) -> None:
     """Loads data from an Oracle database source into a Postgres database.
 
     Args:
         table_name: The target table where the source data will be stored
+        dataset_name: Name of the dataset as known in the Amsterdam schema.
+            Since the DAG name can be different from the dataset name, the latter
+            can be explicity given. Only applicable for Azure referentie db connection.
+            Defaults to None. If None, it will use the execution context to get the
+            DAG id as surrogate. Assuming that the DAG id equals the dataset name
+            as defined in Amsterdam schema.
 
     Executes:
         SQL INSERT statements for the data and post-processing
@@ -18,8 +25,8 @@ def load_from_dwh(table_name: str) -> None:
         Note: The SQL processing is done with SQLAlchemy
 
     """
-    postgreshook_instance = get_postgreshook_instance()
-    db_engine = get_engine()
+    postgreshook_instance = DatabaseEngine(dataset_name=dataset_name, context=context).get_postgreshook_instance()
+    db_engine = DatabaseEngine(dataset_name=dataset_name, context=context).get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
     with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(

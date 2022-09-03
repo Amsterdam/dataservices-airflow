@@ -1,16 +1,17 @@
 from typing import Any, Callable, Optional, cast
 
 from airflow.models.xcom import XCOM_RETURN_KEY
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 
-class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
+class PostgresTableInitOperator(PostgresOnAzureOperator, XComAttrAssignerMixin):
     """Drop or truncated a table and associated n-m cross tables."""
 
     def __init__(
         self,
+        dataset_name: Optional[str] = None,
         table_name: Optional[str] = None,
         nested_db_table_names: Optional[list[str]] = None,
         postgres_conn_id: str = "postgres_default",
@@ -25,6 +26,12 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
         """Initialize PostgresTableInitOperator.
 
         Args:
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
             table_name: Name of the table that needs to be initialized (dropped).
             nested_db_table_names: Optional list of names of nested tables that need
                 to be processed.
@@ -46,6 +53,7 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
             nested_db_table_names if nested_db_table_names is not None else []
         )
         self.drop_table = drop_table
+        self.dataset_name = dataset_name
 
         self.xcom_task_ids = xcom_task_ids
         self.xcom_key = xcom_key
@@ -53,7 +61,11 @@ class PostgresTableInitOperator(PostgresOperator, XComAttrAssignerMixin):
 
     def execute(self, context: dict[str, Any]) -> None:  # noqa: D102
         # First get all index names, so it's known which indices to rename
-        hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
+        hook = PostgresOnAzureHook(
+            dataset_name=self.dataset_name,
+            context=context,
+            postgres_conn_id=self.postgres_conn_id,
+            schema=self.database)
 
         # Use the mixin class _assign to assign new values, if provided.
         self._assign(context)

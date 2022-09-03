@@ -201,6 +201,7 @@ def create_gob_dag(
         # 3. drop temp table if exists
         init_table = PostgresTableInitOperator(
             task_id=f"init_{dataset_table_id}",
+            dataset_name=gob_dataset_id,
             table_name=None,
             xcom_task_ids=f"mkinfo_{dataset_table_id}",
             xcom_attr_assigner=init_assigner,
@@ -218,7 +219,6 @@ def create_gob_dag(
         # 5. truncate target table and insert data from temp table
         copy_table = PostgresTableCopyOperator(
             task_id=f"copy_{dataset_table_id}",
-            dataset_name=None,
             source_table_name=None,
             target_table_name=None,
             drop_target_if_unequal=True,

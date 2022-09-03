@@ -51,7 +51,7 @@ with DAG(
     # 4. Create TEMP tables in database based on TARGET
     create_temp_table = PostgresTableCopyOperator(
         task_id="create_temp_table",
-        dataset_name=DAG_ID,
+        dataset_name_lookup=DAG_ID,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
         # truncate TEMP table if exists and copy table definitions. Don't do anything else.
@@ -74,6 +74,7 @@ with DAG(
     import_data = PythonOperator(
         task_id="import_data",
         python_callable=import_data_batch,
+        provide_context=True,
         op_kwargs={"tablename": f"{TABLE_ID}{TMP_TABLE_POSTFIX}"},
     )
 

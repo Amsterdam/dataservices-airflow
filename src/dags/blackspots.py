@@ -1,7 +1,7 @@
 from typing import Final
 
 from airflow import DAG
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -67,20 +67,22 @@ with DAG(
         task_id="slack_at_start",
     )
 
-    drop_tables = PostgresOperator(task_id="drop_tables", sql=DROP_IMPORT_TABLES)
+    drop_tables = PostgresOnAzureOperator(task_id="drop_tables", sql=DROP_IMPORT_TABLES)
 
     swift_load_task = SwiftLoadSqlOperator(
         task_id=f"swift_load_task",
         container="blackspots",
+        dataset_name=dag_id,
         swift_conn_id="SWIFT_DEFAULT",
         object_id=f"{DATASTORE_TYPE}/spots.sql",
     )
 
-    rename_columns = PostgresOperator(
+    rename_columns = PostgresOnAzureOperator(
         task_id="rename_columns",
         sql=RENAME_COLUMNS,
     )
-    rename_tables = PostgresOperator(task_id="rename_tables", sql=RENAME_TABLES_SQL)
+
+    rename_tables = PostgresOnAzureOperator(task_id="rename_tables",sql=RENAME_TABLES_SQL)
 
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 

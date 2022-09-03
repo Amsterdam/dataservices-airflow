@@ -1,11 +1,13 @@
 import operator
+from functools import partial
 from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
@@ -25,6 +27,10 @@ total_checks = []
 count_checks = []
 geo_checks = []
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 with DAG(
     dag_id,
@@ -84,7 +90,7 @@ with DAG(
     # 6. Insert data into DB
     create_table = BashOperator(
         task_id="create_table",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/objects.sql",
+        bash_command=f"psql {db_conn_string()} < {tmp_dir}/objects.sql",
     )
 
     # 7. Rename COLUMNS based on Provenance

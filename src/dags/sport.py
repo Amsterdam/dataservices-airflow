@@ -7,9 +7,9 @@ from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.sql import SQL_DROP_TABLE, SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
@@ -56,7 +56,7 @@ tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
 data_endpoints = variables["data_endpoints"]
 files_to_import = defaultdict(list)
-db_conn = DatabaseEngine()
+
 total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
@@ -189,7 +189,6 @@ with DAG(
             geometry_name="geometry",
             mode="PostgreSQL",
             fid="id",
-            db_conn=db_conn,
         )
         for resource_format, resources in files_to_import.items()
         for resource in resources
@@ -203,7 +202,7 @@ with DAG(
     # 11. Add geometry column for tables
     # where source file (like the .csv files) has no geometry field, only x and y fields
     add_geom_col = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_geom_column_{resource}",
             sql=ADD_GEOMETRY_COL,
             params={"tablename": f"{dag_id}_{resource}"},
@@ -234,14 +233,14 @@ with DAG(
     ]
 
     # 14. delete duplicate rows in zwembad en sporthal, en gymzaal en sportzaal
-    del_dupl_rows = PostgresOperator(
+    del_dupl_rows = PostgresOnAzureOperator(
         task_id="del_duplicate_rows",
         sql=DEL_ROWS,
     )
 
     # 15. Make geometry valid
     geom_valid = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"geom_valid_{resource}",
             sql=SQL_GEOMETRY_VALID,
             params={"tablename": f"{dag_id}_{resource}_new"},
@@ -313,7 +312,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{resource}",
-            dataset_name=dag_id,
+            dataset_name_lookup=dag_id,
             source_table_name=f"{dag_id}_{resource}_new",
             target_table_name=f"{dag_id}_{resource}",
             drop_target_if_unequal=True,
@@ -324,7 +323,7 @@ with DAG(
 
     # 19. Clean up (remove temp table _new)
     clean_ups = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"clean_up_{resource}",
             sql=SQL_DROP_TABLE,
             params={"tablename": f"{dag_id}_{resource}_new"},

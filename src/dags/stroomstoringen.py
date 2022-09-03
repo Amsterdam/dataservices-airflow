@@ -5,10 +5,10 @@ import pendulum
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.python import BranchPythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.settings import TIMEZONE
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
@@ -27,7 +27,7 @@ endpoint_url: str = variables["data_endpoints"]["stroomstoringen"]
 TODAY: Final = pendulum.now(TIMEZONE).format("MM-DD-YYYY")
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
 
-db_conn = DatabaseEngine()
+
 
 with DAG(
     DAG_ID,
@@ -67,7 +67,6 @@ with DAG(
         s_srs="EPSG:4326",
         t_srs="EPSG:28992",
         fid="objectid",
-        db_conn=db_conn,
     )
 
     # 5. Pick branch based on amount of power failures.
@@ -81,7 +80,7 @@ with DAG(
 
     # 6. Drop table if exists
     # NOTE: This triggers there are currently no power failure.
-    drop_table = PostgresOperator(
+    drop_table = PostgresOnAzureOperator(
         task_id="drop_table",
         sql=DROP_TABLE_IF_EXISTS,
         params={"tablename": f"{DAG_ID}_{DAG_ID}_new"},
@@ -103,7 +102,7 @@ with DAG(
     )
 
     # 8. If source has no data add dummy record (indication no data present)
-    no_data_indicator = PostgresOperator(
+    no_data_indicator = PostgresOnAzureOperator(
         task_id="no_data_indicator",
         sql=NO_DATA_PRESENT_INDICATOR,
         params={"tablename": f"{DAG_ID}_{DAG_ID}_new"},
@@ -111,7 +110,7 @@ with DAG(
 
     # 9. convert epoch time
     # NOTE: This triggers only if currently there are power failures.
-    convert_datetime = PostgresOperator(
+    convert_datetime = PostgresOnAzureOperator(
         task_id="convert_datetime",
         sql=CONVERT_DATE_TIME,
         params={"tablename": f"{DAG_ID}_{DAG_ID}_new"},

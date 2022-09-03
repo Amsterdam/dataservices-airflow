@@ -6,10 +6,9 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.models.baseoperator import chain
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.utils.task_group import TaskGroup
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
@@ -41,8 +40,6 @@ env = Env()
 total_checks = []
 count_checks = []
 geo_checks = []
-
-db_conn: object = DatabaseEngine()
 
 TMP_TABLE_POSTFIX: Final = "new"
 
@@ -100,7 +97,7 @@ with DAG(
     with TaskGroup(group_id="drop_tables_before") as drop_tables_before:
         for key in source_tables:
             task = [
-                PostgresOperator(
+                PostgresOnAzureOperator(
                     task_id=f"drop_table_{key}_before",
                     sql=SQL_REMOVE_TABLE,
                     params={"tablename": key},
@@ -120,12 +117,11 @@ with DAG(
         auto_detect_type="YES",
         mode="PostgreSQL",
         twodimenional=False,
-        db_conn=db_conn,
     )
 
     # 6. CREATE MANTELBUIZEN table (composite of multiple tables)
     create_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"create_table_{table.base_id}",
             sql=globals()[table.sql_name],
             params={
@@ -149,7 +145,7 @@ with DAG(
 
     # 8. ALTER DATATYPES
     alter_data_types = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"alter_data_types_{table.base_id}",
             sql=SQL_ALTER_DATATYPES,
             params={"tablename": table.tmp_id},
@@ -159,7 +155,7 @@ with DAG(
 
     # 9. CONVERT GEOM
     converting_geom = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"converting_geom_{table.base_id}",
             sql=SQL_GEOM_CONVERT,
             params={"tablename": table.tmp_id},
@@ -169,7 +165,7 @@ with DAG(
 
     # 10. Drop Exisiting TABLE
     drop_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_existing_table_{table.id}",
             sql="DROP TABLE IF EXISTS {{ params.table_id }} CASCADE",
             params={"table_id": table.id},
@@ -222,7 +218,7 @@ with DAG(
     with TaskGroup(group_id="drop_tables_after") as drop_tables_after:
         for key in source_tables:
             task = [
-                PostgresOperator(
+                PostgresOnAzureOperator(
                     task_id=f"drop_table_{key}_after",
                     sql=SQL_REMOVE_TABLE,
                     params={"tablename": key},
