@@ -111,7 +111,6 @@ class PostgresMultiCheckOperator(BaseOperator):
     # We use the possibilty to have nested template fields here
     template_fields: Iterable[str] = ["checks"]
 
-    @apply_defaults
     def __init__(
         self,
         dataset_name: Optional[str] = None,

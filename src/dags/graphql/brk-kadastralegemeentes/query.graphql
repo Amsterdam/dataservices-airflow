@@ -7,7 +7,8 @@
         ligtInGemeente {
           edges {
             node {
-              identificatie 
+              identificatie,
+              volgnummer
             }
           }
         }

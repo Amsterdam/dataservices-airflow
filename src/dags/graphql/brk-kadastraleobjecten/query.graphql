@@ -11,7 +11,8 @@
         aangeduidDoorGemeente {
           edges {
             node {
-              identificatie
+              identificatie,
+              volgnummer
             }
           }
         }

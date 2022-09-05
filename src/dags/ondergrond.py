@@ -9,6 +9,7 @@ from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
 
 from common.path import mk_dir
+from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
@@ -88,7 +89,7 @@ with DAG(
             # when set to false, it doesn't create indexes; only tables
             ind_extra_index=False,
         )
-        for table_name, data_file in files_to_download.items()
+        for table_name in files_to_download.keys()
     ]
 
     # 5.create the SQL for creating the table using ORG2OGR PGDump
@@ -105,7 +106,21 @@ with DAG(
         for table_name, data_file in files_to_download.items()
     ]
 
-    # 6. Rename COLUMNS based on Provenance
+    # 6. Make geometry valid
+    make_geo_valid = [
+        PostgresOperator(
+            task_id="make_geo_valid",
+            sql=SQL_GEOMETRY_VALID,
+            params={
+                "tablename": f"{dag_id}_{table_name}_new",
+                "geo_column": "geometrie",
+                "geom_type_number": "3",
+            },
+        )
+        for table_name in files_to_download.keys()
+    ]
+
+    # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=dag_id,
@@ -148,7 +163,7 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name["{table_name}"] = total_checks
 
-    # 7. Execute bundled checks on database
+    # 8. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{table_name}",
@@ -157,12 +172,12 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # 8. Dummy operator acts as an Interface between parallel tasks
+    # 9. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different
     # number of lanes (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 9. Drop cols - that do not show up in the API
+    # 10. Drop cols - that do not show up in the API
     drop_unnecessary_cols = [
         PostgresOnAzureOperator(
             task_id=f"drop_unnecessary_cols_{dag_id}_{table_name}_new",
@@ -173,12 +188,12 @@ with DAG(
         if table_name == "historischeonderzoeken"
     ]
 
-    # 10. Dummy operator acts as an Interface between parallel tasks
+    # 11. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different
     # number of lanes (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
-    # 11. Check for changes to merge in target table
+    # 12. Check for changes to merge in target table
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table_name}",
@@ -190,7 +205,7 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # 12. Clean up
+    # 13. Clean up
     clean_up = [
         PostgresOnAzureOperator(
             task_id="clean_up",
@@ -206,9 +221,15 @@ with DAG(
 slack_at_start >> mkdir >> download_data
 
 # FLOW
-for (download_file, create_table, import_data) in zip(download_data, create_tables, GEOJSON_to_DB):
+for (download_file, create_table, import_data, geo_valid) in zip(
+    download_data, create_tables, GEOJSON_to_DB, make_geo_valid
+):
 
-    [download_file >> create_table >> import_data] >> provenance_translation >> multi_checks
+    (
+        [download_file >> create_table >> import_data >> geo_valid]
+        >> provenance_translation
+        >> multi_checks
+    )
 
 for check_data in zip(multi_checks):
 
