@@ -1,5 +1,5 @@
 from contextlib import closing
-from typing import Final
+from typing import Final, Optional
 
 import pandas as pd
 from airflow import DAG
@@ -28,21 +28,25 @@ SQL_TABLE_RENAME: Final = f"""
 """
 
 
-def load_grex_from_dwh(table_name: str, source_srid: int, **context) -> None:
+def load_grex_from_dwh(table_name: str, source_srid: int,  dataset_name:Optional[str]=None, **context) -> None:
     """Imports data from source into target database.
 
     Args:
         table_name: Name of target table to import data.
         source_srid: SRID of source.
-        dataset_name: Name of dataset that will be used as the database user
-            only applicable on Azure.
+        dataset_name: Name of the dataset as known in the Amsterdam schema.
+            Since the DAG name can be different from the dataset name, the latter
+            can be explicity given. Only applicable for Azure referentie db connection.
+            Defaults to None. If None, it will use the execution context to get the
+            DAG id as surrogate. Assuming that the DAG id equals the dataset name
+            as defined in Amsterdam schema.
 
     Executes:
         SQL statements
     """
     context = context['dag'].dag_id
-    postgreshook_instance = DatabaseEngine(context=context).get_postgreshook_instance()
-    db_engine = DatabaseEngine(context=context).get_engine()
+    postgreshook_instance = DatabaseEngine(dataset_name=dataset_name, context=context).get_postgreshook_instance()
+    db_engine = DatabaseEngine(dataset_name=dataset_name, context=context).get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
     with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(
@@ -66,7 +70,7 @@ def load_grex_from_dwh(table_name: str, source_srid: int, **context) -> None:
         # it seems that get_conn() makes the columns case sensitive
         # lowercase all columns so the database will handle them as case insensitive
         df.columns = map(str.lower, df.columns)
-        df["geometry"] = df["geometry"].apply(func=wkt_loads_wrapped, source_srid=source_srid)
+        df["geometry"] = df["geometry"].apply(func=wkt_loads_wrapped, source_srid=source_srid, geom_type_family='polygon')
         grex_rapportage_dtype = {
             "id": Integer(),
             "plannaam": Text(),
@@ -119,7 +123,7 @@ with DAG(
         task_id="load_data",
         python_callable=load_grex_from_dwh,
         provide_context=True,
-        op_args=[dag_id, table_name_new, 4326],
+        op_args=[table_name_new, 4326, dag_id],
     )
 
     check_count = PostgresCheckOperator(
