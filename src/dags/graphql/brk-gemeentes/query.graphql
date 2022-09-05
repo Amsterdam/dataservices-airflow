@@ -2,7 +2,8 @@
   brkGemeentes(active: false) {
     edges {
       node {
-        identificatie 
+        identificatie
+        volgnummer
         cursor 
         naam 
         beginGeldigheid 

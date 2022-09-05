@@ -10,7 +10,6 @@ from airflow.exceptions import AirflowException
 from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.http.hooks.http import HttpHook
-#from airflow.providers.postgres.hooks.postgres import PostgresHook
 from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
@@ -273,4 +272,4 @@ class HttpGobOperator(BaseOperator):
                 cursor_pos = last_record["cursor"]
 
         # On successfull completion, remove cursor_pos variable
-        Variable.delete(f"{dataset_table_id}.cursor_pos")
+        Variable.delete(f"{dataset_table_id}.cursor_pos")      

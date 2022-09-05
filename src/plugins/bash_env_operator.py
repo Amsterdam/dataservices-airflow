@@ -1,4 +1,6 @@
 from airflow.operators.bash import BashOperator
+
+
 class BashEnvOperator(BashOperator):
     """The regular BashOperator can have extra environment var
     using the 'env' (templated) param. However, it is not

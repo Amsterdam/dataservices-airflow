@@ -2,7 +2,6 @@ import tempfile
 from pathlib import Path
 
 from airflow.models import BaseOperator
-from airflow.utils.decorators import apply_defaults
 from psql_cmd_hook import PsqlCmdHook
 from swift_hook import SwiftHook
 from typing import Optional
@@ -36,7 +35,6 @@ class SwiftLoadSqlOperator(BaseOperator):
             as defined in Amsterdam schema.
     """
 
-    @apply_defaults
     def __init__(
         self,
         container:str,

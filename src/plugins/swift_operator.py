@@ -1,12 +1,10 @@
 from typing import Any, Optional
 
 from airflow.models.baseoperator import BaseOperator
-from airflow.utils.decorators import apply_defaults
 from swift_hook import SwiftHook
 
 
 class SwiftOperator(BaseOperator):
-    @apply_defaults
     def __init__(
         self,
         container: str,

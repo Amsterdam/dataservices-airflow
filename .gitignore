@@ -145,7 +145,12 @@ dmypy.json
 .idea/
 
 # Visual Studio Code IDE
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
 
 # Real config lives in src/config/airflow.cfg
 # ignored path is symlink to allow it run locally with
