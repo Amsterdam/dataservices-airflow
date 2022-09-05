@@ -110,8 +110,8 @@ class PostgresPermissionsOperator(BaseOperator):
             SQL grant statements on database tables to database roles
 
         """
-        # If Azure
-        # To cope with a different logic for defining the Azure referentie db user.
+        # If Azure ignore this operator. Since permissions are regulated
+        # by Amsterdam schema and is centralized by DaDi.
         # If CloudVPS is not used anymore, then this extra route can be removed.
         if os.environ.get("AZURE_TENANT_ID") is None:
 

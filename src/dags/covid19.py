@@ -187,7 +187,7 @@ with DAG(
     ]
 
     # 11. Grant database permissions (only applicable on CloudVPS)
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 
 # FLOW
