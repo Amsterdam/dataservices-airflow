@@ -4,7 +4,6 @@ from pathlib import Path
 from airflow import DAG
 from airflow.models import Variable
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -26,7 +25,6 @@ TMP_PATH = f"{SHARED_DIR}/{DAG_ID}"
 variables_aardgasvrijezones = Variable.get(DAG_ID, deserialize_json=True)
 files_to_download = variables_aardgasvrijezones["files_to_download"]
 shp_file_to_use_during_ingest = [file for file in files_to_download if "shp" in file][0]
-db_conn = DatabaseEngine()
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -76,7 +74,6 @@ with DAG(
         auto_detect_type="YES",
         mode="PostgreSQL",
         fid="id",
-        db_conn=db_conn,
     )
 
     # 5. Rename COLUMNS based on Provenance
