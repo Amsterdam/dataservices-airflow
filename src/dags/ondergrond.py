@@ -5,14 +5,13 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -108,7 +107,7 @@ with DAG(
 
     # 6. Make geometry valid
     make_geo_valid = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id="make_geo_valid",
             sql=SQL_GEOMETRY_VALID,
             params={
