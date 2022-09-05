@@ -129,7 +129,7 @@ with DAG(
             params={
                 "schema": tmp_database_schema,
                 "tablename": f"{DAG_ID}_{key}_new",
-                "geo_column": "geometrie",
+                "geo_column": "geometry",
                 "geom_type_number": "3",
             },
         )
