@@ -110,140 +110,137 @@ class PostgresPermissionsOperator(BaseOperator):
             SQL grant statements on database tables to database roles
 
         """
-        # If Azure
-        # To cope with a different logic for defining the Azure referentie db user.
+        # If Azure ignore this operator. Since permissions are regulated
+        # by Amsterdam schema and is centralized by DaDi.
         # If CloudVPS is not used anymore, then this extra route can be removed.
-        if os.environ.get("AZURE_TENANT_ID") is not None:
-            self.dataset_name = define_dataset_name_for_azure_dbuser(
-                dataset_name=self.dataset_name, context=context
-            )
+        if os.environ.get("AZURE_TENANT_ID") is None:
 
-        # chop off -X and remove all trailing spaces
-        # for database connection extra params must be omitted.
-        default_db_conn = pg_params(dataset_name=self.dataset_name).split("-X")[0].strip()
+            # chop off -X and remove all trailing spaces
+            # for database connection extra params must be omitted.
+            default_db_conn = pg_params(dataset_name=self.dataset_name).split("-X")[0].strip()
 
-        # setup logger so output can be added to the Airflow logs
-        logger = logging.getLogger(__name__)
+            # setup logger so output can be added to the Airflow logs
+            logger = logging.getLogger(__name__)
 
-        # setup database connection where the database objects are present
-        engine = _get_engine(default_db_conn)
+            # setup database connection where the database objects are present
+            engine = _get_engine(default_db_conn)
 
-        # Option ONE: batch grant (for a single Airflow DAG that sets permissions)
-        if self.batch_ind:
+            # Option ONE: batch grant (for a single Airflow DAG that sets permissions)
+            if self.batch_ind:
 
-            # get current datetime and make it aware of the TZ (mandatory)
-            now = pendulum.now(TIMEZONE)
+                # get current datetime and make it aware of the TZ (mandatory)
+                now = pendulum.now(TIMEZONE)
 
-            # calculate the delta between current datetime and specified time window
-            time_window_hour = int(self.batch_timewindow.split(":")[0])
-            time_window_minutes = int(self.batch_timewindow.split(":")[1])
-            delta = now - timedelta(hours=time_window_hour, minutes=time_window_minutes)
+                # calculate the delta between current datetime and specified time window
+                time_window_hour = int(self.batch_timewindow.split(":")[0])
+                time_window_minutes = int(self.batch_timewindow.split(":")[1])
+                delta = now - timedelta(hours=time_window_hour, minutes=time_window_minutes)
 
-            logger.info("the time window is set starting at: %s till now", delta)
+                logger.info("the time window is set starting at: %s till now", delta)
 
-            # setup an Airflow session to access Airflow repository data
-            session = Session()
+                # setup an Airflow session to access Airflow repository data
+                session = Session()
 
-            # get list of dags that meet time window and state outcome
-            # it uses the Airflow DagRun class to get data
-            executed_dags_after_delta = [
-                dag.dag_id
-                for dag in session.query(DagRun)
-                .filter(DagRun.end_date > delta)
-                .filter(DagRun._state == "success")
-                # exclude the dag itself that calls this batch grant method
-                .filter(DagRun.dag_id != "airflow_db_permissions")
-                # exclude the update_dag, it does not contain DB objects to grant
-                .filter(DagRun.dag_id != "update_dags")
-                # exclude the log_cleanup dag, it does not contain DB objects to grant
-                .filter(DagRun.dag_id != "airflow_log_cleanup")
-            ]
+                # get list of dags that meet time window and state outcome
+                # it uses the Airflow DagRun class to get data
+                executed_dags_after_delta = [
+                    dag.dag_id
+                    for dag in session.query(DagRun)
+                    .filter(DagRun.end_date > delta)
+                    .filter(DagRun._state == "success")
+                    # exclude the dag itself that calls this batch grant method
+                    .filter(DagRun.dag_id != "airflow_db_permissions")
+                    # exclude the update_dag, it does not contain DB objects to grant
+                    .filter(DagRun.dag_id != "update_dags")
+                    # exclude the log_cleanup dag, it does not contain DB objects to grant
+                    .filter(DagRun.dag_id != "airflow_log_cleanup")
+                ]
 
-            if executed_dags_after_delta:
+                if executed_dags_after_delta:
 
-                for self.dag_name in executed_dags_after_delta:
-                    dataset_name = []
+                    for self.dag_name in executed_dags_after_delta:
+                        dataset_name = []
 
-                    # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
-                    for key in DAG_DATASET.keys():
-                        if self.dag_name and key in self.dag_name:
-                            for item in DAG_DATASET[key]:
-                                dataset_name.append(item)
-                    if not dataset_name and self.dag_name:
-                        dataset_name.append(self.dag_name)
+                        # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
+                        for key in DAG_DATASET.keys():
+                            if self.dag_name and key in self.dag_name:
+                                for item in DAG_DATASET[key]:
+                                    dataset_name.append(item)
+                        if not dataset_name and self.dag_name:
+                            dataset_name.append(self.dag_name)
 
-                    for dataset in dataset_name:
+                        for dataset in dataset_name:
 
-                        logger.info("set grants for %s", dataset)
+                            logger.info("set grants for %s", dataset)
 
-                        try:
-                            ams_schema = dataset_schema_from_url(
-                                schemas_url=self.schema_url,
-                                dataset_name=dataset,
-                                prefetch_related=True,
-                            )
+                            try:
+                                ams_schema = dataset_schema_from_url(
+                                    schemas_url=self.schema_url,
+                                    dataset_name=dataset,
+                                    prefetch_related=True,
+                                )
 
-                            apply_schema_and_profile_permissions(
-                                engine=engine,
-                                pg_schema=self.db_schema,
-                                ams_schema=ams_schema,
-                                profiles=self.profiles,
-                                role=self.role,
-                                scope=self.scope,
-                                dry_run=self.dry_run,
-                                create_roles=self.create_roles,
-                                revoke=self.revoke,
-                            )
+                                apply_schema_and_profile_permissions(
+                                    engine=engine,
+                                    pg_schema=self.db_schema,
+                                    ams_schema=ams_schema,
+                                    profiles=self.profiles,
+                                    role=self.role,
+                                    scope=self.scope,
+                                    dry_run=self.dry_run,
+                                    create_roles=self.create_roles,
+                                    revoke=self.revoke,
+                                )
 
-                        except HTTPError:
-                            logger.error("Could not get data schema for %s", dataset)
-                            continue
+                            except HTTPError:
+                                logger.error("Could not get data schema for %s", dataset)
+                                continue
 
-            else:
-                logger.error(
-                    "Nothing to grant, no finished dags detected within time window of %s",
-                    self.batch_timewindow,
-                )
-
-        # Option TWO: grant on single dataset (can be used as a final step within a single DAG run)
-        elif self.dag_name and not self.batch_ind:
-            dataset_name = []
-
-            # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
-            for key in DAG_DATASET.keys():
-                if key in self.dag_name:
-                    for item in DAG_DATASET[key]:
-                        dataset_name.append(item)
-            if not dataset_name:
-                dataset_name.append(self.dag_name)
-
-            for dataset in dataset_name:
-
-                logger.info("set grants for %s", dataset)
-
-                try:
-                    ams_schema = dataset_schema_from_url(
-                        schemas_url=self.schema_url,
-                        dataset_name=dataset,
-                        prefetch_related=True,
+                else:
+                    logger.error(
+                        "Nothing to grant, no finished dags detected within time window of %s",
+                        self.batch_timewindow,
                     )
 
-                    # TODO: there is no option yet to
-                    # grant permissions on a single table
-                    # only on the whole dataset. Need to
-                    # adjust package schema-tools for it.
-                    apply_schema_and_profile_permissions(
-                        engine=engine,
-                        pg_schema=self.db_schema,
-                        ams_schema=ams_schema,
-                        profiles=self.profiles,
-                        role=self.role,
-                        scope=self.scope,
-                        dry_run=self.dry_run,
-                        create_roles=self.create_roles,
-                        revoke=self.revoke,
-                    )
+            # Option TWO: grant on single dataset (can be used as a final step within a single DAG run)
+            elif self.dag_name and not self.batch_ind:
+                dataset_name = []
 
-                except HTTPError:
-                    logger.error("Could not get data schema for %s", dataset)
-                    pass
+                # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
+                for key in DAG_DATASET.keys():
+                    if key in self.dag_name:
+                        for item in DAG_DATASET[key]:
+                            dataset_name.append(item)
+                if not dataset_name:
+                    dataset_name.append(self.dag_name)
+
+                for dataset in dataset_name:
+
+                    logger.info("set grants for %s", dataset)
+
+                    try:
+                        ams_schema = dataset_schema_from_url(
+                            schemas_url=self.schema_url,
+                            dataset_name=dataset,
+                            prefetch_related=True,
+                        )
+
+                        # TODO: there is no option yet to
+                        # grant permissions on a single table
+                        # only on the whole dataset. Need to
+                        # adjust package schema-tools for it.
+                        apply_schema_and_profile_permissions(
+                            engine=engine,
+                            pg_schema=self.db_schema,
+                            ams_schema=ams_schema,
+                            profiles=self.profiles,
+                            role=self.role,
+                            scope=self.scope,
+                            dry_run=self.dry_run,
+                            create_roles=self.create_roles,
+                            revoke=self.revoke,
+                        )
+
+                    except HTTPError:
+                        logger.error("Could not get data schema for %s", dataset)
+                        pass

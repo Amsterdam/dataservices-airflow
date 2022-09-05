@@ -13,6 +13,7 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
@@ -185,6 +186,9 @@ with DAG(
         for key in tables_to_create.keys()
     ]
 
+    # 11. Grant database permissions (only applicable on CloudVPS)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
+
 
 # FLOW
 slack_at_start >> mkdir >> download_data
@@ -201,7 +205,7 @@ for data_into_temp_table in zip(import_data):
 
 provenance_translation >> multi_checks >> Interface2
 
-Interface2 >> copy_data_to_target
+Interface2 >> copy_data_to_target >> grant_db_permissions
 
 dag.doc_md = """
     #### DAG summary

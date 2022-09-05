@@ -14,6 +14,7 @@ from environs import Env
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
@@ -153,6 +154,9 @@ with DAG(
         drop_target_if_unequal=True,
     )
 
+    # 10. Grant database permissions (only applicable on CloudVPS)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=SCHEMA_NAME)
+
 # FLOW
 (
     slack_at_start
@@ -164,6 +168,7 @@ with DAG(
     >> provenance_trans
     >> multi_checks
     >> change_data_capture
+    >> grant_db_permissions
 )
 
 dag.doc_md = """

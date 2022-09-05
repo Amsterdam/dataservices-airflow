@@ -15,6 +15,7 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.precariobelasting_add import ADD_GEBIED_COLUMN, ADD_TITLE, RENAME_DATAVALUE_GEBIED
@@ -238,6 +239,9 @@ with DAG(
         for key in data_endpoints.keys()
     ]
 
+    # 10. Grant database permissions (only applicable on CloudVPS)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
+
     # FLOW. define flow with parallel executing of serial tasks for each file
     slack_at_start >> mk_tmp_dir >> download_data
 
@@ -259,7 +263,7 @@ with DAG(
 
     for data_checks, copy_data in zip(multi_checks, copy_data_to_target):
 
-        [data_checks >> copy_data]
+        [data_checks >> copy_data] >> grant_db_permissions
 
     dag.doc_md = """
     #### DAG summary
