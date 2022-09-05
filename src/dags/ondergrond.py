@@ -7,7 +7,6 @@ from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
