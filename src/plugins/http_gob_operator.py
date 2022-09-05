@@ -10,10 +10,10 @@ from airflow.exceptions import AirflowException
 from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.http.hooks.http import HttpHook
-from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from http_params_hook import HttpParamsHook
+from postgres_on_azure_hook import PostgresOnAzureHook
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
 from schematools.utils import dataset_schema_from_url
@@ -30,7 +30,7 @@ OIDC_CLIENT_SECRET: Final = env("OIDC_CLIENT_SECRET")
 # value used by GOB to connect relations: [{"bronwaarde": <value>}, {"bronwaarde": <value>}, ...] (json)
 # output format: [<value>, <value>]
 # https://github.com/Amsterdam/GOB-API/blob/develop/src/gobapi/graphql_streaming/response_custom.py
-GOB_SRC_VALUE = 'bronwaarde'
+GOB_SRC_VALUE = "bronwaarde"
 
 
 class HttpGobOperator(BaseOperator):
@@ -272,4 +272,4 @@ class HttpGobOperator(BaseOperator):
                 cursor_pos = last_record["cursor"]
 
         # On successfull completion, remove cursor_pos variable
-        Variable.delete(f"{dataset_table_id}.cursor_pos")      
+        Variable.delete(f"{dataset_table_id}.cursor_pos")
