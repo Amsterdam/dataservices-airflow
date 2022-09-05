@@ -144,7 +144,7 @@ def get_ora_engine(oracle_conn_id: str = "oracle_default") -> Engine:
     return conn_instance
 
 
-def wkt_loads_wrapped(data: str, source_srid: int) -> WKTElement:
+def wkt_loads_wrapped(data: str, source_srid: int, geom_type_family:str) -> WKTElement:
     """Loading WKT (well known text) geometry definition.
 
     This function translates a single geometry to multi
@@ -153,6 +153,7 @@ def wkt_loads_wrapped(data: str, source_srid: int) -> WKTElement:
     Params:
         data: Geometry data from source.
         source_srid: SRID of the source geometry data.
+        geom_type_family: Geometry type at hand.
 
     Returns:
         A WKTElement object of the geometry data.
@@ -162,13 +163,46 @@ def wkt_loads_wrapped(data: str, source_srid: int) -> WKTElement:
 
     if data is not None:
         p = wkt.loads(data)
-        if isinstance(p, Polygon):
-            p = MultiPolygon([p])
-        elif isinstance(p, MultiPolygon):
-            pass
+
+        if geom_type_family == 'polygon':
+
+            # needed to identify geometry type `collection`
+            geoms = list(getattr(p, 'geoms', ''))
+
+            if isinstance(p, Polygon):
+                p = MultiPolygon([p])
+
+            elif isinstance(p, MultiPolygon):
+                pass
+
+            # if geometry type `collection` just get one object
+            elif len(geoms) > 1:
+
+                for geo in geoms:
+
+                    if isinstance(geo, MultiPolygon):
+                        p = geo
+                        break
+
+                    if isinstance(geo, Polygon):
+                        p = MultiPolygon([geo])
+                        break
+
+                    else: # not a valid geometry, skip
+                        continue
+
+                # if all geometies in `collection` are checked and no
+                # valid geometry candidate type found, then set to None.
+                if not isinstance(p, MultiPolygon) or isinstance(p, Polygon):
+                    p = None
+
+            else: # not a valid geometry
+                p = None
+
         else:
             p = p
-        p = WKTElement(p.wkt, srid=source_srid)
+
+        p = WKTElement(p.wkt, srid=source_srid) if p else None
         return p
 
 

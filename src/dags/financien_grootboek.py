@@ -36,7 +36,7 @@ with DAG(
         task_id="load_from_ami_dwh",
         python_callable=load_from_dwh,
         provide_context=True,
-        op_args=[dag_id, f"{dag_id}_new"],
+        op_args=[f"{dag_id}_new", dag_id],
     )
 
     # 3. Check minimum number of records
