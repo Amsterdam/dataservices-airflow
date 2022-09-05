@@ -220,19 +220,19 @@ with DAG(
 slack_at_start >> mkdir >> download_data
 
 # FLOW
-for (download_file, create_table, import_data, geo_valid) in zip(
-    download_data, create_tables, GEOJSON_to_DB, make_geo_valid
+for (download_file, create_table, import_data) in zip(
+    download_data, create_tables, GEOJSON_to_DB
 ):
 
     (
-        [download_file >> create_table >> import_data >> geo_valid]
+        [download_file >> create_table >> import_data ]
         >> provenance_translation
-        >> multi_checks
+        >> make_geo_valid
     )
 
-for check_data in zip(multi_checks):
+for geo_valid, check_data in zip(make_geo_valid, multi_checks):
 
-    check_data >> Interface >> drop_unnecessary_cols
+    [ geo_valid >> check_data ] >> Interface >> drop_unnecessary_cols
 
 for drop_cols in zip(drop_unnecessary_cols):
 
