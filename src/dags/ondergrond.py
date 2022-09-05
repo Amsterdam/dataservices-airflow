@@ -1,11 +1,10 @@
 import operator
 from pathlib import Path
-from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.dummy import DummyOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import DatabaseEngine
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -13,48 +12,38 @@ from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-from postgres_table_copy_operator import PostgresTableCopyOperator
+from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
-dag_id = "ondergrond"
-variables = Variable.get(dag_id, deserialize_json=True)
-files_to_download = variables["files_to_download"]
+DAG_ID = "grootstedelijke_projecten"
+DATASET = "gebieden"
+# owner: Only needed for CloudVPS. On Azure
+# each team has its own Airflow instance.
+owner = "team_benk"
+DB_TABLE_NAME = f"{DATASET}_{DAG_ID}"
+TMP_PATH = f"{SHARED_DIR}/{DAG_ID}"
+variables_aardgasvrijezones = Variable.get(DAG_ID, deserialize_json=True)
+files_to_download = variables_aardgasvrijezones["files_to_download"]
+shp_file_to_use_during_ingest = [file for file in files_to_download if "shp" in file][0]
+db_conn = DatabaseEngine()
+total_checks = []
+count_checks = []
+geo_checks = []
+check_name = {}
 
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks: list[int] = []
-count_checks: list[int] = []
-geo_checks: list[int] = []
-check_name: dict[str, list[int]] = {}
-
-
-SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE: Final = """
-    ALTER TABLE {{ params.tablename }}
-    DROP COLUMN IF EXISTS dateringtot,
-    DROP COLUMN IF EXISTS dateringvan,
-    DROP COLUMN IF EXISTS bestandsnaam,
-    DROP COLUMN IF EXISTS openbaarna,
-    DROP COLUMN IF EXISTS "datum toegevoegd",
-    DROP COLUMN IF EXISTS "datum rapport",
-    DROP COLUMN IF EXISTS nummer,
-    DROP COLUMN IF EXISTS "opmerkingen",
-    DROP COLUMN IF EXISTS fid;
-"""
-
-SQL_DROP_TMP_TABLE: Final = """
-    DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
-"""
 
 with DAG(
-    dag_id,
-    description="""uitgevoerde onderzoeken in of op de ondergrond,
-        bijv. Archeologische verwachtingen (A), Bodemkwaliteit (B),
-        Conventionele explosieven (C) kademuren Dateren (D) en Ondergrondse Obstakels (OO).""",
-    default_args=default_args,
+    DAG_ID,
+    description="locaties en metadata rondom grootstedelijke projecten.",
+    schedule_interval="@monthly",
+    default_args=default_args | {"owner": owner},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
+    access_control={owner: {"can_dag_read", "can_dag_edit"}},
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -63,192 +52,112 @@ with DAG(
     )
 
     # 2. Create temp directory to store files
-    mkdir = mk_dir(Path(tmp_dir))
+    mkdir = mk_dir(Path(TMP_PATH))
 
     # 3. Download data
     download_data = [
         SwiftOperator(
-            task_id=f"download_{data_file}",
-            swift_conn_id="objectstore_dataruimte",
-            container="ondergrond",
-            object_id=f"historische_onderzoeken/{data_file}",
-            output_path=f"{tmp_dir}/{data_file}",
+            task_id=f"download_{file}",
+            swift_conn_id="OBJECTSTORE_GOB",
+            container="productie",
+            object_id=f"gebieden/SHP/{file}",
+            output_path=f"{TMP_PATH}/{file}",
         )
-        for _, data_file in files_to_download.items()
+        for file in files_to_download
     ]
 
-    # 4. Create the DB target table (as specified in the JSON data schema)
-    # if table not exists yet
-    create_tables = [
-        SqlAlchemyCreateObjectOperator(
-            task_id=f"create_{table_name}_based_upon_schema",
-            data_schema_name=dag_id,
-            data_table_name=f"{dag_id}_{table_name}",
-            ind_table=True,
-            # when set to false, it doesn't create indexes; only tables
-            ind_extra_index=False,
-        )
-        for table_name in files_to_download.keys()
-    ]
+    # 4.Import data into database
+    import_data = Ogr2OgrOperator(
+        task_id="import_data",
+        target_table_name=f"{DB_TABLE_NAME}_new",
+        input_file=f"{TMP_PATH}/{shp_file_to_use_during_ingest}",
+        s_srs="EPSG:28992",
+        promote_to_multi=True,
+        auto_detect_type="YES",
+        mode="PostgreSQL",
+        fid="id",
+        db_conn=db_conn,
+    )
 
-    # 5.create the SQL for creating the table using ORG2OGR PGDump
-    GEOJSON_to_DB = [
-        Ogr2OgrOperator(
-            task_id=f"import_data_{table_name}",
-            target_table_name=f"{dag_id}_{table_name}_new",
-            input_file=f"{tmp_dir}/{data_file}",
-            s_srs="EPSG:3857",
-            t_srs="EPSG:28992",
-            geometry_name="geometrie",
-            mode="PostgreSQL",
-        )
-        for table_name, data_file in files_to_download.items()
-    ]
-
-    # 6. Make geometry valid
-    make_geo_valid = [
-        PostgresOnAzureOperator(
-            task_id="make_geo_valid",
-            sql=SQL_GEOMETRY_VALID,
-            params={
-                "tablename": f"{dag_id}_{table_name}_new",
-                "geo_column": "geometrie",
-                "geom_type_number": "3",
-            },
-        )
-        for table_name in files_to_download.keys()
-    ]
-
-    # 7. Rename COLUMNS based on Provenance
+    # 5. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
-        dataset_name=dag_id,
-        prefix_table_name=f"{dag_id}_",
+        dataset_name=DATASET,
+        prefix_table_name=f"{DATASET}_",
         postfix_table_name="_new",
+        subset_tables=[DAG_ID],
         rename_indexes=False,
         pg_schema="public",
     )
 
-    # prepare the checks and added them per source to a dictionary
-    for table_name, _ in files_to_download.items():
+    # 6. Make geometry valid
+    make_geo_valid = PostgresOnAzureOperator(
+        task_id="make_geo_valid",
+        sql=SQL_GEOMETRY_VALID,
+        params={
+            "tablename": f"{DB_TABLE_NAME}_new",
+            "geo_column": "geometrie",
+            "geom_type_number": "3",
+        },
+    )
 
-        total_checks.clear()
-        count_checks.clear()
-        geo_checks.clear()
-
-        count_checks.append(
-            COUNT_CHECK.make_check(
-                check_id=f"count_check_{table_name}",
-                pass_value=10,
-                params={"table_name": f"{dag_id}_{table_name}_new"},
-                result_checker=operator.ge,
-            )
+    # Prepare the checks and added them per source to a dictionary
+    count_checks.append(
+        COUNT_CHECK.make_check(
+            check_id="count_check",
+            pass_value=2,
+            params={"table_name": f"{DB_TABLE_NAME}_new"},
+            result_checker=operator.ge,
         )
+    )
 
-        geo_checks.append(
-            GEO_CHECK.make_check(
-                check_id=f"geo_check_{table_name}",
-                params={
-                    "table_name": f"{dag_id}_{table_name}_new",
-                    "geotype": [
-                        "MULTIPOLYGON",
-                    ],
-                    "geo_column": "geometrie",
-                },
-                pass_value=1,
-            )
+    geo_checks.append(
+        GEO_CHECK.make_check(
+            check_id="geo_check",
+            params={
+                "table_name": f"{DB_TABLE_NAME}_new ",
+                "geotype": ["MULTIPOINT", "MULTIPOLYGON"],
+                "geo_column": "geometrie",
+            },
+            pass_value=1,
         )
+    )
 
-        total_checks = count_checks + geo_checks
-        check_name["{table_name}"] = total_checks
+    total_checks = count_checks + geo_checks
+    check_name[DAG_ID] = total_checks
 
-    # 8. Execute bundled checks on database
-    multi_checks = [
-        PostgresMultiCheckOperator(
-            task_id=f"multi_check_{table_name}",
-            checks=check_name["{table_name}"],
-        )
-        for table_name, _ in files_to_download.items()
-    ]
+    # 7. Execute bundled checks on database
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=check_name[DAG_ID])
 
-    # 9. Dummy operator acts as an Interface between parallel tasks
-    # to another parallel tasks (i.e. lists or tuples) with different
-    # number of lanes (without this intermediar, Airflow will give an error)
-    Interface = DummyOperator(task_id="interface")
+    # 8. Rename TABLE
+    rename_tables = PostgresTableRenameOperator(
+        task_id="rename_table",
+        old_table_name=f"{DB_TABLE_NAME}_new",
+        new_table_name=DB_TABLE_NAME,
+    )
 
-    # 10. Drop cols - that do not show up in the API
-    drop_unnecessary_cols = [
-        PostgresOnAzureOperator(
-            task_id=f"drop_unnecessary_cols_{dag_id}_{table_name}_new",
-            sql=SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE,
-            params={"tablename": f"{dag_id}_{table_name}_new"},
-        )
-        for table_name, _ in files_to_download.items()
-        if table_name == "historischeonderzoeken"
-    ]
+    # 9. Grant database permissions
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DB_TABLE_NAME)
 
-    # 11. Dummy operator acts as an Interface between parallel tasks
-    # to another parallel tasks (i.e. lists or tuples) with different
-    # number of lanes (without this intermediar, Airflow will give an error)
-    Interface2 = DummyOperator(task_id="interface2")
-
-    # 12. Check for changes to merge in target table
-    change_data_capture = [
-        PostgresTableCopyOperator(
-            task_id=f"change_data_capture_{table_name}",
-            dataset_name_lookup=dag_id,
-            source_table_name=f"{dag_id}_{table_name}_new",
-            target_table_name=f"{dag_id}_{table_name}",
-            drop_target_if_unequal=True,
-        )
-        for table_name, _ in files_to_download.items()
-    ]
-
-    # 13. Clean up
-    clean_up = [
-        PostgresOnAzureOperator(
-            task_id="clean_up",
-            sql=SQL_DROP_TMP_TABLE,
-            params={"tablename": f"{dag_id}_{table_name}_new"},
-        )
-        for table_name, _ in files_to_download.items()
-    ]
-
-    # 13. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
-# FLOW
-for (download_file, create_table, import_data, geo_valid) in zip(
-    download_data, create_tables, GEOJSON_to_DB, make_geo_valid
-):
+for data in zip(download_data):
 
-    (
-        [download_file >> create_table >> import_data >> geo_valid]
-        >> provenance_translation
-        >> multi_checks
-    )
+    data >> import_data
 
-for check_data in zip(multi_checks):
+(
+    import_data
+    >> provenance_translation
+    >> make_geo_valid
+    >> multi_checks
+    >> rename_tables
+    >> grant_db_permissions
+)
 
-    check_data >> Interface >> drop_unnecessary_cols
-
-for drop_cols in zip(drop_unnecessary_cols):
-
-    drop_cols >> Interface2 >> change_data_capture
-
-for (check_changes, clean_tmp) in zip(change_data_capture, clean_up):
-
-    [check_changes >> clean_tmp]
-
-clean_up >> grant_db_permissions
-
-
-# Mark down
 dag.doc_md = """
     #### DAG summary
-    This DAG contains info about conducted research on a specific location.
+    This DAG contains data of projects in the big urban region.
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
@@ -258,8 +167,8 @@ dag.doc_md = """
     #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing
-    https://api.data.amsterdam.nl/v1/docs/datasets/ondergrond.html
-    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/ondergrond.html
+    https://api.data.amsterdam.nl/v1/docs/datasets/gebieden.html
+    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/gebieden.html
     Example geosearch:
-    https://api.data.amsterdam.nl/geosearch?datasets=ondergrond/ondergrond&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/geosearch?datasets=gebieden/grootstedelijke_projecten&x=126156&y=485056&radius=10
 """
