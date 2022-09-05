@@ -1,15 +1,17 @@
 import operator
+from functools import partial
 from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -24,6 +26,11 @@ total_checks = []
 count_checks = []
 geo_checks = []
 check_name = {}
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 with DAG(
     dag_id,
@@ -92,7 +99,7 @@ with DAG(
     create_tables = [
         BashOperator(
             task_id=f"create_table_{splitted_tablename}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{splitted_tablename}.sql",
+            bash_command=f"psql {db_conn_string()} < {tmp_dir}/{splitted_tablename}.sql",
         )
         for key in files_to_download.keys()
         for splitted_tablename in key.split("-")
@@ -101,7 +108,7 @@ with DAG(
     # 8. RE-define GEOM type (because ogr2ogr cannot set geom with .csv import)
     # except themas itself, which is a dimension table (parent) of sound zones tables
     redefine_geoms = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"re-define_geom_{splitted_tablename}",
             sql=SET_GEOM,
             params=dict(tablename=f"{dag_id}_{splitted_tablename}_new"),
@@ -114,7 +121,7 @@ with DAG(
     # 9. Add thema-context to child tables from parent table (themas)
     # except themas itself, which is a dimension table (parent) of sound zones tables
     add_thema_contexts = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_context_{splitted_tablename}",
             sql=ADD_THEMA_CONTEXT,
             params=dict(
@@ -198,7 +205,7 @@ with DAG(
 
     # 14. Drop unnecessary cols from tables Metro en Spoorwegen
     drop_cols = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_cols_{key}",
             sql=DROP_COLS,
             params=dict(tablename=f"{dag_id}_{key}"),
@@ -207,7 +214,7 @@ with DAG(
     ]
 
     # 15. Drop parent table THEMAS, not needed anymore
-    drop_parent_table = PostgresOperator(
+    drop_parent_table = PostgresOnAzureOperator(
         task_id="drop_parent_table",
         sql=[
             f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",

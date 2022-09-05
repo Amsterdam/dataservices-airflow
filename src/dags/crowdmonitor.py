@@ -4,8 +4,9 @@ from typing import Final, Iterable, Optional
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.utils.context import Context
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -42,7 +43,7 @@ SQL_ADD_AGGREGATES: Final = """
 logger = logging.getLogger(__name__)
 
 
-def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
+def copy_data_from_dbwaarnemingen_to_masterdb(**context: Context) -> None:
     """Copy data from external DB to our reference DB."""
     try:
         waarnemingen_engine = create_engine(
@@ -83,14 +84,14 @@ def copy_data_from_dbwaarnemingen_to_masterdb() -> None:
         )
         while True:
             rows: list[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
-            batch_count = insert_many(rows, IMPORT_STEP)
+            batch_count = insert_many(rows, IMPORT_STEP, context)
             count += batch_count
             if batch_count < IMPORT_STEP:
                 break
         logger.info("Number of records imported: %d", count)
 
 
-def insert_many(rows: list[RowProxy], batch_size: Optional[int]) -> int:
+def insert_many(rows: list[RowProxy], batch_size: Optional[int], context:Context) -> int:
     """Insert rows in batches."""
     if batch_size is None:
         batch_size = len(rows)
@@ -107,7 +108,7 @@ def insert_many(rows: list[RowProxy], batch_size: Optional[int]) -> int:
             ),
         )
 
-        masterdb_hook = PostgresHook()
+        masterdb_hook = PostgresOnAzureHook(dataset_name=DAG_ID, context=context)
         try:
             with closing(masterdb_hook.get_conn()) as conn, closing(conn.cursor()) as cur:
                 logger.info("Executing SQL statement %s", insert_stmt.as_string(conn))
@@ -123,9 +124,9 @@ def insert_many(rows: list[RowProxy], batch_size: Optional[int]) -> int:
 
 def rm_tmp_tables(
     task_id_postfix: str, tables: Iterable[str] = (f"{TABLE_ID}{TMP_TABLE_POSTFIX}",)
-) -> PostgresOperator:
+) -> PostgresOnAzureOperator:
     """Remove tmp tables."""
-    return PostgresOperator(
+    return PostgresOnAzureOperator(
         task_id=f"rm_tmp_tables{task_id_postfix}",
         # Airflow is bizarre in some ways. Its `PostgresOperator` specifies the `sql` argument to
         # `__init__` to be of solely type `str`. Internally it uses `PostgresHook` to execute
@@ -161,7 +162,7 @@ with DAG(
 
     # Drop the identity on the `id` column, otherwise SqlAlchemyCreateObjectOperator
     # gets seriously confused; as in: its finds something it didn't create and errors out.
-    drop_identity_from_table = PostgresOperator(
+    drop_identity_from_table = PostgresOnAzureOperator(
         task_id="drop_identity_from_table",
         sql="""
                 ALTER TABLE IF EXISTS {{ params.table_id }}
@@ -176,7 +177,7 @@ with DAG(
         ind_extra_index=True,
     )
 
-    add_identity_to_table = PostgresOperator(
+    add_identity_to_table = PostgresOnAzureOperator(
         task_id="add_identity_to_table",
         sql="""
             ALTER TABLE {{ params.table_id }}
@@ -187,7 +188,7 @@ with DAG(
 
     create_temp_table = PostgresTableCopyOperator(
         task_id="create_temp_table",
-        dataset_name=DAG_ID,
+        dataset_name_lookup=DAG_ID,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
         # Only copy table definitions. Don't do anything else.
@@ -200,15 +201,16 @@ with DAG(
         task_id="copy_data",
         python_callable=copy_data_from_dbwaarnemingen_to_masterdb,
         dag=dag,
+        provide_context=True,
     )
 
-    add_aggregates_day = PostgresOperator(
+    add_aggregates_day = PostgresOnAzureOperator(
         task_id="add_aggregates_day",
         sql=SQL_ADD_AGGREGATES,
         params={"table": f"{TABLE_ID}{TMP_TABLE_POSTFIX}", "periode": "dag", "periode_en": "day"},
     )
 
-    add_aggregates_week = PostgresOperator(
+    add_aggregates_week = PostgresOnAzureOperator(
         task_id="add_aggregates_week",
         sql=SQL_ADD_AGGREGATES,
         params={

@@ -16,8 +16,9 @@ from airflow import DAG
 from airflow.exceptions import AirflowException
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.utils.context import Context
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
@@ -130,7 +131,7 @@ E_TYPES: Final = {
 }
 
 
-def import_data(shp_file: str, ids: list) -> list[str]:
+def import_data(shp_file: str, ids: list, **context:Context) -> list[str]:
     """Import Shape File into database."""
     parkeervakken_sql = []
     regimes_sql = []
@@ -218,7 +219,7 @@ def import_data(shp_file: str, ids: list) -> list[str]:
         values=place_holders,
     )
 
-    hook = PostgresHook()
+    hook = PostgresOnAzureHook(dataset_name=dag_id, context=context)
     conn = hook.get_conn()
     cursor = conn.cursor()
     with cursor as cur:
@@ -332,7 +333,7 @@ with DAG(
         },
     )
 
-    create_temp_tables = PostgresOperator(
+    create_temp_tables = PostgresOnAzureOperator(
         task_id="create_temp_tables",
         sql=SQL_CREATE_TEMP_TABLES,
         params={"base_table": f"{dag_id}_{dag_id}"},
@@ -356,7 +357,7 @@ with DAG(
         ],
     )
 
-    rename_temp_tables = PostgresOperator(
+    rename_temp_tables = PostgresOnAzureOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLES,
         params={"base_table": f"{dag_id}_{dag_id}"},

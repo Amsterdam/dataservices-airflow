@@ -6,7 +6,7 @@ from typing import Any, Generator
 
 import requests
 from common import make_hash
-from common.db import get_engine
+from common.db import DatabaseEngine
 from dateutil.relativedelta import relativedelta
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
@@ -21,8 +21,7 @@ max_rows_to_batch: int = 100
 # during insert of the data. 28992 = new RD (rijksdriehoek)
 SRID = 28992
 
-engine = get_engine()
-session = Session(bind=engine)
+dataset_name = 'bekendmakingen'
 logger = logging.getLogger(__name__)
 
 
@@ -182,14 +181,18 @@ def get_data_records() -> Generator:
         yield batch_of_rows
 
 
-def import_data_batch(tablename: str) -> None:
+def import_data_batch(tablename: str, **context) -> None:
     """Batched INSERT statements via the ORM "bulk", using dictionaries.
 
-    :tablename: Name of the target table to ingest the data in.
+    params:
+        :tablename: Name of the target table to ingest the data in.
+        :context: Context of the task that is calling this function.
 
     :executes: SQL insert bulk statement
     """
     Base = declarative_base()
+    engine = DatabaseEngine(context=context).get_engine()
+    session = Session(bind=engine)
 
     class Bekendmakingen(Base):  # type: ignore
         __tablename__ = tablename

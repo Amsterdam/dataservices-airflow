@@ -5,9 +5,9 @@ from typing import Final, Union, cast
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -27,7 +27,7 @@ total_checks: list[int] = []
 count_checks: list[int] = []
 geo_checks: list[int] = []
 check_name: dict[str, list[int]] = {}
-db_conn = DatabaseEngine()
+
 
 with DAG(
     DAG_ID,
@@ -74,7 +74,6 @@ with DAG(
             auto_detect_type="YES",
             mode="PostgreSQL",
             fid="id",
-            db_conn=db_conn,
         )
         for file in files_to_download
     ]
@@ -85,7 +84,7 @@ with DAG(
     # the removal of these records (less then 5) prevents errorness behaviour
     # to do: inform the source maintainer
     revalidate_remove_null_geometry_records = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"revalidate_remove_geom_{key}",
             sql=[
                 """UPDATE {{ params.table_id }} SET geometry = ST_CollectionExtract(st_makevalid(geometry),2)

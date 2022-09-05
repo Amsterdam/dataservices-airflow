@@ -3,9 +3,9 @@ from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -20,13 +20,13 @@ DAG_ID = "grootstedelijke_projecten"
 DATASET = "gebieden"
 # owner: Only needed for CloudVPS. On Azure
 # each team has its own Airflow instance.
-owner = "team_benk"
+owner = 'team_benk'
 DB_TABLE_NAME = f"{DATASET}_{DAG_ID}"
 TMP_PATH = f"{SHARED_DIR}/{DAG_ID}"
 variables_aardgasvrijezones = Variable.get(DAG_ID, deserialize_json=True)
 files_to_download = variables_aardgasvrijezones["files_to_download"]
 shp_file_to_use_during_ingest = [file for file in files_to_download if "shp" in file][0]
-db_conn = DatabaseEngine()
+
 total_checks = []
 count_checks = []
 geo_checks = []
@@ -58,9 +58,9 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            swift_conn_id="OBJECTSTORE_GOB",
-            container="productie",
-            object_id=f"gebieden/SHP/{file}",
+            swift_conn_id="SWIFT_DEFAULT",
+            container="grootstedelijkegebieden",
+            object_id=file,
             output_path=f"{TMP_PATH}/{file}",
         )
         for file in files_to_download
@@ -76,10 +76,20 @@ with DAG(
         auto_detect_type="YES",
         mode="PostgreSQL",
         fid="id",
-        db_conn=db_conn,
     )
 
-    # 5. Rename COLUMNS based on Provenance
+    # 5. Make geometry valid
+    make_geo_valid = PostgresOnAzureOperator(
+        task_id="make_geo_valid",
+        sql=SQL_GEOMETRY_VALID,
+        params={
+            "tablename": f"{DB_TABLE_NAME}_new",
+            "geo_column": "geometrie",
+            "geom_type_number": "3",
+        },
+    )
+
+    # 6. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=DATASET,
@@ -90,21 +100,10 @@ with DAG(
         pg_schema="public",
     )
 
-    # 6. Make geometry valid
-    make_geo_valid = PostgresOperator(
-        task_id="make_geo_valid",
-        sql=SQL_GEOMETRY_VALID,
-        params={
-            "tablename": f"{DB_TABLE_NAME}_new",
-            "geo_column": "geometrie",
-            "geom_type_number": "3",
-        },
-    )
-
     # Prepare the checks and added them per source to a dictionary
     count_checks.append(
         COUNT_CHECK.make_check(
-            check_id="count_check",
+            check_id=f"count_check",
             pass_value=2,
             params={"table_name": f"{DB_TABLE_NAME}_new"},
             result_checker=operator.ge,
@@ -113,7 +112,7 @@ with DAG(
 
     geo_checks.append(
         GEO_CHECK.make_check(
-            check_id="geo_check",
+            check_id=f"geo_check",
             params={
                 "table_name": f"{DB_TABLE_NAME}_new ",
                 "geotype": ["MULTIPOINT", "MULTIPOLYGON"],
@@ -131,7 +130,7 @@ with DAG(
 
     # 8. Rename TABLE
     rename_tables = PostgresTableRenameOperator(
-        task_id="rename_table",
+        task_id=f"rename_table",
         old_table_name=f"{DB_TABLE_NAME}_new",
         new_table_name=DB_TABLE_NAME,
     )
@@ -148,8 +147,8 @@ for data in zip(download_data):
 
 (
     import_data
-    >> provenance_translation
     >> make_geo_valid
+    >> provenance_translation
     >> multi_checks
     >> rename_tables
     >> grant_db_permissions

@@ -9,8 +9,13 @@ class BashEnvOperator(BashOperator):
     """
 
     def __init__(self, *args, **kwargs):
-        env_expander = kwargs.pop("env_expander")
-        super().__init__(*args, **kwargs)
+        self.env_expander = kwargs.pop("env_expander")
+        self.args = args
+        self.kwargs = kwargs
+        super().__init__(*self.args, **self.kwargs)
+
+    def execute(self, context):
         # Now add our extra env by calling the env_expander
-        if env_expander is not None:
-            self.env = self.env | env_expander()
+        if self.env_expander is not None:
+            self.env = self.env | self.env_expander(context)
+        super().execute(context)

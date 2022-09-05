@@ -10,7 +10,8 @@ from airflow.exceptions import AirflowException
 from airflow.models import XCOM_RETURN_KEY, Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.http.hooks.http import HttpHook
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from postgres_on_azure_hook import PostgresOnAzureHook
+from airflow.utils.decorators import apply_defaults
 from environs import Env
 from http_params_hook import HttpParamsHook
 from schematools import TMP_TABLE_POSTFIX
@@ -35,7 +36,7 @@ GOB_SRC_VALUE = 'bronwaarde'
 class HttpGobOperator(BaseOperator):
     """Operator for fetching data from Gob."""
 
-    # type: ignore [misc]
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         endpoint: str,
@@ -173,7 +174,7 @@ class HttpGobOperator(BaseOperator):
 
             # we know the schema, can be an input param (dataset_schema_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
-            pg_hook = PostgresHook()
+            pg_hook = PostgresOnAzureHook(dataset_name=dataset_info.dataset_id, context=context)
             dataset = dataset_schema_from_url(
                 dataset_info.schema_url, dataset_info.dataset_id, prefetch_related=True
             )
@@ -271,4 +272,4 @@ class HttpGobOperator(BaseOperator):
                 cursor_pos = last_record["cursor"]
 
         # On successfull completion, remove cursor_pos variable
-        Variable.delete(f"{dataset_table_id}.cursor_pos")
+        Variable.delete(f"{dataset_table_id}.cursor_pos")      

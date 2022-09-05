@@ -5,16 +5,16 @@ from typing import Final, Union, cast
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy_operator import DummyOperator
-from airflow.operators.postgres_operator import PostgresOperator
 from airflow.providers.sftp.operators.sftp import SFTPOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+from common.db import define_temp_db_schema
 from common.path import mk_dir
+from common.sql import SQL_DROP_TABLE, SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
-from postgres_permissions_operator import PostgresPermissionsOperator
-from postgres_rename_operator import PostgresTableRenameOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
+from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 
 DAG_ID: Final = "overlastgebieden"
@@ -29,11 +29,12 @@ tables_to_check: dict[str, str] = {
     k: v for k, v in tables_to_create.items() if k != "vuurwerkvrij"
 }
 TMP_PATH: Final = Path(SHARED_DIR) / DAG_ID
+tmp_database_schema: str = define_temp_db_schema(dataset_name=DAG_ID)
 total_checks: list[int] = []
 count_checks: list[int] = []
 geo_checks: list[int] = []
 check_name: dict[str, list[int]] = {}
-db_conn = DatabaseEngine()
+
 
 with DAG(
     DAG_ID,
@@ -66,30 +67,42 @@ with DAG(
         for file in files_to_download
     ]
 
+    # 4. drop TEMP table on the database
+    # PostgresOperator will execute SQL in safe mode.
+    drop_if_exists_tmp_tables = [
+        PostgresOnAzureOperator(
+            task_id=f"drop_if_exists_tmp_table_{key}",
+            sql=SQL_DROP_TABLE,
+            params={"schema": tmp_database_schema, "tablename": f"{DAG_ID}_{key}_new"},
+        )
+        for key in tables_to_create.keys()
+    ]
+
     # 4. Dummy operator acts as an interface between parallel tasks
     # to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 5. Create SQL
-    SHP_to_SQL = [
+    # # 5. Import data
+    # # NOTE: ogr2ogr demands the PK is of type integer.
+    import_data = [
         Ogr2OgrOperator(
-            task_id=f"create_SQL_{key}",
+            task_id=f"import_data_{key}",
             target_table_name=f"{DAG_ID}_{key}_new",
+            db_schema=tmp_database_schema,
             input_file=TMP_PATH / "OOV_gebieden_totaal.shp",
             s_srs="EPSG:28992",
             t_srs="EPSG:28992",
+            fid="id",
             auto_detect_type="YES",
             mode="PostgreSQL",
-            fid="id",
-            db_conn=db_conn,
             geometry_name="geometry",
             promote_to_multi=True,
             sql_statement=f"""
                 SELECT *
                   FROM OOV_gebieden_totaal
                  WHERE TYPE = {quote_string(code)}
-            """,  # noqa S608
+            """,  # noqa: S608
         )
         for key, code in tables_to_create.items()
     ]
@@ -101,20 +114,23 @@ with DAG(
         prefix_table_name=f"{DAG_ID}_",
         postfix_table_name="_new",
         rename_indexes=False,
-        pg_schema="public",
+        pg_schema=tmp_database_schema,
     )
 
     # 7. Revalidate invalid geometry records
     # the source has some invalid records
     # to do: inform the source maintainer
+    # 5. Make geometry valid
     remove_null_geometry_records = [
-        PostgresOperator(
-            task_id=f"remove_null_geom_records_{key}",
-            sql="""UPDATE {{ params.table_id }}
-                    SET geometry = ST_CollectionExtract((st_makevalid(geometry)),3)
-                    WHERE ST_IsValid(geometry) is false;
-                    COMMIT;""",
-            params={"table_id": f"{DAG_ID}_{key}_new"},
+        PostgresOnAzureOperator(
+            task_id=f"make_geo_valid_{key}",
+            sql=SQL_GEOMETRY_VALID,
+            params={
+                "schema": tmp_database_schema,
+                "tablename": f"{DAG_ID}_{key}_new",
+                "geo_column": "geometrie",
+                "geom_type_number": "3",
+            },
         )
         for key in tables_to_create.keys()
     ]
@@ -130,7 +146,11 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=2,
-                params={"table_name": f"{DAG_ID}_{key}_new"},
+                params={
+                    "table_name": "{tmp_schema}.{dataset}_{table}_new".format(
+                        tmp_schema=tmp_database_schema, dataset=DAG_ID, table=key
+                    )
+                },
                 result_checker=operator.ge,
             )
         )
@@ -139,7 +159,9 @@ with DAG(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
                 params={
-                    "table_name": f"{DAG_ID}_{key}_new",
+                    "table_name": "{tmp_schema}.{dataset}_{table}_new".format(
+                        tmp_schema=tmp_database_schema, dataset=DAG_ID, table=key
+                    ),
                     "geotype": ["MULTIPOLYGON"],
                 },
                 pass_value=1,
@@ -151,7 +173,9 @@ with DAG(
 
     # 8. Execute bundled checks on database
     multi_checks = [
-        PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[key])
+        PostgresMultiCheckOperator(
+            task_id=f"multi_check_{key}", checks=check_name[key], dataset_name=DAG_ID
+        )
         for key in tables_to_check.keys()
     ]
 
@@ -160,18 +184,20 @@ with DAG(
     # (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
-    # 10. Rename TABLE
-    rename_tables = [
-        PostgresTableRenameOperator(
-            task_id=f"rename_table_{key}",
-            old_table_name=f"{DAG_ID}_{key}_new",
-            new_table_name=f"{DAG_ID}_{key}",
+    # 10. Insert data from temp to target table
+    copy_data_to_target = [
+        PostgresTableCopyOperator(
+            task_id=f"copy_data_to_target_{key}",
+            dataset_name_lookup=DAG_ID,
+            dataset_name=DAG_ID,
+            source_table_name=f"{DAG_ID}_{key}_new",
+            source_schema_name=tmp_database_schema,
+            target_table_name=f"{DAG_ID}_{key}",
+            drop_target_if_unequal=False,
         )
         for key in tables_to_create.keys()
     ]
 
-    # 11. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DAG_ID)
 
 slack_at_start >> mkdir >> download_data
 
@@ -179,18 +205,18 @@ for data in zip(download_data):
 
     data >> Interface
 
-Interface >> SHP_to_SQL
+Interface >> drop_if_exists_tmp_tables
 
-for (create_SQL, remove_null_geometry_record,) in zip(
-    SHP_to_SQL,
+for (drop, imp_data, remove_null_geometry_record,) in zip(
+    drop_if_exists_tmp_tables,
+    import_data,
     remove_null_geometry_records,
 ):
 
-    [create_SQL >> remove_null_geometry_record] >> provenance_translation
+    [drop >> imp_data >> remove_null_geometry_record] >> provenance_translation
 
-provenance_translation >> multi_checks >> Interface2 >> rename_tables
+provenance_translation >> multi_checks >> Interface2 >> copy_data_to_target
 
-rename_tables >> grant_db_permissions
 
 dag.doc_md = """
     #### DAG summary

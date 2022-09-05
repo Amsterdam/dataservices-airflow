@@ -2,7 +2,7 @@ import pathlib
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, vsd_default_args
 from common.sql import SQL_CHECK_COLNAMES, SQL_CHECK_COUNT, SQL_CHECK_GEO, SQL_TABLE_RENAME
 from http_fetch_operator import HttpFetchOperator
@@ -60,12 +60,13 @@ with DAG(
         f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}.json",
     )
 
-    drop_table = PostgresOperator(task_id="drop_table", sql="DROP TABLE IF EXISTS vezips_new")
+    drop_table = PostgresOnAzureOperator(task_id="drop_table", sql="DROP TABLE IF EXISTS vezips_new")
     create_table = PostgresFilesOperator(
-        task_id="create_table", sql_files=[f"{tmp_dir}/{dag_id}.sql"]
+        task_id="create_table",
+        sql_files=[f"{tmp_dir}/{dag_id}.sql"],
     )
 
-    alter_table = PostgresOperator(
+    alter_table = PostgresOnAzureOperator(
         task_id="alter_table",
         sql=[
             "ALTER TABLE vezips_new RENAME COLUMN bfa_nummer TO vezip_nummer",
@@ -96,7 +97,7 @@ with DAG(
         ),
     )
 
-    rename_table = PostgresOperator(
+    rename_table = PostgresOnAzureOperator(
         task_id="rename_table",
         sql=SQL_TABLE_RENAME,
         params=dict(tablename=dag_id),

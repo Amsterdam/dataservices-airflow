@@ -4,9 +4,9 @@ from pathlib import Path
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
@@ -22,7 +22,7 @@ dag_id = "veiligeafstanden"
 variables_bodem = Variable.get("veiligeafstanden", deserialize_json=True)
 files_to_download = variables_bodem["files_to_download"]
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
-db_conn = DatabaseEngine()
+
 total_checks: list[int] = []
 count_checks: list[int] = []
 geo_checks: list[int] = []
@@ -83,7 +83,6 @@ with DAG(
             auto_detect_type="YES",
             geometry_name="geometrie",
             mode="PostgreSQL",
-            db_conn=db_conn,
         )
         for key, file in files_to_download.items()
     ]
@@ -91,7 +90,7 @@ with DAG(
     # 6. RE-define GEOM type (because ogr2ogr cannot set geom with .csv import)
     # except themas itself, which is a dimension table (parent) of veiligeafstanden table
     redefine_geoms = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"re-define_geom_{key}",
             sql=SET_GEOM,
             params={"tablename": f"{dag_id}_{key}_new"},
@@ -103,7 +102,7 @@ with DAG(
     # 7. Add thema-context to child tables from parent table (themas)
     # except themas itself, which is a dimension table (parent) of veiligeafstanden table
     add_thema_contexts = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_context_{key}",
             sql=ADD_THEMA_CONTEXT,
             params={"tablename": f"{dag_id}_{key}_new", "parent_table": f"{dag_id}_themas_new"},
@@ -184,7 +183,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{key}",
-            dataset_name=dag_id,
+            dataset_name_lookup=dag_id,
             source_table_name=f"{dag_id}_{key}_new",
             target_table_name=f"{dag_id}_{key}",
             drop_target_if_unequal=True,
@@ -195,7 +194,7 @@ with DAG(
 
     # 12. Clean up (remove temp table _new)
     clean_ups = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id="clean_up",
             sql=SQL_DROP_TMP_TABLE,
             params={"tablename": f"{dag_id}_{key}_new"},
@@ -206,7 +205,7 @@ with DAG(
 
     # 13. Drop unnecessary cols
     drop_cols = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_cols_{key}",
             sql=DROP_COLS,
             params={"tablename": f"{dag_id}_{key}_new"},
@@ -216,7 +215,7 @@ with DAG(
     ]
 
     # 14. Drop parent table THEMAS, not needed anymore
-    drop_parent_table = PostgresOperator(
+    drop_parent_table = PostgresOnAzureOperator(
         task_id="drop_parent_table",
         sql=[
             f"DROP TABLE IF EXISTS {dag_id}_themas_new CASCADE",

@@ -3,7 +3,7 @@ from typing import Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -51,7 +51,7 @@ with DAG(
         ],
     )
 
-    rm_tmp_tables = PostgresOperator(
+    rm_tmp_tables = PostgresOnAzureOperator(
         task_id="rm_tmp_tables",
         sql="DROP TABLE IF EXISTS {tables} CASCADE".format(tables=f"{TMP_TABLE_PREFIX}{TABLE}"),
     )
@@ -64,7 +64,7 @@ with DAG(
 
     postgres_create_tables_like = PostgresTableCopyOperator(
         task_id=f"postgres_create_tables_like_{TABLE}",
-        dataset_name=DAG_ID,
+        dataset_name_lookup=DAG_ID,
         source_table_name=TABLE,
         target_table_name=f"{TMP_TABLE_PREFIX}{TABLE}",
         # Only copy table definitions. Don't do anything else.

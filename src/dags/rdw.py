@@ -4,9 +4,8 @@ from typing import Iterable
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
@@ -43,7 +42,6 @@ description: str = (
 variables: dict = Variable.get(dag_id, deserialize_json=True)
 endpoints: dict = variables["data_endpoints"]
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
-db_conn: DatabaseEngine = DatabaseEngine()
 env: Env = Env()
 rdw_base_url: URL = URL(env("AIRFLOW_CONN_RDW_BASE_URL"))
 
@@ -87,7 +85,6 @@ with DAG(
             auto_detect_type="YES",
             mode="PostgreSQL",
             fid="id",
-            db_conn=db_conn,
         )
         for resource in endpoints
     ]
@@ -100,7 +97,7 @@ with DAG(
     }
 
     # 5. SETUP tmp TABLE
-    create_tmp_table = PostgresOperator(
+    create_tmp_table = PostgresOnAzureOperator(
         task_id="create_tmp_table",
         sql=SQL_CREATE_TMP_TABLE,
         autocommit=True,
@@ -118,7 +115,7 @@ with DAG(
     )
 
     # 7. SWAP tmp to target (no CDC because of size)
-    swap_table = PostgresOperator(
+    swap_table = PostgresOnAzureOperator(
         task_id="swap_table",
         sql=SQL_SWAP_TABLE,
         params={"tablename": f"{dag_id}_{dag_id}"},

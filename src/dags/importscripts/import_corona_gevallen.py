@@ -1,39 +1,51 @@
 import json
 import logging
 import os
-from typing import Final
+from typing import Any, Final
 
 import pandas as pd
-from common.db import get_engine
+from airflow.utils.context import Context
+from common.db import DatabaseEngine
 from sqlalchemy import Date, Integer, String
 
 LOGLEVEL: Final = os.environ.get("LOGLEVEL", "INFO").upper()
 logging.basicConfig(level=LOGLEVEL)
 log = logging.getLogger(__name__)
 
-subset_amterdam = list()
+subset_amterdam: list = []
 
 
-def data_load(file:str)-> dict:
+def data_load(file: str) -> list[Any]:
     """Loading data into a Python dictionary.
 
-    args:
+    Params:
         file: Name of the file to read into Python dictionary.
+
+    Returns:
+        List of data records filtered to scope gemeente Amsterdam.
     """
-    log.info(f"read file {file}")
+    log.info("read file %s", file)
     with open(file) as data:
         data_dict = json.load(data)
-        output = [ record for record in data_dict if record["Municipality_code"] == "GM0363" ]
+        output = [record for record in data_dict if record["Municipality_code"] == "GM0363"]
     return output
 
-def data_import_gevallen_opnames(source_data_gevallen: str, source_data_ziekenhuis: str, db_table_name: str):
+
+def data_import_gevallen_opnames(
+    source_data_gevallen: str, source_data_ziekenhuis: str, db_table_name: str, **context: Context
+) -> None:
     """Starting import.
 
     In case of RIVM data we must combine data from
     two source files.
 
-    args:
-        files: List of files to import.
+    Params:
+        source_data_gevallen: Path to Corona occurrences source file.
+        source_data_ziekenhuis: Path to Corona hospital admissions source file.
+        db_table_name: Target table to write data to.
+
+    Executes:
+        Insert SQL statement to load the data into the database.
     """
     # read data as Python list
     gevallen = data_load(source_data_gevallen)
@@ -55,31 +67,34 @@ def data_import_gevallen_opnames(source_data_gevallen: str, source_data_ziekenhu
         .agg(
             total_reported=("total_reported", "sum"),
             deceased=("deceased", "sum"),
-            date=("date_of_publication", "max")
-
+            date=("date_of_publication", "max"),
         )
         .reset_index()
     )
 
     result_ziekenhuis = (
-        ziekenhuis_df.groupby(
-            ["date_of_statistics", "municipality_code", "municipality_name"]
-        )
-        .agg(
-            hospital_admission=("hospital_admission", "sum"),
-            date=("date_of_statistics", "max")
-        )
+        ziekenhuis_df.groupby(["date_of_statistics", "municipality_code", "municipality_name"])
+        .agg(hospital_admission=("hospital_admission", "sum"), date=("date_of_statistics", "max"))
         .reset_index()
     )
 
     # join the two datasets
-    result = result_gevallen.join(result_ziekenhuis.set_index('date'), on='date', lsuffix='', rsuffix='_ignore')
+    result = result_gevallen.join(
+        result_ziekenhuis.set_index("date"), on="date", lsuffix="", rsuffix="_ignore"
+    )
 
     # drop unused cols
-    result = result.drop(columns=['date', 'date_of_statistics', 'municipality_code_ignore', 'municipality_name_ignore'])
+    result = result.drop(
+        columns=[
+            "date",
+            "date_of_statistics",
+            "municipality_code_ignore",
+            "municipality_name_ignore",
+        ]
+    )
 
-    log.info(f"Starting import")
-    engine = get_engine()
+    log.info("Starting import")
+    engine = DatabaseEngine(context=context).get_engine()
 
     result.to_sql(
         db_table_name,
@@ -94,7 +109,7 @@ def data_import_gevallen_opnames(source_data_gevallen: str, source_data_ziekenhu
             "hospital_admission": Integer(),
             "deceased": Integer(),
         },
-        if_exists='replace'
+        if_exists="replace",
     )
 
     log.info("Data loaded into DB")

@@ -6,9 +6,9 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
+
 from common.path import mk_dir
 from common.sql import SQL_DROP_TABLE, SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -21,7 +21,6 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from schematools.utils import to_snake_case
 
 logger = logging.getLogger(__name__)
-db_conn = DatabaseEngine()
 
 DAG_ID: Final = "wegenbestand"
 # Wegenbestand holds a sub categorie ZZV `zone zwaar verkeer` for
@@ -36,6 +35,8 @@ total_checks: list = []
 count_checks: list = []
 geo_checks: list = []
 check_name: dict = {}
+
+
 
 
 with DAG(
@@ -81,7 +82,6 @@ with DAG(
             t_srs="EPSG:28992",
             mode="PostgreSQL",
             nln_options=[f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"],
-            db_conn=db_conn,
         )
         for values in data_values.values()
         if values["source"] == "zone_zwaar_verkeer"
@@ -97,7 +97,6 @@ with DAG(
             input_file=f"{TMP_DIR}/{values['table']}.{extension['file_type']}",
             t_srs="EPSG:28992",
             mode="PostgreSQL",
-            db_conn=db_conn,
         )
         for values in data_values.values()
         if values["source"] == "wegenbestand"
@@ -131,7 +130,7 @@ with DAG(
 
     # 7. Make geometry valid
     make_geo_valid = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"make_geo_valid_{values['table']}",
             sql=SQL_GEOMETRY_VALID,
             params={
@@ -197,7 +196,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{values['table']}",
-            dataset_name=DATASET_ID_ZZV,
+            dataset_name_lookup=DATASET_ID_ZZV,
             source_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
             if values["source"] == "zone_zwaar_verkeer"
             else f"{DAG_ID}_{values['table']}_new",
@@ -211,7 +210,7 @@ with DAG(
 
     # 10. Clean up (remove temp table _new)
     clean_ups = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"clean_up_{values['table']}",
             sql=SQL_DROP_TABLE,
             params={

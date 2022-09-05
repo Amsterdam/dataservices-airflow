@@ -5,9 +5,8 @@ from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-from common.db import DatabaseEngine
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_risicozones import (
     cleanse_misformed_data_iter,
@@ -32,7 +31,7 @@ files_to_merge = variables["files_to_merge"]
 files_to_union = variables["files_to_union"]
 files_to_cleanse = variables["files_to_cleanse"]
 files_to_fix_geom = variables["files_to_fix_geom"]
-db_conn = DatabaseEngine()
+
 total_checks: list[int] = []
 count_checks: list[int] = []
 geo_checks: list[int] = []
@@ -187,7 +186,6 @@ with DAG(
             auto_detect_type="YES",
             fid="id",
             mode="PostgreSQL",
-            db_conn=db_conn,
         )
         for key, files in files_to_download.items()
         for file in files
@@ -196,7 +194,7 @@ with DAG(
 
     # 15. RE-define GEOM type (because ogr2ogr cannot set geom with any .csv source file)
     redefine_geoms = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"set_geomtype_{key}",
             sql=SET_GEOM,
             params={"tablename": f"{dag_id}_{key}_new"},
@@ -275,7 +273,7 @@ with DAG(
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table_name}",
-            dataset_name=dag_id,
+            dataset_name_lookup=dag_id,
             source_table_name=f"{dag_id}_{table_name}_new",
             target_table_name=f"{dag_id}_{table_name}",
         )
@@ -284,7 +282,7 @@ with DAG(
 
     # 20. Clean up; delete temp table
     clean_up = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"clean_up_{table_name}",
             sql=SQL_DROP_TMP_TABLE,
             params={"tablename": f"{dag_id}_{table_name}_new"},

@@ -2,7 +2,7 @@ import operator
 from typing import Final
 
 from airflow import DAG
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args, quote_string
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
@@ -55,7 +55,7 @@ with DAG(
         task_id="slack_at_start",
     )
 
-    drop_tables = PostgresOperator(
+    drop_tables = PostgresOnAzureOperator(
         task_id="drop_tables",
         sql=[f"DROP TABLE IF EXISTS pte.{table_name} CASCADE" for table_name in table_names],
     )
@@ -64,6 +64,7 @@ with DAG(
         task_id="swift_load_task",
         container="Dataservices",
         object_id=f"rioolnetwerk/{DATASTORE_TYPE}/" "rioolnetwerk.zip",
+        dataset_name=dag_id,
         swift_conn_id="objectstore_dataservices",
     )
 
@@ -125,7 +126,7 @@ with DAG(
         task_id="rename_columns", dataset_name="rioolnetwerk", pg_schema="pte"
     )
 
-    rename_tables = PostgresOperator(
+    rename_tables = PostgresOnAzureOperator(
         task_id="rename_tables",
         sql=RENAME_TABLES_SQL,
     )

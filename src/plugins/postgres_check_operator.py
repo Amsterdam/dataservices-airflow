@@ -2,18 +2,20 @@ import operator
 from dataclasses import dataclass
 from functools import partial
 from string import Template
-from typing import Any, Callable, ClassVar, Final, Iterable
+from typing import Any, Callable, ClassVar, Final, Iterable, Optional
 
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
+from airflow.models.taskinstance import Context
 from airflow.operators.sql import SQLCheckOperator, SQLValueCheckOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name, make_params
+from postgres_on_azure_hook import PostgresOnAzureHook
 
 
 @dataclass
 class Check:
+    """Object definition of Checker."""
     check_id: str
     sql: str
     result_fetcher: Callable
@@ -25,10 +27,12 @@ class Check:
 
 
 def record_by_name(colname, records):
+    """Show column value."""
     return records[0][colname]
 
 
 def flattened_records(records):
+    """Helper to iterate records as a list."""
     return [r[0] for r in records]
 
 
@@ -109,11 +113,26 @@ class PostgresMultiCheckOperator(BaseOperator):
 
     def __init__(
         self,
+        dataset_name: Optional[str] = None,
         postgres_conn_id="postgres_default",
         checks=[],
         *args,
         **kwargs,
     ):
+        """Initialize.
+
+        Args:
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
+
+        Executes:
+            (SQL) data checks on database.
+        """
+        self.dataset_name = dataset_name
         self.postgres_conn_id = postgres_conn_id
         self.checks = checks
         self.params = kwargs.get("params", {}) | make_params(self.checks)
@@ -124,9 +143,10 @@ class PostgresMultiCheckOperator(BaseOperator):
         # fed explicitly to the `params` parameter of Super.
         super().__init__(params=self.params, *args, **kwargs)
 
-    def execute(self, context=None):
+    def execute(self, context: Context) -> None:
+        """Execute instance."""
 
-        hook = self.get_db_hook()
+        hook = self.get_db_hook(context)
 
         for checker in self.checks:
             self.log.info("Executing SQL check: %s with %s", checker.sql, repr(checker.parameters))
@@ -139,8 +159,11 @@ class PostgresMultiCheckOperator(BaseOperator):
             if not checker_function(checker.result_fetcher(records), checker.pass_value):
                 raise AirflowException(f"{records} != {checker.pass_value}")
 
-    def get_db_hook(self):
-        return PostgresHook(postgres_conn_id=self.postgres_conn_id)
+    def get_db_hook(self, context: Context) -> None:
+        """Return database connection hook."""
+        return PostgresOnAzureHook(
+            dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
+        )
 
 
 class PostgresCheckOperator(SQLCheckOperator):
@@ -149,14 +172,22 @@ class PostgresCheckOperator(SQLCheckOperator):
     template_fields = ("sql",)
     template_ext = (".sql",)
 
-    def __init__(self, sql, parameters=(), conn_id="postgres_default", **kwargs):
+    def __init__(
+        self,
+        sql,
+        parameters=(),
+        dataset_name: Optional[str] = None,
+        conn_id="postgres_default",
+        **kwargs,
+    ):
         super().__init__(sql=sql, conn_id=conn_id, **kwargs)
         self.parameters = parameters
+        self.dataset_name = dataset_name
 
-    def execute(self, context=None):
+    def execute(self, context: Context):
         """Overwritten to support SQL 'parameters' for safe SQL escaping."""
         self.log.info("Executing SQL check: %s with %s", self.sql, repr(self.parameters))
-        records = self.get_db_hook().get_first(self.sql, self.parameters)
+        records = self.get_db_hook(context=context).get_first(self.sql, self.parameters)
 
         if records != [1]:  # Avoid unneeded "SELECT 1" in logs
             self.log.info("Record: %s", records)
@@ -171,8 +202,10 @@ class PostgresCheckOperator(SQLCheckOperator):
 
         self.log.info("Success.")
 
-    def get_db_hook(self):
-        return PostgresHook(postgres_conn_id=self.conn_id)
+    def get_db_hook(self, context):
+        return PostgresOnAzureHook(
+            dataset_name=self.dataset_name, context=context, postgres_conn_id=self.conn_id
+        )
 
 
 class PostgresCountCheckOperator(PostgresCheckOperator):
@@ -182,6 +215,7 @@ class PostgresCountCheckOperator(PostgresCheckOperator):
         self,
         table_name,
         min_count,
+        dataset_name: Optional[str] = None,
         postgres_conn_id="postgres_default",
         task_id="check_count",
         **kwargs,
@@ -192,7 +226,7 @@ class PostgresCountCheckOperator(PostgresCheckOperator):
             parameters=(min_count,),  # params is jinja, parameters == sql!
             conn_id=postgres_conn_id,
             task_id=task_id,
-            **kwargs,
+            dataset_name=dataset_name ** kwargs,
         )
 
 
@@ -204,6 +238,7 @@ class PostgresGeometryTypeCheckOperator(PostgresCheckOperator):
         table_name,
         geometry_type,
         geometry_column="geometry",
+        dataset_name: Optional[str] = None,
         postgres_conn_id="postgres_default",
         task_id="check_geo",
         **kwargs,
@@ -223,6 +258,7 @@ class PostgresGeometryTypeCheckOperator(PostgresCheckOperator):
             parameters=(geometry_type.upper(),),  # params is jinja, parameters == sql!
             conn_id=postgres_conn_id,
             task_id=task_id,
+            dataset_name=dataset_name,
             **kwargs,
         )
 
@@ -243,6 +279,7 @@ class PostgresValueCheckOperator(SQLValueCheckOperator):
         sql,
         pass_value,
         parameters=(),
+        dataset_name: Optional[str] = None,
         conn_id="postgres_default",
         result_checker=None,
         *args,
@@ -252,10 +289,11 @@ class PostgresValueCheckOperator(SQLValueCheckOperator):
         self.parameters = parameters
         self.pass_value = pass_value  # avoid str() cast
         self.result_checker = result_checker
+        self.dataset_name = dataset_name
 
-    def execute(self, context=None):
+    def execute(self, context: Context):
         self.log.info("Executing SQL value check: %s with %r", self.sql, self.parameters)
-        records = self.get_db_hook().get_records(self.sql, self.parameters)
+        records = self.get_db_hook(context=context).get_records(self.sql, self.parameters)
 
         if not records:
             raise AirflowException("The query returned None")
@@ -264,8 +302,10 @@ class PostgresValueCheckOperator(SQLValueCheckOperator):
         if not checker(records, self.pass_value):
             raise AirflowException(f"{records} != {self.pass_value}")
 
-    def get_db_hook(self):
-        return PostgresHook(postgres_conn_id=self.conn_id)
+    def get_db_hook(self, context):
+        return PostgresOnAzureHook(
+            dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
+        )
 
 
 class PostgresColumnNamesCheckOperator(PostgresValueCheckOperator):

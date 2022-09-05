@@ -8,9 +8,8 @@ import requests
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, env, logger, quote_string
-from common.db import DatabaseEngine
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dateutil import tz
@@ -36,7 +35,6 @@ variables: dict = Variable.get(dag_id, deserialize_json=True)
 data_endpoint: dict = variables["data_endpoints"]["wfs"]
 tmp_dir: str = f"{SHARED_DIR}/{dag_id}"
 data_file: str = f"{tmp_dir}/{dag_id}.geojson"
-db_conn: DatabaseEngine = DatabaseEngine()
 password: str = env("AIRFLOW_CONN_WIOR_PASSWD")
 user: str = env("AIRFLOW_CONN_WIOR_USER")
 base_url: str = URL(env("AIRFLOW_CONN_WIOR_BASE_URL"))
@@ -121,20 +119,19 @@ with DAG(
         geometry_name="geometry",
         fid="fid",
         mode="PostgreSQL",
-        db_conn=db_conn,
         sql_statement=f"""SELECT * FROM {dag_id}
                 WHERE hoofdstatus NOT ILIKE '%intake%'""",  # noqa: S608
     )
 
     # 7. Drop unnecessary cols
-    drop_cols = PostgresOperator(
+    drop_cols = PostgresOnAzureOperator(
         task_id="drop_unnecessary_cols",
         sql=DROP_COLS,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # 8. geometry validation
-    geom_validation = PostgresOperator(
+    geom_validation = PostgresOnAzureOperator(
         task_id="geom_validation",
         sql=SQL_GEOM_VALIDATION,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
@@ -151,14 +148,14 @@ with DAG(
     )
 
     # 10. Add primary key to temp table (for cdc check)
-    add_pk = PostgresOperator(
+    add_pk = PostgresOnAzureOperator(
         task_id="add_pk",
         sql=SQL_ADD_PK,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
     # 11. Set date datatypes
-    set_dates = PostgresOperator(
+    set_dates = PostgresOnAzureOperator(
         task_id="set_dates",
         sql=SQL_SET_DATE_DATA_TYPES,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
@@ -212,14 +209,14 @@ with DAG(
     # 14. Check for changes to merge in target table
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        dataset_name=dag_id,
+        dataset_name_lookup=dag_id,
         source_table_name=f"{dag_id}_{dag_id}_new",
         target_table_name=f"{dag_id}_{dag_id}",
         drop_target_if_unequal=True,
     )
 
     # 15. Clean up (remove temp table _new)
-    clean_up = PostgresOperator(
+    clean_up = PostgresOnAzureOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params={"tablename": f"{dag_id}_{dag_id}_new"},

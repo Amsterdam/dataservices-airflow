@@ -2,12 +2,13 @@
 import csv
 import logging
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from airflow.utils.context import Context
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, SHARED_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -40,7 +41,7 @@ SQL_RENAME_TEMP_TABLE: Final = """
 """
 
 
-def import_csv_data(**_: Any) -> None:
+def import_csv_data(**context: Context) -> None:
     """Insert rows for CSV file into DB table."""
     sql_header = f"INSERT INTO {TABLE_ID}_temp (datum, aantal_taxi_passages) VALUES "
     with open(TMP_DIR / "taxi_passages.csv") as csvfile:
@@ -53,7 +54,7 @@ def import_csv_data(**_: Any) -> None:
                 )
             )
         if len(items):
-            hook = PostgresHook()
+            hook = PostgresOnAzureHook(dataset_name=DAG_ID, context=context)
             sql = "{header} {items};".format(header=sql_header, items=",".join(items))
             try:
                 hook.run(sql)
@@ -78,7 +79,7 @@ with DAG(
 
     # Drop the identity on the `id` column, otherwise SqlAlchemyCreateObjectOperator
     # gets seriously confused; as in: its finds something it didn't create and errors out.
-    drop_identity_from_table = PostgresOperator(
+    drop_identity_from_table = PostgresOnAzureOperator(
         task_id="drop_identity_from_table",
         sql="""
             ALTER TABLE IF EXISTS {{ params.table_id }}
@@ -93,7 +94,7 @@ with DAG(
         ind_extra_index=False,
     )
 
-    add_identity_to_table = PostgresOperator(
+    add_identity_to_table = PostgresOnAzureOperator(
         task_id="add_identity_to_table",
         sql="""
             ALTER TABLE {{ params.table_id }}
@@ -112,7 +113,7 @@ with DAG(
 
     create_temp_table = PostgresTableCopyOperator(
         task_id="create_temp_table",
-        dataset_name=DAG_ID,
+        dataset_name_lookup=DAG_ID,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}_temp",
         # Only copy table definitions. Don't do anything else.
@@ -125,9 +126,10 @@ with DAG(
         task_id="import_data",
         python_callable=import_csv_data,
         dag=dag,
+        provide_context=True,
     )
 
-    rename_temp_table = PostgresOperator(
+    rename_temp_table = PostgresOnAzureOperator(
         task_id="rename_temp_tables",
         sql=SQL_RENAME_TEMP_TABLE,
         params={"base_table": TABLE_ID},

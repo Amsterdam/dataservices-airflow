@@ -1,6 +1,6 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import MessageOperator, default_args
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -35,7 +35,8 @@ with DAG(
     load_dwh = PythonOperator(
         task_id="load_from_ami_dwh",
         python_callable=load_from_dwh,
-        op_args=[f"{dag_id}_new"],
+        provide_context=True,
+        op_args=[dag_id, f"{dag_id}_new"],
     )
 
     # 3. Check minimum number of records
@@ -70,14 +71,14 @@ with DAG(
     # 6. Check for changes to merge in target table by using CDC
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
-        dataset_name=dag_id,
+        dataset_name_lookup=dag_id,
         source_table_name=f"{dag_id}_new",
         target_table_name=dag_id,
         drop_target_if_unequal=True,
     )
 
     # 7. Clean up; delete temp table
-    clean_up = PostgresOperator(
+    clean_up = PostgresOnAzureOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params={"tablename": f"{dag_id}_new"},

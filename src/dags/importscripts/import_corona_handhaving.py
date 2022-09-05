@@ -1,4 +1,3 @@
-import argparse
 import datetime
 import logging
 import os
@@ -7,7 +6,8 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 import sqlalchemy
-from common.db import get_engine
+from airflow.utils.context import Context
+from common.db import DatabaseEngine
 from sqlalchemy import Integer
 
 LOGLEVEL: str = os.environ.get("LOGLEVEL", "INFO").upper()
@@ -16,14 +16,15 @@ log: logging.Logger = logging.getLogger(__name__)
 
 
 def iter_valid_weeks(year: int) -> Iterable[int]:
-    """gives valid week in a year
-    Can be used to get max week number in a year
+    """Gives valid week in a year.
 
-    Args:
-        year: the year to use to test if week number exists
+    Can be used to get max week number in a year.
+
+    Params:
+        year: The year to use to test if week number exists.
 
     Yields:
-        a valid week number if found for that year
+        A valid week number if found for that year.
     """
     for week in range(55):
         try:
@@ -34,13 +35,13 @@ def iter_valid_weeks(year: int) -> Iterable[int]:
 
 
 def strip(text: str) -> str:
-    """removes leading and trailing whitespaces in data
+    """Removes leading and trailing whitespaces in data.
 
-    Args:
-        text: Data cell value from csv file to strip
+    Params:
+        text: Data cell value from csv file to strip.
 
     Returns:
-        whitespaces stripped value
+        Whitespaces stripped value.
 
     """
     try:
@@ -49,15 +50,15 @@ def strip(text: str) -> str:
         return text
 
 
-def data_import_handhaving(csv_file: str, db_table_name: str) -> None:
-    """Reads, converts and import csv data to table database
+def data_import_handhaving(csv_file: str, db_table_name: str, **context: Context) -> None:
+    """Reads, converts and import csv data to table database.
 
-    args:
+    Params:
         csv_file: Name of handhaving file.csv to import.
         db_table_name: Name of database to import data to.
 
     Executes:
-        SQL insert statement
+        SQL insert statement.
 
     Notes:
         Handhaving numbers for week 53, year 2021 must be
@@ -111,10 +112,10 @@ def data_import_handhaving(csv_file: str, db_table_name: str) -> None:
 
     df.index.name = "id"
 
-    engine: sqlalchemy.engine.Engine = get_engine()
+    engine: sqlalchemy.engine.Engine = DatabaseEngine(context=context).get_engine()
     df.to_sql(
         db_table_name,
         engine,
         dtype={"id": Integer(), "aantal": Integer(), "week_nummer": Integer(), "jaar": Integer()},
-        if_exists='replace'
+        if_exists="replace",
     )

@@ -2,7 +2,7 @@ import operator
 from typing import Final
 
 from airflow import DAG
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import (
@@ -50,7 +50,7 @@ with DAG(
 
     # XXX Potentially dangerous, because more team-ruimte tables
     # will be in schema pte, make more specific
-    drop_imported_table = PostgresOperator(
+    drop_imported_table = PostgresOnAzureOperator(
         task_id="drop_imported_table",
         sql="DROP TABLE IF EXISTS pte.beschermde_stadsdorpsgezichten CASCADE",
     )
@@ -60,6 +60,7 @@ with DAG(
         container="Dataservices",
         object_id=f"beschermde_stads_en_dorpsgezichten/{DATASTORE_TYPE}/"
         "beschermde_stadsdorpsgezichten.zip",
+        dataset_name=dag_id,
         swift_conn_id="objectstore_dataservices",
     )
 
@@ -96,13 +97,13 @@ with DAG(
         )
     )
 
-    correct_geo = PostgresOperator(
+    correct_geo = PostgresOnAzureOperator(
         task_id="correct_geo",
         sql=CORRECT_GEO,
     )
     multi_check = PostgresMultiCheckOperator(task_id="multi_check", checks=checks)
 
-    rename_table = PostgresOperator(
+    rename_table = PostgresOnAzureOperator(
         task_id="rename_table",
         sql=RENAME_TABLES_SQL,
     )

@@ -1,4 +1,5 @@
 import operator
+from functools import partial
 from pathlib import Path
 
 import requests
@@ -6,11 +7,12 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -26,6 +28,10 @@ total_checks = []
 count_checks = []
 geo_checks = []
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 # data connection
 def get_data():
@@ -77,11 +83,11 @@ with DAG(
     # 5. Create TABLE
     create_table = BashOperator(
         task_id="create_table",
-        bash_command=f"psql {pg_params()} < {tmp_dir}/{dag_id}.sql",
+        bash_command=f"psql {db_conn_string()} < {tmp_dir}/{dag_id}.sql",
     )
 
     # 6. Set datatype date for date columns that where not detected by ogr2ogr
-    set_datatype_date = PostgresOperator(
+    set_datatype_date = PostgresOnAzureOperator(
         task_id="set_datatype_date",
         sql=SET_DATE_DATATYPE,
         params=dict(tablename=f"{dag_id}_{dag_id}_new"),

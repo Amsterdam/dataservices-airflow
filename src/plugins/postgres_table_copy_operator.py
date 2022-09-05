@@ -1,5 +1,6 @@
 import itertools
 import operator
+import os
 from collections import defaultdict
 from contextlib import closing
 from dataclasses import dataclass
@@ -7,9 +8,10 @@ from typing import Any, Callable, Final, Optional, cast
 
 from airflow.exceptions import AirflowFailException
 from airflow.models import XCOM_RETURN_KEY, BaseOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.models.taskinstance import Context
 from environs import Env
 from more_ds.network.url import URL
+from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import extras, sql
 from schematools import TMP_TABLE_POSTFIX
 from schematools.exceptions import SchemaObjectNotFound
@@ -99,6 +101,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         source_table_name: str,
         target_table_name: str,
         nested_db_table_names: Optional[list[str]] = None,
+        dataset_name_lookup: Optional[str] = None,
         dataset_name: Optional[str] = None,
         source_schema_name: str = "public",
         target_schema_name: str = "public",
@@ -119,9 +122,16 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         """Initialize PostgresTableCopyOperator.
 
         Args:
-            dataset_name: Name of dataset as defined in Amsterdam schema. Used to do a lookup
-            of the columns to cope with a possible datatype mismatch due to a different
-            column order between target and source table regarding data copy.
+            dataset_name_lookup: Name of dataset as defined in Amsterdam schema.
+                Used to do a lookup of the columns to cope with a possible datatype
+                mismatch due to a different column order between target and source
+                table regarding data copy.
+            dataset_name: Name of the dataset as known in the database as prefix table.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
             source_table_name: Name of the temporary table that needs to be copied.
             source_schema_name: Name of the schema of the source table.
             target_table_name: Name of the table that needs to be created and data copied to.
@@ -129,7 +139,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 need to be processed.
             target_schema_name: Name of the schema of the target table.
             truncate_target: Whether the target table should be truncated before being copied to.
-            drop_target_if_unequal: Whether the target table should be dropped if it is not
+                drop_target_if_unequal: Whether the target table should be dropped if it is not
                 equal to the source table wrt. column types, names and positions
             copy_data: Whether to copied data. If set to False only the table definition is copied.
             drop_source: Whether to drop the source table after the copy process.
@@ -146,6 +156,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             **kwargs:
         """
         super().__init__(*args, task_id=task_id, **kwargs)
+        self.dataset_name_lookup = dataset_name_lookup
         self.dataset_name = dataset_name
         self.source_table_name = source_table_name
         self.source_schema_name = source_schema_name
@@ -182,7 +193,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 "even though source table will be dropped."
             )
 
-        if dataset_name is None and not drop_target_if_unequal:
+        if dataset_name_lookup is None and not drop_target_if_unequal:
             raise AirflowFailException(
                 "Configuration error: not knowing the columnnames "
                 "and drop_target_if_unequal is False "
@@ -271,7 +282,7 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
     ) -> dict[TableMapping, list[str]]:
         """Determine what columns are involved in a copy operation.
 
-        If a dataset_name is defined, we try to get the column names from the dataset.
+        If a dataset_name_lookup is defined, we try to get the column names from the dataset.
         """
         columns_per_table_mapping = {}
 
@@ -280,17 +291,26 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             # Try to execute copy based on explicit table names
             # if target table not already dropped.
             columns = []
-            if self.dataset_name and not self.drop_target_if_unequal:
+            if self.dataset_name_lookup and not self.drop_target_if_unequal:
 
                 self.log.info(
                     """Trying to do data copy based on explicit column names
                         in Amsterdam schema definition."""
                 )
 
-                dataset: DatasetSchema = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
+                dataset: DatasetSchema = dataset_schema_from_url(
+                    SCHEMA_URL, self.dataset_name_lookup
+                )
 
-                # Get the table_id from the full sql table name
-                table_id = table_mapping.target.name.split(f"{self.dataset_name}_")[1]
+                # Get the table_id from the full sql table name.
+                # Because dataset names can hold letters followed by numbers
+                # like covid19, the table name will be covid_19 instead. To
+                # make sure the correct table name is used, the `snake_case`
+                # logic is applied.
+                dataset_name_lookup = to_snake_case(self.dataset_name_lookup)
+                # I.e. `covid_19_gebiedsverbod`. The table_id will be `gebiedsverbod`
+                # the `covid_19` part is the dataset_id.
+                table_id = table_mapping.target.name.split(f"{dataset_name_lookup}_")[1]
 
                 # We do not take nested/through tables into account,
                 # because this can get very hairy. In that case, `columns` stays empty,
@@ -349,8 +369,14 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
             self.log.error("View '%s' references a table in the public schema", ref_object)
             raise
 
-    def execute(self, context: dict[str, Any]) -> None:  # noqa: C901, D102
-        hook = PostgresHook(postgres_conn_id=self.postgres_conn_id, schema=self.database)
+    def execute(self, context: Context) -> None:  # noqa: C901, D102
+        """Execute logic after initialize instance."""
+        hook = PostgresOnAzureHook(
+            dataset_name=self.dataset_name,
+            context=context,
+            postgres_conn_id=self.postgres_conn_id,
+            schema=self.database,
+        )
 
         # Use the mixin class _assign to assign new values, if provided.
         self._assign(context)
@@ -466,32 +492,49 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                             )
 
                         # Drop target table if there are differences in columns
-                        # this is done regardless of drop_target_if_unequal setting
-                        self.log.info(
-                            "Dropping table %s.%s",
-                            table_mapping.target.schema,
-                            table_mapping.target.name,
-                        )
-                        cursor.execute(
-                            sql.SQL("DROP TABLE {table_schema}.{table_name}").format(
-                                table_schema=sql.Identifier(table_mapping.target.schema),
-                                table_name=sql.Identifier(table_mapping.target.name),
+                        # this is done regardless of `drop_target_if_unequal` setting.
+                        # We cannot drop the target table since that is not allowed
+                        # on schema `public` on Azure. Only DML actions allowed.
+                        if os.environ.get("AZURE_TENANT_ID") is None:
+                            self.log.info(
+                                "Dropping table %s.%s",
+                                table_mapping.target.schema,
+                                table_mapping.target.name,
                             )
-                        )
+                            cursor.execute(
+                                sql.SQL("DROP TABLE {table_schema}.{table_name}").format(
+                                    table_schema=sql.Identifier(table_mapping.target.schema),
+                                    table_name=sql.Identifier(table_mapping.target.name),
+                                )
+                            )
+                        else:
+                            self.log.info(
+                                "Dropping target table %s.%s is not allowed on Azure, skipping it, despite differences \
+                                between source and traget tables.",
+                                table_mapping.target.schema,
+                                table_mapping.target.name,
+                            )
 
-                statements: list[Statement] = [
-                    Statement(
-                        sql="""
-                    CREATE TABLE IF NOT EXISTS {target_schema_name}.{target_table_name}
-                    (
-                        LIKE {source_schema_name}.{source_table_name} INCLUDING ALL
+                # setup SQL statements list to collect them.
+                statements: list[Statement] = []
+
+                # We cannot create the target table since that is not allowed
+                # on schema `public` on Azure. Only DML actions allowed.
+                if os.environ.get("AZURE_TENANT_ID") is None:
+                    statements.append(
+                        Statement(
+                            sql="""
+                        CREATE TABLE IF NOT EXISTS {target_schema_name}.{target_table_name}
+                        (
+                            LIKE {source_schema_name}.{source_table_name} INCLUDING ALL
+                        )
+                        """,
+                            log_msg="Creating new table (if not exists) "
+                            "'{target_schema_name}.{target_table_name}' "
+                            "using table '{source_schema_name}.{source_table_name}' \
+                                as a template.",
+                        )
                     )
-                    """,
-                        log_msg="Creating new table (if not exists) "
-                        "'{target_schema_name}.{target_table_name}' "
-                        "using table '{source_schema_name}.{source_table_name}' as a template.",
-                    )
-                ]
 
                 if self.truncate_target:
                     statements.append(

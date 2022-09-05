@@ -3,8 +3,7 @@ from typing import Final
 
 from airflow import DAG
 from airflow.operators.python_operator import BranchPythonOperator, PythonOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, vsd_default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -63,12 +62,14 @@ with DAG(
 
     branch_task = BranchPythonOperator(task_id="branch_task", python_callable=choose_branch)
 
-    update_oplaadpalen = PostgresOperator(
-        task_id="update_oplaadpalen", sql=f"{sql_path}/oplaadpalen_copy.sql"
+    update_oplaadpalen = PostgresOnAzureOperator(
+        task_id="update_oplaadpalen",
+        sql=f"{sql_path}/oplaadpalen_copy.sql"
     )
 
-    create_oplaadpalen = PostgresOperator(
-        task_id="create_oplaadpalen", sql=f"{sql_path}/oplaadpalen_create.sql"
+    create_oplaadpalen = PostgresOnAzureOperator(
+        task_id="create_oplaadpalen",
+        sql=f"{sql_path}/oplaadpalen_create.sql"
     )
 
     # The trigger_rule is essential, otherwise the skipped path blocks progress
@@ -76,7 +77,7 @@ with DAG(
         task_id="import_allego",
         python_callable=import_oplaadpalen,
         trigger_rule="none_failed_or_skipped",
-        op_args=[PostgresHook(postgres_conn_id=dag.default_args["postgres_conn_id"]).get_conn()],
+        provide_context=True,
     )
 
     check_count = PostgresCheckOperator(
@@ -94,7 +95,7 @@ with DAG(
     # 10. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-    rename_table = PostgresOperator(
+    rename_table = PostgresOnAzureOperator(
         task_id="rename_table",
         sql=SQL_TABLE_RENAME,
     )

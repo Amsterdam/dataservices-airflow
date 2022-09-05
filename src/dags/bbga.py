@@ -6,7 +6,7 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import EPHEMERAL_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
@@ -57,9 +57,9 @@ with DAG(
         for file_stem, url_path in data_endpoints.items()
     ]
 
-    def rm_tmp_tables(task_id_postfix: str) -> PostgresOperator:
+    def rm_tmp_tables(task_id_postfix: str) -> PostgresOnAzureOperator:
         """Remove temporary tables."""
-        return PostgresOperator(
+        return PostgresOnAzureOperator(
             task_id=f"rm_tmp_tables{task_id_postfix}",
             sql="DROP TABLE IF EXISTS {tables}".format(
                 tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", table_mappings.values()))

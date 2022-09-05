@@ -1,15 +1,17 @@
 import operator
+from functools import partial
 from pathlib import Path
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params, quote_string
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -25,6 +27,10 @@ count_checks = []
 geo_checks = []
 check_name = {}
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 with DAG(
     dag_id,
@@ -82,14 +88,14 @@ with DAG(
     create_tables = [
         BashOperator(
             task_id=f"create_table_{key}",
-            bash_command=f"psql {pg_params()} < {tmp_dir}/{key}.sql",
+            bash_command=f"psql {db_conn_string()} < {tmp_dir}/{key}.sql",
         )
         for key in files_to_download.keys()
     ]
 
     # 7. Remove unnecessary cols
     remove_cols = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"remove_cols_{key}",
             sql=REMOVE_COLS,
             params=dict(tablename=key),
@@ -107,7 +113,7 @@ with DAG(
 
     # 9. Add PDF hyperlink only for table bominslag and verdachtgebied
     add_hyperlink_pdf = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"add_hyperlink_pdf_{table}",
             sql=ADD_HYPERLINK_PDF,
             params=dict(tablename=table),
@@ -121,7 +127,7 @@ with DAG(
 
     # 11. Drop Exisiting TABLE
     drop_tables = [
-        PostgresOperator(
+        PostgresOnAzureOperator(
             task_id=f"drop_existing_table_{key}",
             sql=[
                 f"DROP TABLE IF EXISTS {dag_id}_{key} CASCADE",

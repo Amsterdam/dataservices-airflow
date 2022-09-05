@@ -1,10 +1,11 @@
 import json
-from typing import Final
+from typing import Optional
 from urllib.parse import ParseResult, urlparse
 
 from airflow.hooks.http_hook import HttpHook
 from airflow.models.baseoperator import BaseOperator
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from postgres_on_azure_hook import PostgresOnAzureHook
+from airflow.utils.decorators import apply_defaults
 
 
 class TypeAHeadLocationOperator(BaseOperator):
@@ -30,10 +31,12 @@ class TypeAHeadLocationOperator(BaseOperator):
     The default name of this column is 'geometry' and can be overwritten if needed.
     """
 
+    @apply_defaults
     def __init__(
         self,
         source_table: str,
         source_location_column: str,
+        dataset_name: Optional[str] = None,
         source_key_column: str = "id",
         geometry_column: str = "geometry",
         postgres_conn_id: str = "postgres_default",
@@ -41,6 +44,16 @@ class TypeAHeadLocationOperator(BaseOperator):
         *args,
         **kwargs,
     ) -> None:
+        """Initialize.
+
+         args:
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
+        """
         super().__init__(*args, **kwargs)
         self.source_table = source_table
         self.source_location_column = source_location_column
@@ -48,11 +61,12 @@ class TypeAHeadLocationOperator(BaseOperator):
         self.geometry_column = geometry_column
         self.postgres_conn_id = postgres_conn_id
         self.http_conn_id = http_conn_id
+        self.dataset_name = dataset_name
 
-    def get_non_geometry_records(self):
+    def get_non_geometry_records(self, context):
         """get location values from table (for record with no geometry)"""
 
-        pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
+        pg_hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
 
         with pg_hook.get_cursor() as cursor:
 
@@ -125,7 +139,7 @@ class TypeAHeadLocationOperator(BaseOperator):
         """look up the geometry where no geometry is present"""
 
         # get location data without geometry
-        rows = self.get_non_geometry_records()
+        rows = self.get_non_geometry_records(context=context)
 
         # get BAG verblijfsobject ID from typeahead
         for record in rows:
@@ -154,7 +168,7 @@ class TypeAHeadLocationOperator(BaseOperator):
                 )
                 continue
 
-            pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
+            pg_hook = PostgresOnAzureHook(dataset_name=self.dataset_name,context=context, postgres_conn_id=self.postgres_conn_id)
 
             with pg_hook.get_cursor() as cursor:
 

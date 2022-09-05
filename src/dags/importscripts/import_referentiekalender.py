@@ -1,23 +1,28 @@
+from typing import Optional
+
 import pandas as pd
-from common.db import get_engine, get_ora_engine, get_postgreshook_instance
+from common.db import DatabaseEngine, get_ora_engine
 from psycopg2 import sql
 from sqlalchemy.types import Date, Integer, Text
 
 
-def load_from_dwh(table_name: str) -> None:
+def load_from_dwh(table_name: str, dataset_name: Optional[str] = None, **context: dict) -> None:
     """Loads data from an Oracle database source into a Postgres database.
 
     Args:
         table_name: The target table where the source data will be stored
+        dataset_name: Name of dataset that will be used as the database user
+            only applicable on Azure.
 
     Executes:
         SQL INSERT statements for the data and post-processing
         an ALTER statement to a contraint.
         Note: The SQL processing is done with SQLAlchemy
-
     """
-    postgreshook_instance = get_postgreshook_instance()
-    db_engine = get_engine()
+    postgreshook_instance = DatabaseEngine(
+        dataset_name=dataset_name, context=context
+    ).get_postgreshook_instance()
+    db_engine = DatabaseEngine(dataset_name=dataset_name, context=context).get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
     with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(
@@ -176,7 +181,8 @@ def load_from_dwh(table_name: str) -> None:
                 )
                 cur.execute(
                     sql.SQL(
-                        "ALTER TABLE {table_name} ALTER COLUMN DATUM TYPE DATE USING DATUM::DATE;"
+                        "ALTER TABLE {table_name} ALTER COLUMN\
+                            DATUM TYPE DATE USING DATUM::DATE;"
                     ).format(table_name=sql.Identifier(table_name))
                 )
             conn.commit()

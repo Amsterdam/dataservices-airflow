@@ -1,15 +1,15 @@
+from functools import partial
 from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from airflow.providers.postgres.operators.postgres import PostgresOperator
-from common import SHARED_DIR, MessageOperator, default_args, pg_params
+from common import SHARED_DIR, MessageOperator, default_args
+from common.db import pg_params
 from common.sql import SQL_TABLE_RENAMES
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
-
-# from airflow.providers.postgres.operators.postgres import PostgresOperator
 from swift_operator import SwiftOperator
 
 SQL_RENAME_COL: Final = """
@@ -18,6 +18,11 @@ ALTER TABLE asbestdaken_daken_new RENAME COLUMN identifica TO pandidentificatie
 
 dag_id = "asbestdaken"
 dag_config = Variable.get(dag_id, deserialize_json=True)
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=dag_id)
 
 with DAG(
     dag_id,
@@ -75,17 +80,17 @@ with DAG(
         load_dumps.append(
             BashOperator(
                 task_id=f"load_{tablename}",
-                bash_command=f"psql {pg_params()} < {tmp_dir}/{tablename}.utf8.sql",
+                bash_command=f"psql {db_conn_string()} < {tmp_dir}/{tablename}.utf8.sql",
             )
         )
 
-    rename_tables = PostgresOperator(
+    rename_tables = PostgresOnAzureOperator(
         task_id="rename_tables",
         sql=SQL_TABLE_RENAMES,
         params={"tablenames": rename_tablenames},
     )
 
-    rename_col = PostgresOperator(task_id="rename_col", sql=SQL_RENAME_COL)
+    rename_col = PostgresOnAzureOperator(task_id="rename_col", sql=SQL_RENAME_COL)
 
     # Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)

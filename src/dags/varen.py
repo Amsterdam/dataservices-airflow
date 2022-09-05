@@ -27,7 +27,7 @@ with DAG(
     #    based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
         task_id="drop_tables",
-        dataset_name="varen",
+        dataset_name=dag_id,
         pg_schema="pte",
     )
 
@@ -36,6 +36,7 @@ with DAG(
         task_id="swift_load_task",
         container="Dataservices",
         object_id=f"varen/{DATASTORE_TYPE}/varen.zip",
+        dataset_name=dag_id,
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -45,13 +46,13 @@ with DAG(
     # 4. Make the provenance translations
     provenance_renames = ProvenanceRenameOperator(
         task_id="provenance_renames",
-        dataset_name="varen",
+        dataset_name=dag_id,
         pg_schema="pte",
         rename_indexes=True,
     )
 
     # 5. Swap tables to target schema public
-    swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name="varen")
+    swap_schema = SwapSchemaOperator(task_id="swap_schema")
 
     # 6. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)

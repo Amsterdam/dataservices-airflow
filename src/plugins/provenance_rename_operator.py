@@ -3,7 +3,8 @@ from typing import Any, Final, Iterable, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
-from airflow.providers.postgres.hooks.postgres import PostgresHook
+from postgres_on_azure_hook import PostgresOnAzureHook
+from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
 from psycopg2 import sql
@@ -16,7 +17,7 @@ SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 class ProvenanceRenameOperator(BaseOperator):
     """Rename columns and indices according to the provenance field in the schema."""
 
-    # type: ignore [misc]
+    @apply_defaults  # type: ignore [misc]
     def __init__(  # noqa: D107
         self,
         dataset_name: str,
@@ -30,21 +31,21 @@ class ProvenanceRenameOperator(BaseOperator):
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
-        self.postgres_conn_id: str = postgres_conn_id
-        self.dataset_name: str = dataset_name
-        self.pg_schema: str = pg_schema
-        self.rename_indexes: bool = rename_indexes
+        self.postgres_conn_id = postgres_conn_id
+        self.dataset_name = dataset_name
+        self.pg_schema = pg_schema
+        self.rename_indexes = rename_indexes
         # The table to enforce the provenance translations is defined by
         # the table ID in the schema definition. If the provenance translations
         # must be applied on a temp table name i.e. 'spoorlijnen_metro_new'. Then specify
         # the prefix (i.e. spoorlijnen_) and postfix (i.e. _new) when calling this operator.
-        self.prefix_table_name: str = prefix_table_name
-        self.postfix_table_name: str = postfix_table_name
+        self.prefix_table_name = prefix_table_name
+        self.postfix_table_name = postfix_table_name
         # set table name for getting provenance for specific table
-        self.subset_tables: Optional[list] = subset_tables
+        self.subset_tables = subset_tables
 
     def _get_existing_tables(
-        self, pg_hook: PostgresHook, tables: list, pg_schema: str = "public"
+        self, pg_hook: PostgresOnAzureHook, tables: list, pg_schema: str = "public"
     ) -> dict[str, Any]:
         """Looks up the table name in schema.
 
@@ -90,7 +91,7 @@ class ProvenanceRenameOperator(BaseOperator):
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(
-        self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
+        self, pg_hook: PostgresOnAzureHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
     ) -> dict[str, set[str]]:
         """Looks up the column name of table in database.
 
@@ -118,7 +119,7 @@ class ProvenanceRenameOperator(BaseOperator):
         return table_columns
 
     def _get_existing_indexes(
-        self, pg_hook: PostgresHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
+        self, pg_hook: PostgresOnAzureHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
     ) -> dict[str, list[str]]:
         """Looks up the index name of table in database.
 
@@ -158,7 +159,7 @@ class ProvenanceRenameOperator(BaseOperator):
 
         """
         dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
-        pg_hook = PostgresHook(postgres_conn_id=self.postgres_conn_id)
+        pg_hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
         sqls = []
         existing_tables_lookup = self._get_existing_tables(
             pg_hook, dataset.tables, pg_schema=self.pg_schema

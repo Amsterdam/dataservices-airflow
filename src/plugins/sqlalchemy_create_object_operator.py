@@ -1,9 +1,12 @@
+import os
 import re
 from re import Pattern
 from typing import Any, Callable, Final, Optional, Union
 
 from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
+from airflow.utils.decorators import apply_defaults
+from common.db import define_dataset_name_for_azure_dbuser, pg_params
 from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
@@ -12,9 +15,6 @@ from schematools.utils import dataset_schema_from_url, to_snake_case
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
-# split is used to remove url params, if exists.
-# for database connection the url params must be omitted.
-DEFAULT_DB_CONN: Final = env.str("AIRFLOW_CONN_POSTGRES_DEFAULT").split("?")[0]
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
 MATCH_ALL: Final = re.compile(r".*")
 
@@ -35,12 +35,12 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         "data_table_name",
     ]
 
-    # type: ignore [misc]
+    @apply_defaults  # type: ignore [misc]
     def __init__(
         self,
         data_schema_name: str,
+        dataset_name: Optional[str] = None,
         data_table_name: Optional[Union[str, Pattern]] = MATCH_ALL,
-        db_conn: str = DEFAULT_DB_CONN,
         pg_schema: Optional[str] = None,
         db_table_name: Optional[str] = None,
         ind_table: bool = True,
@@ -55,13 +55,18 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
         Args:
             data_schema_name: Name of the schema to derive PostgreSQL objects from.
+            dataset_name: Name of the dataset as known in the Amsterdam schema.
+                Since the DAG name can be different from the dataset name, the latter
+                can be explicity given. Only applicable for Azure referentie db connection.
+                Defaults to None. If None, it will use the execution context to get the
+                DAG id as surrogate. Assuming that the DAG id equals the dataset name
+                as defined in Amsterdam schema.
             data_table_name: Table(s) to create PostgreSQL objects for. This can either be a
                 string of the format ``<prefix>_<scheme_table_name>``. Where ``prefix`` generally
                 is the dataset name/abbreviation and ``schema_table_name`` the name of the table
                 as specified in the schema. Or it can be a compiled regular expression. The latter
                 is mostly useful if you want to create PostgreSQL objects for all tables in a
                 given schema. This is also the default value (all tables).
-            db_conn: DB connection URL.
             pg_schema: Defines DB schema for the connection. If NONE it defaults to 'public'.
             db_table_name: Defines the table name to create. This can be different from the table
                 name as defined in the data schema i.e. [table_name]_new
@@ -78,8 +83,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         super().__init__(*args, **kwargs)
         self.data_schema_name = data_schema_name
         self.data_table_name = data_table_name
-
-        self.db_conn = db_conn
+        self.dataset_name = dataset_name
         self.pg_schema = pg_schema
         self.db_table_name = db_table_name
         self.ind_table = ind_table
@@ -109,9 +113,21 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         else:
             self.data_table_name = self.data_table_name
 
+        # If Azure
+        # To cope with a different logic for defining the Azure referentie db user.
+        # If CloudVPS is not used anymore, then this extra route can be removed.
+        if os.environ.get("AZURE_TENANT_ID") is not None:
+            self.dataset_name = define_dataset_name_for_azure_dbuser(
+                dataset_name=self.dataset_name, context=context
+            )
+
+        # chop off -X and remove all trailing spaces
+        # for database connection extra params must be omitted.
+        default_db_conn = pg_params(dataset_name=self.dataset_name)
+
         # setup the database schema for the database connection
         kwargs = {"pg_schemas": [self.pg_schema]} if self.pg_schema is not None else {}
-        engine = _get_engine(self.db_conn, **kwargs)
+        engine = _get_engine(default_db_conn, **kwargs)
 
         dataset_schema = dataset_schema_from_url(
             SCHEMA_URL, self.data_schema_name, prefetch_related=True

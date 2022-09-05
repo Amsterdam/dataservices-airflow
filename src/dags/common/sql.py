@@ -1,8 +1,9 @@
 from typing import Final
 
 SQL_DROP_TABLE: Final = """
+    {% set schema = params.schema|default("public", true) %}
     BEGIN;
-    DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
+    DROP TABLE IF EXISTS {{ schema }}.{{ params.tablename }} CASCADE;
     COMMIT;
 """
 
@@ -12,27 +13,28 @@ SQL_DROP_TABLE: Final = """
 # like so: 1 == POINT, 2 == LINESTRING, 3 == POLYGON
 SQL_GEOMETRY_VALID: Final = """
     {% set srid = params.srid|default(28992, true) %}
-    {% set geo_column = params.geo_column|default("GEOMETRY", true) %}
-    UPDATE {{ params.tablename }}
+    {% set schema = params.schema|default("public", true) %}
+    UPDATE {{ schema }}.{{ params.tablename }}
     {% if params.geom_type_number is defined %}
-    SET {{ geo_column }} = ST_MakeValid(
+    SET GEOMETRY = ST_MakeValid(
       ST_SetSRID(
         ST_GeomFromText(
           ST_AsText(
-            ST_CollectionExtract({{ geo_column }}, {{ params.geom_type_number }}))), {{ srid }}))
+            ST_CollectionExtract(GEOMETRY, {{ params.geom_type_number }}))), {{ srid }}))
     {% else %}
-    SET {{ geo_column }} = ST_MakeValid({{ geo_column }})
+    SET GEOMETRY = ST_MakeValid(GEOMETRY)
     {% endif %}
-    WHERE ST_IsValid({{ geo_column }}) = false;
+    WHERE ST_IsValid(GEOMETRY) = false;
     COMMIT;
 """
 
 SQL_TABLE_RENAME: Final = """
     {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% set pk = params.pk|default("pk", true) %}
-    ALTER TABLE IF EXISTS {{ params.tablename }} RENAME TO {{ params.tablename }}_old;
-    ALTER TABLE {{ params.tablename }}_new RENAME TO {{ params.tablename }};
-    DROP TABLE IF EXISTS {{ params.tablename }}_old;
+    {% set schema = params.schema|default("public", true) %}
+    ALTER TABLE IF EXISTS {{ schema }}.{{ params.tablename }} RENAME TO {{ params.tablename }}_old;
+    ALTER TABLE {{ schema }}.{{ params.tablename }}_new RENAME TO {{ params.tablename }};
+    DROP TABLE IF EXISTS {{ schema }}.{{ params.tablename }}_old;
     ALTER INDEX {{ params.tablename }}_new_{{ pk }} RENAME TO {{ params.tablename }}_pk;
     ALTER INDEX {{ params.tablename }}_new_{{ geo_column }}_geom_idx
       RENAME TO {{ params.tablename }}_{{ geo_column }}_geom_idx;
@@ -41,9 +43,10 @@ SQL_TABLE_RENAME: Final = """
 SQL_TABLE_RENAMES: Final = """
     {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
     {% for tablename in params.tablenames %}
-      ALTER TABLE IF EXISTS {{ tablename }} RENAME TO {{ tablename }}_old;
-      ALTER TABLE {{ tablename }}_new RENAME TO {{ tablename }};
-      DROP TABLE IF EXISTS {{ tablename }}_old;
+    {% set schema = params.schema|default("public", true) %}
+      ALTER TABLE IF EXISTS {{ schema }}.{{ tablename }} RENAME TO {{ tablename }}_old;
+      ALTER TABLE {{ schema }}.{{ tablename }}_new RENAME TO {{ tablename }};
+      DROP TABLE IF EXISTS {{ schema }}.{{ tablename }}_old;
       ALTER INDEX {{ tablename }}_new_pk RENAME TO {{ tablename }}_pk;
       ALTER INDEX {{ tablename }}_new_{{ geo_column }}_geom_idx
         RENAME TO {{ tablename }}_{{ geo_column }}_geom_idx;
@@ -51,13 +54,15 @@ SQL_TABLE_RENAMES: Final = """
 """
 
 SQL_CHECK_COUNT: Final = """
-    SELECT 1 FROM {{ params.tablename }} HAVING count(*) >= {{ params.mincount }}
+    {% set schema = params.schema|default("public", true) %}
+    SELECT 1 FROM {{ schema }}.{{ params.tablename }} HAVING count(*) >= {{ params.mincount }}
 """
 
 SQL_CHECK_GEO: Final = """
   {% set geo_column = params.geo_column|default("wkb_geometry", true) %}
+  {% set schema = params.schema|default("public", true) %}
   SELECT 1 WHERE NOT EXISTS (
-      SELECT FROM {{ params.tablename }} WHERE
+      SELECT FROM {{ schema }}.{{ params.tablename }} WHERE
         {% if params.notnull|default(true) %}
         {{ geo_column }} IS null OR
         {% else %}
@@ -76,7 +81,8 @@ SQL_CHECK_GEO: Final = """
 """
 
 SQL_CHECK_COLNAMES: Final = """
+   {% set schema = params.schema|default("public", true) %}
     SELECT column_name FROM information_schema.columns WHERE
-      table_schema = 'public' AND table_name = '{{ params.tablename }}'
+      table_schema = {{ schema }} AND table_name = '{{ params.tablename }}'
     ORDER BY column_name
 """

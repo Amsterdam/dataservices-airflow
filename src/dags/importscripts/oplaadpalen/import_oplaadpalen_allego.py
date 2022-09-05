@@ -4,6 +4,7 @@ import random
 import re
 import urllib.parse
 from collections import OrderedDict
+from postgres_on_azure_hook import PostgresOnAzureHook
 from typing import Final
 
 import psycopg2
@@ -301,7 +302,7 @@ and status = 'Unknown'
     return delete_count
 
 
-def import_oplaadpalen(pg_conn, max_inserts=100):
+def import_oplaadpalen(max_inserts=100, dataset_name = None, **context):
     """
     First we get a list of all chargepoints from Allego in Amsterdam
 
@@ -316,7 +317,7 @@ def import_oplaadpalen(pg_conn, max_inserts=100):
     If the last time details were loaded was more then 100 days ago we will reload it, in case it was
     changed in the  last 100 days.
     """
-
+    pg_conn = PostgresOnAzureHook(dataset_name=dataset_name, context=context).get_conn()
     all_oplaadpunten = get_all_oplaadpunten()
     log.info(f"Loaded {len(all_oplaadpunten)} oplaadpunten")
     total_inserts = 0
