@@ -2,7 +2,6 @@ import itertools
 import operator
 import os
 from collections import defaultdict
-from contextlib import closing
 from dataclasses import dataclass
 from typing import Any, Callable, Final, Optional, cast
 
@@ -381,12 +380,12 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
         # Use the mixin class _assign to assign new values, if provided.
         self._assign(context)
 
-        with closing(hook.get_conn()) as conn:
+        with hook.get_conn() as conn:
             if hook.supports_autocommit:
                 self.log.debug("Setting autocommit to '%s'.", self.autocommit)
                 hook.set_autocommit(conn, self.autocommit)
 
-            with closing(conn.cursor(cursor_factory=extras.RealDictCursor)) as cursor:
+            with conn.cursor(cursor_factory=extras.RealDictCursor) as cursor:
 
                 original_target_table_name = self.target_table_name
 
@@ -623,3 +622,4 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 conn.commit()
         for output in hook.conn.notices:
             self.log.info(output)
+        conn.close()

@@ -3,17 +3,16 @@ from typing import Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_fietspaaltjes import import_fietspaaltjes
 from postgres_files_operator import PostgresFilesOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
-from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 DAG_ID: Final = "fietspaaltjes"
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
@@ -56,15 +55,19 @@ with DAG(
         sql="DROP TABLE IF EXISTS {tables} CASCADE".format(tables=f"{TMP_TABLE_PREFIX}{TABLE}"),
     )
 
-    sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
-        task_id="sqlalchemy_create_objects_from_schema",
-        data_schema_name=DAG_ID,
-        ind_extra_index=True,
-    )
+    # TODO: does not cope with array like data types. So
+    # the table is not fully created (missing columns).
+    # Fix this in schema-tools
+    # sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
+    #     task_id="sqlalchemy_create_objects_from_schema",
+    #     data_schema_name=DAG_ID,
+    #     ind_extra_index=True,
+    # )
 
     postgres_create_tables_like = PostgresTableCopyOperator(
         task_id=f"postgres_create_tables_like_{TABLE}",
         dataset_name_lookup=DAG_ID,
+        dataset_name=DAG_ID,
         source_table_name=TABLE,
         target_table_name=f"{TMP_TABLE_PREFIX}{TABLE}",
         # Only copy table definitions. Don't do anything else.
@@ -75,6 +78,7 @@ with DAG(
 
     fill_table = PostgresFilesOperator(
         task_id="fill_table",
+        dataset_name=DAG_ID,
         sql_files=[
             TMP_DIR.joinpath(DAG_ID).with_suffix(".sql").as_posix(),
         ],
@@ -96,7 +100,6 @@ with DAG(
         >> fetch_json
         >> create_sql
         >> rm_tmp_tables
-        >> sqlalchemy_create_objects_from_schema
         >> postgres_create_tables_like
         >> fill_table
         >> rename_table

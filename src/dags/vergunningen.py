@@ -4,11 +4,11 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import EPHEMERAL_DIR, OTAP_ENVIRONMENT, MessageOperator, default_args, quote_string
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_files_operator import PostgresFilesOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
@@ -117,6 +117,7 @@ with DAG(
         PostgresFilesOperator(
             task_id=f"insert_data_into_{target_name}_new",
             sql_files=[f"{tmp_dir}/{file}"],
+            dataset_name=dag_id,
         )
         for file, _, target_name in table_renames
     ]

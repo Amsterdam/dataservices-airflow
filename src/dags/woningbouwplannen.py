@@ -1,9 +1,9 @@
 from typing import Final
 
 from airflow import DAG
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -96,7 +96,7 @@ with DAG(
     )
 
     # 5. Swap tables to target schema public
-    swap_schema = SwapSchemaOperator(task_id="swap_schema")
+    swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=dag_id)
 
     # 6. Extra manual renaming for the nm-tables
     nm_tables_rename = PostgresOnAzureOperator(
