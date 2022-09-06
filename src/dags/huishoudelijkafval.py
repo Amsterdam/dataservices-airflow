@@ -90,7 +90,7 @@ with DAG(
     # 5. DUMP FILE SOURCE
     # Swap tables to target schema public
     swap_schema = SwapSchemaOperator(
-        task_id="swap_schema", subset_tables=tables["dump_file"], dataset_id=dag_id
+        task_id="swap_schema", subset_tables=tables["dump_file"], dataset_name=dag_id
     )
 
     # 6. DWH STADSDELEN SOURCE
