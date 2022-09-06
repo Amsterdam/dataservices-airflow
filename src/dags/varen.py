@@ -23,8 +23,9 @@ with DAG(
         task_id="slack_at_start",
     )
 
-    # 2. Drop tables in target schema PTE (schema which orginates from the DB dump file, see next step)
-    #    based upon presence in the Amsterdam schema definition
+    # 2. Drop tables in target schema PTE (schema which orginates from the DB
+    # dump file, see next step) based upon presence in the Amsterdam schema
+    # definition.
     drop_tables = ProvenanceDropFromSchemaOperator(
         task_id="drop_tables",
         dataset_name=dag_id,
@@ -52,7 +53,7 @@ with DAG(
     )
 
     # 5. Swap tables to target schema public
-    swap_schema = SwapSchemaOperator(task_id="swap_schema")
+    swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=dag_id)
 
     # 6. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)

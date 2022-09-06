@@ -1,9 +1,10 @@
 from typing import Any, Final, Optional
 
 from airflow.models.baseoperator import BaseOperator
-from postgres_on_azure_hook import PostgresOnAzureHook
+from airflow.utils.context import Context
 from airflow.utils.decorators import apply_defaults
 from environs import Env
+from postgres_on_azure_hook import PostgresOnAzureHook
 from schematools.utils import dataset_schema_from_url, to_snake_case
 
 env = Env()
@@ -11,7 +12,9 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 
 
 class SwapSchemaOperator(BaseOperator):
-    @apply_defaults
+    """Class definition."""
+
+    @apply_defaults  # type: ignore
     def __init__(
         self,
         dataset_name: Optional[str] = None,
@@ -22,6 +25,7 @@ class SwapSchemaOperator(BaseOperator):
         *args: Any,
         **kwargs: dict,
     ) -> None:
+        """Initializer."""
         super().__init__(*args, **kwargs)
         self.postgres_conn_id = postgres_conn_id
         self.dataset_name = dataset_name
@@ -29,8 +33,8 @@ class SwapSchemaOperator(BaseOperator):
         self.to_pg_schema = to_pg_schema
         self.subset_tables = subset_tables
 
-    def execute(self, context: Optional[dict] = None) -> None:
-        """Moves database objects (in this case tables) to other schema owner
+    def execute(self, context: Context) -> None:
+        """Moves database objects (in this case tables) to other schema owner.
 
         Args:
             context: When this operator is created the context parameter is used
@@ -49,7 +53,9 @@ class SwapSchemaOperator(BaseOperator):
 
         """
         dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
-        pg_hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
+        pg_hook = PostgresOnAzureHook(
+            dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
+        )
 
         sqls = []
         dataset_id = to_snake_case(dataset.id)

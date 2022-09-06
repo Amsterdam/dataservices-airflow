@@ -1,11 +1,11 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import MessageOperator, default_args
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_referentiekalender import load_from_dwh
 from postgres_check_operator import PostgresCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -33,7 +33,7 @@ with DAG(
         task_id="load_from_dwh_stadsdelen",
         python_callable=load_from_dwh,
         provide_context=True,
-        op_args=[dag_id, f"{dag_id}_datum_new"],
+        op_args=[f"{dag_id}_datum_new", dag_id],
     )
 
     # 3. Check minimum number of records

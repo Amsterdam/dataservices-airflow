@@ -5,13 +5,13 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from importscripts.import_cmsa import import_cmsa
 from postgres_files_operator import PostgresFilesOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
@@ -76,7 +76,7 @@ with DAG(
     rm_tmp_tables = PostgresOnAzureOperator(
         task_id="rm_tmp_tables",
         sql="DROP TABLE IF EXISTS {tables} CASCADE".format(
-            tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", TABLES))
+            tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", TABLES))  # noqa: C417
         ),
     )
 
@@ -130,6 +130,7 @@ with DAG(
 
     import_data = PostgresFilesOperator(
         task_id="import_data_into_db",
+        dataset_name=DAG_ID,
         sql_files=[
             TMP_DIR / f"{TMP_TABLE_PREFIX}cmsa_sensor.sql",
             TMP_DIR / f"{TMP_TABLE_PREFIX}cmsa_locatie.sql",

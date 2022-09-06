@@ -24,7 +24,8 @@ count_checks = []
 geo_checks = []
 
 
-def checker(records, pass_value):
+def checker(records: list, pass_value: str) -> bool:
+    """Checks if column name equals given value."""
     found_colnames = {r[0] for r in records}
     return found_colnames == set(pass_value)
 
@@ -65,6 +66,7 @@ with DAG(
     # 5. Import data into DB
     create_table = PostgresFilesOperator(
         task_id="create_table",
+        dataset_name=dag_id,
         sql_files=[f"{tmp_dir}/{dag_id}_{dag_id}_new.sql"],
     )
 
@@ -83,7 +85,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=50,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new "),
+            params={"table_name": f"{dag_id}_{dag_id}_new "},
             result_checker=operator.ge,
         )
     )
@@ -91,10 +93,10 @@ with DAG(
     geo_checks.append(
         GEO_CHECK.make_check(
             check_id="geo_check",
-            params=dict(
-                table_name=f"{dag_id}_{dag_id}_new",
-                geotype=["POINT"],
-            ),
+            params={
+                "table_name": f"{dag_id}_{dag_id}_new",
+                "geotype": ["POINT"],
+            },
             pass_value=1,
         )
     )

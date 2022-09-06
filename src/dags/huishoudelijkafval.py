@@ -2,12 +2,12 @@ from typing import Union
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from common.sql import SQL_CHECK_COUNT
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_afvalinzamelingplanning import load_from_dwh
 from postgres_check_operator import PostgresCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
@@ -90,7 +90,7 @@ with DAG(
     # 5. DUMP FILE SOURCE
     # Swap tables to target schema public
     swap_schema = SwapSchemaOperator(
-        task_id="swap_schema", subset_tables=tables["dump_file"]
+        task_id="swap_schema", subset_tables=tables["dump_file"], dataset_id=dag_id
     )
 
     # 6. DWH STADSDELEN SOURCE
@@ -99,7 +99,7 @@ with DAG(
         task_id="load_from_dwh_stadsdelen",
         python_callable=load_from_dwh,
         provide_context=True,
-        op_args=[dag_id, f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new"],
+        op_args=[f"{dag_id}_{to_snake_case(tables['dwh_stadsdelen'])}_new", dag_id],
     )
 
     # 7. Check minimum number of records
