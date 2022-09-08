@@ -113,7 +113,7 @@ with DAG(
             target_table_name=f"{DAG_ID}_{file_name}_new",
             db_schema=tmp_database_schema,
             input_file=f"{tmp_dir}/{url}",
-            s_srs="EPSG:28992",
+            s_srs="EPSG:4326",
             t_srs="EPSG:28992",
             fid="id",
             auto_detect_type="YES",
