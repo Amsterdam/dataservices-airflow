@@ -7,6 +7,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.utils.context import Context
 from airflow.utils.decorators import apply_defaults
 from postgres_on_azure_hook import PostgresOnAzureHook
+from psycopg2 import sql
 
 
 class TypeAHeadLocationOperator(BaseOperator):
@@ -209,31 +210,31 @@ class TypeAHeadLocationOperator(BaseOperator):
                 # update record with found geometry
                 if bag_id is not None:
                     cursor.execute(
-                        """
+                        sql.SQL(
+                            """
                             WITH BAG_VBO_GEOM AS (
                             SELECT geometrie
                             FROM public.bag_verblijfsobjecten
                             WHERE identificatie = %(bag_id)s
                             )
-                            UPDATE %(source_table)s
-                            SET %(geometry_column)s = BAG_VBO_GEOM.geometrie
+                            UPDATE {source_table}
+                            SET {geometry_column} = BAG_VBO_GEOM.geometrie
                             FROM BAG_VBO_GEOM
-                            WHERE %(source_key_column)s = %(record_key)s;
+                            WHERE {source_key_column} = %(record_key)s;
                             COMMIT;
-                            """,
-                        {
-                            "source_table": self.source_table,
-                            "geometry_column": self.geometry_column,
-                            "source_key_column": self.source_key_column,
-                            "bag_id": bag_id,
-                            "record_key": record_key,
-                        },
+                            """
+                        ).format(
+                            source_table=sql.Identifier(self.source_table),
+                            geometry_column=sql.Identifier(self.geometry_column),
+                            source_key_column=sql.Identifier(self.source_key_column),
+                        ),
+                        {"bag_id": bag_id, "record_key": record_key},
                     )
 
                 # TEMPORARY: Final attempt to update the source data with geometry
                 # based on the BAG tables in the DB itself. Bypassing the
-                # use of the typahead API. Since the API cannot cope with huisnummer
-                # larger then 3 digits. See:
+                # use of the typahead API. Since the API cannot cope with
+                # huisnummer larger then 3 digits. See:
                 # https://api.data.amsterdam.nl/atlas/typeahead/bag/?q=Gustav%20Mahlerlaan%202920
                 # TODO: Adjust the typeahead API in this repo:
                 # https://github.com/Amsterdam/bag_services/
@@ -254,7 +255,8 @@ class TypeAHeadLocationOperator(BaseOperator):
                     self.log.info("Value for `huisnummer` to use in DB query = %s", huisnummer)
 
                     cursor.execute(
-                        """
+                        sql.SQL(
+                            """
                             WITH BAG_VBO_GEOM_FULL_SEARCH AS (
                             SELECT DISTINCT bv.geometrie
                             FROM public.bag_verblijfsobjecten bv
@@ -269,18 +271,16 @@ class TypeAHeadLocationOperator(BaseOperator):
                             WHERE bo.naam_nen = %(adres)s
                             AND bn.huisnummer =  %(huisnummer)s
                             )
-                            UPDATE %(source_table)s
-                            SET  %(geometry_column)s = BAG_VBO_GEOM_FULL_SEARCH.geometrie
+                            UPDATE {source_table}
+                            SET  {geometry_column} = BAG_VBO_GEOM_FULL_SEARCH.geometrie
                             FROM BAG_VBO_GEOM_FULL_SEARCH
-                            WHERE  %(source_key_column)s  = %(record_key)s ;
+                            WHERE  {source_key_column} = %(record_key)s;
                             COMMIT;
-                            """,
-                        {
-                            "source_table": self.source_table,
-                            "geometry_column": self.geometry_column,
-                            "source_key_column": self.source_key_column,
-                            "adres": adres,
-                            "huisnummer": huisnummer,
-                            "record_key": record_key,
-                        },
+                            """
+                        ).format(
+                            source_table=sql.Identifier(self.source_table),
+                            geometry_column=sql.Identifier(self.geometry_column),
+                            source_key_column=sql.Identifier(self.source_key_column),
+                        ),
+                        {"adres": adres, "huisnummer": huisnummer, "record_key": record_key},
                     )
