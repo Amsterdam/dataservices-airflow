@@ -208,7 +208,7 @@ class TypeAHeadLocationOperator(BaseOperator):
             with pg_hook.get_cursor() as cursor:
 
                 # update record with found geometry
-                if bag_id is not None:
+                if bag_url is not None:
                     cursor.execute(
                         sql.SQL(
                             """
@@ -238,7 +238,7 @@ class TypeAHeadLocationOperator(BaseOperator):
                 # https://api.data.amsterdam.nl/atlas/typeahead/bag/?q=Gustav%20Mahlerlaan%202920
                 # TODO: Adjust the typeahead API in this repo:
                 # https://github.com/Amsterdam/bag_services/
-                if bag_id is None:
+                if bag_url is None:
                     self.log.info(
                         "Final attempt: No BAG id found for %s, \
                         attempt by query the BAG tables directly,\
