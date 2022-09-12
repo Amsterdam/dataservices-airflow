@@ -258,9 +258,11 @@ class TypeAHeadLocationOperator(BaseOperator):
                             WITH BAG_VBO_GEOM_FULL_SEARCH AS (
                             SELECT DISTINCT bv.geometrie
                             FROM public.bag_verblijfsobjecten bv
-                            INNER JOIN public.bag_nummeraanduidingen_adresseert_verblijfsobject bnav
+                            INNER JOIN
+                                public.bag_nummeraanduidingen_adresseert_verblijfsobject bnav
                                 ON bnav.adresseert_verblijfsobject_identificatie = bv.identificatie
-                            INNER JOIN public.bag_nummeraanduidingen bn
+                            INNER JOIN
+                                public.bag_nummeraanduidingen bn
                                 ON bn.id = bnav.nummeraanduidingen_id
                             INNER JOIN public.bag_openbareruimtes bo
                                 ON bo.id = bn.ligt_aan_openbareruimte_id
@@ -272,7 +274,7 @@ class TypeAHeadLocationOperator(BaseOperator):
                             FROM BAG_VBO_GEOM_FULL_SEARCH
                             WHERE  %(source_key_column)s  = %(record_key)s ;
                             COMMIT;
-                            """,  # noqa: E501
+                            """,
                         {
                             "source_table": self.source_table,
                             "geometry_column": self.geometry_column,
