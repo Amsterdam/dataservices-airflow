@@ -47,7 +47,7 @@ winkelgebieden:
 bouwstroompunten:
   data_endpoints:
     auth: auth/local/
-    data: power-stations?filters[city][$eq]=Amsterdam&_limit=-1
+    data: power-stations?filters[city][%24eq]=Amsterdam&_limit=-1
 precariobelasting:
   data_endpoints:
     bedrijfsvaartuigen: dcatd/datasets/aUBH75WzCsTcYQ/purls/3
