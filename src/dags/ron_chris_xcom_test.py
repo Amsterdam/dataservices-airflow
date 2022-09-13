@@ -99,7 +99,7 @@ with DAG(
         image=CONTAINER_IMAGE,
         #cmds=COMMAND_TO_EXECUTE,
         cmds=["bash", "-cx"],
-        arguments=['echo \'{}\' > /airflow/xcom/return.json'.format('{"foo": "bar"\n, "buzz": 2}')],
+        arguments=['mkdir -p /airflow/xcom/; echo \'{}\' > /airflow/xcom/return.json'.format('{"foo": "bar"\n, "buzz": 2}')],
         # labels={"foo": "bar"},
         name="test_xcom_step",
         task_id="test_xcom_step",
