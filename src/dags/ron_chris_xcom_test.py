@@ -3,6 +3,7 @@ import json
 from datetime import timedelta
 from typing import Final, Optional
 from airflow.operators.bash import BashOperator
+from airflow.decorators import dag, task
 
 from airflow import DAG
 from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import (
@@ -92,6 +93,7 @@ with DAG(
     #     task_id="pod_task_xcom_result",
     #     )
 
+    @task
     def test_xcom_push(self):
         return_value = '{"foo": "bar"\n, "buzz": 2}'
         k = KubernetesPodOperator(
