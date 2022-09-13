@@ -97,12 +97,13 @@ with DAG(
     test_xcom_push = KubernetesPodOperator(
         namespace=AKS_NAMESPACE,
         image=CONTAINER_IMAGE,
-        cmds=["bash", "-cx"],
-        arguments=['echo \'{}\' > /airflow/xcom/return.json'.format('{"foo": "bar"\n, "buzz": 2}')],
-        labels={"foo": "bar"},
+        cmds=COMMAND_TO_EXECUTE,
+        # cmds=["bash", "-cx"],
+        # arguments=['echo \'{}\' > /airflow/xcom/return.json'.format('{"foo": "bar"\n, "buzz": 2}')],
+        # labels={"foo": "bar"},
         name="test",
         task_id="task",
-        do_xcom_push=True
+        do_xcom_push=False
     )
 
 
