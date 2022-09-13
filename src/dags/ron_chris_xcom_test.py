@@ -24,7 +24,7 @@ CONTAINER_IMAGE: Optional[str] = 'crdavebbn1ontweu01.azurecr.io/airflow-benk-ibu
 
 # Command that you want to run on container start
 #COMMAND_TO_EXECUTE: list = ["sh", "-c", "tail", "-f", "/dev/null"]
-COMMAND_TO_EXECUTE: list = ["sh", "-c", "mkdir -p /airflow/xcom/;echo '[1,2,3,4]' > /airflow/xcom/return.json", "&&",  "tail", "-f", "/dev/null"]
+COMMAND_TO_EXECUTE: list = ["sh", "-c", "mkdir -p /airflow/xcom/;echo '[1,2,3,4]' > /airflow/xcom/return.json && tail -f /dev/null"]
 DAG_ID: Final = "test_xcom_always_running"
 DATATEAM_OWNER: Final = "davebbn1"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
