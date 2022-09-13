@@ -88,10 +88,10 @@ with DAG(
     #     # get containers that are the first (marked with `_1` as a posfix) that will also
     #     # add the header to the .csv file to be created
 
-    # pod_task_xcom_result = BashOperator(
-    #     bash_command="echo \"{{ task_instance.xcom_pull('test_xcom_step')[0] }}\"",
-    #     task_id="pod_task_xcom_result",
-    #     )
+    pod_task_xcom_result = BashOperator(
+        bash_command="echo \"{{ task_instance.xcom_pull('test_xcom_step')[0] }}\"",
+        task_id="pod_task_xcom_result",
+        )
 
 
     test_xcom_push = KubernetesPodOperator(
@@ -101,8 +101,8 @@ with DAG(
         # cmds=["bash", "-cx"],
         # arguments=['echo \'{}\' > /airflow/xcom/return.json'.format('{"foo": "bar"\n, "buzz": 2}')],
         # labels={"foo": "bar"},
-        name="test",
-        task_id="task",
+        name="test_xcom_step",
+        task_id="test_xcom_step",
         do_xcom_push=False
     )
 
@@ -110,7 +110,7 @@ with DAG(
 
 # FLOW
 (
-    test_xcom_push
+    test_xcom_push >> pod_task_xcom_result
     #test_xcom_operator >> pod_task_xcom_result
 )
 
