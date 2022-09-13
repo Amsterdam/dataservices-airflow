@@ -93,20 +93,18 @@ with DAG(
     #     task_id="pod_task_xcom_result",
     #     )
 
-    @task
-    def test_xcom_push(self):
-        return_value = '{"foo": "bar"\n, "buzz": 2}'
-        k = KubernetesPodOperator(
-            namespace=AKS_NAMESPACE,
-            image=CONTAINER_IMAGE,
-            cmds=["bash", "-cx"],
-            arguments=['echo \'{}\' > /airflow/xcom/return.json'.format(return_value)],
-            labels={"foo": "bar"},
-            name="test",
-            task_id="task",
-            xcom_push=True
-        )
-        self.assertEqual(k.execute(None), json.loads(return_value))
+
+    test_xcom_push = KubernetesPodOperator(
+        namespace=AKS_NAMESPACE,
+        image=CONTAINER_IMAGE,
+        cmds=["bash", "-cx"],
+        arguments=['echo \'{}\' > /airflow/xcom/return.json'.format('{"foo": "bar"\n, "buzz": 2}')],
+        labels={"foo": "bar"},
+        name="test",
+        task_id="task",
+        xcom_push=True
+    )
+
 
 
 # FLOW
