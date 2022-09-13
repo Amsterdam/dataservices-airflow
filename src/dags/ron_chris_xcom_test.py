@@ -55,7 +55,6 @@ with DAG(
             cmds=COMMAND_TO_EXECUTE,
             # cmds=["sh", "-c", "mkdir -p /airflow/xcom/;echo '[1,2,3,4]' > /airflow/xcom/return.json"],
             labels=DAG_LABEL,
-            name=DAG_ID,
             # Determines when to pull a fresh image, if 'IfNotPresent' will cause
             # the Kubelet to skip pulling an image if it already exists. If you
             # want to always pull a new image, set it to 'Always'.
