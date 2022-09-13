@@ -103,7 +103,7 @@ with DAG(
         # labels={"foo": "bar"},
         name="test_xcom_step",
         task_id="test_xcom_step",
-        do_xcom_push=False
+        do_xcom_push=True
     )
 
 
