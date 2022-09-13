@@ -89,7 +89,7 @@ with DAG(
     #     # add the header to the .csv file to be created
 
     pod_task_xcom_result = BashOperator(
-        bash_command="echo \"{{ task_instance.xcom_pull('test_xcom_step') }}\"",
+        bash_command="echo ******************************* \"{{ task_instance.xcom_pull('test_xcom_step') }}\"",
         task_id="pod_task_xcom_result",
         )
 
