@@ -89,4 +89,7 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 # The & puts scheduler in background (not &&)
 # CMD ["sh", "-c", "airflow variables -i vars/vars.json & airflow scheduler & airflow webserver"]
 # CMD /run.sh
-CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]
+#CMD ["sh", "-c", "tail -f /dev/null"]
+#CMD ["sh", "-c", "airflow db upgrade"]
+#CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]
+CMD ["sh", "-c", "airflow db upgrade && /airflow_high_level_role_perms.sh & /run.sh"]
