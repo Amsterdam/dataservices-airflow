@@ -18,7 +18,7 @@ from common import default_args
 AZURE_OTAP_ENVIRONMENT: Optional[str] = os.getenv("AZURE_OTAP_ENVIRONMENT")
 
 # [registry]/[imagename]:[tag]
-CONTAINER_IMAGE: Optional[str] = "crdavebbn1ontweu01.azurecr.io/airflow-benk-iburgerzaken:test"
+CONTAINER_IMAGE: Optional[str] = "crdavebbn1ontweu01.azurecr.io/airflow-benk-iburgerzaken:test" if 'ont' in AZURE_OTAP_ENVIRONMENT else "alpine:latest"
 
 # Command that you want to run on container start
 # COMMAND_TO_EXECUTE: list = ["sh", "-c", "tail", "-f", "/dev/null"]
