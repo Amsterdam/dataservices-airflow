@@ -1,30 +1,32 @@
-import os
 import json
+import os
 from datetime import timedelta
 from typing import Final, Optional
-from airflow.operators.bash import BashOperator
-from airflow.decorators import dag, task
 
 from airflow import DAG
-from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import (
-    KubernetesPodOperator,
-)
-# from contact_point.callbacks import get_contact_point_on_failure_callback
+from airflow.decorators import dag, task
+from airflow.operators.bash import BashOperator
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 
 # below the modules as located at github.com/Amsterdam/dataservices-airflow
-from common import (
-    default_args
-)
+from common import default_args
+
+# from contact_point.callbacks import get_contact_point_on_failure_callback
+
 
 # environment where this DAG is loaded from
 AZURE_OTAP_ENVIRONMENT: Optional[str] = os.getenv("AZURE_OTAP_ENVIRONMENT")
 
 # [registry]/[imagename]:[tag]
-CONTAINER_IMAGE: Optional[str] = 'crdavebbn1ontweu01.azurecr.io/airflow-benk-iburgerzaken:test'
+CONTAINER_IMAGE: Optional[str] = "crdavebbn1ontweu01.azurecr.io/airflow-benk-iburgerzaken:test"
 
 # Command that you want to run on container start
-#COMMAND_TO_EXECUTE: list = ["sh", "-c", "tail", "-f", "/dev/null"]
-COMMAND_TO_EXECUTE: list = ["sh", "-c", "mkdir -p /airflow/xcom/;echo '[1,2,3,4]' > /airflow/xcom/return.json && tail -f /dev/null"]
+# COMMAND_TO_EXECUTE: list = ["sh", "-c", "tail", "-f", "/dev/null"]
+COMMAND_TO_EXECUTE: list = [
+    "sh",
+    "-c",
+    "mkdir -p /airflow/xcom/;echo '[1,2,3,4]' > /airflow/xcom/return.json && tail -f /dev/null",
+]
 DAG_ID: Final = "test_xcom_always_running"
 DATATEAM_OWNER: Final = "davebbn1"
 DAG_LABEL: Final = {"team_name": DATATEAM_OWNER}
@@ -39,7 +41,6 @@ with DAG(
     template_searchpath=["/"],
     catchup=False,
 ) as dag:
-
 
     # Be ware! The resource limits below are based on a F8_V2 machine (8 cpu, 16GB mem)
     # and sould be ajusted accordinly if changed.
@@ -91,27 +92,30 @@ with DAG(
     pod_task_xcom_result = BashOperator(
         bash_command="echo ******************************* \"{{ task_instance.xcom_pull('test_xcom_step') }}\"",
         task_id="pod_task_xcom_result",
-        )
-
+    )
 
     test_xcom_push = KubernetesPodOperator(
         namespace=AKS_NAMESPACE,
         image=CONTAINER_IMAGE,
-        #cmds=COMMAND_TO_EXECUTE,
+        # cmds=COMMAND_TO_EXECUTE,
         cmds=["bash", "-cx"],
-        arguments=['mkdir -p /airflow/xcom/; echo {} > /airflow/xcom/return.json'.format('{"foo":"bar","buzz":"2"}')],
+        arguments=[
+            "mkdir -p /airflow/xcom/; echo {} > /airflow/xcom/return.json".format(
+                '{"foo":"bar","buzz":"2"}'
+            )
+        ],
         # labels={"foo": "bar"},
         name="test_xcom_step",
         task_id="test_xcom_step",
         random_name_suffix=True,
-        do_xcom_push=True
+        node_selector={"nodetype": AKS_NODE_POOL},
+        do_xcom_push=True,
     )
-
 
 
 # FLOW
 (
-    test_xcom_push >> pod_task_xcom_result
-    #test_xcom_operator >> pod_task_xcom_result
+    test_xcom_push
+    >> pod_task_xcom_result
+    # test_xcom_operator >> pod_task_xcom_result
 )
-
