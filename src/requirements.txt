@@ -428,7 +428,7 @@ lockfile==0.12.2
     # via
     #   apache-airflow
     #   python-daemon
-mako==1.1.5
+mako==1.2.2
     # via alembic
 mappyfile==0.9.1
     # via amsterdam-schema-tools
