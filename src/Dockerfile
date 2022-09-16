@@ -88,5 +88,8 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 # Do not use -D to run processes daemonized, does not work!
 # The & puts scheduler in background (not &&)
 # CMD ["sh", "-c", "airflow variables -i vars/vars.json & airflow scheduler & airflow webserver"]
-# CMD /run.sh
-CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]
+#
+# Do an DB upgrade first and only for bumbing Airflow
+#
+CMD ["sh", "-c", "airflow db upgrade"]
+#CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]

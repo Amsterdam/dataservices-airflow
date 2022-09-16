@@ -7,11 +7,11 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.python import PythonOperator
 from airflow.utils.context import Context
-from postgres_on_azure_hook import PostgresOnAzureHook
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.utils.task_group import TaskGroup
 from common import MessageOperator, default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 
@@ -36,7 +36,7 @@ from sql.basiskaart import SELECT_WATERDEELVLAK_SQL as SELECT_WATERDEELVLAK_SQL 
 from sql.basiskaart import SELECT_WEGDEELLIJN_SQL as SELECT_WEGDEELLIJN_SQL  # noqa: F401
 from sql.basiskaart import SELECT_WEGDEELVLAK_SQL as SELECT_WEGDEELVLAK_SQL  # noqa: F401
 from sqlalchemy import create_engine
-from sqlalchemy.engine import ResultProxy, RowProxy
+from sqlalchemy.engine import Result, Row
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
@@ -72,7 +72,10 @@ TABLES: Final[list[Table]] = [
 
 
 def copy_basiskaartdb_to_masterdb(
-    source_connection: str, source_select_statement: str, target_base_table: str, **context: Context
+    source_connection: str,
+    source_select_statement: str,
+    target_base_table: str,
+    **context: Context,
 ) -> None:
     """Copy data from basiskaart DB to master DB.
 
@@ -92,9 +95,9 @@ def copy_basiskaartdb_to_masterdb(
     with source_engine.connect() as src_conn:
         count = 0
         logger.debug("Executing SQL query: %r", source_select_statement)
-        cursor: ResultProxy = src_conn.execute(source_select_statement)
+        cursor: Result = src_conn.execute(source_select_statement)
         while True:
-            rows: list[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
+            rows: list[Row] = cursor.fetchmany(size=IMPORT_STEP)
             batch_count = insert_rows(target_base_table, rows, cursor.keys(), context)
             count += batch_count
             if batch_count < IMPORT_STEP:
@@ -102,7 +105,9 @@ def copy_basiskaartdb_to_masterdb(
     logger.info("Total records imported: %d", count)
 
 
-def insert_rows(target_base_table: str, rows: list[RowProxy], col_names: Iterable[str], context: Context) -> int:
+def insert_rows(
+    target_base_table: str, rows: list[Row], col_names: Iterable[str], context: Context
+) -> int:
     """Insert data from iterator into target table."""
     # TODO:
     # This function is enormously inefficient;

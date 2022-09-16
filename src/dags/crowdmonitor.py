@@ -5,17 +5,17 @@ from typing import Final, Iterable, Optional
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.context import Context
-from postgres_on_azure_hook import PostgresOnAzureHook
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import default_args, env
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from psycopg2 import sql
 from psycopg2.extras import execute_values
 from sqlalchemy import create_engine
-from sqlalchemy.engine import RowProxy
+from sqlalchemy.engine import Row
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
@@ -83,7 +83,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(**context: Context) -> None:
             """
         )
         while True:
-            rows: list[RowProxy] = cursor.fetchmany(size=IMPORT_STEP)
+            rows: list[Row] = cursor.fetchmany(size=IMPORT_STEP)
             batch_count = insert_many(rows, IMPORT_STEP, context)
             count += batch_count
             if batch_count < IMPORT_STEP:
@@ -91,7 +91,7 @@ def copy_data_from_dbwaarnemingen_to_masterdb(**context: Context) -> None:
         logger.info("Number of records imported: %d", count)
 
 
-def insert_many(rows: list[RowProxy], batch_size: Optional[int], context:Context) -> int:
+def insert_many(rows: list[Row], batch_size: Optional[int], context: Context) -> int:
     """Insert rows in batches."""
     if batch_size is None:
         batch_size = len(rows)
