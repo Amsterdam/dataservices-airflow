@@ -144,7 +144,7 @@ def get_ora_engine(oracle_conn_id: str = "oracle_default") -> Engine:
     return conn_instance
 
 
-def wkt_loads_wrapped(data: str, source_srid: int, geom_type_family:str) -> WKTElement:
+def wkt_loads_wrapped(data: str, source_srid: int, geom_type_family: str) -> WKTElement:
     """Loading WKT (well known text) geometry definition.
 
     This function translates a single geometry to multi
@@ -164,10 +164,10 @@ def wkt_loads_wrapped(data: str, source_srid: int, geom_type_family:str) -> WKTE
     if data is not None:
         p = wkt.loads(data)
 
-        if geom_type_family == 'polygon':
+        if geom_type_family == "polygon":
 
             # needed to identify geometry type `collection`
-            geoms = list(getattr(p, 'geoms', ''))
+            geoms = list(getattr(p, "geoms", ""))
 
             if isinstance(p, Polygon):
                 p = MultiPolygon([p])
@@ -188,7 +188,7 @@ def wkt_loads_wrapped(data: str, source_srid: int, geom_type_family:str) -> WKTE
                         p = MultiPolygon([geo])
                         break
 
-                    else: # not a valid geometry, skip
+                    else:  # not a valid geometry, skip
                         continue
 
                 # if all geometies in `collection` are checked and no
@@ -196,7 +196,7 @@ def wkt_loads_wrapped(data: str, source_srid: int, geom_type_family:str) -> WKTE
                 if not isinstance(p, MultiPolygon) or isinstance(p, Polygon):
                     p = None
 
-            else: # not a valid geometry
+            else:  # not a valid geometry
                 p = None
 
         else:
@@ -362,6 +362,15 @@ def pg_params(
 
         # get connection string
         connection_uri = BaseHook.get_connection(conn_id).get_uri()
+        # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
+        # the name `postgresql`` must be used instead now.
+        # However, Airflow renames the protocol name to `postgres`. See:
+        # from airflow.models.connection import Connection
+        # conn = Connection(uri="postgresql://")
+        # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
+        # Therefore we must rename it back :-)
+        if connection_uri and connection_uri.startswith("postgres://"):
+            connection_uri = connection_uri.replace("postgres://", "postgresql://", 1)
 
         # specifiy database user to login.
         # it refers to an AAD group where the Airflow Managed Idenity (MI) is member of.
@@ -382,7 +391,17 @@ def pg_params(
         return connection_uri
 
     # Else CloudVPS
+    # get connection string
     connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
+    # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
+    # the name `postgresql`` must be used instead now.
+    # However, Airflow renames the protocol name to `postgres`. See:
+    # from airflow.models.connection import Connection
+    # conn = Connection(uri="postgresql://")
+    # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
+    # Therefore we must rename it back :-)
+    if connection_uri and connection_uri.startswith("postgres://"):
+        connection_uri = connection_uri.replace("postgres://", "postgresql://", 1)
     if pg_params:
         parameters = " ".join(
             [

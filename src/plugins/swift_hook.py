@@ -34,6 +34,15 @@ class SwiftHook(BaseHook):
         if self.swift_conn_id != "swift_default":
             options = {}
             connection = BaseHook.get_connection(self.swift_conn_id)
+            # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
+            # the name `postgresql`` must be used instead now.
+            # However, Airflow renames the protocol name to `postgres`. See:
+            # from airflow.models.connection import Connection
+            # conn = Connection(uri="postgresql://")
+            # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
+            # Therefore we must rename it back :-)
+            if connection and connection.startswith("postgres://"):
+                connection = connection.replace("postgres://", "postgresql://", 1)
             options["os_username"] = connection.login
             options["os_password"] = connection.password
             options["os_tenant_name"] = connection.host
