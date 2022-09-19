@@ -8,7 +8,7 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.models.dagrun import DagRun
 from airflow.settings import TIMEZONE, Session
 from airflow.utils.context import Context
-from common.db import define_dataset_name_for_azure_dbuser, pg_params
+from common.db import pg_params
 from environs import Env
 from requests.exceptions import HTTPError
 from schematools.cli import _get_engine
@@ -161,7 +161,8 @@ class PostgresPermissionsOperator(BaseOperator):
                     for self.dag_name in executed_dags_after_delta:
                         dataset_name = []
 
-                        # get real datasetname from DAG_DATASET constant, if dag_id != dataschema name
+                        # get real datasetname from DAG_DATASET constant,
+                        # if dag_id != dataschema name
                         for key in DAG_DATASET.keys():
                             if self.dag_name and key in self.dag_name:
                                 for item in DAG_DATASET[key]:
@@ -202,7 +203,8 @@ class PostgresPermissionsOperator(BaseOperator):
                         self.batch_timewindow,
                     )
 
-            # Option TWO: grant on single dataset (can be used as a final step within a single DAG run)
+            # Option TWO: grant on single dataset
+            # (can be used as a final step within a single DAG run)
             elif self.dag_name and not self.batch_ind:
                 dataset_name = []
 
