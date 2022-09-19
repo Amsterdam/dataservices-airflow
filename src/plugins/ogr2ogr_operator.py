@@ -143,8 +143,7 @@ class Ogr2OgrOperator(BaseOperator):
                 f"dbname={self.db_conn.db} "
                 f"user={self.db_conn.user} "
                 f"password={self.db_conn.password} "
-                f"port={self.db_conn.port} "
-                f"active_schema={self.db_schema if self.db_schema else self.db_conn.temp_db_schema}"  # noqa: E501
+                f"port={self.db_conn.port}"
             )
             if not self.sqlite_source:
                 ogr2ogr_cmd.append(input_file.as_posix())
