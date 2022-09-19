@@ -90,7 +90,7 @@ services:
         ${oov_brievenbus_password_overlastgebieden}@${oov_brievenbus_host}:${oov_brievenbus_port}"
       AIRFLOW_CONN_OOV_BRIEVENBUS_CORONA: "sftp://${oov_brievenbus_user_corona}:\
         ${oov_brievenbus_password_corona}@${oov_brievenbus_host}:${oov_brievenbus_port}"
-      AIRFLOW__API__AUTH_BACKENDS: ${AIRFLOW__API__AUTH_BACKENDS:-airflow.api.auth.backend.session}
+      AIRFLOW__API__AUTH_BACKENDS: ${AIRFLOW__API__AUTH_BACKENDS:-airflow.api.auth.backend.basic_auth}
       GOB_PUBLIC_ENDPOINT: "gob/public/graphql/streaming/"
       GOB_SECURE_ENDPOINT: "gob/graphql/streaming/"
       OAUTH_TOKEN_EXPIRES_MARGIN: 20
