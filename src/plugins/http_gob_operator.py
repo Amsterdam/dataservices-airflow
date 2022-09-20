@@ -178,7 +178,11 @@ class HttpGobOperator(BaseOperator):
             dataset = dataset_schema_from_url(
                 dataset_info.schema_url, dataset_info.dataset_id, prefetch_related=True
             )
-            importer = NDJSONImporter(dataset, pg_hook.get_sqlalchemy_engine(), logger=self.log)
+            importer = NDJSONImporter(
+                dataset,
+                pg_hook.get_sqlalchemy_engine(split_dictcursor=True),
+                logger=self.log
+                )
 
             importer.generate_db_objects(
                 table_id=dataset_info.table_id,
