@@ -3,10 +3,10 @@ from typing import Any, Final, Iterable, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
-from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from more_ds.network.url import URL
+from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import sql
 from schematools.utils import dataset_schema_from_url, to_snake_case, toCamelCase
 
@@ -91,7 +91,10 @@ class ProvenanceRenameOperator(BaseOperator):
         return {row["tablename"]: table_lookup[row["tablename"]] for row in rows}
 
     def _get_existing_columns(
-        self, pg_hook: PostgresOnAzureHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
+        self,
+        pg_hook: PostgresOnAzureHook,
+        snaked_tablenames: Iterable[str],
+        pg_schema: str = "public",
     ) -> dict[str, set[str]]:
         """Looks up the column name of table in database.
 
@@ -119,7 +122,10 @@ class ProvenanceRenameOperator(BaseOperator):
         return table_columns
 
     def _get_existing_indexes(
-        self, pg_hook: PostgresOnAzureHook, snaked_tablenames: Iterable[str], pg_schema: str = "public"
+        self,
+        pg_hook: PostgresOnAzureHook,
+        snaked_tablenames: Iterable[str],
+        pg_schema: str = "public",
     ) -> dict[str, list[str]]:
         """Looks up the index name of table in database.
 
@@ -159,7 +165,9 @@ class ProvenanceRenameOperator(BaseOperator):
 
         """
         dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
-        pg_hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
+        pg_hook = PostgresOnAzureHook(
+            dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
+        )
         sqls = []
         existing_tables_lookup = self._get_existing_tables(
             pg_hook, dataset.tables, pg_schema=self.pg_schema
@@ -230,4 +238,5 @@ class ProvenanceRenameOperator(BaseOperator):
                     )
                 )
 
-        pg_hook.run(sqls)
+        if sqls:
+            pg_hook.run(sqls)
