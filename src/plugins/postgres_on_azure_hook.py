@@ -1,11 +1,14 @@
 import os
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from airflow.models.connection import Connection
 from airflow.providers.postgres.hooks.postgres import PostgresHook
 from airflow.utils.context import Context
 from airflow.utils.decorators import apply_defaults
+from sqlalchemy import create_engine
 
+if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Engine
 
 class PostgresOnAzureHook(PostgresHook):
     """Postgres connection hook for Azure."""
@@ -90,33 +93,23 @@ class PostgresOnAzureHook(PostgresHook):
 
         return login, password, port
 
-    def get_uri(self) -> Any:
-        """Override the method from DbApiHook.
 
-        NOTE:
-        Since SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
-        the name `postgresql` must be used instead now.
-        However, Airflow renames the protocol name to `postgres`. See:
-        from airflow.models.connection import Connection
-        conn = Connection(uri="postgresql://")
-        print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
-        Therefore we must rename it back :-)
+    def get_sqlalchemy_engine(self, split_dictcursor:bool = False, engine_kwargs: Any =None) -> 'Engine':
+        """Override of `get_sqlalchemy_engine` method in DbApiHook.
 
-        See DbApiHook class information:
-        https://airflow.apache.org/docs/apache-airflow-providers-common-sql\
-            /stable/_modules/airflow/providers/common/sql/hooks/sql.html#DbApiHook.get_sqlalchemy_engine
+        When doing an execute() on get_sqlalchemy_engine() the
+        psycopg2.extensions.parse_dsn() will raise and invalid dsn
+        option `cursor`. Therefor the cursor URL parameter is removed.
+        This is probably caused since the upgrade of SQLalchemy to 1.4.27.
 
-        Returns:
-            connection string
+        :param engine_kwargs: Kwargs used in :func:`~sqlalchemy.create_engine`.
+        :return: An sqlalchemy_engine object; the created engine.
         """
-        connection_uri = super().get_uri()
-        # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
-        # the name `postgresql`` must be used instead now.
-        # However, Airflow renames the protocol name to `postgres`. See:
-        # from airflow.models.connection import Connection
-        # conn = Connection(uri="postgresql://")
-        # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
-        # Therefore we must rename it back :-)
-        if connection_uri and connection_uri.startswith("postgres://"):
-            connection_uri = connection_uri.replace("postgres://", "postgresql://", 1)
-        return connection_uri
+        if split_dictcursor:
+            get_uri = self.get_uri().split('?cursor=dictcursor')[0]
+        else:
+            get_uri = self.get_uri()
+
+        if engine_kwargs is None:
+            engine_kwargs = {}
+        return create_engine(get_uri, **engine_kwargs)
