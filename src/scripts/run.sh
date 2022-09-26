@@ -2,6 +2,7 @@
 
 export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN:-`echo $AIRFLOW_CONN_POSTGRES_DEFAULT | cut -d'?' -f 1`}
 export AIRFLOW_CONN_POSTGRES_VSD={$AIRFLOW_CONN_POSTGRES_VSD:-$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
+if [ $(echo ${DATAPUNT_ENVIRONMENT}) == "production" ]; then airflow db upgrade && sleep 60 && exit 0; fi
 airflow db init  # db init is not destructive, so can be re-run at startup
 airflow db upgrade  # upgrade DB if needed
 python scripts/mkvars.py
