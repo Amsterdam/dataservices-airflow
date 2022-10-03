@@ -58,9 +58,9 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            swift_conn_id="SWIFT_DEFAULT",
-            container="grootstedelijkegebieden",
-            object_id=file,
+            swift_conn_id="OBJECTSTORE_GOB",
+            container="productie",
+            object_id=f"gebieden/SHP/{file}",
             output_path=f"{TMP_PATH}/{file}",
         )
         for file in files_to_download
