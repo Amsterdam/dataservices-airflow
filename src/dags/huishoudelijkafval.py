@@ -46,6 +46,7 @@ with DAG(
     # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
+    schedule_interval="0 4 * * *",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
 ) as dag:
 
