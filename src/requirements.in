@@ -63,4 +63,4 @@ supervisor==4.1.0
 sqlalchemy==1.4.27
 validator-collection==1.4.1
 xlrd==1.2.0
-yamlip==0.0.2:wq
+yamlip==0.0.2
