@@ -5,7 +5,7 @@ apache-airflow-providers-oracle==2.0.1
 apache-airflow-providers-sftp==2.4.1
 apache-airflow-providers-slack==4.2.1
 apache-airflow-providers-ssh==2.4.0
-apache-airflow[crypto,postgres,sentry,sendgrid]==2.3.4
+apache-airflow[crypto,postgres,sentry,sendgrid]==2.3.4 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.3.4/constraints-3.7.txt"
 authlib==1.0.1
 clevercsv==0.1.4
 cryptography==3.4.8
@@ -42,6 +42,7 @@ openpyxl==3.0.7
 paramiko==2.7.2
 pendulum==2.1.2
 psycopg[binary]==3.0.3
+psycopg2-binary==2.9.1
 pyodbc==4.0.32
 pyjwt[crypto]==2.4.0
 pysftp==0.2.9
@@ -62,4 +63,4 @@ supervisor==4.1.0
 sqlalchemy==1.4.27
 validator-collection==1.4.1
 xlrd==1.2.0
-yamlip==0.0.2
+yamlip==0.0.2:wq
