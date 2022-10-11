@@ -7,7 +7,6 @@ apache-airflow-providers-slack==4.2.1
 apache-airflow-providers-ssh==2.4.0
 apache-airflow[crypto,postgres,sentry,sendgrid]==2.3.4
 authlib==1.0.1
-cattrs==1.1.2
 clevercsv==0.1.4
 cryptography==3.4.8
 cx-Oracle==8.2.1
@@ -36,12 +35,15 @@ geojson==2.5.0
 ibm-db-sa==0.3.7
 jsonpointer==2.1
 kubernetes==23.6.0
+mako==1.2.2
 more-ds==0.0.4
+oauthlib==3.2.1
 openpyxl==3.0.7
 paramiko==2.7.2
 pendulum==2.1.2
 psycopg[binary]==3.0.3
 pyodbc==4.0.32
+pyjwt[crypto]==2.4.0
 pysftp==0.2.9
 pyshp==2.1.0
 pytest-env==0.6.2
