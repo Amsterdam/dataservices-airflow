@@ -42,8 +42,6 @@ openbareverlichting:
   data_endpoints:
     objects: services/rest_sia.php/SIAService/objecten
     objecttypes: services/rest_sia.php/SIAService/types
-winkelgebieden:
-  schema_end_point: datasets/winkelgebieden/winkelgebieden
 bouwstroompunten:
   data_endpoints:
     auth: auth/local/
