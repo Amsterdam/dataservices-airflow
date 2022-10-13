@@ -61,7 +61,7 @@ repos:
       - id: rst-directive-colons  # Detect mistake of rst directive not ending with double colon
       - id: rst-inline-touching-normal  # Detect mistake of inline code touching normal text in rst
   - repo: https://github.com/asottile/pyupgrade
-    rev: v2.19.4
+    rev: v3.1.0
     hooks:
       - id: pyupgrade
         args: [--py39-plus]
