@@ -34,7 +34,7 @@ gpkg_path = f"{export_dir}/{dataset_name_database}.gpkg"
 owner = "team_ruimte"
 
 
-def fetch_env_vars(**args: Any) -> Any:
+def fetch_env_vars(*args: Any) -> Any:
     """Get the Postgres default DSN connection info as a dictionary."""
     pg_env_vars = DatabaseEngine(context=args).fetch_pg_env_vars()
     return pg_env_vars
