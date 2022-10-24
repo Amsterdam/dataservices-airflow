@@ -40,7 +40,7 @@ mako==1.2.2
 more-ds==0.0.4
 oauthlib==3.2.1
 openpyxl==3.0.7
-paramiko==2.7.2
+paramiko==2.11.0
 pendulum==2.1.2
 psycopg[binary]==3.0.3
 psycopg2-binary==2.9.1
