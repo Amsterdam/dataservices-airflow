@@ -9,10 +9,10 @@ apache-airflow[crypto,postgres,sentry,sendgrid]==2.4.1 --constraint "https://raw
 attrs==22.1.0
 authlib==1.0.1
 clevercsv==0.1.4
-cryptography==3.4.8
+cryptography==38.0.1
 cx-Oracle==8.2.1
 datapunt-objectstore==2020.9.7
-docker==4.4.4
+docker==6.0.0
 dsnparse==0.1.15
 environs==9.3.3
 flake8==3.9.2
