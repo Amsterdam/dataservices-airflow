@@ -1,6 +1,6 @@
 
     {
-      relMbnMtgMbnRptRefereertAanReferentiepunten(active: false) {
+      relMbnMtgMbnRpt_RftN_Referentiepunten(active: false) {
         edges {
           cursor
           node {
