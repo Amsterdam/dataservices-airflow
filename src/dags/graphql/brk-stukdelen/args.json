@@ -1,6 +1,5 @@
 {
   "extra_kwargs": {
-    "batch_size": 100,
     "protected": true
   },
 
