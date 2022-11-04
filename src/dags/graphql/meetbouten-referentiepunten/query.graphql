@@ -4,14 +4,7 @@
       node {
         identificatie 
         cursor
-        nabijNummeraanduiding {
-          edges {
-            node {
-              identificatie 
-              volgnummer 
-            }
-          }
-        }
+        nabijNummeraanduiding
         locatie 
         hoogteTovNap 
         datum 
