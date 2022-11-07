@@ -30,7 +30,6 @@ TMP_TABLE_PREFIX: Final = "tmp_"
 VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: dict[FileStem, UrlPath] = VARS["data_endpoints"]
 table_mappings: dict[FileStem, str] = VARS["table_mappings"]
-cleanse_mappings: dict[FileStem, dict[str, str]] = VARS["cleanse_mappings"]
 
 assert set(data_endpoints.keys()) == set(
     table_mappings.keys()
@@ -108,16 +107,8 @@ with DAG(
     )
 
     data = tuple(
-        FileTable(
-            file=EXPORT_DIR / f"{file_stem}.csv",
-            table=f"{TMP_TABLE_PREFIX}{table}",
-            cleanse_from=char_from,
-            cleanse_to=char_to,
-        )
+        FileTable(file=EXPORT_DIR / f"{file_stem}.csv", table=f"{TMP_TABLE_PREFIX}{table}")
         for file_stem, table in table_mappings.items()
-        for file_cleanse, cleanse_chars in cleanse_mappings.items()
-        for char_from, char_to in cleanse_chars.items()
-        if file_cleanse == file_stem
     )
     postgres_insert_csv = PostgresInsertCsvOperator(task_id="postgres_insert_csv", data=data)
 
