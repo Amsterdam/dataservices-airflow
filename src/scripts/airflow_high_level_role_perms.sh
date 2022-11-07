@@ -24,7 +24,7 @@ echo 'Airflow is ***AWAKE***. Setting generic permissions to custom roles.......
 echo '@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@'
 
 # list roles names and space separated
-roles="team_benk team_ruimte dataservices"
+roles="team_benk team_ruimte dataservices team_basisstatistiek"
 
 # apply the generic perms to the custom roles
 for role in $roles; do \

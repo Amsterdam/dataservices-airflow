@@ -301,6 +301,10 @@ bbga:
     bbga_latest_and_greatest: bbga_kerncijfers
     metadata_latest_and_greatest: bbga_indicatoren_definities
     bbga_std_latest_and_greatest: bbga_statistieken
+  cleanse_mappings:
+    bbga_latest_and_greatest: {'""':"0"}
+    metadata_latest_and_greatest: {"dummy":"dummy"}
+    bbga_std_latest_and_greatest: {"dummy":"dummy"}
 wior:
   data_endpoints:
     wfs: /ows?service=wfs&version=2.0.0&request=GetFeature&TYPENAMES=WIOR_AMS:datapunt_opendata&outputFormat=application/json
@@ -320,19 +324,44 @@ rdw:
     carrosserie: /vezc-m2t6.csv
 stroomstoringen:
   data_endpoints:
-    stroomstoringen: "/v6W5HAVrpgSg3vts/ArcGIS/rest/services/IStoringen_Productie_V7/FeatureServer/0/query?where=STORING_DATUM_GEMELD+>%3D+%27{today}%27+AND+\
-                    lower(STORING_GETROFFEN_PLAATSEN)+in+(%27amsterdam%27,%27weesp%27)&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&\
-                    patialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&\
-                    returnGeometry=true&returnCentroid=false&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&\
-                    geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&\
-                    returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&\
-                    groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&\
-                    returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
+    stroomstoringen:
+      "/v6W5HAVrpgSg3vts/ArcGIS/rest/services/IStoringen_Productie_V7/FeatureServer/0/query?where=STORING_DATUM_GEMELD+>%3D+%27{today}%27+AND+\
+      lower(STORING_GETROFFEN_PLAATSEN)+in+(%27amsterdam%27,%27weesp%27)&objectIds=&time=&geometry=&geometryType=esriGeometryEnvelope&inSR=&\
+      patialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false&outFields=*&\
+      returnGeometry=true&returnCentroid=false&featureEncoding=esriDefault&multipatchOption=xyFootprint&maxAllowableOffset=&\
+      geometryPrecision=&outSR=&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false&returnUniqueIdsOnly=false&\
+      returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&returnDistinctValues=false&cacheHint=false&orderByFields=&\
+      groupByFieldsForStatistics=&outStatistics=&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&\
+      returnExceededLimitFeatures=true&quantizationParameters=&sqlFormat=none&f=pgeojson&token="
 leidingeninfrastuctuur:
   files_to_download:
     wibon: Wibon.sqlite
-    source_tables: [mantelbuizen, materiaal, klasse, inwinningstype, mantelbuisdiameter, hoofdcategorie, thema, mantelbuistype, janee, nauwkeurigheid, eigenaar, functie, groep, kabeltype, kabeldiameter, fase, bouwtype, type, kabels, punten, punttype]
-    target_tables: [mantelbuizen, ondergrondse_kabels, bovengrondse_kabels, punten]
+    source_tables:
+      [
+        mantelbuizen,
+        materiaal,
+        klasse,
+        inwinningstype,
+        mantelbuisdiameter,
+        hoofdcategorie,
+        thema,
+        mantelbuistype,
+        janee,
+        nauwkeurigheid,
+        eigenaar,
+        functie,
+        groep,
+        kabeltype,
+        kabeldiameter,
+        fase,
+        bouwtype,
+        type,
+        kabels,
+        punten,
+        punttype,
+      ]
+    target_tables:
+      [mantelbuizen, ondergrondse_kabels, bovengrondse_kabels, punten]
   sql_to_execute:
     mantelbuizen: SQL_MANTELBUIZEN_TABLE
     ondergrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
@@ -344,20 +373,64 @@ hoofdroutes:
     tunnels_gevaarlijke_stoffen: dcatd/datasets/ZtMOaEZSOnXM9w/purls/2
 wegenbestand:
   files_to_download:
-    routes_gevaarlijke_stoffen: {"url": "dcatd/datasets/ZtMOaEZSOnXM9w/purls/1", "file_type": "geojson"}
-    tunnels_gevaarlijke_stoffen: {"url": "dcatd/datasets/ZtMOaEZSOnXM9w/purls/2", "file_type": "geojson"}
-    zone_zwaar_verkeer: {"url": "dcatd/datasets/YLTyzpWP6Vz2QQ/purls/1", "file_type": "gpkg"}
+    routes_gevaarlijke_stoffen:
+      { "url": "dcatd/datasets/ZtMOaEZSOnXM9w/purls/1", "file_type": "geojson" }
+    tunnels_gevaarlijke_stoffen:
+      { "url": "dcatd/datasets/ZtMOaEZSOnXM9w/purls/2", "file_type": "geojson" }
+    zone_zwaar_verkeer:
+      { "url": "dcatd/datasets/YLTyzpWP6Vz2QQ/purls/1", "file_type": "gpkg" }
   data_values:
-    table_1: {"table":"binnen", "geopackage_layer": "vma400_20212201_undirected","data_filter": "binnen", "source": "zone_zwaar_verkeer"}
-    table_2: {"table":"buiten", "geopackage_layer": "vma400_20212201_undirected","data_filter": "buiten", "source": "zone_zwaar_verkeer"}
-    table_3: {"table":"breed_opgezette_wegen", "geopackage_layer": "vma400_20212201_undirected", "data_filter": "binnen - breed opgezette wegen", "source": "zone_zwaar_verkeer"}
-    table_4: {"table":"routes_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
-    table_5: {"table":"tunnels_gevaarlijke_stoffen", "data_filter": None, "source": "wegenbestand"}
+    table_1:
+      {
+        "table": "binnen",
+        "geopackage_layer": "vma400_20212201_undirected",
+        "data_filter": "binnen",
+        "source": "zone_zwaar_verkeer",
+      }
+    table_2:
+      {
+        "table": "buiten",
+        "geopackage_layer": "vma400_20212201_undirected",
+        "data_filter": "buiten",
+        "source": "zone_zwaar_verkeer",
+      }
+    table_3:
+      {
+        "table": "breed_opgezette_wegen",
+        "geopackage_layer": "vma400_20212201_undirected",
+        "data_filter": "binnen - breed opgezette wegen",
+        "source": "zone_zwaar_verkeer",
+      }
+    table_4:
+      {
+        "table": "routes_gevaarlijke_stoffen",
+        "data_filter": None,
+        "source": "wegenbestand",
+      }
+    table_5:
+      {
+        "table": "tunnels_gevaarlijke_stoffen",
+        "data_filter": None,
+        "source": "wegenbestand",
+      }
 corona:
   data_endpoints:
-    gevallen: {"data": "data/covid-19/COVID-19_aantallen_gemeente_per_dag.json", "dataset": "gevallen" }
-    ziekenhuisopnames: {"data": "data/covid-19/COVID-19_ziekenhuisopnames.json", "dataset": "gevallen" }
+    gevallen:
+      {
+        "data": "data/covid-19/COVID-19_aantallen_gemeente_per_dag.json",
+        "dataset": "gevallen",
+      }
+    ziekenhuisopnames:
+      {
+        "data": "data/covid-19/COVID-19_ziekenhuisopnames.json",
+        "dataset": "gevallen",
+      }
   files_to_download:
-    handhaving: {"data": "corona_handhaving.csv", "dataset": "handhaving" }
+    handhaving: { "data": "corona_handhaving.csv", "dataset": "handhaving" }
 grootstedelijke_projecten:
-  files_to_download: [GBD_grootstedelijke_projecten.dbf, GBD_grootstedelijke_projecten.shp, GBD_grootstedelijke_projecten.shx]
+  files_to_download:
+    [
+      GBD_grootstedelijke_projecten.dbf,
+      GBD_grootstedelijke_projecten.shp,
+      GBD_grootstedelijke_projecten.shx,
+    ]

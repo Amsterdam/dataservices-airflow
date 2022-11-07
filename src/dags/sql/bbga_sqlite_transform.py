@@ -88,6 +88,12 @@ CREATE TABLE IF NOT EXISTS bbga_kerncijfers
 ALTER TABLE bbga_kerncijfers
     ADD COLUMN id VARCHAR NOT NULL GENERATED ALWAYS AS (indicator_definitie_id || '|' || jaar || '|' || gebiedcode_15) VIRTUAL;
 
+/*
+BEGIN;
+UPDATE bbga_kerncijfers SET WAARDE = NULL WHERE WAARDE = '';
+COMMIT;
+*/
+
 ALTER TABLE bbga_statistieken
     ADD COLUMN id VARCHAR NOT NULL GENERATED ALWAYS AS (indicator_definitie_id || '|' || jaar) VIRTUAL;
 

@@ -1,4 +1,5 @@
 import csv
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -16,6 +17,8 @@ class FileTable:
 
     file: Path
     table: str
+    cleanse_from: str
+    cleanse_to: str
 
 
 class PostgresInsertCsvOperator(BaseOperator):
@@ -91,62 +94,121 @@ class PostgresInsertCsvOperator(BaseOperator):
         base_dir = Path()
         if self.base_dir_task_id is not None:
             base_dir = Path(context["task_instance"].xcom_pull(task_ids=self.base_dir_task_id))
-            self.log.info("Setting base_dir to '%s'.", base_dir)
+            self.log.info("*** setting base_dir to '%s'.", base_dir)
         hook = PostgresOnAzureHook(
             dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
         )
 
         with hook.get_conn() as conn:
             if hook.supports_autocommit:
-                self.log.debug("Setting autocommit to '%s'.", self.autocommit)
+                self.log.debug("*** setting autocommit to '%s'.", self.autocommit)
                 hook.set_autocommit(conn, self.autocommit)
 
             with conn.cursor() as cursor:
+
                 for ft in self.data:
-                    file = ft.file if ft.file.is_absolute() else base_dir / ft.file
-                    self.log.info("Processing file '%s' for table '%s'.", file, ft.table)
-                    with file.open(newline="") as csv_file:
-                        reader = csv.DictReader(csv_file, dialect=csv.unix_dialect)
-                        self.log.info("file '%s' is read.", file)
-                        assert (
-                            reader.fieldnames is not None
-                        ), f"CSV file '{file}' needs to have a header."
-                        cursor.execute(
-                            sql.SQL(
-                                """
-                                PREPARE csv_ins_stmt AS INSERT INTO {table} ({columns})
-                                                        VALUES ({values})
-                                """
-                            ).format(
-                                table=sql.Identifier(ft.table),
-                                columns=sql.SQL(", ").join(map(sql.Identifier, reader.fieldnames)),
-                                values=sql.SQL(", ").join(
-                                    sql.SQL(f"${pos}")
-                                    for pos in range(1, len(reader.fieldnames) + 1)
-                                ),
+                    self.log.info("*** processing file %s", ft.file)
+
+                    # START TEMPORARY LOGIC
+                    # A seperate temporary logic for processing
+                    # `bbga_latest_and_greatest.csv` since it gets
+                    # stuck on cVPS. Locally the orginal code (below)
+                    # works fine. But on cVPS the database server cannot
+                    # handle the load. For now, we do a SQL copy action
+                    # to cope with this.
+                    # TODO: Fix this if this also occurs on Azure.
+                    if "bbga_kerncijfers" in ft.table:
+                        self.log.info("*** start data cleaning for %s", ft.file)
+                        self.log.info("*** replace %s by %s", ft.cleanse_from, ft.cleanse_to)
+                        with open(fr"{ft.file}") as file:
+                            # Reading the content of the source file
+                            # using the read() function and storing
+                            # them in a new variable
+                            data = file.read()
+
+                            # Searching and replacing the text
+                            # using the reguler expression function
+                            data = re.sub(ft.cleanse_from, ft.cleanse_to, data)
+
+                        # Opening the source file in write only
+                        # mode to write the replaced content
+                        with open(fr"{ft.file}", "w") as file:
+
+                            # Writing the replaced data in source
+                            # file
+                            file.write(data)
+
+                        with open(fr"{ft.file}") as file:
+                            # get header row and remove the new line character.
+                            header_row = next(file).replace("\n", "")
+                            # extract the header columns as an iterable.
+                            header_cols = list(header_row.split(","))
+                            self.log.info("*** start SQL copy to ingest %s", ft.file)
+                            cursor.copy_from(
+                                file, ft.table, sep=",", null="None", columns=header_cols
                             )
-                        )
-                        self.log.info("PREPARE of SQL statement for '%s' is DONE.", file)
-                        execute_batch(
-                            cursor,
-                            sql.SQL("EXECUTE csv_ins_stmt ({params})").format(
-                                params=sql.SQL(", ").join(
-                                    sql.Placeholder(col) for col in reader.fieldnames
+
+                    if not hook.get_autocommit(conn):
+                        conn.commit()
+                        self.log.info("*** transactions for '%s' commited.", file)
+                    # END TEMPORARY LOGIC
+
+                    # START ORGINAL LOGIC
+                    if "bbga_kerncijfers" not in ft.table:
+                        file = ft.file if ft.file.is_absolute() else base_dir / ft.file
+                        self.log.info("*** processing file '%s' for table '%s'.", file, ft.table)
+                        with file.open(newline="") as csv_file:
+                            reader = csv.DictReader(csv_file, dialect=csv.unix_dialect)
+                            self.log.info("*** file '%s' is read.", file)
+                            assert (
+                                reader.fieldnames is not None
+                            ), f"CSV file '{file}' needs to have a header."
+                            cursor.execute(
+                                sql.SQL(
+                                    """
+                                    PREPARE csv_ins_stmt AS INSERT INTO {table} ({columns})
+                                                            VALUES ({values})
+                                    """
+                                ).format(
+                                    table=sql.Identifier(ft.table),
+                                    columns=sql.SQL(", ").join(
+                                        map(sql.Identifier, reader.fieldnames)
+                                    ),
+                                    values=sql.SQL(", ").join(
+                                        sql.SQL(f"${pos}")
+                                        for pos in range(1, len(reader.fieldnames) + 1)
+                                    ),
                                 )
-                            ),
-                            # Nasty hack to treat empty string values as None
-                            (
-                                {k: v if v != "" else None for k, v in row.items()}
-                                for row in reader
-                            ),
-                            self.page_size,
-                        )
-                        self.log.info("EXECUTE of SQL statement for '%s' is DONE.", file)
-                        cursor.execute("DEALLOCATE csv_ins_stmt")
-                        self.log.info("DEALLOCATE for SQL statement for '%s' is DONE.", file)
-                        if not hook.get_autocommit(conn):
-                            conn.commit()
-                            self.log.info("COMMIT transactions for '%s' is DONE.", file)
+                            )
+                            self.log.info(
+                                "*** preparation SQL statement for '%s' is finished.", file
+                            )
+                            execute_batch(
+                                cursor,
+                                sql.SQL("EXECUTE csv_ins_stmt ({params})").format(
+                                    params=sql.SQL(", ").join(
+                                        sql.Placeholder(col) for col in reader.fieldnames
+                                    )
+                                ),
+                                # Nasty hack to treat empty string values as None
+                                (
+                                    {k: v if v != "" else None for k, v in row.items()}
+                                    for row in reader
+                                ),
+                                self.page_size,
+                            )
+                            self.log.info(
+                                "*** execution of SQL statement for '%s' is finished.", file
+                            )
+                            cursor.execute("DEALLOCATE csv_ins_stmt")
+                            self.log.info(
+                                "*** deallocation of SQL statement for '%s' is finished.", file
+                            )
+                            if not hook.get_autocommit(conn):
+                                conn.commit()
+                                self.log.info("*** transactions for '%s' commited.", file)
+                    # END ORGINAL LOGIC
+
         for output in hook.conn.notices:
             self.log.info(output)
         conn.close()
