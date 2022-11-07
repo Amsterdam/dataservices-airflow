@@ -1,12 +1,11 @@
 import csv
-from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
 from airflow.models import BaseOperator
-from postgres_on_azure_hook import PostgresOnAzureHook
 from airflow.utils.decorators import apply_defaults
+from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import sql
 from psycopg2.extras import execute_batch
 
@@ -46,7 +45,7 @@ class PostgresInsertCsvOperator(BaseOperator):
     .. warning:: Currently this operator assumes that an empty string represents a NULL value!
     """
 
-    @apply_defaults
+    @apply_defaults  # type:ignore
     def __init__(
         self,
         data: tuple[FileTable, ...],
@@ -88,21 +87,27 @@ class PostgresInsertCsvOperator(BaseOperator):
         self.autocommit = autocommit
 
     def execute(self, context: dict[str, Any]) -> None:
+        """Main execute logic for operator."""
         base_dir = Path()
         if self.base_dir_task_id is not None:
             base_dir = Path(context["task_instance"].xcom_pull(task_ids=self.base_dir_task_id))
             self.log.info("Setting base_dir to '%s'.", base_dir)
-        hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id)
-        with closing(hook.get_conn()) as conn:
+        hook = PostgresOnAzureHook(
+            dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
+        )
+
+        with hook.get_conn() as conn:
             if hook.supports_autocommit:
                 self.log.debug("Setting autocommit to '%s'.", self.autocommit)
                 hook.set_autocommit(conn, self.autocommit)
-            with closing(conn.cursor()) as cursor:
+
+            with conn.cursor() as cursor:
                 for ft in self.data:
                     file = ft.file if ft.file.is_absolute() else base_dir / ft.file
                     self.log.info("Processing file '%s' for table '%s'.", file, ft.table)
                     with file.open(newline="") as csv_file:
                         reader = csv.DictReader(csv_file, dialect=csv.unix_dialect)
+                        self.log.info("file '%s' is read.", file)
                         assert (
                             reader.fieldnames is not None
                         ), f"CSV file '{file}' needs to have a header."
@@ -121,6 +126,7 @@ class PostgresInsertCsvOperator(BaseOperator):
                                 ),
                             )
                         )
+                        self.log.info("PREPARE of SQL statement for '%s' is DONE.", file)
                         execute_batch(
                             cursor,
                             sql.SQL("EXECUTE csv_ins_stmt ({params})").format(
@@ -135,9 +141,12 @@ class PostgresInsertCsvOperator(BaseOperator):
                             ),
                             self.page_size,
                         )
+                        self.log.info("EXECUTE of SQL statement for '%s' is DONE.", file)
                         cursor.execute("DEALLOCATE csv_ins_stmt")
-            if not hook.get_autocommit(conn):
-                self.log.debug("Committing transaction.")
-                conn.commit()
+                        self.log.info("DEALLOCATE for SQL statement for '%s' is DONE.", file)
+                        if not hook.get_autocommit(conn):
+                            conn.commit()
+                            self.log.info("COMMIT transactions for '%s' is DONE.", file)
         for output in hook.conn.notices:
             self.log.info(output)
+        conn.close()
