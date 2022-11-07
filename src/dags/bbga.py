@@ -6,12 +6,12 @@ from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import EPHEMERAL_DIR, MessageOperator, default_args
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from http_fetch_operator import HttpFetchOperator
 from postgres_insert_csv_operator import FileTable, PostgresInsertCsvOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
@@ -21,6 +21,8 @@ from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 FileStem = str
 UrlPath = str
 
+OWNER: Final = "team_basisstatistiek"
+
 DAG_ID: Final = "bbga"
 EXPORT_DIR: Final = Path(EPHEMERAL_DIR) / DAG_ID
 SQLITE_CSV_TRANSFORM_FILE: Final = EXPORT_DIR / "transform_csv_files.sqlite3"
@@ -28,6 +30,7 @@ TMP_TABLE_PREFIX: Final = "tmp_"
 VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
 data_endpoints: dict[FileStem, UrlPath] = VARS["data_endpoints"]
 table_mappings: dict[FileStem, str] = VARS["table_mappings"]
+cleanse_mappings: dict[FileStem, dict[str, str]] = VARS["cleanse_mappings"]
 
 assert set(data_endpoints.keys()) == set(
     table_mappings.keys()
@@ -36,7 +39,10 @@ assert set(data_endpoints.keys()) == set(
 
 with DAG(
     dag_id=DAG_ID,
-    default_args=default_args,
+    default_args=default_args | {"owner": OWNER},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
+    access_control={OWNER: {"can_dag_read", "can_dag_edit"}},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
 ) as dag:
 
@@ -102,8 +108,16 @@ with DAG(
     )
 
     data = tuple(
-        FileTable(file=EXPORT_DIR / f"{file_stem}.csv", table=f"{TMP_TABLE_PREFIX}{table}")
+        FileTable(
+            file=EXPORT_DIR / f"{file_stem}.csv",
+            table=f"{TMP_TABLE_PREFIX}{table}",
+            cleanse_from=char_from,
+            cleanse_to=char_to,
+        )
         for file_stem, table in table_mappings.items()
+        for file_cleanse, cleanse_chars in cleanse_mappings.items()
+        for char_from, char_to in cleanse_chars.items()
+        if file_cleanse == file_stem
     )
     postgres_insert_csv = PostgresInsertCsvOperator(task_id="postgres_insert_csv", data=data)
 
