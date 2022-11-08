@@ -46,9 +46,7 @@ with DAG(
 ) as dag:
 
     # 1. Post info message on slack
-    slack_at_start = MessageOperator(
-        task_id="slack_at_start",
-    )
+    slack_at_start = MessageOperator(task_id="slack_at_start", channel="#airflow_basisstatistiek")
 
     mkdir = mk_dir(EXPORT_DIR)
 
@@ -67,14 +65,18 @@ with DAG(
         return PostgresOnAzureOperator(
             task_id=f"rm_tmp_tables{task_id_postfix}",
             sql="DROP TABLE IF EXISTS {tables}".format(
-                tables=", ".join(map(lambda t: f"{TMP_TABLE_PREFIX}{t}", table_mappings.values()))
+                tables=", ".join(
+                    map(lambda t: f"{TMP_TABLE_PREFIX}{t}", table_mappings.values())  # noqa: C417
+                )
             ),
         )
 
     rm_tmp_tables_pre = rm_tmp_tables("_pre")
 
     sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
-        task_id="sqlalchemy_create_objects_from_schema", data_schema_name=DAG_ID
+        task_id="sqlalchemy_create_objects_from_schema",
+        data_schema_name=DAG_ID,
+        ind_extra_index=False,
     )
 
     postgres_create_tables_like = [

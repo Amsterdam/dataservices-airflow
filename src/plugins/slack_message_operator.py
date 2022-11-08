@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Final
+from typing import Final, Optional
 
 from airflow.exceptions import AirflowException
 from airflow.models.taskinstance import Context
@@ -20,6 +20,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class SlackMessageOperator(SlackAPIPostOperator):
     """Class definition for sending Slack message.
+
+    :channel: Name of slack channel to post message to.
+        Defaults to environment variable `SLACK_CHANNEL` if
+        not given.
 
     :env var SLACK_CHANNEL: Name of Slack channel to post to.
         If you want to send it to a "user" -> use "@user",
@@ -54,9 +58,10 @@ class SlackMessageOperator(SlackAPIPostOperator):
         )
 
         slack_hook = SlackHook(token=SLACK_TOKEN)
+        self.channel: Optional[str] = self.channel if self.channel else SLACK_CHANNEL
 
         try:
-            slack_hook.call("chat.postMessage", json={"channel": SLACK_CHANNEL, "text": message})
+            slack_hook.call("chat.postMessage", json={"channel": self.channel, "text": message})
 
         except (AirflowException, ConnectionError):
             logger.error("Unable to reach Slack!! Falling back to logger.")
@@ -96,7 +101,7 @@ class SlackMessageOperator(SlackAPIPostOperator):
 
         try:
             slack_hook.call(
-                "chat.postMessage", json={"channel": SLACK_CHANNEL, "text": failed_message}
+                "chat.postMessage", json={"channel": self.channel, "text": failed_message}
             )
 
         except (AirflowException, ConnectionError):
