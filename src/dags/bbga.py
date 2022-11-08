@@ -28,6 +28,7 @@ EXPORT_DIR: Final = Path(EPHEMERAL_DIR) / DAG_ID
 SQLITE_CSV_TRANSFORM_FILE: Final = EXPORT_DIR / "transform_csv_files.sqlite3"
 TMP_TABLE_PREFIX: Final = "tmp_"
 VARS: Final = Variable.get(DAG_ID, deserialize_json=True)
+CUSTOM_SLACK_CHANNEL: Final = "#airflow_basisstatistiek"
 data_endpoints: dict[FileStem, UrlPath] = VARS["data_endpoints"]
 table_mappings: dict[FileStem, str] = VARS["table_mappings"]
 
@@ -38,7 +39,13 @@ assert set(data_endpoints.keys()) == set(
 
 with DAG(
     dag_id=DAG_ID,
-    default_args=default_args | {"owner": OWNER},
+    default_args=default_args
+    | {"owner": OWNER}
+    | {
+        "on_failure_callback": MessageOperator(
+            task_id="error", channel=CUSTOM_SLACK_CHANNEL
+        ).slack_failed_task
+    },
     # the access_control defines perms on DAG level. Not needed in Azure
     # since each datateam will get its own instance.
     access_control={OWNER: {"can_dag_read", "can_dag_edit"}},
@@ -46,7 +53,7 @@ with DAG(
 ) as dag:
 
     # 1. Post info message on slack
-    slack_at_start = MessageOperator(task_id="slack_at_start", channel="#airflow_basisstatistiek")
+    slack_at_start = MessageOperator(task_id="slack_at_start", channel=CUSTOM_SLACK_CHANNEL)
 
     mkdir = mk_dir(EXPORT_DIR)
 

@@ -1,12 +1,13 @@
-from environs import Env
 import inspect
 from typing import Any
 
 from airflow.models import BaseOperator
 from airflow.models.taskinstance import Context
+from environs import Env
 
 env = Env()
-SLACK_CHANNEL: str = env('SLACK_CHANNEL')
+SLACK_CHANNEL: str = env("SLACK_CHANNEL")
+
 
 class LogMessageOperator(BaseOperator):
     """Log messages to default logger.
@@ -14,9 +15,17 @@ class LogMessageOperator(BaseOperator):
     To proxy SlackWebhookOperator for local development.
     """
 
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize LogMessageOperator."""
-        self.channel = SLACK_CHANNEL
+    def __init__(self, *, channel: str = SLACK_CHANNEL, **kwargs: Any) -> None:
+        """Initialize LogMessageOperator.
+
+        Args:
+            channel: The name of the slack channel to send message to.
+                It defaults to environment variable `SLACK_CHANNEL` value.
+
+        executes:
+            Initialize logic while instantiating this class.
+        """
+        self.channel = channel
 
         # Only pass along arguments that the BaseOperator super class defines.
         # Reason being that by default BaseOperator does not accept arguments it didn't
@@ -31,4 +40,23 @@ class LogMessageOperator(BaseOperator):
 
     def execute(self, context: Context) -> None:
         """Log message to default logger."""
-        self.log.info("start DAG %s for channel %s",  context.get('task_instance').dag_id, self.channel)
+        self.log.info(
+            "start DAG %s for channel %s", context.get("task_instance").dag_id, self.channel
+        )
+
+    def slack_failed_task(self, context: Context) -> None:
+        """Sends failure DAG message to standard out.
+
+        This function is used in the DAG's `on_failure_callback` parameter.
+
+        Args:
+            context: parameters in dict format
+
+        executes:
+            log output.
+        """
+        self.log.info(
+            "DAG %s failed! If not development, it would send message to channel %s",
+            context.get("task_instance").dag_id,
+            self.channel,
+        )
