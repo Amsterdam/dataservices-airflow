@@ -2,10 +2,11 @@ import re
 from typing import Any, Optional
 
 from airflow.models.taskinstance import Context
-from postgres_on_azure_hook import PostgresOnAzureHook
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.utils.decorators import apply_defaults
 from check_helpers import check_safe_name
+from postgres_on_azure_hook import PostgresOnAzureHook
+from postgres_on_azure_operator import PostgresOnAzureOperator
+from psycopg2 import sql
 
 
 class PostgresTableRenameOperator(PostgresOnAzureOperator):
@@ -52,8 +53,14 @@ class PostgresTableRenameOperator(PostgresOnAzureOperator):
         self.dataset_name = dataset_name
 
     def execute(self, context: Context) -> None:
+        """Main execution logic. Iherts from PostgresOnAzureOperator."""
         # First get all index names, so it's known which indices to rename
-        hook = PostgresOnAzureHook(dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id, schema=self.database)
+        hook = PostgresOnAzureHook(
+            dataset_name=self.dataset_name,
+            context=context,
+            postgres_conn_id=self.postgres_conn_id,
+            schema=self.database,
+        )
 
         # Start a list to hold rename information
         table_renames = [
@@ -103,30 +110,39 @@ class PostgresTableRenameOperator(PostgresOnAzureOperator):
             )
             for row in indexes
         ]
+
         # Define the SQL to execute by the super class.
         # This supports executing multiple statements in a single transaction:
         self.sql = []
 
         cascade = " CASCADE" if self.cascade else ""
-        for sql in (
-            "ALTER TABLE IF EXISTS {new_table_name} RENAME TO {backup_table_name}",
-            "ALTER TABLE IF EXISTS {old_table_name} RENAME TO {new_table_name}",
-            "DROP TABLE IF EXISTS {backup_table_name}{cascade}",
+        for sql_statements in (
+            sql.SQL("ALTER TABLE IF EXISTS {new_table_name} RENAME TO {backup_table_name}"),
+            sql.SQL("ALTER TABLE IF EXISTS {old_table_name} RENAME TO {new_table_name}"),
+            sql.SQL(" ".join(["DROP TABLE IF EXISTS {backup_table_name}", f"{cascade}"])),
         ):
 
             for old_table_name, new_table_name, backup_table_name in table_renames + renames:
                 lookup = {
-                    "old_table_name": old_table_name,
-                    "new_table_name": new_table_name,
-                    "backup_table_name": backup_table_name,
-                    "cascade": cascade,
+                    "old_table_name": sql.Identifier(old_table_name),
+                    "new_table_name": sql.Identifier(new_table_name),
+                    "backup_table_name": sql.Identifier(backup_table_name),
                 }
-                # FIXME Don't use string formatting! Use `psycopg2.sql` instead.
-                self.sql.append(sql.format(**lookup))
+                self.sql.append(sql_statements.format(**lookup))
 
         for old_name, new_name in idx_renames:
-            self.sql.append(f"ALTER INDEX IF EXISTS {old_name} RENAME TO {new_name}")
+            self.sql.append(
+                sql.SQL("DROP INDEX IF EXISTS {new_name}").format(
+                    new_name=sql.Identifier(new_name)
+                )
+            )
+            self.sql.append(
+                sql.SQL("ALTER INDEX IF EXISTS {old_name} RENAME TO {new_name}").format(
+                    old_name=sql.Identifier(old_name), new_name=sql.Identifier(new_name)
+                )
+            )
 
+        # execute SQL statements
         super().execute(context)
 
 
