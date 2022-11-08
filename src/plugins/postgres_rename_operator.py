@@ -115,7 +115,7 @@ class PostgresTableRenameOperator(PostgresOnAzureOperator):
         # This supports executing multiple statements in a single transaction:
         self.sql = []
 
-        cascade = " CASCADE" if self.cascade else None
+        cascade = " CASCADE" if self.cascade else ""
         for sql_statements in (
             sql.SQL("ALTER TABLE IF EXISTS {new_table_name} RENAME TO {backup_table_name}"),
             sql.SQL("ALTER TABLE IF EXISTS {old_table_name} RENAME TO {new_table_name}"),
