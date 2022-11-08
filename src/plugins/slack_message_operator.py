@@ -102,6 +102,11 @@ class SlackMessageOperator(SlackAPIPostOperator):
         )
 
         slack_hook = SlackHook(token=SLACK_TOKEN)
+        
+        # The out-of-the-box default value for self.channel is `#general`. This channel
+        # is not the default for Airflow. You can either add the channel in the operator
+        # or else not define it and it will use the Airflow default in SLACK_CHANNEL.
+        self.channel: Optional[str] = self.channel if self.channel != "#general" else SLACK_CHANNEL
 
         try:
             slack_hook.call(
