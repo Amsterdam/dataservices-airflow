@@ -12,7 +12,7 @@ from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from schematools.utils import to_snake_case
+from schematools.naming import to_snake_case
 from sql.beheerkaart_basis import RENAME_COLS
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swap_schema_operator import SwapSchemaOperator

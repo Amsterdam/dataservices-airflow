@@ -11,7 +11,8 @@ from environs import Env
 from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
-from schematools.utils import dataset_schema_from_url, to_snake_case
+from schematools.naming import to_snake_case
+from schematools.utils import dataset_schema_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
@@ -147,13 +148,13 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
             return
 
         for table in dataset_schema.tables:
-            self.log.info("Considering table '%s'.", table.name)
-            cur_table = f"{self.data_schema_name}_{table.name}"
+            self.log.info("Considering table '%s'.", table.db_name)
+            cur_table = f"{self.data_schema_name}_{table.db_name}"
 
             if re.fullmatch(self.data_table_name, to_snake_case(cur_table)):
                 self.log.info(
                     "Generating PostgreSQL objects for table: '%s' in DB schema: '%s'",
-                    table.name,
+                    table.db_name,
                     self.pg_schema if self.pg_schema else "public",
                 )
                 importer.generate_db_objects(
@@ -164,5 +165,5 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
                     ind_extra_index=self.ind_extra_index,
                 )
             else:
-                self.log.info("Skipping table '%s' (reason: no match).", table.name)
+                self.log.info("Skipping table '%s' (reason: no match).", table.db_name)
                 continue

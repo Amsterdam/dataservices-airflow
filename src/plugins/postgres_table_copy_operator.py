@@ -14,8 +14,9 @@ from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import extras, sql
 from schematools import TMP_TABLE_POSTFIX
 from schematools.exceptions import SchemaObjectNotFound
+from schematools.naming import to_snake_case
 from schematools.types import DatasetSchema
-from schematools.utils import dataset_schema_from_url, to_snake_case
+from schematools.utils import dataset_schema_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()

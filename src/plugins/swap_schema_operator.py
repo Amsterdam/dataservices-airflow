@@ -5,7 +5,8 @@ from airflow.utils.context import Context
 from airflow.utils.decorators import apply_defaults
 from environs import Env
 from postgres_on_azure_hook import PostgresOnAzureHook
-from schematools.utils import dataset_schema_from_url, to_snake_case
+from schematools.naming import to_snake_case
+from schematools.utils import dataset_schema_from_url
 
 env = Env()
 SCHEMA_URL: Final = env("SCHEMA_URL")

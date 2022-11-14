@@ -1,4 +1,4 @@
-amsterdam-schema-tools==4.2.2
+amsterdam-schema-tools==5.0.0
 apache-airflow-providers-cncf-kubernetes==4.3.0
 apache-airflow-providers-microsoft-azure==3.2.0
 apache-airflow-providers-oracle==2.0.1
@@ -57,7 +57,7 @@ python-json-logger==2.0.2
 python-keystoneclient==4.0.0
 python-string-utils==1.0.0
 python-swiftclient==3.9.0
-Shapely==1.7.1
+Shapely==1.8.0
 simplejson==3.17.3
 sshtunnel==0.3.2
 supervisor==4.1.0
