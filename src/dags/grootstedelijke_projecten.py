@@ -146,9 +146,9 @@ for data in zip(download_data):
     data >> import_data
 
 (
-    import_data
-    >> make_geo_valid
+    import_data    
     >> provenance_translation
+    >> make_geo_valid
     >> multi_checks
     >> rename_tables
     >> grant_db_permissions
