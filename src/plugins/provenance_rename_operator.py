@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Any, Final, Iterable, Optional
+from collections.abc import Iterable
+from typing import Any, Final, Optional
 
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
@@ -8,7 +9,8 @@ from environs import Env
 from more_ds.network.url import URL
 from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import sql
-from schematools.utils import dataset_schema_from_url, to_snake_case, toCamelCase
+from schematools.naming import to_snake_case, toCamelCase
+from schematools.utils import dataset_schema_from_url
 
 env = Env()
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))

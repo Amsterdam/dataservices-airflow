@@ -11,7 +11,7 @@ from airflow.utils.context import Context
 from azure.identity import DefaultAzureCredential
 from geoalchemy2 import WKTElement
 from postgres_on_azure_hook import PostgresOnAzureHook
-from schematools.utils import to_snake_case
+from schematools.naming import to_snake_case
 from shapely import wkt
 from shapely.geometry.multipolygon import MultiPolygon
 from shapely.geometry.polygon import Polygon

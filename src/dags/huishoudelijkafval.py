@@ -12,7 +12,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_drop_from_schema_operator import ProvenanceDropFromSchemaOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-from schematools.utils import to_snake_case
+from schematools.naming import to_snake_case
 from sql.afvalinzamelingplanning import SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swap_schema_operator import SwapSchemaOperator
