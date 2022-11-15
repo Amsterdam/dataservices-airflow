@@ -2,8 +2,9 @@ import json
 import logging
 import pathlib
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, DefaultDict, Final, Iterable, Optional
+from typing import Any, Callable, DefaultDict, Final, Optional
 
 import pendulum
 from airflow import DAG
@@ -165,8 +166,8 @@ def create_gob_dag(
             # Fetch the db_name for this dataset and table
             if sub_table_id is not None:
                 table_id = f"{table_id}_{sub_table_id}"
-            db_table_name = dataset.get_table_by_id(table_id).db_name()
-            nested_db_table_names = [t.db_name() for t in dataset.nested_tables]
+            db_table_name = dataset.get_table_by_id(table_id).db_name
+            nested_db_table_names = [t.db_name for t in dataset.nested_tables]
             nested_db_table_names = [
                 db_name for db_name in nested_db_table_names if db_name.startswith(db_table_name)
             ]
