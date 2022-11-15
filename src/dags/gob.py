@@ -2,9 +2,8 @@ import json
 import logging
 import pathlib
 from collections import defaultdict
-from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, DefaultDict, Final, Optional
+from typing import Any, Callable, DefaultDict, Final, Iterable, Optional
 
 import pendulum
 from airflow import DAG
