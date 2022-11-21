@@ -16,7 +16,7 @@ from schematools import TMP_TABLE_POSTFIX
 from schematools.exceptions import SchemaObjectNotFound
 from schematools.naming import to_snake_case
 from schematools.types import DatasetSchema
-from schematools.utils import dataset_schema_from_url
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()

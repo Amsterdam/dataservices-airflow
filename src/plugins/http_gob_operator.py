@@ -16,7 +16,7 @@ from http_params_hook import HttpParamsHook
 from postgres_on_azure_hook import PostgresOnAzureHook
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import dataset_schema_from_url
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from sqlalchemy.exc import SQLAlchemyError
 from urllib3.exceptions import ProtocolError
 
