@@ -283,7 +283,7 @@ class HttpGobOperator(BaseOperator):
                     "The last-record contains now: %s",
                     last_record,
                 )
-                cursor_pos = last_record["cursor"]
+                cursor_pos = last_record.source["cursor"]
 
         # On successfull completion, remove cursor_pos variable
         Variable.delete(f"{dataset_table_id}.cursor_pos")
