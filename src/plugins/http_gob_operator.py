@@ -252,12 +252,6 @@ class HttpGobOperator(BaseOperator):
                         request_end_time - request_start_time,
                         cursor_pos,
                     )
-                    # TODO: remove the lines below
-                    shutil.copy(
-                        tmp_file,
-                        f"{SHARED_DIR}/{dataset_table_id}-{datetime.now().isoformat()}.ndjson",
-                    )
-                    # END
                     last_record = importer.load_file(
                         tmp_file, is_through_table=self.is_through_table
                     )
