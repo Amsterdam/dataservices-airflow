@@ -175,9 +175,8 @@ class HttpGobOperator(BaseOperator):
             # we know the schema, can be an input param (dataset_schema_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresOnAzureHook(dataset_name=dataset_info.dataset_id, context=context)
-            dataset = dataset_schema_from_url(
-                dataset_info.schema_url, dataset_info.dataset_id, prefetch_related=True
-            )
+            dataset = dataset_schema_from_url(dataset_info.schema_url).get_dataset(dataset_info.dataset_id, prefetch_related=True)
+
             importer = NDJSONImporter(
                 dataset,
                 pg_hook.get_sqlalchemy_engine(split_dictcursor=True),

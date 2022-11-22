@@ -161,7 +161,7 @@ def create_gob_dag(
         )
 
         def _create_dataset_info(dataset_id: str, table_id: str, sub_table_id: str) -> DatasetInfo:
-            dataset = dataset_schema_from_url(SCHEMA_URL, dataset_id, prefetch_related=True)
+            dataset = dataset_schema_from_url(SCHEMA_URL).get_dataset(dataset_id, prefetch_related=True)
 
             # Fetch the db_name for this dataset and table
             if sub_table_id is not None:

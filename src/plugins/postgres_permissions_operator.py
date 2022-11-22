@@ -175,11 +175,8 @@ class PostgresPermissionsOperator(BaseOperator):
                             logger.info("set grants for %s", dataset)
 
                             try:
-                                ams_schema = dataset_schema_from_url(
-                                    schemas_url=self.schema_url,
-                                    dataset_name=dataset,
-                                    prefetch_related=True,
-                                )
+                                ams_schema = dataset_schema_from_url(self.schema_url).get_dataset(
+                                    dataset, prefetch_related=True)
 
                                 apply_schema_and_profile_permissions(
                                     engine=engine,

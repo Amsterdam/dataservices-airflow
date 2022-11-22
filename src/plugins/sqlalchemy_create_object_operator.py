@@ -130,9 +130,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         kwargs = {"pg_schemas": [self.pg_schema]} if self.pg_schema is not None else {}
         engine = _get_engine(default_db_conn, **kwargs)
 
-        dataset_schema = dataset_schema_from_url(
-            SCHEMA_URL, self.data_schema_name, prefetch_related=True
-        )
+        dataset_schema = dataset_schema_from_url(SCHEMA_URL).get_dataset(
+                                    self.data_schema_name, prefetch_related=True)
 
         importer = BaseImporter(dataset_schema, engine, logger=self.log)
         self.log.info(
