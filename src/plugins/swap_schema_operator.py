@@ -53,7 +53,9 @@ class SwapSchemaOperator(BaseOperator):
             table is moved to the defined schema (a.k.a. schema swapping)
 
         """
-        dataset = dataset_schema_from_url(SCHEMA_URL, self.dataset_name)
+        dataset = dataset_schema_from_url(SCHEMA_URL).get_dataset(
+                                    self.dataset_name)
+
         pg_hook = PostgresOnAzureHook(
             dataset_name=self.dataset_name, context=context, postgres_conn_id=self.postgres_conn_id
         )

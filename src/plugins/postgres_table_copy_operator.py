@@ -298,9 +298,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                         in Amsterdam schema definition."""
                 )
 
-                dataset: DatasetSchema = dataset_schema_from_url(
-                    SCHEMA_URL, self.dataset_name_lookup
-                )
+                dataset: DatasetSchema = dataset_schema_from_url(SCHEMA_URL).get_dataset(
+                                    self.dataset_name_lookup)
 
                 # Get the table_id from the full sql table name.
                 # Because dataset names can hold letters followed by numbers
