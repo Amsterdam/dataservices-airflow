@@ -16,7 +16,7 @@ from http_params_hook import HttpParamsHook
 from postgres_on_azure_hook import PostgresOnAzureHook
 from schematools import TMP_TABLE_POSTFIX
 from schematools.importer.ndjson import NDJSONImporter
-from schematools.utils import dataset_schema_from_url
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from sqlalchemy.exc import SQLAlchemyError
 from urllib3.exceptions import ProtocolError
 
@@ -252,12 +252,6 @@ class HttpGobOperator(BaseOperator):
                         request_end_time - request_start_time,
                         cursor_pos,
                     )
-                    # TODO: remove the lines below
-                    shutil.copy(
-                        tmp_file,
-                        f"{SHARED_DIR}/{dataset_table_id}-{datetime.now().isoformat()}.ndjson",
-                    )
-                    # END
                     last_record = importer.load_file(
                         tmp_file, is_through_table=self.is_through_table
                     )

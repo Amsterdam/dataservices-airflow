@@ -19,7 +19,7 @@ from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from postgres_table_init_operator import PostgresTableInitOperator
 from schematools import TMP_TABLE_POSTFIX
-from schematools.utils import dataset_schema_from_url
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 MAX_RECORDS: Final = 1000 if DATAPUNT_ENVIRONMENT == "development" else None

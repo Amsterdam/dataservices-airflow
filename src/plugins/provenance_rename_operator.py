@@ -10,7 +10,7 @@ from more_ds.network.url import URL
 from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import sql
 from schematools.naming import to_snake_case, toCamelCase
-from schematools.utils import dataset_schema_from_url
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 
 env = Env()
 SCHEMA_URL: Final = URL(env("SCHEMA_URL"))

@@ -13,7 +13,7 @@ from environs import Env
 from requests.exceptions import HTTPError
 from schematools.cli import _get_engine
 from schematools.permissions.db import apply_schema_and_profile_permissions
-from schematools.utils import dataset_schema_from_url
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 
 env = Env()
 
