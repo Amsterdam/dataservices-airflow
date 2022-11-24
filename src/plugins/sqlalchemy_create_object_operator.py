@@ -148,7 +148,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
         for table in dataset_schema.tables:
             self.log.info("Considering table '%s'.", table.db_name)
-            cur_table = f"{self.data_schema_name}_{table.db_name}"
+            cur_table = table.db_name
 
             if re.fullmatch(self.data_table_name, to_snake_case(cur_table)):
                 self.log.info(
