@@ -11,7 +11,8 @@ adal==1.2.7
     #   msrestazure
 alembic==1.8.1
     # via apache-airflow
-amsterdam-schema-tools==5.1.2
+#amsterdam-schema-tools==5.1.2
+git+https://github.com/Amsterdam/schema-tools@diederik/cleanup-geo-index
     # via -r requirements.in
 anyio==3.6.1
     # via httpcore
