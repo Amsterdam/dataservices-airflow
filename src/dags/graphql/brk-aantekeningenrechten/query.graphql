@@ -7,13 +7,6 @@
         id
         aard
         omschrijving
-        isGebaseerdOpStukdeel {
-          edges {
-            node {
-              id
-            }
-          }
-        }
         einddatum
         toestandsdatum
       }

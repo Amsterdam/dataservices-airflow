@@ -19,13 +19,6 @@
             }
           }
         }
-        isGebaseerdOpStukdeel {
-          edges {
-            node {
-              id
-            }
-          }
-        }
         einddatum
         toestandsdatum
       }
