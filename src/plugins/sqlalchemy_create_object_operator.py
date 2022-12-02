@@ -8,7 +8,6 @@ from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from common.db import define_dataset_name_for_azure_dbuser, pg_params
 from environs import Env
-from more_ds.network.url import URL
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
 from schematools.naming import to_snake_case
@@ -16,7 +15,7 @@ from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
-SCHEMA_URL: Final = URL(env("SCHEMA_URL"))
+SCHEMA_URL: Final = env("SCHEMA_URL")
 MATCH_ALL: Final = re.compile(r".*")
 
 
