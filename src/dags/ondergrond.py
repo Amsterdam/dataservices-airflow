@@ -5,13 +5,13 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.dummy import DummyOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -43,6 +43,12 @@ SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE: Final = """
 
 SQL_DROP_TMP_TABLE: Final = """
     DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
+"""
+
+SQL_REPLACE_VALUE_AUTEUR_COL: Final = """
+    UPDATE {{ params.tablename }}
+    SET AUTEUR_RAPPORT = 'Op te vragen via werkgroephistorischonderzoek@amsterdam.nl';
+    COMMIT;
 """
 
 with DAG(
@@ -186,12 +192,23 @@ with DAG(
         if table_name == "historischeonderzoeken"
     ]
 
-    # 11. Dummy operator acts as an Interface between parallel tasks
+    # 11. Drop cols - that do not show up in the API
+    mask_value_column_auteur = [
+        PostgresOnAzureOperator(
+            task_id=f"mask_value_auteur_{dag_id}_{table_name}_new",
+            sql=SQL_REPLACE_VALUE_AUTEUR_COL,
+            params={"tablename": f"{dag_id}_{table_name}_new"},
+        )
+        for table_name, _ in files_to_download.items()
+        if table_name == "historischeonderzoeken"
+    ]
+
+    # 12. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different
     # number of lanes (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
-    # 12. Check for changes to merge in target table
+    # 13. Check for changes to merge in target table
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table_name}",
@@ -203,7 +220,7 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # 13. Clean up
+    # 14. Clean up
     clean_up = [
         PostgresOnAzureOperator(
             task_id="clean_up",
@@ -213,29 +230,23 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # 13. Grant database permissions
+    # 15. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 slack_at_start >> mkdir >> download_data
 
 # FLOW
-for (download_file, create_table, import_data) in zip(
-    download_data, create_tables, GEOJSON_to_DB
-):
+for (download_file, create_table, import_data) in zip(download_data, create_tables, GEOJSON_to_DB):
 
-    (
-        [download_file >> create_table >> import_data ]
-        >> provenance_translation
-        >> make_geo_valid
-    )
+    ([download_file >> create_table >> import_data] >> provenance_translation >> make_geo_valid)
 
 for geo_valid, check_data in zip(make_geo_valid, multi_checks):
 
-    [ geo_valid >> check_data ] >> Interface >> drop_unnecessary_cols
+    [geo_valid >> check_data] >> Interface >> drop_unnecessary_cols
 
-for drop_cols in zip(drop_unnecessary_cols):
+for drop_cols, mask_auteur in zip(drop_unnecessary_cols, mask_value_column_auteur):
 
-    drop_cols >> Interface2 >> change_data_capture
+    [drop_cols >> mask_auteur] >> Interface2 >> change_data_capture
 
 for (check_changes, clean_tmp) in zip(change_data_capture, clean_up):
 
