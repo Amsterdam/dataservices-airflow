@@ -272,10 +272,7 @@ class HttpGobOperator(BaseOperator):
                     max_records is not None and records_loaded >= max_records
                 ):
                     break
-                self.log.info(
-                    "The last-record contains now: %s",
-                    last_record,
-                )
+
                 cursor_pos = last_record.source["cursor"]
 
         # On successfull completion, remove cursor_pos variable
