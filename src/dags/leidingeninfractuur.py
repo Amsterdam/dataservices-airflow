@@ -6,7 +6,6 @@ from typing import Final
 from airflow import DAG
 from airflow.models import Variable
 from airflow.models.baseoperator import chain
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from airflow.utils.task_group import TaskGroup
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.path import mk_dir
@@ -14,6 +13,7 @@ from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -21,6 +21,7 @@ from provenance_rename_operator import ProvenanceRenameOperator
 # These seemingly unused imports are actually used, albeit indirectly. See the code with
 # `globals()[select_statement]`. Hence the `noqa: F401` comments.
 from sql.leidingeninfrastructuur import SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE  # noqa: F401
+from sql.leidingeninfrastructuur import SQL_LICHTPUNTEN_TABLE  # noqa: F401
 from sql.leidingeninfrastructuur import SQL_MANTELBUIZEN_TABLE  # noqa: F401
 from sql.leidingeninfrastructuur import SQL_PUNTEN_TABLE  # noqa: F401
 from sql.leidingeninfrastructuur import SQL_ALTER_DATATYPES, SQL_GEOM_CONVERT, SQL_REMOVE_TABLE
