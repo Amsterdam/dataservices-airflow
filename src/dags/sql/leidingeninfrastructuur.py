@@ -128,8 +128,7 @@ CREATE TABLE {{ params.tablename }} AS SELECT
     l.bereikbaar,
     l.bouwtype,
     l.eigenaar,
-    l.mastcode,
-    l.datum
+    l.mastcode
     FROM  lichtpunten l;
 """
 
