@@ -119,6 +119,19 @@ CREATE TABLE {{ params.tablename }} AS SELECT
     INNER JOIN eigenaar ON eigenaar.code = k.eigenaar;
 """
 
+# CREATING LICHTPUNTEN TABLE
+SQL_LICHTPUNTEN_TABLE: Final = """
+DROP TABLE IF EXISTS {{ params.tablename }} CASCADE;
+CREATE TABLE {{ params.tablename }} AS SELECT
+    l.id,
+    l.geometry,
+    l.bereikbaar,
+    l.bouwtype,
+    l.eigenaar,
+    l.mastcode
+    FROM  lichtpunten l;
+"""
+
 # CONVERTING TO GEOMETRY to 2D AND CHECKING CONTENT
 SQL_GEOM_CONVERT: Final = """
     ALTER TABLE {{ params.tablename }}
@@ -140,6 +153,7 @@ SQL_GEOM_CONVERT: Final = """
 
 # ALTER DATAYPES THAT OGR2OGR HAS NOT DONE CORRECTLY
 SQL_ALTER_DATATYPES: Final = """
+    {% if 'lichtpunten' not in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN jaar_van_aanleg TYPE integer
     USING jaar_van_aanleg::integer;
     ALTER TABLE {{ params.tablename }} ALTER COLUMN diepte TYPE numeric USING diepte::numeric;
@@ -156,5 +170,8 @@ SQL_ALTER_DATATYPES: Final = """
     {% elif 'punten' in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(POINT, 28992)
     USING ST_SetSRID(geometry, 28992);
+    {% endif %}
+    {% else %}
+    SELECT 'no DDL statement to excute';
     {% endif %}
 """
