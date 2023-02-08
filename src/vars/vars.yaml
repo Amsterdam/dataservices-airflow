@@ -358,9 +358,9 @@ leidingeninfrastuctuur:
         lichtpunten,
       ]
     target_tables:
-      [amsterdam_ovl_ondergrondse_mantelbuizen, amsterdam_ovl_ondergrondse_kabels, amsterdam_ovl_bovengrondse_kabels, amsterdam_ovl_punten, lichtpunten]
+      [amsterdam_ovl_mantelbuizen, amsterdam_ovl_ondergrondse_kabels, amsterdam_ovl_bovengrondse_kabels, amsterdam_ovl_punten, lichtpunten]
   sql_to_execute:
-    amsterdam_ovl_ondergrondse_mantelbuizen: SQL_MANTELBUIZEN_TABLE
+    amsterdam_ovl_mantelbuizen: SQL_MANTELBUIZEN_TABLE
     amsterdam_ovl_ondergrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
     amsterdam_ovl_bovengrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
     amsterdam_ovl_punten: SQL_PUNTEN_TABLE
