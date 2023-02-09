@@ -15,6 +15,7 @@ from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from sql.ondergrond import SET_DATATYPE_GEOM_TO_GEOM
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
@@ -110,7 +111,21 @@ with DAG(
         for table_name, data_file in files_to_download.items()
     ]
 
-    # 6. Make geometry valid
+    # 6. set geometry datatype to geometry to handle more different objects
+    set_geo_datatype = [
+        PostgresOnAzureOperator(
+            task_id="set_geom_datatype",
+            sql=SET_DATATYPE_GEOM_TO_GEOM,
+            params={
+                "tablename": f"{dag_id}_{table_name}_new",
+                "geo_column": "geometrie",
+                "srid": "28992",
+            },
+        )
+        for table_name in files_to_download.keys()
+    ]
+
+    # 7. Make geometry valid
     make_geo_valid = [
         PostgresOnAzureOperator(
             task_id="make_geo_valid",
@@ -124,7 +139,7 @@ with DAG(
         for table_name in files_to_download.keys()
     ]
 
-    # 7. Rename COLUMNS based on Provenance
+    # 8. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=dag_id,
@@ -155,9 +170,7 @@ with DAG(
                 check_id=f"geo_check_{table_name}",
                 params={
                     "table_name": f"{dag_id}_{table_name}_new",
-                    "geotype": [
-                        "MULTIPOLYGON",
-                    ],
+                    "geotype": ["MULTIPOLYGON", "GEOMETRYCOLLECTION"],
                     "geo_column": "geometrie",
                 },
                 pass_value=1,
@@ -167,7 +180,7 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name["{table_name}"] = total_checks
 
-    # 8. Execute bundled checks on database
+    # 9. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(
             task_id=f"multi_check_{table_name}",
@@ -176,12 +189,12 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # 9. Dummy operator acts as an Interface between parallel tasks
+    # 10. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different
     # number of lanes (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
-    # 10. Drop cols - that do not show up in the API
+    # 11. Drop cols - that do not show up in the API
     drop_unnecessary_cols = [
         PostgresOnAzureOperator(
             task_id=f"drop_unnecessary_cols_{dag_id}_{table_name}_new",
@@ -192,7 +205,7 @@ with DAG(
         if table_name == "historischeonderzoeken"
     ]
 
-    # 11. Drop cols - that do not show up in the API
+    # 12. Drop cols - that do not show up in the API
     mask_value_column_auteur = [
         PostgresOnAzureOperator(
             task_id=f"mask_value_auteur_{dag_id}_{table_name}_new",
@@ -203,12 +216,12 @@ with DAG(
         if table_name == "historischeonderzoeken"
     ]
 
-    # 12. Dummy operator acts as an Interface between parallel tasks
+    # 13. Dummy operator acts as an Interface between parallel tasks
     # to another parallel tasks (i.e. lists or tuples) with different
     # number of lanes (without this intermediar, Airflow will give an error)
     Interface2 = DummyOperator(task_id="interface2")
 
-    # 13. Check for changes to merge in target table
+    # 14. Check for changes to merge in target table
     change_data_capture = [
         PostgresTableCopyOperator(
             task_id=f"change_data_capture_{table_name}",
@@ -220,7 +233,7 @@ with DAG(
         for table_name, _ in files_to_download.items()
     ]
 
-    # 14. Clean up
+    # 15. Clean up
     clean_up = [
         PostgresOnAzureOperator(
             task_id="clean_up",
@@ -238,11 +251,11 @@ slack_at_start >> mkdir >> download_data
 # FLOW
 for (download_file, create_table, import_data) in zip(download_data, create_tables, GEOJSON_to_DB):
 
-    ([download_file >> create_table >> import_data] >> provenance_translation >> make_geo_valid)
+    ([download_file >> create_table >> import_data] >> provenance_translation >> set_geo_datatype)
 
-for geo_valid, check_data in zip(make_geo_valid, multi_checks):
+for set_datatype, geo_valid, check_data in zip(set_geo_datatype, make_geo_valid, multi_checks):
 
-    [geo_valid >> check_data] >> Interface >> drop_unnecessary_cols
+    [set_datatype >> geo_valid >> check_data] >> Interface >> drop_unnecessary_cols
 
 for drop_cols, mask_auteur in zip(drop_unnecessary_cols, mask_value_column_auteur):
 
