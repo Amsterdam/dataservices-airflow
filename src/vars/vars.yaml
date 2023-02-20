@@ -358,13 +358,13 @@ leidingeninfrastuctuur:
         lichtpunten,
       ]
     target_tables:
-      [amsterdam_ovl_mantelbuizen, amsterdam_ovl_ondergrondse_kabels, amsterdam_ovl_bovengrondse_kabels, amsterdam_ovl_punten, lichtpunten]
+      [amsterdam_ovl_mantelbuizen, amsterdam_ovl_ondergrondse_kabels, amsterdam_ovl_bovengrondse_kabels, amsterdam_ovl_punten, amsterdam_ovl_lichtpunten]
   sql_to_execute:
     amsterdam_ovl_mantelbuizen: SQL_MANTELBUIZEN_TABLE
     amsterdam_ovl_ondergrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
     amsterdam_ovl_bovengrondse_kabels: SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE
     amsterdam_ovl_punten: SQL_PUNTEN_TABLE
-    lichtpunten: SQL_LICHTPUNTEN_TABLE
+    amsterdam_ovl_lichtpunten: SQL_LICHTPUNTEN_TABLE
 hoofdroutes:
   files_to_download:
     routes_gevaarlijke_stoffen: dcatd/datasets/ZtMOaEZSOnXM9w/purls/1
