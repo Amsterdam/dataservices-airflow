@@ -6,7 +6,13 @@
         cursor
         identificatie
         volgnummer
-        vanKadastraalsubject
+        vanKadastraalsubject {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
         beginGeldigheid
         eindGeldigheid
         aandeel
@@ -22,7 +28,13 @@
             }
           }
         }
-        isGebaseerdOpStukdeel
+        isGebaseerdOpStukdeel {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
         toestandsdatum
       }
     }

@@ -9,8 +9,20 @@
         id
         beginGeldigheid
         eindGeldigheid
-        ontstaanUitAppartementsrechtsplitsingVve
-        betrokkenBijAppartementsrechtsplitsingVve
+        ontstaanUitAppartementsrechtsplitsingVve {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
+        betrokkenBijAppartementsrechtsplitsingVve {
+          edges {
+            node {
+              identificatie
+            }
+          }
+        }
         isBeperktTot
         rustOpKadastraalobject {
           edges {
