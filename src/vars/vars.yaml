@@ -116,6 +116,8 @@ overlastgebieden:
     messenverbod: MVG
     groepsfietsverbod: GFG
     straatartiestverbod: SAV
+    alcoholverkoopverbod: AVV
+    raamsluitingstijdenverbod: SLV
 milieuzones:
   files_to_download: [milieuzones.json]
   tables_to_create:
