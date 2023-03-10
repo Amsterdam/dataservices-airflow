@@ -1,0 +1,15 @@
+{
+	relBrkKotBrkGme_AngddDr_Gemeente(active: false) {
+		edges {
+			cursor
+			node {
+				srcId
+				srcVolgnummer
+				dstId
+				dstVolgnummer
+				beginGeldigheid
+				eindGeldigheid
+			}
+		}
+	}
+}
