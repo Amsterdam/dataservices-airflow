@@ -6,7 +6,7 @@
         cursor
         identificatie
         volgnummer
-        vanKadastraalsubject {
+        vanKadastraalsubject(active: false) {
           edges {
             node {
               identificatie
