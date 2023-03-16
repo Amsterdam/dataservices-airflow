@@ -142,9 +142,11 @@ class HttpGobOperator(BaseOperator):
         # Simple approach, just string replacement
         # alternative would be to parse query with graphql-core lib, alter AST
         # and render query, seems overkill for now
+        # only replace FIRST occurance (ie on the main collection), not on an relation
         return query.replace(
             "active: false",
             f"active: false, first: {batch_size}, after: {cursor_pos}",
+            1
         )
 
     def execute(self, context: dict[str, Any]) -> None:  # noqa: D102
