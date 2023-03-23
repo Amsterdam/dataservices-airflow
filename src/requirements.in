@@ -1,4 +1,4 @@
-amsterdam-schema-tools==5.1.6
+amsterdam-schema-tools==5.8.1
 apache-airflow-providers-cncf-kubernetes==4.3.0
 apache-airflow-providers-microsoft-azure==3.2.0
 apache-airflow-providers-oracle==2.0.1
@@ -40,7 +40,7 @@ mako==1.2.2
 more-ds==0.0.4
 oauthlib==3.2.1
 openpyxl==3.0.7
-paramiko==2.7.2
+paramiko==2.11.0
 pendulum==2.1.2
 psycopg[binary]==3.0.3
 psycopg2-binary==2.9.1
@@ -61,7 +61,7 @@ Shapely==1.8.0
 simplejson==3.17.3
 sshtunnel==0.3.2
 supervisor==4.1.0
-sqlalchemy==1.4.27
+sqlalchemy==1.4.47
 validator-collection==1.4.1
 xlrd==1.2.0
 yamlip==0.0.2
