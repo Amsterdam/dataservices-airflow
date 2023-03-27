@@ -1,3 +1,4 @@
+import logging
 import operator
 import os
 from pathlib import Path
@@ -136,14 +137,15 @@ with DAG(
         )
         for key in tables_to_create.keys()
     ]
-    
+
     # Prepare the checks and added them per source to a dictionary
     rec_pass_val = os.getenv("REC_PASS_VAL")
+
     for key in tables_to_check.keys():
         total_checks.clear()
         count_checks.clear()
         geo_checks.clear()
-        print(f"key: {key}")
+        logging.info("key: %s", key)
         if rec_pass_val:
             count_checks.append(
                 COUNT_CHECK.make_check(
