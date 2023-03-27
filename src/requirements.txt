@@ -11,7 +11,7 @@ adal==1.2.7
     #   msrestazure
 alembic==1.8.1
     # via apache-airflow
-amsterdam-schema-tools==5.1.6
+amsterdam-schema-tools==5.8.1
     # via -r requirements.in
 anyio==3.6.1
     # via httpcore
@@ -72,6 +72,7 @@ attrs==22.1.0
     #   cattrs
     #   flake8-bugbear
     #   flake8-implicit-str-concat
+    #   jsonlines
     #   jsonschema
     #   pg-grant
     #   pytest
@@ -413,6 +414,8 @@ jinja2==3.1.2
     #   swagger-ui-bundle
 json-encoder==0.4.4
     # via amsterdam-schema-tools
+jsonlines==3.1.0
+    # via amsterdam-schema-tools
 jsonpath-rw==1.4.0
     # via amsterdam-schema-tools
 jsonpointer==2.1
@@ -539,6 +542,8 @@ openpyxl==3.0.7
     # via -r requirements.in
 ordered-set==4.1.0
     # via deepdiff
+orjson==3.8.8
+    # via amsterdam-schema-tools
 os-service-types==1.7.0
     # via keystoneauth1
 oslo-config==9.0.0
@@ -564,7 +569,7 @@ packaging==21.3
     #   pytest
 pandas==1.5.0
     # via clevercsv
-paramiko==2.7.2
+paramiko==2.11.0
     # via
     #   -r requirements.in
     #   apache-airflow-providers-sftp
@@ -819,6 +824,7 @@ six==1.16.0
     #   keystoneauth1
     #   kubernetes
     #   msrestazure
+    #   paramiko
     #   prison
     #   python-dateutil
     #   python-keystoneclient
@@ -838,7 +844,7 @@ sniffio==1.3.0
     #   httpx
 snowballstemmer==2.2.0
     # via pydocstyle
-sqlalchemy==1.4.27
+sqlalchemy==1.4.47
     # via
     #   -r requirements.in
     #   alembic
