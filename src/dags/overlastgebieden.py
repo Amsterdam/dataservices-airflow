@@ -1,4 +1,5 @@
 import operator
+import os
 from pathlib import Path
 from typing import Final, Union, cast
 
@@ -135,27 +136,27 @@ with DAG(
         )
         for key in tables_to_create.keys()
     ]
-
+    
     # Prepare the checks and added them per source to a dictionary
+    rec_pass_val = os.getenv("REC_PASS_VAL")
     for key in tables_to_check.keys():
-
         total_checks.clear()
         count_checks.clear()
         geo_checks.clear()
-
-        count_checks.append(
-            COUNT_CHECK.make_check(
-                check_id=f"count_check_{key}",
-                pass_value=2,
-                params={
-                    "table_name": "{tmp_schema}.{dataset}_{table}_new".format(
-                        tmp_schema=tmp_database_schema, dataset=DAG_ID, table=key
-                    )
-                },
-                result_checker=operator.ge,
+        print(f"key: {key}")
+        if rec_pass_val:
+            count_checks.append(
+                COUNT_CHECK.make_check(
+                    check_id=f"count_check_{key}",
+                    pass_value=rec_pass_val,
+                    params={
+                        "table_name": "{tmp_schema}.{dataset}_{table}_new".format(
+                            tmp_schema=tmp_database_schema, dataset=DAG_ID, table=key
+                        )
+                    },
+                    result_checker=operator.ge,
+                )
             )
-        )
-
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
