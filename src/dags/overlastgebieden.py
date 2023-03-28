@@ -1,6 +1,5 @@
 import logging
 import operator
-import os
 from pathlib import Path
 from typing import Final, Union, cast
 
