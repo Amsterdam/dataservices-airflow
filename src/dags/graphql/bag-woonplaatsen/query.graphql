@@ -15,10 +15,11 @@
         documentdatum
         documentnummer
         status
-        ligtInGemeente {
+        ligtInGemeente(active: false) {
           edges {
             node {
               identificatie
+              volgnummer
             }
           }
         }
