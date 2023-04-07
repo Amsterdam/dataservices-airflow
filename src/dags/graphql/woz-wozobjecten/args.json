@@ -1,1 +1,5 @@
-{}
+{
+  "extra_kwargs": {
+    "batch_size": 2500
+  }
+}
