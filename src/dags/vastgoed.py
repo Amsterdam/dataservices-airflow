@@ -1,4 +1,5 @@
 import operator
+import pathlib
 from functools import partial
 from pathlib import Path
 
@@ -19,6 +20,7 @@ dag_id = "vastgoed"
 variables_vastgoed = Variable.get("vastgoed", deserialize_json=True)
 files_to_download = variables_vastgoed["files_to_download"]
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
+sql_path = pathlib.Path(__file__).resolve().parents[0] / "sql"
 total_checks = []
 count_checks = []
 check_name = {}
@@ -118,7 +120,13 @@ with DAG(
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
-    # 10. Grant database permissions
+    # 10. Update TABLE
+    update_table_data = BashOperator(
+        task_id=f"SQL_update_table_data_{dag_id}",
+        bash_command=f"psql {db_conn_string()} < {sql_path}/vastgoed_add_zero.sql",
+    )
+
+    # 11. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 [
@@ -131,6 +139,7 @@ with DAG(
     >> provenance_translation
     >> multi_checks
     >> rename_tables
+    >> update_table_data
     >> grant_db_permissions
 ]
 
