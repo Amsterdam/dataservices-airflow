@@ -1,6 +1,7 @@
 import operator
 from functools import partial
 from pathlib import Path
+from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
@@ -9,19 +10,22 @@ from common import SHARED_DIR, MessageOperator, default_args
 from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from sql.vastgoed import ADD_LEADING_ZEROS, CHANGE_DATA_TYPE
 from swift_operator import SwiftOperator
 
-dag_id = "vastgoed"
-variables_vastgoed = Variable.get("vastgoed", deserialize_json=True)
-files_to_download = variables_vastgoed["files_to_download"]
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
-total_checks = []
-count_checks = []
-check_name = {}
+dag_id: Final = "vastgoed"
+variables_vastgoed: Final = Variable.get("vastgoed", deserialize_json=True)
+files_to_download: str = variables_vastgoed["files_to_download"]
+tmp_dir: Final = Path(SHARED_DIR) / dag_id
+total_checks: list = []
+count_checks: list = []
+check_name: dict = {}
 
 # prefill pg_params method with dataset name so
 # it can be used for the database connection as a user.
@@ -60,25 +64,21 @@ with DAG(
         f"{tmp_dir}/{dag_id}_utf8.csv",
     )
 
-    # 5. Create TABLE from CSV
-    # The source has no spatial data, but OGR2OGR is used to create the SQL insert statements.
-    CSV_to_SQL = BashOperator(
-        task_id="CSV_to_SQL",
-        bash_command="ogr2ogr -f 'PGDump' "
-        "-s_srs EPSG:28992 -t_srs EPSG:28992 "
-        f"-nln {dag_id}_{dag_id}_new "
-        f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{dag_id}_utf8.csv "
-        "-lco SEPARATOR=SEMICOLON "
-        "-oo AUTODETECT_TYPE=YES "
-        "-lco FID=id "
+    # 5. Import data
+    import_data = Ogr2OgrOperator(
+        task_id="import_data",
+        target_table_name=f"{dag_id}_{dag_id}_new",
+        input_file=f"{tmp_dir}/{dag_id}_utf8.csv",
+        s_srs="EPSG:28992",
+        t_srs="EPSG:28992",
+        input_file_sep="SEMICOLON",
+        auto_detect_type="YES",
+        geometry_name="geometry",
+        fid="id",
+        mode="PostgreSQL",
         # remove empty records
-        f"-sql 'SELECT * FROM {dag_id}_utf8 WHERE \"bag pand id\" is not NULL '",
-    )
-
-    # 6. Create TABLE
-    insert_data = BashOperator(
-        task_id=f"SQL_insert_data_{dag_id}",
-        bash_command=f"psql {db_conn_string()} < {tmp_dir}/{dag_id}.sql",
+        sql_statement=f"""SELECT * FROM {dag_id}_utf8
+                WHERE \"bag pand id\" is not NULL""",  # noqa: S608
     )
 
     # 7. Rename COLUMNS based on Provenance
@@ -99,7 +99,7 @@ with DAG(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=20,
-            params=dict(table_name=f"{dag_id}_{dag_id}_new"),
+            params={"table_name": f"{dag_id}_{dag_id}_new"},
             result_checker=operator.ge,
         )
     )
@@ -111,28 +111,52 @@ with DAG(
         task_id=f"count_check_{dag_id}", checks=check_name[dag_id]
     )
 
-    # 9. Rename TABLE
+    # 9. change datatype of columns
+    change_data_type = PostgresOnAzureOperator(
+        task_id="change_data_type",
+        sql=CHANGE_DATA_TYPE,
+        params={
+            "tablename": f"{dag_id}_{dag_id}_new",
+            "colname": ["pand_id", "verblijfsobject_id"],
+            "coltype": "varchar",
+        },
+    )
+
+    # 10. add leading zeros to data
+    add_leading_zeros = PostgresOnAzureOperator(
+        task_id="add_leading_zeros",
+        sql=ADD_LEADING_ZEROS,
+        params={
+            "tablename": f"{dag_id}_{dag_id}_new",
+            "colname": ["pand_id", "verblijfsobject_id"],
+            "num_of_zero": "16",
+        },
+    )
+
+    # 11. Rename TABLE
     rename_tables = PostgresTableRenameOperator(
         task_id=f"rename_table_{dag_id}",
         old_table_name=f"{dag_id}_{dag_id}_new",
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
-    # 10. Grant database permissions
+    # 12. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
-[
+# FLOW
+(
     slack_at_start
     >> mkdir
     >> download_data
     >> convert_to_UTF8
-    >> CSV_to_SQL
-    >> insert_data
+    >> import_data
     >> provenance_translation
     >> multi_checks
+    >> change_data_type
+    >> add_leading_zeros
     >> rename_tables
     >> grant_db_permissions
-]
+)
 
 
 dag.doc_md = """
