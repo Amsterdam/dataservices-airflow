@@ -111,7 +111,7 @@ with DAG(
         task_id=f"count_check_{dag_id}", checks=check_name[dag_id]
     )
 
-    # 15. Clean up (remove temp table _new)
+    # 9. change datatype of columns
     change_data_type = PostgresOnAzureOperator(
         task_id="change_data_type",
         sql=CHANGE_DATA_TYPE,
@@ -122,7 +122,7 @@ with DAG(
         },
     )
 
-    # 15. Clean up (remove temp table _new)
+    # 10. add leading zeros to data
     add_leading_zeros = PostgresOnAzureOperator(
         task_id="add_leading_zeros",
         sql=ADD_LEADING_ZEROS,
@@ -133,14 +133,14 @@ with DAG(
         },
     )
 
-    # 9. Rename TABLE
+    # 11. Rename TABLE
     rename_tables = PostgresTableRenameOperator(
         task_id=f"rename_table_{dag_id}",
         old_table_name=f"{dag_id}_{dag_id}_new",
         new_table_name=f"{dag_id}_{dag_id}",
     )
 
-    # 10. Grant database permissions
+    # 12. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
