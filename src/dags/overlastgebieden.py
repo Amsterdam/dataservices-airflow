@@ -19,6 +19,7 @@ from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from swift_operator import SwiftOperator
 
 DAG_ID: Final = "overlastgebieden"
 
@@ -57,15 +58,29 @@ with DAG(
     # 2. Create temp directory to store files
     mkdir = mk_dir(TMP_PATH, clean_if_exists=False)
 
+    # TEMPORARY DISABLE until the new SFTP is avialable.
+    # # 3. Download data
+    # download_data = [
+    #     SFTPOperator(
+    #         task_id=f"download_{file}",
+    #         ssh_conn_id="OOV_BRIEVENBUS_GEBIEDEN",
+    #         local_filepath=TMP_PATH / file,
+    #         remote_filepath=file,
+    #         operation="get",
+    #         create_intermediate_dirs=True,
+    #     )
+    #     for file in files_to_download
+    # ]
+
+    # TEMPORARY FIX until the new SFTP is avialable.
     # 3. Download data
     download_data = [
-        SFTPOperator(
-            task_id=f"download_{file}",
-            ssh_conn_id="OOV_BRIEVENBUS_GEBIEDEN",
-            local_filepath=TMP_PATH / file,
-            remote_filepath=file,
-            operation="get",
-            create_intermediate_dirs=True,
+        SwiftOperator(
+            task_id=f"download_file_{file}",
+            swift_conn_id="SWIFT_DEFAULT",
+            container="overlastgebieden",
+            object_id=file,
+            output_path=f"{TMP_PATH}/{file}",
         )
         for file in files_to_download
     ]
