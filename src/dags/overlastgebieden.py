@@ -64,7 +64,7 @@ with DAG(
             task_id=f"download_{file}",
             ssh_conn_id="OOV_BRIEVENBUS_GEBIEDEN",
             local_filepath=TMP_PATH / file,
-            remote_filepath=SOURCE_PATH / file,
+            remote_filepath=str(SOURCE_PATH / file),
             operation="get",
             create_intermediate_dirs=True,
         )
