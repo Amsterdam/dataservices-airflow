@@ -7,15 +7,16 @@ from typing import Optional
 import requests
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
+from airflow.operators.python import BranchPythonOperator, PythonOperator
 from common import SHARED_DIR, MessageOperator, default_args, env, logger, quote_string
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from dateutil import tz
+from importscripts.wior import _pick_branch
 from more_ds.network.url import URL
 from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
@@ -23,6 +24,7 @@ from requests.auth import HTTPBasicAuth
 from sql.wior import (
     DROP_COLS,
     SQL_ADD_PK,
+    SQL_DEL_DUPLICATE_ROWS,
     SQL_DROP_TMP_TABLE,
     SQL_GEOM_VALIDATION,
     SQL_SET_DATE_DATA_TYPES,
@@ -130,14 +132,34 @@ with DAG(
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
-    # 8. geometry validation
+    # 8. Pick next step based on existence of duplicate rows.
+    # if duplicates exists, then run task `remove_duplicate_rows` as
+    # the next step. Else run the step `geom_validation` and continue.
+    pick_branch = BranchPythonOperator(
+        task_id="pick_branch",
+        python_callable=_pick_branch,
+        op_kwargs={"file": data_file},
+    )
+
+    # 9. Remove duplicated rows (if applicable)
+    remove_duplicate_rows = PostgresOnAzureOperator(
+        task_id="remove_duplicate_rows",
+        sql=SQL_DEL_DUPLICATE_ROWS,
+        params={
+            "tablename": f"{dag_id}_{dag_id}_new",
+            "dupl_id_col": "_instance_id",
+            "geom_col": "geometry",
+        },
+    )
+
+    # 10. geometry validation
     geom_validation = PostgresOnAzureOperator(
         task_id="geom_validation",
         sql=SQL_GEOM_VALIDATION,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
-    # 9. Rename COLUMNS based on Provenance
+    # 11. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=dag_id,
@@ -147,14 +169,14 @@ with DAG(
         pg_schema="public",
     )
 
-    # 10. Add primary key to temp table (for cdc check)
+    # 12. Add primary key to temp table (for cdc check)
     add_pk = PostgresOnAzureOperator(
         task_id="add_pk",
         sql=SQL_ADD_PK,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
-    # 11. Set date datatypes
+    # 13. Set date datatypes
     set_dates = PostgresOnAzureOperator(
         task_id="set_dates",
         sql=SQL_SET_DATE_DATA_TYPES,
@@ -192,10 +214,10 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 12. RUN bundled CHECKS
+    # 14. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 13. Create the DB target table (as specified in the JSON data schema)
+    # 15. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_table = SqlAlchemyCreateObjectOperator(
         task_id="create_table_based_upon_schema",
@@ -206,7 +228,7 @@ with DAG(
         ind_extra_index=True,
     )
 
-    # 14. Check for changes to merge in target table
+    # 16. Check for changes to merge in target table
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
         dataset_name_lookup=dag_id,
@@ -215,16 +237,17 @@ with DAG(
         drop_target_if_unequal=True,
     )
 
-    # 15. Clean up (remove temp table _new)
+    # 17. Clean up (remove temp table _new)
     clean_up = PostgresOnAzureOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
-    # 16. Grant database permissions
+    # 18. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
+# FLOW
 (
     slack_at_start
     >> mkdir
@@ -233,7 +256,16 @@ with DAG(
     >> delete_from_obs
     >> import_data
     >> drop_cols
-    >> geom_validation
+    >> pick_branch
+    >> [remove_duplicate_rows, geom_validation]
+)
+
+# EXTRA STEP: Only runs in case of duplicate rows are detected.
+remove_duplicate_rows >> geom_validation
+
+# FLOW continues (with or without executing the `remove_duplicate_rows`)
+(
+    geom_validation
     >> provenance_translation
     >> add_pk
     >> set_dates
