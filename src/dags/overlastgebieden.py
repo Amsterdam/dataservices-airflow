@@ -32,6 +32,7 @@ tables_to_check: dict[str, str] = {
     k: v for k, v in tables_to_create.items() if k != "vuurwerkvrij"
 }
 TMP_PATH: Final = Path(SHARED_DIR) / DAG_ID
+SOURCE_PATH: Final = Path('Shapes_outbox')
 tmp_database_schema: str = define_temp_db_schema(dataset_name=DAG_ID)
 total_checks: list[int] = []
 count_checks: list[int] = []
@@ -63,7 +64,7 @@ with DAG(
             task_id=f"download_{file}",
             ssh_conn_id="OOV_BRIEVENBUS_GEBIEDEN",
             local_filepath=TMP_PATH / file,
-            remote_filepath=file,
+            remote_filepath=SOURCE_PATH / file,
             operation="get",
             create_intermediate_dirs=True,
         )
