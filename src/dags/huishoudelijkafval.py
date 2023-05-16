@@ -34,7 +34,7 @@ tables: dict[str, Union[list[str], str]] = {
         "bagObjectLoopafstand",
         "adresLoopafstand",
         "bijplaatsingen",
-        "tickets",
+        "ticket",
     ],
     "dwh_stadsdelen": "planningVoertuigen",
 }
