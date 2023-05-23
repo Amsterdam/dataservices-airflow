@@ -117,7 +117,7 @@ overlastgebieden:
     groepsfietsverbod: GFG
     straatartiestverbod: SAV
     alcoholverkoopverbod: AVV
-    raamsluitingstijdenverbod: SLG
+    sluitingstijdenkernwallen: SLG
 milieuzones:
   files_to_download: [milieuzones.json]
   tables_to_create:
