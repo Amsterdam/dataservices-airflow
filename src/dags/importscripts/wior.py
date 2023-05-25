@@ -30,4 +30,4 @@ def _pick_branch(file: str) -> str:
                 ids.append(_id)
 
         logger.info("No duplicate found!: Resuming happy flow")
-        return "geom_validation"
+        return "no_duplicates_found"
