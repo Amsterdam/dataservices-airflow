@@ -7,6 +7,7 @@ from typing import Optional
 import requests
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import BranchPythonOperator, PythonOperator
 from common import SHARED_DIR, MessageOperator, default_args, env, logger, quote_string
 from common.path import mk_dir
@@ -141,7 +142,10 @@ with DAG(
         op_kwargs={"file": data_file},
     )
 
-    # 9. Remove duplicated rows (if applicable)
+    # 9. Dummy operator to indicate no duplicates found in source data.
+    no_duplicates_found = DummyOperator(task_id="no_duplicates_found")
+
+    # 10. Remove duplicated rows (if applicable)
     remove_duplicate_rows = PostgresOnAzureOperator(
         task_id="remove_duplicate_rows",
         sql=SQL_DEL_DUPLICATE_ROWS,
@@ -152,14 +156,15 @@ with DAG(
         },
     )
 
-    # 10. geometry validation
+    # 12. geometry validation
     geom_validation = PostgresOnAzureOperator(
         task_id="geom_validation",
         sql=SQL_GEOM_VALIDATION,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
+        trigger_rule="one_success",
     )
 
-    # 11. Rename COLUMNS based on Provenance
+    # 13. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=dag_id,
@@ -169,14 +174,14 @@ with DAG(
         pg_schema="public",
     )
 
-    # 12. Add primary key to temp table (for cdc check)
+    # 14. Add primary key to temp table (for cdc check)
     add_pk = PostgresOnAzureOperator(
         task_id="add_pk",
         sql=SQL_ADD_PK,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
-    # 13. Set date datatypes
+    # 15. Set date datatypes
     set_dates = PostgresOnAzureOperator(
         task_id="set_dates",
         sql=SQL_SET_DATE_DATA_TYPES,
@@ -214,10 +219,10 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 14. RUN bundled CHECKS
+    # 16. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 15. Create the DB target table (as specified in the JSON data schema)
+    # 17. Create the DB target table (as specified in the JSON data schema)
     # if table not exists yet
     create_table = SqlAlchemyCreateObjectOperator(
         task_id="create_table_based_upon_schema",
@@ -228,7 +233,7 @@ with DAG(
         ind_extra_index=True,
     )
 
-    # 16. Check for changes to merge in target table
+    # 18. Check for changes to merge in target table
     change_data_capture = PostgresTableCopyOperator(
         task_id="change_data_capture",
         dataset_name_lookup=dag_id,
@@ -237,14 +242,14 @@ with DAG(
         drop_target_if_unequal=True,
     )
 
-    # 17. Clean up (remove temp table _new)
+    # 19. Clean up (remove temp table _new)
     clean_up = PostgresOnAzureOperator(
         task_id="clean_up",
         sql=SQL_DROP_TMP_TABLE,
         params={"tablename": f"{dag_id}_{dag_id}_new"},
     )
 
-    # 18. Grant database permissions
+    # 20. Grant database permissions
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
 
 # FLOW
@@ -257,15 +262,8 @@ with DAG(
     >> import_data
     >> drop_cols
     >> pick_branch
-    >> [remove_duplicate_rows, geom_validation]
-)
-
-# EXTRA STEP: Only runs in case of duplicate rows are detected.
-remove_duplicate_rows >> geom_validation
-
-# FLOW continues (with or without executing the `remove_duplicate_rows`)
-(
-    geom_validation
+    >> [remove_duplicate_rows, no_duplicates_found]
+    >> geom_validation
     >> provenance_translation
     >> add_pk
     >> set_dates
