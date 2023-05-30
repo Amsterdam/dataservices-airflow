@@ -3,12 +3,12 @@ from typing import Final
 
 from airflow import DAG
 from airflow.operators.python_operator import BranchPythonOperator, PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, vsd_default_args
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.oplaadpalen.import_oplaadpalen_allego import import_oplaadpalen
 from postgres_check_operator import PostgresCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_xcom_operator import PostgresXcomOperator
 
@@ -63,20 +63,18 @@ with DAG(
     branch_task = BranchPythonOperator(task_id="branch_task", python_callable=choose_branch)
 
     update_oplaadpalen = PostgresOnAzureOperator(
-        task_id="update_oplaadpalen",
-        sql=f"{sql_path}/oplaadpalen_copy.sql"
+        task_id="update_oplaadpalen", sql=f"{sql_path}/oplaadpalen_copy.sql"
     )
 
     create_oplaadpalen = PostgresOnAzureOperator(
-        task_id="create_oplaadpalen",
-        sql=f"{sql_path}/oplaadpalen_create.sql"
+        task_id="create_oplaadpalen", sql=f"{sql_path}/oplaadpalen_create.sql"
     )
 
     # The trigger_rule is essential, otherwise the skipped path blocks progress
     import_allego = PythonOperator(
         task_id="import_allego",
         python_callable=import_oplaadpalen,
-        trigger_rule="none_failed_or_skipped",
+        trigger_rule="none_failed_min_one_success",
         provide_context=True,
     )
 

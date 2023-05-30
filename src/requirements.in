@@ -5,7 +5,7 @@ apache-airflow-providers-oracle==2.0.1
 apache-airflow-providers-sftp==2.4.1
 apache-airflow-providers-slack==4.2.1
 apache-airflow-providers-ssh==2.4.0
-apache-airflow[crypto,postgres,sentry,sendgrid]==2.4.1 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.4.1/constraints-3.9.txt"
+apache-airflow[crypto,postgres,sentry,sendgrid]==2.6.1 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.6.1/constraints-3.9.txt"
 attrs==22.1.0
 authlib==1.0.1
 clevercsv==0.1.4
@@ -15,7 +15,6 @@ datapunt-objectstore==2020.9.7
 docker==6.0.0
 dsnparse==0.1.15
 environs==9.3.3
-flake8==3.9.2
 flake8-bandit==2.1.2
 flake8-bugbear==22.9.23
 flake8-builtins==1.5.3
@@ -27,12 +26,15 @@ flake8-polyfill==1.0.2
 flake8-print==4.0.0
 flake8-rst==0.8.0
 flake8-string-format==0.3.0
+flake8==3.9.2
+flask-appbuilder==4.3.0
 flask-caching==1.11.1
-flask-appbuilder==4.1.3
 flask-openid==1.3.0
+flask==2.2.5
 flask_bcrypt==0.7.1
-GeoAlchemy2==0.7.0
+geoAlchemy2==0.7.0
 geojson==2.5.0
+gitpython==3.1.31
 ibm-db-sa==0.3.7
 jsonpointer==2.1
 kubernetes==23.6.0
@@ -42,10 +44,10 @@ oauthlib==3.2.1
 openpyxl==3.0.7
 paramiko==2.11.0
 pendulum==2.1.2
-psycopg[binary]==3.0.3
 psycopg2-binary==2.9.1
-pyodbc==4.0.32
+psycopg[binary]==3.1.4
 pyjwt[crypto]==2.4.0
+pyodbc==4.0.32
 pysftp==0.2.9
 pyshp==2.1.0
 pytest-env==0.6.2
@@ -57,11 +59,11 @@ python-json-logger==2.0.2
 python-keystoneclient==4.0.0
 python-string-utils==1.0.0
 python-swiftclient==3.9.0
-Shapely==1.8.0
+shapely==1.8.0
 simplejson==3.17.3
+sqlalchemy==1.4.47
 sshtunnel==0.3.2
 supervisor==4.1.0
-sqlalchemy==1.4.47
 validator-collection==1.4.1
 xlrd==1.2.0
 yamlip==0.0.2
