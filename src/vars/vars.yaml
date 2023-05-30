@@ -118,6 +118,7 @@ overlastgebieden:
     straatartiestverbod: SAV
     alcoholverkoopverbod: AVV
     sluitingstijdenkernwallen: SLG
+    blowverbodsgebied: BVG
 milieuzones:
   files_to_download: [milieuzones.json]
   tables_to_create:
