@@ -3,15 +3,15 @@ import re
 from re import Pattern
 from typing import Any, Callable, Final, Optional, Union
 
-from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from airflow.utils.xcom import XCOM_RETURN_KEY
 from common.db import define_dataset_name_for_azure_dbuser, pg_params
 from environs import Env
 from schematools.cli import _get_engine
 from schematools.importer.base import BaseImporter
-from schematools.naming import to_snake_case
 from schematools.loaders import get_schema_loader as dataset_schema_from_url
+from schematools.naming import to_snake_case
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
@@ -130,7 +130,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         engine = _get_engine(default_db_conn, **kwargs)
 
         dataset_schema = dataset_schema_from_url(SCHEMA_URL).get_dataset(
-                                    self.data_schema_name, prefetch_related=True)
+            self.data_schema_name, prefetch_related=True
+        )
 
         importer = BaseImporter(dataset_schema, engine, logger=self.log)
         self.log.info(

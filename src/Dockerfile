@@ -91,5 +91,5 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 #
 # Do an DB upgrade first and only for bumbing Airflow
 #
-#CMD ["sh", "-c", "airflow db update"]
-CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]
+CMD ["sh", "-c", "airflow db update"]
+# CMD ["sh", "-c", "/airflow_high_level_role_perms.sh & /run.sh"]

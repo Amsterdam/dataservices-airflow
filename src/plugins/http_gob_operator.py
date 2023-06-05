@@ -7,10 +7,11 @@ from tempfile import TemporaryDirectory
 from typing import Any, Final, Optional
 
 from airflow.exceptions import AirflowException
-from airflow.models import XCOM_RETURN_KEY, Variable
+from airflow.models import Variable
 from airflow.models.baseoperator import BaseOperator
 from airflow.providers.http.hooks.http import HttpHook
 from airflow.utils.decorators import apply_defaults
+from airflow.utils.xcom import XCOM_RETURN_KEY
 from environs import Env
 from http_params_hook import HttpParamsHook
 from postgres_on_azure_hook import PostgresOnAzureHook
@@ -144,9 +145,7 @@ class HttpGobOperator(BaseOperator):
         # and render query, seems overkill for now
         # only replace FIRST occurance (ie on the main collection), not on an relation
         return query.replace(
-            "active: false",
-            f"active: false, first: {batch_size}, after: {cursor_pos}",
-            1
+            "active: false", f"active: false, first: {batch_size}, after: {cursor_pos}", 1
         )
 
     def execute(self, context: dict[str, Any]) -> None:  # noqa: D102
@@ -177,13 +176,13 @@ class HttpGobOperator(BaseOperator):
             # we know the schema, can be an input param (dataset_schema_from_url function)
             # We use the ndjson importer from schematools, give it a tmp tablename
             pg_hook = PostgresOnAzureHook(dataset_name=dataset_info.dataset_id, context=context)
-            dataset = dataset_schema_from_url(dataset_info.schema_url).get_dataset(dataset_info.dataset_id, prefetch_related=True)
+            dataset = dataset_schema_from_url(dataset_info.schema_url).get_dataset(
+                dataset_info.dataset_id, prefetch_related=True
+            )
 
             importer = NDJSONImporter(
-                dataset,
-                pg_hook.get_sqlalchemy_engine(split_dictcursor=True),
-                logger=self.log
-                )
+                dataset, pg_hook.get_sqlalchemy_engine(split_dictcursor=True), logger=self.log
+            )
 
             importer.generate_db_objects(
                 table_id=dataset_info.table_id,
@@ -252,7 +251,7 @@ class HttpGobOperator(BaseOperator):
                         "GOB-API request took %s seconds, cursor: %s",
                         request_end_time - request_start_time,
                         cursor_pos,
-                    )                   
+                    )
                     last_record = importer.load_file(
                         tmp_file, is_through_table=self.is_through_table
                     )

@@ -6,17 +6,18 @@ from dataclasses import dataclass
 from typing import Any, Callable, Final, Optional, cast
 
 from airflow.exceptions import AirflowFailException
-from airflow.models import XCOM_RETURN_KEY, BaseOperator
+from airflow.models import BaseOperator
 from airflow.models.taskinstance import Context
+from airflow.utils.xcom import XCOM_RETURN_KEY
 from environs import Env
 from more_ds.network.url import URL
 from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import extras, sql
 from schematools import TMP_TABLE_POSTFIX
 from schematools.exceptions import SchemaObjectNotFound
+from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from schematools.naming import to_snake_case
 from schematools.types import DatasetSchema
-from schematools.loaders import get_schema_loader as dataset_schema_from_url
 from xcom_attr_assigner_mixin import XComAttrAssignerMixin
 
 env = Env()
@@ -299,7 +300,8 @@ class PostgresTableCopyOperator(BaseOperator, XComAttrAssignerMixin):
                 )
 
                 dataset: DatasetSchema = dataset_schema_from_url(SCHEMA_URL).get_dataset(
-                                    self.dataset_name_lookup)
+                    self.dataset_name_lookup
+                )
 
                 # Get the table_id from the full sql table name.
                 # Because dataset names can hold letters followed by numbers

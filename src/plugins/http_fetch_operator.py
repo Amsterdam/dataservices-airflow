@@ -5,9 +5,9 @@ from typing import Any, Optional, Union
 
 from airflow.exceptions import AirflowFailException
 from airflow.hooks.http_hook import HttpHook
-from airflow.models import XCOM_RETURN_KEY
 from airflow.models.baseoperator import BaseOperator
 from airflow.models.taskinstance import Context
+from airflow.utils.xcom import XCOM_RETURN_KEY
 
 
 class HttpFetchOperator(BaseOperator):
@@ -150,7 +150,7 @@ class HttpFetchOperator(BaseOperator):
             # The response is streaming,
             # we take this into account by using the iter_lines method
             # to decrease the memory footprint.
-            with open(tmp_file, "wt") as tf:
+            with open(tmp_file, "w") as tf:
                 for line in response.iter_lines(decode_unicode=True):
                     tf.write(f"{line}\n")
         else:
