@@ -166,7 +166,7 @@ cachetools==5.2.0
     # via google-auth
 cattrs==22.2.0
     # via apache-airflow
-certifi==2022.9.24
+certifi==2022.12.7
     # via
     #   httpcore
     #   httpx
@@ -262,8 +262,6 @@ environs==9.3.3
     # via -r requirements.in
 et-xmlfile==1.1.0
     # via openpyxl
-exceptiongroup==1.0.0rc9
-    # via cattrs
 factory-boy==3.2.1
     # via amsterdam-schema-tools
 faker==15.0.0
@@ -392,10 +390,6 @@ idna==3.4
     #   jsonschema
     #   requests
     #   rfc3986
-importlib-metadata==5.0.0
-    # via
-    #   flask
-    #   markdown
 importlib-resources==5.12.0
     # via limits
 inflection==0.5.1
@@ -922,11 +916,9 @@ tomli==2.0.1
 typing-extensions==4.4.0
     # via
     #   apache-airflow
-    #   asgiref
     #   azure-core
     #   flask-limiter
     #   limits
-    #   psycopg
     #   pydantic
 uc-micro-py==1.0.1
     # via linkify-it-py
@@ -972,10 +964,6 @@ yamlip==0.0.2
     # via -r requirements.in
 zeep==4.1.0
     # via -r requirements.in
-zipp==3.9.0
-    # via
-    #   importlib-metadata
-    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
