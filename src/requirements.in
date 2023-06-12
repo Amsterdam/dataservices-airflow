@@ -9,7 +9,7 @@ apache-airflow[crypto,postgres,sentry,sendgrid]==2.6.1 --constraint "https://raw
 attrs==22.1.0
 authlib==1.0.1
 clevercsv==0.1.4
-cryptography==38.0.1
+cryptography==39.0.1
 cx-Oracle==8.2.1
 datapunt-objectstore==2020.9.7
 docker==6.0.0
@@ -60,12 +60,14 @@ python-json-logger==2.0.2
 python-keystoneclient==4.0.0
 python-string-utils==1.0.0
 python-swiftclient==3.9.0
+sentry-sdk==1.14.0
 shapely==1.8.0
 simplejson==3.17.3
 sqlalchemy==1.4.47
 sshtunnel==0.3.2
 supervisor==4.1.0
 validator-collection==1.4.1
+werkzeug==2.2.3
 xlrd==1.2.0
 yamlip==0.0.2
 zeep==4.1.0
