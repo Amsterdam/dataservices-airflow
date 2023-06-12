@@ -41,7 +41,7 @@ jsonpointer==2.1
 kubernetes==23.6.0
 mako==1.2.2
 more-ds==0.0.4
-oauthlib==3.2.1
+oauthlib==3.2.2
 openpyxl==3.0.7
 paramiko==2.11.0
 pendulum==2.1.2
