@@ -209,7 +209,7 @@ cron-descriptor==1.2.31
     # via apache-airflow
 croniter==1.3.7
     # via apache-airflow
-cryptography==38.0.1
+cryptography==39.0.1
     # via
     #   -r requirements.in
     #   adal
@@ -822,8 +822,10 @@ rsa==4.9
     # via google-auth
 sendgrid==6.9.7
     # via apache-airflow-providers-sendgrid
-sentry-sdk==1.9.10
-    # via apache-airflow
+sentry-sdk==1.14.0
+    # via
+    #   -r requirements.in
+    #   apache-airflow
 setproctitle==1.3.2
     # via apache-airflow
 shapely==1.8.0
@@ -946,8 +948,9 @@ websocket-client==1.4.1
     # via
     #   docker
     #   kubernetes
-werkzeug==2.2.2
+werkzeug==2.2.3
     # via
+    #   -r requirements.in
     #   apache-airflow
     #   connexion
     #   flask
