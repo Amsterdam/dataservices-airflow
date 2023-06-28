@@ -68,7 +68,7 @@ with DAG(
     import_data = Ogr2OgrOperator(
         task_id="import_data",
         target_table_name=f"{dag_id}_{dag_id}_new",
-        input_file=f"{tmp_dir}/{dag_id}_utf8.csv",
+        input_file=f"{tmp_dir}/export_{dag_id}.csv",
         s_srs="EPSG:28992",
         t_srs="EPSG:28992",
         input_file_sep="SEMICOLON",
@@ -77,7 +77,7 @@ with DAG(
         fid="id",
         mode="PostgreSQL",
         # remove empty records
-        sql_statement=f"""SELECT * FROM {dag_id}_utf8
+        sql_statement=f"""SELECT * FROM export_{dag_id}
                 WHERE \"bag_pand_id\" is not NULL""",  # noqa: S608
     )
 
