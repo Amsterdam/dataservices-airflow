@@ -78,7 +78,7 @@ with DAG(
         mode="PostgreSQL",
         # remove empty records
         sql_statement=f"""SELECT * FROM {dag_id}_utf8
-                WHERE \"bag pand id\" is not NULL""",  # noqa: S608
+                WHERE \"bag_pand_id\" is not NULL""",  # noqa: S608
     )
 
     # 7. Rename COLUMNS based on Provenance
