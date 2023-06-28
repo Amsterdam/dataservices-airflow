@@ -5,7 +5,6 @@ from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
-from airflow.operators.bash import BashOperator
 from common import SHARED_DIR, MessageOperator, default_args
 from common.db import pg_params
 from common.path import mk_dir
@@ -57,12 +56,13 @@ with DAG(
         output_path=f"{tmp_dir}/{files_to_download[0]}",
     )
 
+    # Deprecated since team SOEB creates the .csv in UTF8 themselfs.
     # 4. Convert data to UTF8 character set
-    convert_to_UTF8 = BashOperator(
-        task_id="convert_to_UTF8",
-        bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{files_to_download[0]} > "
-        f"{tmp_dir}/{dag_id}_utf8.csv",
-    )
+    # convert_to_UTF8 = BashOperator(
+    #     task_id="convert_to_UTF8",
+    #     bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{files_to_download[0]} > "
+    #     f"{tmp_dir}/{dag_id}_utf8.csv",
+    # )
 
     # 5. Import data
     import_data = Ogr2OgrOperator(
@@ -148,7 +148,6 @@ with DAG(
     slack_at_start
     >> mkdir
     >> download_data
-    >> convert_to_UTF8
     >> import_data
     >> provenance_translation
     >> multi_checks
