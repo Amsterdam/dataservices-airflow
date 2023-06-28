@@ -32,6 +32,24 @@ services:
       AIRFLOW_CONN_POSTGRES_DEFAULT:
         "postgresql://dataservices:insecure@dso_database:5432\
         /dataservices?cursor=dictcursor&"
+      AIRFLOW_CONN_POSTGRES_AZURE_BENK:
+        "postgresql://cvps_airflow_benk_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_BOR:
+        "postgresql://cvps_airflow_bor_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_DGEN: "postgresql://cvps_airflow_dgen_dev::insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_DSOC: "postgresql://cvps_airflow_dsoc_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_MOBI: "postgresql://cvps_airflow_mobi_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_OPDR: "postgresql://cvps_airflow_opdr_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_SOEB: "postgresql://cvps_airflow_soeb_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
+      AIRFLOW_CONN_POSTGRES_AZURE_STAT: "postgresql://cvps_airflow_stat_dev:insecure@dso_database:5432\
+        /mdbdataservices?cursor=dictcursor&sslmode=require"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql://ds_airflow:insecure@database:5432/ds_airflow"
       AIRFLOW_CONN_ORACLE_DWH_STADSDELEN: "oracle://oracle_user:insecure@localhost:1521/SID001?encoding=UTF-8&nencoding=UTF-8"
       AIRFLOW_CONN_ORACLE_DWH_AMI: "oracle://oracle_user:insecure@localhost:port/database?encoding=UTF-8&nencoding=UTF-8"
