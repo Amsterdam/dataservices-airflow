@@ -1,4 +1,5 @@
 import operator
+import os
 from functools import partial
 from pathlib import Path
 from typing import Final
@@ -22,9 +23,13 @@ from sql.bedrijveninvesteringszones import UPDATE_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
-DAG_ID = "bedrijveninvesteringszones"
-variables = Variable.get(dag_id, deserialize_json=True)
-tmp_dir = f"{SHARED_DIR}/{dag_id}"
+# set connnection to azure with specific account
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_DGEN"]
+
+DAG_ID: Final = "bedrijveninvesteringszones_az"
+DATASET_ID: Final = "bedrijveninvesteringszones"
+variables = Variable.get(DATASET_ID, deserialize_json=True)
+tmp_dir = f"{SHARED_DIR}/{DATASET_ID}"
 files_to_download = variables["files_to_download"]
 total_checks = []
 count_checks = []
@@ -34,18 +39,18 @@ check_name = {}
 # prefill pg_params method with dataset name so
 # it can be used for the database connection as a user.
 # only applicable for Azure connections.
-db_conn_string = partial(pg_params, dataset_name=dag_id)
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
-TABLE_ID: Final = f"{dag_id}_{dag_id}"
+TABLE_ID: Final = f"{DATASET_ID}_{DATASET_ID}"
 TMP_TABLE_POSTFIX: Final = "_new"
 
 with DAG(
-    dag_id,
+    DAG_ID,
     description="tariefen, locaties en overige context bedrijveninvesteringszones.",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -75,7 +80,7 @@ with DAG(
     SHP_to_SQL = [
         BashOperator(
             task_id="SHP_to_SQL",
-            bash_command="ogr2ogr -f 'PGDump' " f"{tmp_dir}/{dag_id}.sql {tmp_dir}/{file}",
+            bash_command="ogr2ogr -f 'PGDump' " f"{tmp_dir}/{DATASET_ID}.sql {tmp_dir}/{file}",
         )
         for files in files_to_download.values()
         for file in files
@@ -84,8 +89,8 @@ with DAG(
 
     SQL_convert_UTF8 = BashOperator(
         task_id="convert_to_UTF8",
-        bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{dag_id}.sql > "
-        f"{tmp_dir}/{dag_id}.utf8.sql",
+        bash_command=f"iconv -f iso-8859-1 -t utf-8  {tmp_dir}/{DATASET_ID}.sql > "
+        f"{tmp_dir}/{DATASET_ID}.utf8.sql",
     )
 
     SQL_update_data = [
@@ -93,10 +98,10 @@ with DAG(
             task_id="update_SQL_data",
             python_callable=convert_biz_data,
             op_args=[
-                f"{dag_id}_{dag_id}_new",
-                f"{tmp_dir}/{dag_id}.utf8.sql",
+                f"{DATASET_ID}_{DATASET_ID}_new",
+                f"{tmp_dir}/{DATASET_ID}.utf8.sql",
                 f"{tmp_dir}/{file}",
-                f"{tmp_dir}/{dag_id}_updated_data_insert.sql",
+                f"{tmp_dir}/{DATASET_ID}_updated_data_insert.sql",
             ],
         )
         for files in files_to_download.values()
@@ -106,13 +111,13 @@ with DAG(
 
     sqlalchemy_create_objects_from_schema = SqlAlchemyCreateObjectOperator(
         task_id="sqlalchemy_create_objects_from_schema",
-        data_schema_name=dag_id,
+        data_schema_name=DATASET_ID,
         ind_extra_index=True,
     )
 
     create_temp_table = PostgresTableCopyOperator(
         task_id="create_temp_table",
-        dataset_name_lookup=dag_id,
+        dataset_name_lookup=DATASET_ID,
         source_table_name=TABLE_ID,
         target_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
         # Only copy table definitions. Don't do anything else.
@@ -123,20 +128,20 @@ with DAG(
 
     import_data = BashOperator(
         task_id="import_data",
-        bash_command=f"psql {db_conn_string()} < {tmp_dir}/{dag_id}_updated_data_insert.sql",
+        bash_command=f"psql {db_conn_string()} < {tmp_dir}/{DATASET_ID}_updated_data_insert.sql",
     )
 
     update_table = PostgresOnAzureOperator(
         task_id="update_target_table",
         sql=UPDATE_TABLE,
-        params={"tablename": f"{dag_id}_{dag_id}_new"},
+        params={"tablename": f"{DATASET_ID}_{DATASET_ID}_new"},
     )
 
     count_checks.append(
         COUNT_CHECK.make_check(
             check_id="count_check",
             pass_value=50,
-            params={"table_name": f"{dag_id}_{dag_id}_new "},
+            params={"table_name": f"{DATASET_ID}_{DATASET_ID}_new "},
             result_checker=operator.ge,
         )
     )
@@ -145,7 +150,7 @@ with DAG(
         GEO_CHECK.make_check(
             check_id="geo_check",
             params={
-                "table_name": f"{dag_id}_{dag_id}_new",
+                "table_name": f"{DATASET_ID}_{DATASET_ID}_new",
                 "geotype": ["POLYGON"],
             },
             pass_value=1,
@@ -162,7 +167,8 @@ with DAG(
         old_table_name=f"{TABLE_ID}{TMP_TABLE_POSTFIX}",
         cascade=True,
     )
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    # set create_roles to False, since ref DB Azure already created them.
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DATASET_ID, create_roles=False)
 
 
 slack_at_start >> mkdir >> download_data
