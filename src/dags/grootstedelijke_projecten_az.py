@@ -142,7 +142,7 @@ with DAG(
     )
 
     # 9. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DB_TABLE_NAME)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DB_TABLE_NAME, create_roles=False)
 
 
 slack_at_start >> mkdir >> download_data
