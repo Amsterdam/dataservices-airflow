@@ -151,7 +151,7 @@ with DAG(
     )
 
     # 12. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_name)
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_name, create_roles=False)
 
 # FLOW
 slack_at_start >> drop_tables >> create_tables
