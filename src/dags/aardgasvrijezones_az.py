@@ -21,7 +21,7 @@ from swift_operator import SwiftOperator
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
 
-DAG_ID: Final = "aardgasvrijezones_az_az"
+DAG_ID: Final = "aardgasvrijezones_az"
 DATASET_ID: Final = "aardgasvrijezones"
 variables_aardgasvrijezones = Variable.get("aardgasvrijezones", deserialize_json=True)
 files_to_download = variables_aardgasvrijezones["files_to_download"]
