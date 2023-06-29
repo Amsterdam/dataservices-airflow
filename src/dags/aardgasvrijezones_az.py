@@ -154,7 +154,8 @@ with DAG(
     ]
 
     # 10. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_id)
+    # set create_roles to False, since ref DB Azure already created them.
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dataset_id, create_roles=False)
 
 
 slack_at_start >> mkdir >> download_data
