@@ -22,7 +22,7 @@ from sql.bedrijveninvesteringszones import UPDATE_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
 
-DAG_ID = "bedrijveninvesteringszones"
+dag_id = "bedrijveninvesteringszones"
 variables = Variable.get(dag_id, deserialize_json=True)
 tmp_dir = f"{SHARED_DIR}/{dag_id}"
 files_to_download = variables["files_to_download"]
