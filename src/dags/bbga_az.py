@@ -27,7 +27,7 @@ OWNER: Final = "team_basisstatistiek"
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_STAT"]
 
-DAG_ID: Final = "bbga_az_az"
+DAG_ID: Final = "bbga_az"
 DATASET_ID: Final = "bbga"
 EXPORT_DIR: Final = Path(EPHEMERAL_DIR) / DATASET_ID
 SQLITE_CSV_TRANSFORM_FILE: Final = EXPORT_DIR / "transform_csv_files.sqlite3"
