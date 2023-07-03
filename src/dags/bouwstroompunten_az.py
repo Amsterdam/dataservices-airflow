@@ -1,0 +1,213 @@
+import os
+import json
+import operator
+from pathlib import Path
+from typing import cast, Final
+
+import dsnparse
+import requests
+from airflow import DAG
+from airflow.decorators import task
+from airflow.models import Variable
+from postgres_on_azure_operator import PostgresOnAzureOperator
+from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.path import mk_dir
+from contact_point.callbacks import get_contact_point_on_failure_callback
+from environs import Env
+from http_fetch_operator import HttpFetchOperator
+from ogr2ogr_operator import Ogr2OgrOperator
+from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_permissions_operator import PostgresPermissionsOperator
+from postgres_rename_operator import PostgresTableRenameOperator
+from provenance_rename_operator import ProvenanceRenameOperator
+from sql.bouwstroompunten_pk import ADD_PK
+
+# set connnection to azure with specific account
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_BOR"]
+
+DAG_ID: Final = "bouwstroompunten_az"
+DATASET_ID: Final = "bouwstroompunten"
+variables = Variable.get(DATASET_ID, deserialize_json=True)
+auth_endpoint = variables["data_endpoints"]["auth"]
+data_endpoint = variables["data_endpoints"]["data"]
+tmp_dir = Path(SHARED_DIR) / DATASET_ID
+data_file = f"{tmp_dir}/bouwstroompunten_data.geojson"
+env = Env()
+password = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_PASSWD")
+user = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_USER")
+base_url = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL")
+total_checks = []
+count_checks = []
+geo_checks = []
+
+
+@task  # type: ignore[misc]
+def get_token() -> str:
+    """Getting the access token for calling the data endpoint.
+
+    Returns:
+        API access token.
+
+    Note: Because of the additional /https in the base url environment variable
+    `AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL` the scheme en host must be extracted
+    and merged into a base endpoint.
+    """
+    scheme = dsnparse.parse(base_url).scheme
+    host = dsnparse.parse(base_url).hostloc
+    base_endpoint = "".join([scheme, "://", host])
+    token_url = f"{base_endpoint}/{auth_endpoint}"
+    token_payload = {"identifier": user, "password": password}
+    token_headers = {"content-type": "application/json"}
+
+    try:
+        token_request = requests.post(
+            token_url,
+            data=json.dumps(token_payload),
+            headers=token_headers,
+            verify=True,
+        )
+        token_request.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise requests.exceptions.HTTPError(
+            "Something went wrong, please check the get_token function.", err.response.text
+        )
+
+    # `json.loads` can return any JSON like Python datatype (int, float, str, bool, dict),
+    # but we know it to be a `str` as the final value in this specific case. To provide some
+    # more meaningful type checking to callers of `get_token` we want to be very expliciet in
+    # what we return. Hence a cast is needed here.
+    token_load = json.loads(token_request.text)
+    return cast(str, token_load["jwt"])
+
+
+with DAG(
+    DAG_ID,
+    default_args=default_args,
+    template_searchpath=["/"],
+    user_defined_filters={"quote": quote_string},
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
+) as dag:
+
+    # 1. Post info message on slack
+    slack_at_start = MessageOperator(
+        task_id="slack_at_start",
+    )
+
+    # 2. Create temp directory to store files
+    mkdir = mk_dir(tmp_dir, clean_if_exists=False)
+
+    # 3. Download data
+    get_jwt_token = get_token()
+    download_data = HttpFetchOperator(  # noqa: S106
+        task_id="download",
+        endpoint=data_endpoint,
+        http_conn_id="BOUWSTROOMPUNTEN_BASE_URL",
+        tmp_file=data_file,
+        xcom_token_task_ids="get_token",
+        headers={
+            "content-type": "application/json",
+        },
+    )
+
+    # 4. Import data
+    # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
+    # So FID=ID cannot be used.
+    import_data = Ogr2OgrOperator(
+        task_id="import_data",
+        target_table_name=f"{DATASET_ID}_{DATASET_ID}_new",
+        input_file=data_file,
+        s_srs=None,
+        fid="ogc_fid",
+        auto_detect_type="YES",
+        mode="PostgreSQL",
+    )
+
+    # 5. Drop Exisiting TABLE
+    drop_tables = PostgresOnAzureOperator(
+        task_id="drop_existing_table",
+        sql="DROP TABLE IF EXISTS {{ params.table_id }} CASCADE",
+        params={"table_id": f"{DATASET_ID}_{DATASET_ID}"},
+    )
+
+    # 6. Rename COLUMNS based on provenance (if specified)
+    provenance_translation = ProvenanceRenameOperator(
+        task_id="rename_columns",
+        dataset_name=DATASET_ID,
+        prefix_table_name=f"{DATASET_ID}_",
+        postfix_table_name="_new",
+        rename_indexes=False,
+        pg_schema="public",
+    )
+
+    # 7. Rename TABLE
+    rename_table = PostgresTableRenameOperator(
+        task_id="rename_table",
+        old_table_name=f"{DATASET_ID}_{DATASET_ID}_new",
+        new_table_name=f"{DATASET_ID}_{DATASET_ID}",
+    )
+
+    # 8. RE-define PK(see step 4 why)
+    redefine_pk = PostgresOnAzureOperator(
+        task_id="re-define_pk",
+        sql=ADD_PK,
+        params={"tablename": f"{DATASET_ID}_{DATASET_ID}"},
+    )
+
+    # PREPARE CHECKS
+    count_checks.append(
+        COUNT_CHECK.make_check(
+            check_id="count_check",
+            pass_value=25,
+            params={"table_name": f"{DATASET_ID}_{DATASET_ID}"},
+            result_checker=operator.ge,
+        )
+    )
+
+    geo_checks.append(
+        GEO_CHECK.make_check(
+            check_id="geo_check",
+            params={
+                "table_name": f"{DATASET_ID}_{DATASET_ID}",
+                "geotype": ["POINT"],
+            },
+            pass_value=1,
+        )
+    )
+
+    total_checks = count_checks + geo_checks
+
+    # 9. RUN bundled CHECKS
+    multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
+
+    # 10. Grant database permissions
+    # set create_roles to False, since ref DB Azure already created them.
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DATASET_ID, create_roles=False)
+
+    (
+        slack_at_start
+        >> mkdir
+        >> get_jwt_token
+        >> download_data
+        >> import_data
+        >> drop_tables
+        >> provenance_translation
+        >> rename_table
+        >> redefine_pk
+        >> multi_checks
+        >> grant_db_permissions
+    )
+
+dag.doc_md = """
+    #### DAG summary
+    This DAG contains power stations data for event or market
+    #### Mission Critical
+    Classified as 2 (beschikbaarheid [range: 1,2,3])
+    #### On Failure Actions
+    Fix issues and rerun dag on working days
+    #### Point of Contact
+    Inform the businessowner at [businessowner]@amsterdam.nl
+    #### Business Use Case / process / origin
+    Na
+    #### Prerequisites/Dependencies/Resourcing
+    https://api.data.amsterdam.nl/v1/bouwstroompunten/bouwstroompunten/
+"""

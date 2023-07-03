@@ -1,5 +1,5 @@
-import operator
 import os
+import operator
 from functools import partial
 from pathlib import Path
 from typing import Final
@@ -13,23 +13,25 @@ from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
+from sql.explosieven import ADD_HYPERLINK_PDF, REMOVE_COLS
 from swift_operator import SwiftOperator
 
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
 
-DAG_ID: Final = "aardgasvrijezones_az"
-DATASET_ID: Final = "aardgasvrijezones"
-variables_aardgasvrijezones = Variable.get("aardgasvrijezones", deserialize_json=True)
-files_to_download = variables_aardgasvrijezones["files_to_download"]
+DAG_ID: Final = "explosieven_az"
+DATASET_ID: Final = "explosieven"
+variables_bodem = Variable.get("explosieven", deserialize_json=True)
+files_to_download = variables_bodem["files_to_download"]
 tmp_dir = f"{SHARED_DIR}/{DATASET_ID}"
-total_checks: list = []
-count_checks: list = []
-geo_checks: list = []
-check_name: dict = {}
+total_checks = []
+count_checks = []
+geo_checks = []
+check_name = {}
 
 # prefill pg_params method with dataset name so
 # it can be used for the database connection as a user.
@@ -38,7 +40,7 @@ db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 with DAG(
     DAG_ID,
-    description="(deels) gerealiseerde of geplande aardgasvrije buurten, en buurtinitiatieven",
+    description="(1) bominslagen, (2) gevrijwaardegebieden, (3) verdachtgebieden en (4) uitgevoerde onderzoeken",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
@@ -57,8 +59,8 @@ with DAG(
     download_data = [
         SwiftOperator(
             task_id=f"download_{file}",
-            swift_conn_id="SWIFT_DEFAULT",
-            container="aardgasvrij",
+            swift_conn_id="OBJECTSTORE_MILIEUTHEMAS",
+            container="Bommenkaart",
             object_id=file,
             output_path=f"{tmp_dir}/{file}",
         )
@@ -66,8 +68,7 @@ with DAG(
         for file in files
     ]
 
-    # 4. Dummy operator acts as an interface between parallel tasks
-    # to another parallel tasks with different number of lanes
+    # 4. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
     #  (without this intermediar, Airflow will give an error)
     Interface = DummyOperator(task_id="interface")
 
@@ -76,11 +77,12 @@ with DAG(
         BashOperator(
             task_id=f"create_SQL_{key}",
             bash_command="ogr2ogr -f 'PGDump' "
-            "-t_srs EPSG:28992 -s_srs EPSG:28992 "
-            f"-nln {DATASET_ID}_{key}_new "
+            "-s_srs EPSG:28992 -t_srs EPSG:28992 "
+            f"-nln {key} "
             f"{tmp_dir}/{key}.sql {tmp_dir}/{file} "
             "-lco GEOMETRY_NAME=geometry "
             "-nlt PROMOTE_TO_MULTI "
+            "-lco precision=NO "
             "-lco FID=id",
         )
         for key, files in files_to_download.items()
@@ -97,15 +99,58 @@ with DAG(
         for key in files_to_download.keys()
     ]
 
-    # 7. Rename COLUMNS based on Provenance
+    # 7. Remove unnecessary cols
+    remove_cols = [
+        PostgresOnAzureOperator(
+            task_id=f"remove_cols_{key}",
+            sql=REMOVE_COLS,
+            params=dict(tablename=key),
+        )
+        for key in files_to_download.keys()
+    ]
+
+    # 8. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=DATASET_ID,
-        prefix_table_name=f"{DATASET_ID}_",
-        postfix_table_name="_new",
         rename_indexes=False,
         pg_schema="public",
     )
+
+    # 9. Add PDF hyperlink only for table bominslag and verdachtgebied
+    add_hyperlink_pdf = [
+        PostgresOnAzureOperator(
+            task_id=f"add_hyperlink_pdf_{table}",
+            sql=ADD_HYPERLINK_PDF,
+            params=dict(tablename=table),
+        )
+        for table in ("bominslag", "verdachtgebied")
+    ]
+
+    # 10. Dummy operator acts as an interface between parallel tasks to another parallel tasks with different number of lanes
+    #  (without this intermediar, Airflow will give an error)
+    Interface2 = DummyOperator(task_id="interface2")
+
+    # 11. Drop Exisiting TABLE
+    drop_tables = [
+        PostgresOnAzureOperator(
+            task_id=f"drop_existing_table_{key}",
+            sql=[
+                f"DROP TABLE IF EXISTS {DATASET_ID}_{key} CASCADE",
+            ],
+        )
+        for key in files_to_download.keys()
+    ]
+
+    # 12. Rename TABLE
+    rename_tables = [
+        PostgresTableRenameOperator(
+            task_id=f"rename_table_{key}",
+            old_table_name=key,
+            new_table_name=f"{DATASET_ID}_{key}",
+        )
+        for key in files_to_download.keys()
+    ]
 
     # Prepare the checks and added them per source to a dictionary
     for key in files_to_download.keys():
@@ -118,7 +163,7 @@ with DAG(
             COUNT_CHECK.make_check(
                 check_id=f"count_check_{key}",
                 pass_value=2,
-                params={"table_name": f"{DATASET_ID}_{key}_new "},
+                params=dict(table_name=key),
                 result_checker=operator.ge,
             )
         )
@@ -126,10 +171,10 @@ with DAG(
         geo_checks.append(
             GEO_CHECK.make_check(
                 check_id=f"geo_check_{key}",
-                params={
-                    "table_name": f"{DATASET_ID}_{key}_new ",
-                    "geotype": ["MULTIPOINT", "MULTIPOLYGON"],
-                },
+                params=dict(
+                    table_name=key,
+                    geotype=["POINT", "MULTIPOLYGON"],
+                ),
                 pass_value=1,
             )
         )
@@ -137,26 +182,15 @@ with DAG(
         total_checks = count_checks + geo_checks
         check_name[key] = total_checks
 
-    # 8. Execute bundled checks on database
+    # 13. Execute bundled checks on database
     multi_checks = [
         PostgresMultiCheckOperator(task_id=f"multi_check_{key}", checks=check_name[key])
         for key in files_to_download.keys()
     ]
 
-    # 9. Rename TABLE
-    rename_tables = [
-        PostgresTableRenameOperator(
-            task_id=f"rename_table_{key}",
-            old_table_name=f"{DATASET_ID}_{key}_new",
-            new_table_name=f"{DATASET_ID}_{key}",
-        )
-        for key in files_to_download.keys()
-    ]
-
-    # 10. Grant database permissions
+    # 14. Grant database permissions
     # set create_roles to False, since ref DB Azure already created them.
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DATASET_ID, create_roles=False)
-
 
 slack_at_start >> mkdir >> download_data
 
@@ -166,25 +200,26 @@ for data in zip(download_data):
 
 Interface >> SHP_to_SQL
 
-for (create_SQL, create_table, multi_check, rename_table,) in zip(
+for (create_SQL, create_table, remove_col, multi_check, drop_table, rename_table,) in zip(
     SHP_to_SQL,
     create_tables,
+    remove_cols,
     multi_checks,
+    drop_tables,
     rename_tables,
 ):
 
-    [create_SQL >> create_table] >> provenance_translation
+    [create_SQL >> create_table >> remove_col] >> provenance_translation
 
-    [multi_check >> rename_table]
+    [multi_check >> drop_table >> rename_table]
 
-provenance_translation >> multi_checks
+provenance_translation >> add_hyperlink_pdf >> Interface2 >> multi_checks
 
 rename_tables >> grant_db_permissions
 
 dag.doc_md = """
     #### DAG summary
-    This DAG contains data of natural gas free districts (aardgasvrije buurten)
-    and local initiatives
+    This DAG contains explosives related topics
     #### Mission Critical
     Classified as 2 (beschikbaarheid [range: 1,2,3])
     #### On Failure Actions
@@ -194,9 +229,8 @@ dag.doc_md = """
     #### Business Use Case / process / origin
     Na
     #### Prerequisites/Dependencies/Resourcing
-    https://api.data.amsterdam.nl/v1/docs/datasets/aardgasvrijezones.html
-    https://api.data.amsterdam.nl/v1/docs/wfs-datasets/aardgasvrijezones.html
-    Example geosearch:
-    https://api.data.amsterdam.nl/geosearch?datasets=aardgasvrijezones/buurt&x=106434&y=488995&radius=10
-    https://api.data.amsterdam.nl/geosearch?datasets=aardgasvrijezones/buurtinitiatief&x=106434&y=488995&radius=10
+    https://api.data.amsterdam.nl/v1/explosieven/bominslag/
+    https://api.data.amsterdam.nl/v1/explosieven/gevrijwaardgebied/
+    https://api.data.amsterdam.nl/v1/explosieven/verdachtgebied/
+    https://api.data.amsterdam.nl/v1/explosieven/uitgevoerdonderzoek/
 """
