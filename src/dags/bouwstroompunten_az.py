@@ -1,27 +1,32 @@
-import os
+import dsnparse
 import json
 import operator
+import os
+import requests
+
 from pathlib import Path
 from typing import cast, Final
 
-import dsnparse
-import requests
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.decorators import task
 from airflow.models import Variable
-from postgres_on_azure_operator import PostgresOnAzureOperator
+from airflow.operators.bash import BashOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
+from functools import partial
 from http_fetch_operator import HttpFetchOperator
-from ogr2ogr_operator import Ogr2OgrOperator
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.bouwstroompunten_pk import ADD_PK
-
+from typing import cast, Final
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_BOR"]
 
@@ -39,6 +44,11 @@ base_url = env("AIRFLOW_CONN_BOUWSTROOMPUNTEN_BASE_URL")
 total_checks = []
 count_checks = []
 geo_checks = []
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 
 @task  # type: ignore[misc]
@@ -109,27 +119,46 @@ with DAG(
         },
     )
 
-    # 4. Import data
-    # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
-    # So FID=ID cannot be used.
-    import_data = Ogr2OgrOperator(
-        task_id="import_data",
-        target_table_name=f"{DATASET_ID}_{DATASET_ID}_new",
-        input_file=data_file,
-        s_srs=None,
-        fid="ogc_fid",
-        auto_detect_type="YES",
-        mode="PostgreSQL",
-    )
+    # CANNOT BE USED due to POSTGRES 12 incompatibility with GDAL version.
+    # # 4. Import data
+    # # ogr2ogr demands the PK is of type intgger. In this case the source ID is of type varchar.
+    # # So FID=ID cannot be used.
+    # import_data = Ogr2OgrOperator(
+    #     task_id="import_data",
+    #     target_table_name=f"{DATASET_ID}_{DATASET_ID}_new",
+    #     input_file=data_file,
+    #     s_srs=None,
+    #     fid="ogc_fid",
+    #     auto_detect_type="YES",
+    #     mode="PostgreSQL",
+    # )
 
-    # 5. Drop Exisiting TABLE
+    # 4. Create SQL
+    generate_SQL = BashOperator(
+            task_id="create_SQL",
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-t_srs EPSG:28992 -s_srs EPSG:4326 "
+            f"-nln {DATASET_ID}_{DATASET_ID}_new "
+            f"{tmp_dir}/{DATASET_ID}.sql {data_file} "
+            "-lco GEOMETRY_NAME=geometry "
+            "-lco FID=ogc_fid",
+        )
+
+
+    # 5. Create TABLE
+    create_tables = BashOperator(
+            task_id="create_table",
+            bash_command=f"psql {db_conn_string()} < {tmp_dir}/{DATASET_ID}.sql",
+        )
+
+    # 6. Drop Exisiting TABLE
     drop_tables = PostgresOnAzureOperator(
         task_id="drop_existing_table",
         sql="DROP TABLE IF EXISTS {{ params.table_id }} CASCADE",
         params={"table_id": f"{DATASET_ID}_{DATASET_ID}"},
     )
 
-    # 6. Rename COLUMNS based on provenance (if specified)
+    # 7. Rename COLUMNS based on provenance (if specified)
     provenance_translation = ProvenanceRenameOperator(
         task_id="rename_columns",
         dataset_name=DATASET_ID,
@@ -139,14 +168,14 @@ with DAG(
         pg_schema="public",
     )
 
-    # 7. Rename TABLE
+    # 8. Rename TABLE
     rename_table = PostgresTableRenameOperator(
         task_id="rename_table",
         old_table_name=f"{DATASET_ID}_{DATASET_ID}_new",
         new_table_name=f"{DATASET_ID}_{DATASET_ID}",
     )
 
-    # 8. RE-define PK(see step 4 why)
+    # 9. RE-define PK(see step 4 why)
     redefine_pk = PostgresOnAzureOperator(
         task_id="re-define_pk",
         sql=ADD_PK,
@@ -176,10 +205,10 @@ with DAG(
 
     total_checks = count_checks + geo_checks
 
-    # 9. RUN bundled CHECKS
+    # 10. RUN bundled CHECKS
     multi_checks = PostgresMultiCheckOperator(task_id="multi_check", checks=total_checks)
 
-    # 10. Grant database permissions
+    # 11. Grant database permissions
     # set create_roles to False, since ref DB Azure already created them.
     grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DATASET_ID, create_roles=False)
 
@@ -188,7 +217,8 @@ with DAG(
         >> mkdir
         >> get_jwt_token
         >> download_data
-        >> import_data
+        >> generate_SQL
+        >> create_tables
         >> drop_tables
         >> provenance_translation
         >> rename_table

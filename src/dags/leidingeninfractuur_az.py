@@ -1,32 +1,35 @@
 import operator
 import os
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Final
 
+
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
 from airflow.models.baseoperator import chain
 from airflow.utils.task_group import TaskGroup
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from dataclasses import dataclass
 from environs import Env
-from ogr2ogr_operator import Ogr2OgrOperator
+from functools import partial
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
-
+from sql.leidingeninfrastructuur import SQL_ALTER_DATATYPES, SQL_GEOM_CONVERT, SQL_REMOVE_TABLE
 # These seemingly unused imports are actually used, albeit indirectly. See the code with
 # `globals()[select_statement]`. Hence the `noqa: F401` comments.
 from sql.leidingeninfrastructuur import SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE  # noqa: F401
 from sql.leidingeninfrastructuur import SQL_LICHTPUNTEN_TABLE  # noqa: F401
 from sql.leidingeninfrastructuur import SQL_MANTELBUIZEN_TABLE  # noqa: F401
 from sql.leidingeninfrastructuur import SQL_PUNTEN_TABLE  # noqa: F401
-from sql.leidingeninfrastructuur import SQL_ALTER_DATATYPES, SQL_GEOM_CONVERT, SQL_REMOVE_TABLE
 from swift_operator import SwiftOperator
+from typing import Final
 
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
@@ -46,6 +49,11 @@ env = Env()
 total_checks = []
 count_checks = []
 geo_checks = []
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 TMP_TABLE_POSTFIX: Final = "new"
 

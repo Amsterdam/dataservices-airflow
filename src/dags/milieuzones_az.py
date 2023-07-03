@@ -1,24 +1,28 @@
 import operator
 import os
-from pathlib import Path
-from typing import Final
 
+
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from functools import partial
 from importscripts.import_milieuzones import import_milieuzones
-from ogr2ogr_operator import Ogr2OgrOperator
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.milieuzones import DEL_ROWS, DROP_COLS
 from swift_operator import SwiftOperator
+from typing import Final
 
 
 # set connnection to azure with specific account
@@ -36,6 +40,10 @@ count_checks: list = []
 geo_checks: list = []
 check_name: dict = {}
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 with DAG(
     DAG_ID,

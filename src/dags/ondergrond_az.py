@@ -1,16 +1,18 @@
 import operator
 import os
-from pathlib import Path
-from typing import Final
 
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from common.sql import SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
+from functools import partial
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -19,6 +21,7 @@ from provenance_rename_operator import ProvenanceRenameOperator
 from sql.ondergrond import SET_DATATYPE_GEOM_TO_GEOM
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from swift_operator import SwiftOperator
+from typing import Final
 
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
@@ -33,6 +36,10 @@ count_checks: list[int] = []
 geo_checks: list[int] = []
 check_name: dict[str, list[int]] = {}
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 SQL_DROP_UNNECESSARY_COLUMNS_TMP_TABLE: Final = """
     ALTER TABLE {{ params.tablename }}

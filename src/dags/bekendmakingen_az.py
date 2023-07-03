@@ -1,7 +1,5 @@
 import os
 import operator
-from pathlib import Path
-from typing import Final
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -9,12 +7,14 @@ from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from importscripts.import_bekendmakingen import import_data_batch
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_rename_operator import PostgresTableRenameOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from typing import Final
 
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_DGEN"]

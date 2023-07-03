@@ -1,21 +1,23 @@
 from pathlib import Path
 import os
-from typing import Iterable, Final
 
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from environs import Env
+from functools import partial
 from http_fetch_operator import HttpFetchOperator
 from more_ds.network.url import URL
-from ogr2ogr_operator import Ogr2OgrOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.rdw import SQL_CREATE_TMP_TABLE, SQL_SWAP_TABLE
+from typing import Iterable, Final
 
 # Source defaults to 1000 records per request.
 # There is no unlimited.
@@ -49,6 +51,11 @@ endpoints: dict = variables["data_endpoints"]
 tmp_dir: str = f"{SHARED_DIR}/{DATASET_ID}"
 env: Env = Env()
 rdw_base_url: URL = URL(env("AIRFLOW_CONN_RDW_BASE_URL"))
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 
 with DAG(

@@ -1,22 +1,24 @@
 import operator
 import os
-from typing import Final
 
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from postgres_on_azure_operator import PostgresOnAzureOperator
+from typing import Final
 from importscripts.import_risicozones import (
     cleanse_misformed_data_iter,
     merge_files_iter,
     unify_geometry_data_iter,
     union_files_iter,
 )
-from ogr2ogr_operator import Ogr2OgrOperator
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
+from common.db import pg_params
+from functools import partial
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
@@ -43,6 +45,10 @@ count_checks: list[int] = []
 geo_checks: list[int] = []
 check_name: dict[str, list[int]] = {}
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 with DAG(
     DAG_ID,

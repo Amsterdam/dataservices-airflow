@@ -1,16 +1,18 @@
 import operator
 import os
-from functools import partial
-from pathlib import Path
-from typing import Final
 
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
 from common import SHARED_DIR, MessageOperator, default_args
+from common.db import pg_params
 from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
+from functools import partial
+from functools import partial
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
@@ -18,6 +20,7 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.vastgoed import ADD_LEADING_ZEROS, CHANGE_DATA_TYPE
 from swift_operator import SwiftOperator
+from typing import Final
 
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]

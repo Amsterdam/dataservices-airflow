@@ -1,31 +1,31 @@
 import operator
 import os
 import re
-from collections import defaultdict
-from typing import Final
 
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
+from collections import defaultdict
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
-
+from common.db import pg_params
 from common.sql import SQL_DROP_TABLE, SQL_GEOMETRY_VALID
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from functools import partial
 from http_fetch_operator import HttpFetchOperator
-
 # The imported functions are taken from globals(), hence the noqa.
 from importscripts.import_sport import add_unique_id_to_csv, add_unique_id_to_geojson  # noqa: F401
-from ogr2ogr_operator import Ogr2OgrOperator
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.sport import ADD_GEOMETRY_COL, DEL_ROWS
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 from typeahead_location_operator import TypeAHeadLocationOperator
+from typing import Final
 
 # business / source keys
 COMPOSITE_KEYS: dict = {
@@ -97,6 +97,11 @@ def clean_data(file_name: str) -> None:
     remove_unkown_karakter = re.sub("\uFFFD", "\u2014", remove_double_spaces)
     with open(file_name, "w") as output:
         output.write(remove_unkown_karakter)
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 
 with DAG(

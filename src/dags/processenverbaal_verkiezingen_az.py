@@ -1,24 +1,26 @@
 import operator
 import os
-from pathlib import Path
-from typing import Final
 
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
 from common import SHARED_DIR, MessageOperator, default_args
+from common.db import pg_params
 from common.objectstore import fetch_objectstore_credentials
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from functools import partial
 from importscripts.import_processenverbaalverkiezingen import save_data
 from more_ds.network.url import URL
-from ogr2ogr_operator import Ogr2OgrOperator
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, PostgresMultiCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from sql.processenverbaalverkiezingen import SQL_DROP_TMP_TABLE, SQL_REDEFINE_PK
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
+from typing import Final
 
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_DGEN"]
@@ -36,6 +38,11 @@ tenant: str = conn["TENANT_ID"]
 base_url = URL(f"https://{tenant}.objectstore.eu")
 count_checks: list = []
 check_name: dict = {}
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 
 with DAG(

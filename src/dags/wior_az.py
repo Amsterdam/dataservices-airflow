@@ -1,28 +1,31 @@
 import json
 import operator
 import os
-from datetime import datetime, timezone, tzinfo
-from pathlib import Path
-from typing import Final, Optional
-
 import requests
+
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from airflow.operators.python import BranchPythonOperator, PythonOperator
 from common import SHARED_DIR, MessageOperator, default_args, env, logger, quote_string
+from common.db import pg_params
 from common.path import mk_dir
 from contact_point.callbacks import get_contact_point_on_failure_callback
+from datetime import datetime, timezone, tzinfo
 from dateutil import tz
+from functools import partial
 from importscripts.wior import _pick_branch
 from more_ds.network.url import URL
-from ogr2ogr_operator import Ogr2OgrOperator
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from requests.auth import HTTPBasicAuth
+from typing import Final, Optional
 from sql.wior import (
     DROP_COLS,
     SQL_ADD_PK,
@@ -52,6 +55,10 @@ count_checks: list = []
 geo_checks: list = []
 to_zone: Optional[tzinfo] = tz.gettz("Europe/Amsterdam")
 
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 class DataSourceError(Exception):
     """Custom exeception for not available data source."""
