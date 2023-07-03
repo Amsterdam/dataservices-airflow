@@ -291,7 +291,7 @@ def create_gob_dag(
 
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag",
-            DATASET_ID_prefix="gob_",
+            dag_id_prefix="gob_",
             trigger_rule="all_done",
             labels_group_getter=_get_labels_group,
             sort_key_getter=_get_sort_key,
