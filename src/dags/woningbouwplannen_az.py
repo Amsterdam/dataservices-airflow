@@ -52,12 +52,12 @@ NM_RENAMES_SQL: Final = """
 
 owner = "team_ruimte"
 with DAG(
-    dag_id,
+    DAG_ID,
     default_args=default_args | {"owner": owner},
     # the access_control defines perms on DAG level. Not needed in Azure
     # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=dag_id),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -85,7 +85,7 @@ with DAG(
         task_id="swift_load_task",
         container="Dataservices",
         object_id=f"woningbouwplannen/{DATASTORE_TYPE}/woningbouwplannen.zip",
-        dataset_name=dag_id,
+        dataset_name=DATASET_ID,
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -101,7 +101,7 @@ with DAG(
     )
 
     # 5. Swap tables to target schema public
-    swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=dag_id)
+    swap_schema = SwapSchemaOperator(task_id="swap_schema", dataset_name=DATASET_ID)
 
     # 6. Extra manual renaming for the nm-tables
     nm_tables_rename = PostgresOnAzureOperator(

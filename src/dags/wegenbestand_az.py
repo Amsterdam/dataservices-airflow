@@ -32,7 +32,7 @@ DATASET_ID: Final = "wegenbestand"
 DATASET_ID_ZZV: Final = "wegenbestandZoneZwaarVerkeer"
 DATASET_ID_ZZV_DATABASE: Final = to_snake_case(DATASET_ID_ZZV)
 TMP_DIR: Final = Path(SHARED_DIR) / DAG_ID
-variables: dict[str, dict[str, str]] = Variable.get(DAG_ID, deserialize_json=True)
+variables: dict[str, dict[str, str]] = Variable.get(DATASET_ID, deserialize_json=True)
 files_to_download: dict[str, dict[str, str]] = variables["files_to_download"]  # type: ignore
 data_values: dict[str, dict[str, str]] = variables["data_values"]  # type: ignore
 total_checks: list = []
@@ -47,7 +47,7 @@ with DAG(
                 en tunnels/routes voor vervoer gevaarlijkestoffen.""",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
-    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DAG_ID),
+    on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 
     # 1. Post info message on slack
@@ -95,7 +95,7 @@ with DAG(
     load_geojson = [
         Ogr2OgrOperator(
             task_id=f"import_geojson_{values['table']}",
-            target_table_name=f"{DAG_ID}_{values['table']}_new",
+            target_table_name=f"{DATASET_ID}_{values['table']}_new",
             input_file=f"{TMP_DIR}/{values['table']}.{extension['file_type']}",
             t_srs="EPSG:28992",
             mode="PostgreSQL",
@@ -115,10 +115,10 @@ with DAG(
     provenance_trans = [
         ProvenanceRenameOperator(
             task_id=f"provenance_rename_{values}",
-            dataset_name=DATASET_ID_ZZV if values == "zone_zwaar_verkeer" else DAG_ID,
+            dataset_name=DATASET_ID_ZZV if values == "zone_zwaar_verkeer" else DATASET_ID,
             prefix_table_name=f"{DATASET_ID_ZZV_DATABASE}_"
             if values == "zone_zwaar_verkeer"
-            else f"{DAG_ID}_",
+            else f"{DATASET_ID}_",
             postfix_table_name="_new",
             rename_indexes=False,
             pg_schema="public",
@@ -138,7 +138,7 @@ with DAG(
             params={
                 "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
                 if values["source"] == "zone_zwaar_verkeer"
-                else f"{DAG_ID}_{values['table']}_new",
+                else f"{DATASET_ID}_{values['table']}_new",
                 "geo_column": "geometry",
                 "geom_type_number": "2",
             },
@@ -160,7 +160,7 @@ with DAG(
                 params={
                     "table_name": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
                     if values["source"] == "zone_zwaar_verkeer"
-                    else f"{DAG_ID}_{values['table']}_new"
+                    else f"{DATASET_ID}_{values['table']}_new"
                 },
                 result_checker=operator.ge,
             )
@@ -172,7 +172,7 @@ with DAG(
                 params={
                     "table_name": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
                     if values["source"] == "zone_zwaar_verkeer"
-                    else f"{DAG_ID}_{values['table']}_new",
+                    else f"{DATASET_ID}_{values['table']}_new",
                     "geotype": [
                         "POINT",
                         "MULTILINESTRING",
@@ -201,10 +201,10 @@ with DAG(
             dataset_name_lookup=DATASET_ID_ZZV,
             source_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
             if values["source"] == "zone_zwaar_verkeer"
-            else f"{DAG_ID}_{values['table']}_new",
+            else f"{DATASET_ID}_{values['table']}_new",
             target_table_name=f"{DATASET_ID_ZZV_DATABASE}_{values['table']}"
             if values["source"] == "zone_zwaar_verkeer"
-            else f"{DAG_ID}_{values['table']}",
+            else f"{DATASET_ID}_{values['table']}",
             drop_target_if_unequal=True,
         )
         for values in data_values.values()
@@ -218,7 +218,7 @@ with DAG(
             params={
                 "tablename": f"{DATASET_ID_ZZV_DATABASE}_{values['table']}_new"
                 if values["source"] == "zone_zwaar_verkeer"
-                else f"{DAG_ID}_{values['table']}_new"
+                else f"{DATASET_ID}_{values['table']}_new"
             },
         )
         for values in data_values.values()
