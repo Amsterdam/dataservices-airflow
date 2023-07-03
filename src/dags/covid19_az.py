@@ -1,23 +1,27 @@
 import os
 import operator
-from pathlib import Path
-from typing import Final
 
+
+#from ogr2ogr_operator import Ogr2OgrOperator # Cannot be used do mismatch gdal and postgres12
 from airflow import DAG
 from airflow.models import Variable
+from airflow.operators.bash import BashOperator
 from airflow.operators.dummy import DummyOperator
 from common import SHARED_DIR, MessageOperator, default_args, quote_string
 from common.db import define_temp_db_schema
+from common.db import pg_params
 from common.path import mk_dir
 from common.sql import SQL_DROP_TABLE
 from contact_point.callbacks import get_contact_point_on_failure_callback
-from ogr2ogr_operator import Ogr2OgrOperator
+from functools import partial
+from pathlib import Path
 from postgres_check_operator import COUNT_CHECK, GEO_CHECK, PostgresMultiCheckOperator
 from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from postgres_table_copy_operator import PostgresTableCopyOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 from swift_operator import SwiftOperator
+from typing import Final
 
 # Note: to snake case is needed in target table because of the provenance check, because
 # number are seen as a start for underscore seperator. Covid19 is therefore translated as covid_19
@@ -30,6 +34,11 @@ DATASET_ID: Final = "covid19"
 TABLE_DATASET_NAME: Final = "covid_19"
 variables_covid19: dict = Variable.get("covid19", deserialize_json=True)
 files_to_download: dict = variables_covid19["files_to_download"]
+
+# prefill pg_params method with dataset name so
+# it can be used for the database connection as a user.
+# only applicable for Azure connections.
+db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 
 # Note: Gebiedsverbod is absolete since "nieuwe tijdelijke wetgeving Corona maatregelen 01-12-2020"
 # TODO: remove Gebiedsverbod and Straatartiestverbod from var.yml, if DSO-API endpoint and
@@ -117,6 +126,24 @@ with DAG(
         )
         for key, code in tables_to_create.items()
     ]
+
+     # 4. Create SQL
+    generate_SQL = BashOperator(
+            task_id="create_SQL",
+            bash_command="ogr2ogr -f 'PGDump' "
+            "-t_srs EPSG:28992 -s_srs EPSG:4326 "
+            f"-nln {DATASET_ID}_{DATASET_ID}_new "
+            f"{tmp_dir}/{DATASET_ID}.sql {data_file} "
+            "-lco GEOMETRY_NAME=geometry "
+            "-lco FID=ogc_fid",
+        )
+
+
+    # 5. Create TABLE
+    create_tables = BashOperator(
+            task_id="create_table",
+            bash_command=f"psql {db_conn_string()} < {tmp_dir}/{DATASET_ID}.sql",
+        )
 
     # 7. Rename COLUMNS based on Provenance
     provenance_translation = ProvenanceRenameOperator(
