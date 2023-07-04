@@ -117,7 +117,7 @@ def load_grex_from_dwh(table_name: str, source_srid: int,  dataset_name:Optional
 
 
 with DAG(
-    "grex",
+    DAG_ID,
     default_args=default_args,
     description="GrondExploitatie",
     schedule_interval="0 6 * * *",

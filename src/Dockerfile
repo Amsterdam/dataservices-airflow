@@ -1,4 +1,4 @@
-FROM amsterdam/python:3.9-buster AS builder
+FROM amsterdam/python:3.9-bullseye AS builder
 MAINTAINER datapunt@amsterdam.nl
 
 RUN apt-get update \
@@ -25,7 +25,7 @@ WORKDIR /tmp/sqlite-autoconf-3360000
 RUN CFLAGS="-DSQLITE_ENABLE_COLUMN_METADATA=1" ./configure --disable-static --disable-static-shell && make install distclean
 
 # Start runtime image,
-FROM amsterdam/python:3.9-slim-buster
+FROM amsterdam/python:3.9-slim-bullseye
 
 # Copy python build artifacts from builder image
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
@@ -48,11 +48,11 @@ COPY --from=builder /usr/bin/rsync /usr/bin/rsync
 # pip checks for the lsb_release script and uses it if available.
 # So, we need to remove the lsb_release script to have a working pip inside our container.
 # A working pip is needed to switch to a development version of the schematools package.
-RUN rm /usr/bin/lsb_release
+# RUN rm /usr/bin/lsb_release
 
 # Disable an expired root certificate (temporary solution)
-RUN sed -i '/^mozilla\/AddTrust_External_Root.crt/c\!mozilla\/AddTrust_External_Root.crt' /etc/ca-certificates.conf
-RUN update-ca-certificates
+# RUN sed -i '/^mozilla\/AddTrust_External_Root.crt/c\!mozilla\/AddTrust_External_Root.crt' /etc/ca-certificates.conf
+# RUN update-ca-certificates
 
 ARG AIRFLOW_USER_HOME=/usr/local/airflow
 ENV AIRFLOW_HOME=${AIRFLOW_USER_HOME}
