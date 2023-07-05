@@ -16,7 +16,7 @@ from sql.referentiekalender import SQL_DROP_TMP_TABLE
 from sqlalchemy_create_object_operator import SqlAlchemyCreateObjectOperator
 
 # set connnection to azure with specific account
-os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_BOR"]
 
 DAG_ID: Final = "referentiekalender_az"
 DATASET_ID: Final = "referentiekalender"
