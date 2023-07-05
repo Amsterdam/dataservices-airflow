@@ -119,7 +119,7 @@ class Ogr2OgrOperator(BaseOperator):
 
         # setup the cmd to execute
         program = "ogr2ogr"
-        ogr2ogr_cmd: list[str] = [program, "-overwrite", '-skipfailures' if self.skip_failures else None, "-f", self.mode]
+        ogr2ogr_cmd: list[str] = [program, "-overwrite", '-skipfailures' if self.skip_failures else '', "-f", self.mode]
         self.db_schema = self.db_schema if self.db_schema else self.db_conn.temp_db_schema
 
         # Option 1 SQL (default): create sql file
