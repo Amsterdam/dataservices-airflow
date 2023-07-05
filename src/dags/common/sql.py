@@ -16,7 +16,14 @@ SQL_GEOMETRY_VALID: Final = """
     {% set schema = params.schema|default("public", true) %}
     {% set geo_column = params.geo_column|default("GEOMETRY", true) %}
     UPDATE {{ schema }}.{{ params.tablename }}
-    {% if params.geom_type_number is defined %}
+    {% if params.geom_type_number == 3 %}
+    SET {{ geo_column }} = ST_Multi(
+      ST_SetSRID(
+        ST_GeomFromText(
+          ST_AsText(
+            ST_CollectionExtract(
+              ST_MakeValid({{ geo_column }}), {{ params.geom_type_number }}))), {{ srid }}))
+    {% elif params.geom_type_number is defined %}
     SET {{ geo_column }} = ST_MakeValid(
       ST_SetSRID(
         ST_GeomFromText(
