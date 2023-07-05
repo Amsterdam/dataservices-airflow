@@ -25,7 +25,6 @@ class Ogr2OgrOperator(BaseOperator):
         sql_statement: Optional[str] = None,
         input_file_sep: Optional[str] = None,
         auto_detect_type: Optional[str] = None,
-        skip_failures:bool = False,
         mode: str = "PGDump",
         dataset_name: Optional[str] = None,
         db_conn: Optional[DatabaseEngine] = None,
@@ -55,8 +54,6 @@ class Ogr2OgrOperator(BaseOperator):
             sql_statement: SQL subselection on data before import. Defaults to None.
             input_file_sep: The row separator. Defaults to None.
             auto_detect_type: Can be set to "YES" to auto detect datatype. Defaults to None.
-            skip_failures: Indicates to skip erroneous geometries records and do not fail.
-                Default to False. So it will fail if there are any corrupted data.
             mode: If set to `PostgreSQL` data is directly imported into database.
                 Defaults to "PGDump" which output a file.
             dataset_name: Name of the dataset as known in the Amsterdam schema.
@@ -90,7 +87,6 @@ class Ogr2OgrOperator(BaseOperator):
         self.fid = fid
         self.geometry_name = geometry_name
         self.sql_statement = sql_statement
-        self.skip_failures = skip_failures
         self.mode = mode
         self.dataset_name = dataset_name
         self.db_conn = db_conn
@@ -119,7 +115,7 @@ class Ogr2OgrOperator(BaseOperator):
 
         # setup the cmd to execute
         program = "ogr2ogr"
-        ogr2ogr_cmd: list[str] = [program, "-overwrite", '-skipfailures' if self.skip_failures else '', "-f", self.mode]
+        ogr2ogr_cmd: list[str] = [program, "-overwrite", "-f", self.mode]
         self.db_schema = self.db_schema if self.db_schema else self.db_conn.temp_db_schema
 
         # Option 1 SQL (default): create sql file
