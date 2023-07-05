@@ -17,7 +17,7 @@ from postgres_rename_operator import PostgresTableRenameOperator
 from provenance_rename_operator import ProvenanceRenameOperator
 
 # set connnection to azure with specific account
-os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_BOR"]
 
 DAG_ID: Final = "verzinkbarepalen_az"
 DATASET_ID: Final = "verzinkbarepalen"
