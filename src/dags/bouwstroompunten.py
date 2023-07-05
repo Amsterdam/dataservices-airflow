@@ -111,7 +111,7 @@ with DAG(
         task_id="import_data",
         target_table_name=f"{dag_id}_{dag_id}_new",
         input_file=data_file,
-        s_srs=None,
+        skip_failures=True,
         fid="ogc_fid",
         auto_detect_type="YES",
         mode="PostgreSQL",

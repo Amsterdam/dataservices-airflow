@@ -174,6 +174,7 @@ class TypeAHeadLocationOperator(BaseOperator):
             record_key = None
             bag_url = None
             bag_id = None
+            get_uri = None
 
             for key, value in get_typeadhead_result.items():
                 record_key = key
