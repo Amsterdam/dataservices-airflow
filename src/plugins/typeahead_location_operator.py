@@ -8,6 +8,7 @@ from airflow.utils.context import Context
 from airflow.utils.decorators import apply_defaults
 from postgres_on_azure_hook import PostgresOnAzureHook
 from psycopg2 import sql
+import re
 
 
 class TypeAHeadLocationOperator(BaseOperator):
@@ -251,9 +252,11 @@ class TypeAHeadLocationOperator(BaseOperator):
                     index_last_value = len(record) - 1
                     adres = " ".join(record[:index_last_value])
                     huisnummer = "".join(record[index_last_value : index_last_value + 1])
+                    huisnummer_only_num = re.sub(r'[^0-9]', '', huisnummer) # make sure only numbers.
 
+                    # TODO: add huisnummer letters as well.
                     self.log.info("Value for `adres` to use in DB query = %s", adres)
-                    self.log.info("Value for `huisnummer` to use in DB query = %s", huisnummer)
+                    self.log.info("Value for `huisnummer` to use in DB query = %s", huisnummer_only_num)
 
                     cursor.execute(
                         sql.SQL(
@@ -283,5 +286,5 @@ class TypeAHeadLocationOperator(BaseOperator):
                             geometry_column=sql.Identifier(self.geometry_column),
                             source_key_column=sql.Identifier(self.source_key_column),
                         ),
-                        {"adres": adres, "huisnummer": huisnummer, "record_key": record_key},
+                        {"adres": adres, "huisnummer": huisnummer_only_num, "record_key": record_key},
                     )
