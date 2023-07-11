@@ -17,7 +17,7 @@ ADD_GEBIED_COLUMN: Final = """
     */
     CASE
     WHEN DENSE_RANK() \
-        OVER (ORDER BY REGEXP_REPLACE(tarief_per_jaar_per_m2, '[^[:digit:]]', '', 'g')) = 1
+        OVER (ORDER BY REGEXP_REPLACE(tarief_per_jaar_per_m2, '[^[:digit:]]', '', 'g') desc) = 1
     THEN 'Tariefgebied A'
     ELSE 'Tariefgebied B'
     END
