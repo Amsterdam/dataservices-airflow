@@ -265,7 +265,7 @@ def create_gob_dag(
 
                 # For GOB dags, dataset_id does not have `_`
                 # so this split is safe.
-                dataset_id = dag.dag_id.split("_az_")[1]
+                dataset_id = dag.dag_id.replace("_az", '').split('_')[1]
                 ordered_datasets = SCHEDULE2DATASETS[schedule]
                 position = ordered_datasets.index(dataset_id)
 
