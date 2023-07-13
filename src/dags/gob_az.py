@@ -63,7 +63,7 @@ SCHEDULE2DATASETS: dict[str, list[str]] = {}
 SCHEDULE_LABELS_LOOKUP: DefaultDict[str, set[str]] = defaultdict(set)
 
 # set connnection to azure with specific account
-os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_BENK"]
 
 DAG_ID: Final = "gob_az"
 DATASET_ID: Final = "gob"
