@@ -259,21 +259,21 @@ def create_gob_dag(
         def _get_sort_key(schedule: Optional[str]) -> Callable[[DagModel], Any]:
             def dag_sort_key(dag: DagModel) -> Any:
                 # For GOB datasets not included in a schedule (eg HR)
-                # we order by `DATASET_ID`, the default.
+                # we order by `dag_id`, the default.
                 if schedule is None:
-                    return dag.DATASET_ID
+                    return dag.dag_id
 
                 # For GOB dags, dataset_id does not have `_`
                 # so this split is safe.
-                dataset_id = dag.DATASET_ID.split("_")[1]
+                dataset_id = dag.dag_id.split("_az")[1]
                 ordered_datasets = SCHEDULE2DATASETS[schedule]
                 position = ordered_datasets.index(dataset_id)
 
                 # A tuple is used for ordering
                 # Dominant order is the position in the list of dataset
                 # for a particular schedule. Second ordering is done
-                # on the `DATASET_ID`.
-                return position, dag.DATASET_ID
+                # on the `dag_id`.
+                return position, dag.dag_id
 
             return dag_sort_key
 
@@ -291,7 +291,7 @@ def create_gob_dag(
 
         trigger_next_dag = TriggerDynamicDagRunOperator(
             task_id="trigger_next_dag",
-            dag_id_prefix="gob_",
+            dag_id_prefix="gob_az_",
             trigger_rule="all_done",
             labels_group_getter=_get_labels_group,
             sort_key_getter=_get_sort_key,
