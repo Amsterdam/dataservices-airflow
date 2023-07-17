@@ -42,6 +42,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         dataset_name: Optional[str] = None,
         data_table_name: Optional[Union[str, Pattern]] = MATCH_ALL,
         pg_schema: Optional[str] = None,
+        pg_search_path: Optional[Union[str, list[str]]] = None,
         db_table_name: Optional[str] = None,
         ind_table: bool = True,
         ind_extra_index: bool = True,
@@ -68,6 +69,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
                 is mostly useful if you want to create PostgreSQL objects for all tables in a
                 given schema. This is also the default value (all tables).
             pg_schema: Defines DB schema for the connection. If NONE it defaults to 'public'.
+            pg_search_path: Can be multiple schema names (string values in a list). And is used for
+                the search_path settings when connecting to the database.
             db_table_name: Defines the table name to create. This can be different from the table
                 name as defined in the data schema i.e. [table_name]_new
             ind_table: Whether to creates indices (as specified in the schema).
@@ -85,6 +88,7 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         self.data_table_name = data_table_name
         self.dataset_name = dataset_name
         self.pg_schema = pg_schema
+        self.pg_search_path = pg_search_path
         self.db_table_name = db_table_name
         self.ind_table = ind_table
         self.ind_extra_index = ind_extra_index
@@ -126,7 +130,11 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
         default_db_conn = pg_params(dataset_name=self.dataset_name)
 
         # setup the database schema for the database connection
-        kwargs = {"pg_schemas": [self.pg_schema]} if self.pg_schema is not None else {}
+        if self.pg_search_path:
+            kwargs = {"pg_schemas": self.pg_search_path} if self.pg_schema is not None else {}
+        else:
+            kwargs = {"pg_schemas": [self.pg_schema]} if self.pg_schema is not None else {}
+
         engine = _get_engine(default_db_conn, **kwargs)
 
         dataset_schema = dataset_schema_from_url(SCHEMA_URL).get_dataset(
