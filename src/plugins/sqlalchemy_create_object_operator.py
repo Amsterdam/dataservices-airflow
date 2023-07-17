@@ -131,10 +131,8 @@ class SqlAlchemyCreateObjectOperator(BaseOperator, XComAttrAssignerMixin):
 
         # setup the database schema for the database connection
         if self.pg_search_path:
-            self.log.info("******************** its a LIST ******************************")
             kwargs = {"pg_schemas": self.pg_search_path} if self.pg_schema is not None else {}
         else:
-            self.log.info("******************** its NOT a LIST ******************************")
             kwargs = {"pg_schemas": [self.pg_schema]} if self.pg_schema is not None else {}
 
         engine = _get_engine(default_db_conn, **kwargs)
