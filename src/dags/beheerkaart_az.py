@@ -73,11 +73,16 @@ with DAG(
 
     # 3. Create tables in target schema PTE
     # based upon presence in the Amsterdam schema definition
+    # NOTE:
+    # - schema `extensions` is needed to use geometry datatype.
+    # - notice that `pte` is first in the list, that will be used
+    # as the starter schema to create objects in.
     create_tables = [
         SqlAlchemyCreateObjectOperator(
             task_id=f"create_{db_table_name}",
             data_schema_name=dataset_name,
             pg_schema="pte",
+            pg_search_path=["pte", "extensions"],
             data_table_name=data_table_name,
             db_table_name=db_table_name,
             ind_table=True,
