@@ -38,7 +38,7 @@ services:
       AIRFLOW_CONN_POSTGRES_AZURE_BOR:
         "postgresql://cvps_airflow_bor_dev:insecure@dso_database:5432\
         /mdbdataservices?cursor=dictcursor&sslmode=require"
-      AIRFLOW_CONN_POSTGRES_AZURE_DGEN: "postgresql://cvps_airflow_dgen_dev::insecure@dso_database:5432\
+      AIRFLOW_CONN_POSTGRES_AZURE_DGEN: "postgresql://cvps_airflow_dgen_dev:insecure@dso_database:5432\
         /mdbdataservices?cursor=dictcursor&sslmode=require"
       AIRFLOW_CONN_POSTGRES_AZURE_DSOC: "postgresql://cvps_airflow_dsoc_dev:insecure@dso_database:5432\
         /mdbdataservices?cursor=dictcursor&sslmode=require"
