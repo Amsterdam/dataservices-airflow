@@ -67,6 +67,10 @@ with DAG(
         "beschermde_stadsdorpsgezichten.zip",
         dataset_name=DATASET_ID,
         swift_conn_id="objectstore_dataservices",
+        # optionals
+        # db_target_schema will create the schema if not present
+        db_target_schema="pte",
+        db_search_path=["pte", "extensions", "public"],
     )
 
     checks.append(
