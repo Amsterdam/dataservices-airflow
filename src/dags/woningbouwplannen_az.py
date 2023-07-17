@@ -90,6 +90,7 @@ with DAG(
         # optionals
         # db_target_schema will create the schema if not present
         db_target_schema="pte",
+        db_search_path=["pte", "extensions"],
     )
 
     # 4. Make the provenance translations
