@@ -15,6 +15,7 @@ class PsqlCmdHook(BaseHook):
         db_target_schema=None,
         conn_id="postgres_default",
         db_search_path=None,
+        bash_cmd_before_psql: Optional[str] = None,
         *args,
         **kwargs,
     ):
@@ -30,6 +31,13 @@ class PsqlCmdHook(BaseHook):
             db_search_path: List of one or more database schema names that needs to be
                 present in the search path. I.e. for locating geometry datatypes.
                 Defaults to None.
+            bash_cmd_before_psql: In some very specific cases, source files can contain
+                a schema reference to the geometry datatype. I.e. public.geometry. The geometry
+                datatype is in refDB on Azure not installed in schema public. Therefor the
+                schema name can be omitted and use the `db_search_path` argument to locate the
+                geometry schema. A simple bash command can be added to be executed before
+                executing SQL by psql connection.
+                Default to None.
 
         returns:
             class instance.
@@ -38,6 +46,7 @@ class PsqlCmdHook(BaseHook):
         self.db_target_schema = db_target_schema
         self.dataset_name = dataset_name
         self.db_search_path = db_search_path
+        self.bash_cmd_before_psql = bash_cmd_before_psql
 
     def run(self, sql_files):
         paths = " ".join(f'"{f}"' for f in sql_files)
@@ -51,7 +60,8 @@ class PsqlCmdHook(BaseHook):
             self.recreate_schema(self.db_target_schema, db_conn_string())
 
         self.log.info("Running sql files: %s", sql_files)
-        subprocess.run(f"cat {paths} | psql {db_conn_string()}", shell=True, check=True)
+
+        subprocess.run(f"cat {paths} { ' | ' + self.bash_cmd_before_psql if self.bash_cmd_before_psql else ''} | psql {db_conn_string()}", shell=True, check=True)
 
     def recreate_schema(self, db_target_schema, connection_uri):
         """

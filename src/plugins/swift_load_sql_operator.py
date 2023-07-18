@@ -29,12 +29,13 @@ class SwiftLoadSqlOperator(BaseOperator):
 
     def __init__(
         self,
-        container:str,
-        object_id:str,
-        dataset_name:Optional[str] = None,
+        container: str,
+        object_id: str,
+        dataset_name: Optional[str] = None,
         db_target_schema=None,
         swift_conn_id="swift_default",
-        db_search_path:Optional[list[str]] = None,
+        db_search_path: Optional[list[str]] = None,
+        bash_cmd_before_psql: Optional[list[str]] = None,
         *args,
         **kwargs
     ):
@@ -50,6 +51,13 @@ class SwiftLoadSqlOperator(BaseOperator):
             db_search_path: List of one or more database schema names that needs to be
                 present in the search path. I.e. for locating geometry datatypes.
                 Defaults to None.
+            bash_cmd_before_psql: In some very specific cases, source files can contain
+                a schema reference to the geometry datatype. I.e. public.geometry. The geometry
+                datatype is in refDB on Azure not installed in schema public. Therefor the
+                schema name can be omitted and use the `db_search_path` argument to locate the
+                geometry schema. A simple bash command can be added to be executed before
+                executing SQL by psql connection.
+                Default to None.
 
         returns:
             class instance.
@@ -60,6 +68,7 @@ class SwiftLoadSqlOperator(BaseOperator):
         self.swift_conn_id = swift_conn_id
         self.db_target_schema = db_target_schema
         self.db_search_path = db_search_path
+        self.bash_cmd_before_psql = bash_cmd_before_psql
         super().__init__(*args, **kwargs)
 
     def execute(self, context):
@@ -67,11 +76,17 @@ class SwiftLoadSqlOperator(BaseOperator):
         with tempfile.TemporaryDirectory() as tmpdirname:
             object_path = Path(self.container) / self.object_id
             download_filepath = Path(tmpdirname) / object_path
-            swift_hook.download(self.container, self.object_id, download_filepath)
+            swift_hook.download(
+                self.container, self.object_id, download_filepath)
             if download_filepath.suffix == ".zip":
                 zip_hook = ZipHook(download_filepath)
                 filenames = zip_hook.unzip(tmpdirname)
             else:
                 filenames = [object_path]
-            psql_cmd_hook = PsqlCmdHook(db_target_schema=self.db_target_schema, dataset_name=self.dataset_name, db_search_path=self.db_search_path)
+            psql_cmd_hook = PsqlCmdHook(
+                db_target_schema=self.db_target_schema,
+                dataset_name=self.dataset_name,
+                db_search_path=self.db_search_path,
+                bash_cmd_before_psql=self.bash_cmd_before_psql
+            )
             psql_cmd_hook.run(Path(tmpdirname) / fn for fn in filenames)

@@ -71,6 +71,7 @@ with DAG(
         # db_target_schema will create the schema if not present
         db_target_schema="pte",
         db_search_path=["pte", "extensions", "public"],
+        bash_cmd_before_psql="sed 's/public.geometry/geometry/g'",
     )
 
     checks.append(
