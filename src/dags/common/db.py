@@ -371,16 +371,19 @@ def pg_params(
 
         # replace scheme (protocol).
         connection_uri_parsed = urlparse(connection_uri)
-        connection_uri = connection_uri_parsed._replace(scheme='postgresql')
+        connection_uri_parsed = connection_uri_parsed._replace(scheme='postgresql')
+        connection_uri_parsed = connection_uri_parsed._replace(
+            query='sslmode=require')
 
         # add schema(s) to search path in connection string if set.
         # note: `%3D` is the URL encoding for `=`.
         if db_search_path is not None and isinstance(db_search_path, list):
+
             currentSchemaParam = ','.join(db_search_path)
-            connection_uri = connection_uri_parsed._replace(
+            connection_uri_parsed = connection_uri_parsed._replace(
             query=f'{connection_uri_parsed.query}&options=--search_path%3D{currentSchemaParam}')
 
-        connection_uri = connection_uri.geturl()
+        connection_uri = connection_uri_parsed.geturl()
 
     # If Azure
     # To cope with a different logic for defining the Azure referentie db user.
