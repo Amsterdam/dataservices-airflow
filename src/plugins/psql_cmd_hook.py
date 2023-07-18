@@ -14,6 +14,7 @@ class PsqlCmdHook(BaseHook):
         dataset_name: Optional[str] = None,
         db_target_schema=None,
         conn_id="postgres_default",
+        db_search_path=None,
         *args,
         **kwargs,
     ):
@@ -26,10 +27,17 @@ class PsqlCmdHook(BaseHook):
                 Defaults to None. If None, it will use the execution context to get the
                 DAG id as surrogate. Assuming that the DAG id equals the dataset name
                 as defined in Amsterdam schema.
+            db_search_path: List of one or more database schema names that needs to be
+                present in the search path. I.e. for locating geometry datatypes.
+                Defaults to None.
+
+        returns:
+            class instance.
         """
         self.conn_id = conn_id
         self.db_target_schema = db_target_schema
         self.dataset_name = dataset_name
+        self.db_search_path = db_search_path
 
     def run(self, sql_files):
         paths = " ".join(f'"{f}"' for f in sql_files)
@@ -37,7 +45,7 @@ class PsqlCmdHook(BaseHook):
         # prefill pg_params method with dataset name so
         # it can be used for the database connection as a user.
         # only applicable for Azure connections.
-        db_conn_string = partial(pg_params, dataset_name=self.dataset_name, pg_params=True)
+        db_conn_string = partial(pg_params, dataset_name=self.dataset_name, db_search_path=self.db_search_path, pg_params=True)
 
         if self.db_target_schema:
             self.recreate_schema(self.db_target_schema, db_conn_string())

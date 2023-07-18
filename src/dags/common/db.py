@@ -1,5 +1,6 @@
 import os
 from typing import Any, Final, Optional
+from urllib.parse import urlparse
 
 import cx_Oracle
 from airflow.exceptions import AirflowException
@@ -312,6 +313,7 @@ def pg_params(
     dataset_name: Optional[str] = None,
     conn_id: str = "postgres_default",
     context: Optional[Context] = None,
+    db_search_path: Optional[list[str]] = None,
     pg_params: bool = False,
 ) -> Any:
     """Add "stop on error" argument to connection string.
@@ -345,12 +347,44 @@ def pg_params(
         conn_id: The database connection that is present .
             This is used on CloudVPS not on Azure.
         context: Execution context of the calling DAG / task.
+        db_search_path: List of one or more database schema names that needs to be
+            present in the search path. I.e. for locating geometry datatypes.
+            Defaults to None.
         pg_params: Add extra postgress parameters when connection is
             used with a bash cmd. Defaults to False.
 
     Returns:
         A connection string with default params.
     """
+
+    # get connection string
+    connection_uri = BaseHook.get_connection(conn_id).get_uri()
+
+    # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
+    # the name `postgresql`` must be used instead now.
+    # However, Airflow renames the protocol name to `postgres`. See:
+    # from airflow.models.connection import Connection
+    # conn = Connection(uri="postgresql://")
+    # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
+    # Therefore we must rename it back :-)
+    if connection_uri and connection_uri.startswith("postgres://"):
+
+        # replace scheme (protocol).
+        connection_uri_parsed = urlparse(connection_uri)
+        connection_uri_parsed = connection_uri_parsed._replace(scheme='postgresql')
+        connection_uri_parsed = connection_uri_parsed._replace(
+            query='sslmode=require')
+
+        # add schema(s) to search path in connection string if set.
+        # note: `%3D` is the URL encoding for `=`.
+        if db_search_path is not None and isinstance(db_search_path, list):
+
+            currentSchemaParam = ','.join(db_search_path)
+            connection_uri_parsed = connection_uri_parsed._replace(
+            query=f'{connection_uri_parsed.query}&options=--search_path%3D{currentSchemaParam}')
+
+        connection_uri = connection_uri_parsed.geturl()
+
     # If Azure
     # To cope with a different logic for defining the Azure referentie db user.
     # If CloudVPS is not used anymore, then this extra route can be removed.
@@ -359,18 +393,6 @@ def pg_params(
         if dataset_name is None and context is None:
             # since the pg_params cannot be execute with context, the dataset name is needed.
             raise AirflowException("please specify the dataset_name when calling pg_params.")
-
-        # get connection string
-        connection_uri = BaseHook.get_connection(conn_id).get_uri()
-        # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
-        # the name `postgresql`` must be used instead now.
-        # However, Airflow renames the protocol name to `postgres`. See:
-        # from airflow.models.connection import Connection
-        # conn = Connection(uri="postgresql://")
-        # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
-        # Therefore we must rename it back :-)
-        if connection_uri and connection_uri.startswith("postgres://"):
-            connection_uri = connection_uri.replace("postgres://", "postgresql://", 1)
 
         # specifiy database user to login.
         # it refers to an AAD group where the Airflow Managed Idenity (MI) is member of.
@@ -391,17 +413,6 @@ def pg_params(
         return connection_uri
 
     # Else CloudVPS
-    # get connection string
-    connection_uri = BaseHook.get_connection(conn_id).get_uri().split("?")[0]
-    # SQLAlchemy 1.4 removed the deprecated `postgres` dialect name,
-    # the name `postgresql`` must be used instead now.
-    # However, Airflow renames the protocol name to `postgres`. See:
-    # from airflow.models.connection import Connection
-    # conn = Connection(uri="postgresql://")
-    # print(conn.get_uri()) # output will be `postgres` instead of `postgresql`.
-    # Therefore we must rename it back :-)
-    if connection_uri and connection_uri.startswith("postgres://"):
-        connection_uri = connection_uri.replace("postgres://", "postgresql://", 1)
     if pg_params:
         parameters = " ".join(
             [
