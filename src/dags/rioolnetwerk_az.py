@@ -71,6 +71,11 @@ with DAG(
         object_id=f"rioolnetwerk/{DATASTORE_TYPE}/" "rioolnetwerk.zip",
         dataset_name=DATASET_ID,
         swift_conn_id="objectstore_dataservices",
+        # optionals
+        # db_target_schema will create the schema if not present
+        db_target_schema="pte",
+        db_search_path=["pte", "extensions", "public"],
+        bash_cmd_before_psql="sed 's/public.geometry/geometry/g' | sed 's/SELECT pg_catalog.set_config.*//g'",
     )
 
     for table_name, count, geo_type, field_names in (
