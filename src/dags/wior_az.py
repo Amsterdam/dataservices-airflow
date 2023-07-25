@@ -84,6 +84,7 @@ with DAG(
     template_searchpath=["/"],
     user_defined_filters={"quote": quote_string},
     description="Werken (projecten) in de openbare ruimte.",
+	schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 

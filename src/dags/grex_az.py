@@ -120,7 +120,7 @@ with DAG(
     DAG_ID,
     default_args=default_args,
     description="GrondExploitatie",
-    schedule_interval="0 6 * * *",
+    schedule_interval="0 7 * * *", # every day at 7 am (temporary: to avoid collision with non _az dags)
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 

@@ -306,6 +306,7 @@ with DAG(
     DAG_ID,
     default_args=args,
     description="Parkeervakken",
+	schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 

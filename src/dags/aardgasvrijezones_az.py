@@ -41,6 +41,7 @@ with DAG(
     description="(deels) gerealiseerde of geplande aardgasvrije buurten, en buurtinitiatieven",
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
+    schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     template_searchpath=["/"],
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:

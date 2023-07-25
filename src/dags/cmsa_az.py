@@ -39,6 +39,7 @@ with DAG(
                 3D sensoren, wifi sensoren, (tel)camera's en beacons""",
     default_args=default_args,
     template_searchpath=["/"],
+    schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 

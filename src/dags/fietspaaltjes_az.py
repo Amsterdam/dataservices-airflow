@@ -28,6 +28,7 @@ TABLE: Final = f"{DATASET_ID}_fietspaaltjes"
 with DAG(
     DAG_ID,
     default_args=default_args,
+    schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     template_searchpath=["/"],
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:

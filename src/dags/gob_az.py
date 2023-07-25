@@ -39,11 +39,11 @@ SCHEMA_URL: Final = env("SCHEMA_URL")
 # Every first item of the lists of datasets should be
 # unique, because this should be the dataset that starts
 # a particular estafette run.
-GOB_SCHEDULES = """meetbouten,gebieden,bag,nap:15 7 * * 2
-nap,gebieden,meetbouten,brk:0 15 * * 3
-bag,gebieden,meetbouten,nap:0 23 * * 4
-gebieden,meetbouten,nap,woz:0 18 * * 5
-brk:0 23 * * 0"""
+GOB_SCHEDULES = """meetbouten,gebieden,bag,nap:15 8 * * 2
+nap,gebieden,meetbouten,brk:0 16 * * 3
+bag,gebieden,meetbouten,nap: 0 0 * * 5
+gebieden,meetbouten,nap,woz:0 19 * * 5
+brk:0 0 * * 1"""
 SCHEDULES: Final[str] = env("GOB_SCHEDULES", ";".join(GOB_SCHEDULES.split("\n")))
 
 # Lookup for dataset ids mapped to a cron-style schedule.

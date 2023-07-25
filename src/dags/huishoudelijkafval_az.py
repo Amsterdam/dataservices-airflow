@@ -54,7 +54,7 @@ with DAG(
     # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
     description="Huishoudelijkafval objecten, loopafstanden en planning afvalinzamelingvoertuigen",
-    schedule_interval="0 4 * * *",
+    schedule_interval="0 5 * * *", # every day at 5 am (temporary: to avoid collision with non _az dags)
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 

@@ -42,13 +42,13 @@ check_name = {}
 with DAG(
     DAG_ID,
     description="locaties en metadata rondom grootstedelijke projecten.",
-    schedule_interval="@monthly",
     default_args=default_args | {"owner": owner},
     # the access_control defines perms on DAG level. Not needed in Azure
     # since each datateam will get its own instance.
     access_control={owner: {"can_dag_read", "can_dag_edit"}},
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
+    schedule_interval="0 2 1 * *", # every month at 2 am (temporary: to avoid collision with non _az dags)
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 
