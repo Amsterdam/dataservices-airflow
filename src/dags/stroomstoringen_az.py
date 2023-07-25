@@ -41,7 +41,7 @@ with DAG(
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
     # schedule_interval="*/10 * * * *",
-    schedule_interval="/15 * * * *", # every day at 15 min (temporary: to avoid collision with non _az dags)
+    schedule_interval="*/15 * * * *", # every day at 15 min (temporary: to avoid collision with non _az dags)
     catchup=False,
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
