@@ -44,6 +44,7 @@ check_name: dict = {}
 with DAG(
     DAG_ID,
     default_args=default_args,
+    schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     description="""Reclamebelastingjaartarieven per belastinggebied voor (reclame)uitingen
     met oppervlakte >= 0,25 m2 en > 10 weken in een jaar zichtbaar zijn.""",
     user_defined_filters={"quote": quote_string},

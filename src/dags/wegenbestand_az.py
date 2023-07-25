@@ -46,6 +46,7 @@ with DAG(
     description="""Wegenbestand Amsterdam bevat gegevens over stedelijke zones voor zwaarverkeer
                 en tunnels/routes voor vervoer gevaarlijkestoffen.""",
     default_args=default_args,
+    schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:

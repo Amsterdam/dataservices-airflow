@@ -41,7 +41,7 @@ db_conn_string = partial(pg_params, dataset_name=DATASET_ID)
 with DAG(
     DAG_ID,
     description="locatie, status en type van een openbare verlichting.",
-    schedule_interval="*/15 * * * *",
+    schedule_interval="*/20 * * * *", # every 20 min (temporary: to avoid collision with non _az dags)
     default_args=default_args,
     user_defined_filters={"quote": quote_string},
     template_searchpath=["/"],
