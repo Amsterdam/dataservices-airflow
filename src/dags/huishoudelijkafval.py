@@ -62,13 +62,13 @@ with DAG(
     # based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
         task_id="drop_tables",
-        dataset_name="huishoudelijkafval",
+        dataset_name=dag_id,
         pg_schema="pte",
     )
 
     drop_tables_acc = ProvenanceDropFromSchemaOperator(
-        task_id="drop_tables",
-        dataset_name=f"{dag_id}_acc",
+        task_id="drop_tables_acc",
+        dataset_name=f"{dag_id}Acc",
         pg_schema="pte",
     )
 
@@ -89,7 +89,7 @@ with DAG(
         task_id="load_dump_file_acc",
         container="Dataservices",
         object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/afval_api.zip",
-        dataset_name=f"{dag_id}_acc",
+        dataset_name=f"{dag_id}Acc",
         swift_conn_id="objectstore_dataservices",
         # optionals
         # db_target_schema will create the schema if not present
@@ -100,15 +100,15 @@ with DAG(
     # Make the provenance translations
     provenance_file_data = ProvenanceRenameOperator(
         task_id="provenance_file",
-        dataset_name="huishoudelijkafval",
+        dataset_name=dag_id,
         subset_tables=tables["dump_file"],
         pg_schema="pte",
         rename_indexes=True,
     )
 
     provenance_file_data_acc = ProvenanceRenameOperator(
-        task_id="provenance_file",
-        dataset_name=f"{dag_id}_acc",
+        task_id="provenance_file_acc",
+        dataset_name=f"{dag_id}Acc",
         subset_tables=tables["dump_file"],
         pg_schema="pte",
         rename_indexes=True,
@@ -121,7 +121,7 @@ with DAG(
     )
 
     swap_schema_acc = SwapSchemaOperator(
-        task_id="swap_schema", subset_tables=tables["dump_file"], dataset_name=f"{dag_id}_acc"
+        task_id="swap_schema_acc", subset_tables=tables["dump_file"], dataset_name=f"{dag_id}Acc"
     )
 
     # 6. DWH STADSDELEN SOURCE
