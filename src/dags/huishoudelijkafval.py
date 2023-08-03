@@ -62,7 +62,13 @@ with DAG(
     # based upon presence in the Amsterdam schema definition
     drop_tables = ProvenanceDropFromSchemaOperator(
         task_id="drop_tables",
-        dataset_name="huishoudelijkafval",
+        dataset_name=dag_id,
+        pg_schema="pte",
+    )
+
+    drop_tables_acc = ProvenanceDropFromSchemaOperator(
+        task_id="drop_tables_acc",
+        dataset_name=f"{dag_id}Acc",
         pg_schema="pte",
     )
 
@@ -79,11 +85,30 @@ with DAG(
         db_target_schema="pte",
     )
 
+    load_file_acc = SwiftLoadSqlOperator(
+        task_id="load_dump_file_acc",
+        container="Dataservices",
+        object_id=f"afval_huishoudelijk/{DATASTORE_TYPE}/afval_api.zip",
+        dataset_name=f"{dag_id}Acc",
+        swift_conn_id="objectstore_dataservices",
+        # optionals
+        # db_target_schema will create the schema if not present
+        db_target_schema="pte",
+    )
+
     # 4. DUMP FILE SOURCE
     # Make the provenance translations
     provenance_file_data = ProvenanceRenameOperator(
         task_id="provenance_file",
-        dataset_name="huishoudelijkafval",
+        dataset_name=dag_id,
+        subset_tables=tables["dump_file"],
+        pg_schema="pte",
+        rename_indexes=True,
+    )
+
+    provenance_file_data_acc = ProvenanceRenameOperator(
+        task_id="provenance_file_acc",
+        dataset_name=f"{dag_id}Acc",
         subset_tables=tables["dump_file"],
         pg_schema="pte",
         rename_indexes=True,
@@ -93,6 +118,10 @@ with DAG(
     # Swap tables to target schema public
     swap_schema = SwapSchemaOperator(
         task_id="swap_schema", subset_tables=tables["dump_file"], dataset_name=dag_id
+    )
+
+    swap_schema_acc = SwapSchemaOperator(
+        task_id="swap_schema_acc", subset_tables=tables["dump_file"], dataset_name=f"{dag_id}Acc"
     )
 
     # 6. DWH STADSDELEN SOURCE
@@ -161,10 +190,12 @@ with DAG(
 
 
 # FLOW
-slack_at_start >> [drop_tables, load_dwh]
+slack_at_start >> [drop_tables, drop_tables_acc, load_dwh]
 # Path 1
 [drop_tables >> load_file >> provenance_file_data >> swap_schema]
 # Path 2
+[drop_tables_acc >> load_file_acc >> provenance_file_data_acc >> swap_schema_acc]
+# Path 3
 [
     load_dwh
     >> check_count
@@ -174,7 +205,7 @@ slack_at_start >> [drop_tables, load_dwh]
     >> clean_up
 ]
 
-[swap_schema, clean_up] >> grant_db_permissions
+[swap_schema, swap_schema_acc, clean_up] >> grant_db_permissions
 
 dag.doc_md = """
     #### DAG summary
