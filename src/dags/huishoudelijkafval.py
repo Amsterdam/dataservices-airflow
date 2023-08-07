@@ -1,6 +1,7 @@
 from typing import Union
 
 from airflow import DAG
+from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
 from common import DATASTORE_TYPE, MessageOperator, default_args
 from common.sql import SQL_CHECK_COUNT
@@ -84,6 +85,14 @@ with DAG(
         # db_target_schema will create the schema if not present
         db_target_schema="pte",
     )
+
+    # add delay the ACC variant pipeline branch, to avoid
+    # interference with its counter part. Hence, they
+    # use the same source file.
+    load_file_acc_delay = BashOperator(
+            task_id="delay_5_min",
+            bash_command="sleep 300",
+        )
 
     load_file_acc = SwiftLoadSqlOperator(
         task_id="load_dump_file_acc",
@@ -186,7 +195,11 @@ with DAG(
     )
 
     # 12. Grant database permissions
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id)
+    # added the trigger_rule to prevent not executing this step
+    # if the ACC variant branch crashes.
+    # `none_skipped` = No upstream task is in a skipped state - that is,
+    # all upstream tasks are in a success, failed, or upstream_failed state.
+    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=dag_id, trigger_rule="none_skipped")
 
 
 # FLOW
@@ -194,7 +207,7 @@ slack_at_start >> [drop_tables, drop_tables_acc, load_dwh]
 # Path 1
 [drop_tables >> load_file >> provenance_file_data >> swap_schema]
 # Path 2
-[drop_tables_acc >> load_file_acc >> provenance_file_data_acc >> swap_schema_acc]
+[drop_tables_acc >> load_file_acc_delay >> load_file_acc >> provenance_file_data_acc >> swap_schema_acc]
 # Path 3
 [
     load_dwh
