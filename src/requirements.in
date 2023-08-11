@@ -34,7 +34,7 @@ flask==2.2.5
 flask_bcrypt==0.7.1
 geoAlchemy2==0.7.0
 geojson==2.5.0
-gitpython==3.1.31
+gitpython==3.1.32
 greenlet==2.0.0
 ibm-db-sa==0.3.7
 jsonpointer==2.1
