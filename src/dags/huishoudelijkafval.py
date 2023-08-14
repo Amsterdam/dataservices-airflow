@@ -130,7 +130,7 @@ with DAG(
     )
 
     swap_schema_acc = SwapSchemaOperator(
-        task_id="swap_schema_acc", subset_tables=[f"{elem}_acc" for elem in tables["dump_file"]], dataset_name=f"{dag_id}Acc"
+        task_id="swap_schema_acc", subset_tables=tables["dump_file"], dataset_name=f"{dag_id}Acc"
     )
 
     # 6. DWH STADSDELEN SOURCE
