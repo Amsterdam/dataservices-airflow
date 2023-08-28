@@ -1,4 +1,4 @@
-amsterdam-schema-tools==5.8.2
+amsterdam-schema-tools==5.14.0
 apache-airflow-providers-cncf-kubernetes==4.3.0
 apache-airflow-providers-microsoft-azure==3.2.0
 apache-airflow-providers-oracle==2.0.1
@@ -32,7 +32,7 @@ flask==2.2.5
 flask_bcrypt==0.7.1
 geoAlchemy2==0.7.0
 geojson==2.5.0
-gitpython==3.1.31
+gitpython==3.1.32
 greenlet==2.0.0
 ibm-db-sa==0.3.7
 jsonpointer==2.1
