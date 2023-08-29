@@ -649,7 +649,7 @@ catchup_by_default = True
 # - excessive locking
 # Additionally, you may hit the maximum allowable query length for your db.
 # Set this to 0 for no limit (not advised)
-max_tis_per_query = 512
+max_tis_per_query = 32 #512
 
 # Statsd (https://github.com/etsy/statsd) integration settings
 statsd_on = False
