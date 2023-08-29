@@ -4,8 +4,9 @@ export AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=${AIRFLOW__DATABASE__SQL_ALCHEMY_CONN
 export AIRFLOW_CONN_POSTGRES_VSD={$AIRFLOW_CONN_POSTGRES_VSD:-$AIRFLOW__DATABASE__SQL_ALCHEMY_CONN}
 # only using the line below when bumping Airflow
 # if [ $(echo ${DATAPUNT_ENVIRONMENT}) == "production" ]; then airflow db upgrade && sleep 60 && exit 0; fi
-airflow db init  # db init is not destructive, so can be re-run at startup
-airflow db upgrade  # upgrade DB if needed
+# airflow db init  # db init is not destructive, so can be re-run at startup (DEPRECATED SINCE 2.7.0)
+# airflow db upgrade  # upgrade DB if needed (DEPRECATED SINCE 2.7.0)
+airflow db migrate
 python scripts/mkvars.py
 
 # creating an admin and regular users (nessacary when using RABC=True in the airflow.cnf)

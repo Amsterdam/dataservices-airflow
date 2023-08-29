@@ -2,22 +2,22 @@
 -r ./requirements.txt
 
 # Tools for maintaining requirements.txt:
-pip-tools == 6.8.0
-pur == 5.3.0
+pip-tools == 7.3.0
+pur == 7.3.0
 
 
 # Useful extra developer packages:
-pre-commit == 2.14.0
+pre-commit == 3.3.3
 
 # Some installers need wheel support
-wheel == 0.40.0
+wheel == 0.41.2
 
 # 2022-02-02: black higher then
 # 20.8b1 gives issue with flask
 # in regards to click version 8
-black == 20.8b1
+black == 23.7.0
 isort
 
-mypy==0.910
+mypy==1.5.1
 
 pyupgrade
