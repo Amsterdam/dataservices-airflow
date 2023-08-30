@@ -91,6 +91,7 @@ with DAG(
             pass_value={
                 "id",
                 "naam",
+                "aangewezen_door",
                 "status",
                 "aanwijzingsdatum",
                 "intrekkingsdatum",
