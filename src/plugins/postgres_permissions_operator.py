@@ -154,6 +154,8 @@ class PostgresPermissionsOperator(BaseOperator):
                     .filter(DagRun.dag_id != "update_dags")
                     # exclude the log_cleanup dag, it does not contain DB objects to grant
                     .filter(DagRun.dag_id != "airflow_log_cleanup")
+                    # exclude _az dags, since they are not present in the refDB on cVPS and do not need any permissions set.
+                    .filter(DagRun.dag_id.notlike("%_az%"))
                 ]
 
                 if executed_dags_after_delta:
