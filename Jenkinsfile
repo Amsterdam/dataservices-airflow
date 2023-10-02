@@ -16,6 +16,21 @@ def tryStep(String message, Closure block, Closure tearDown = null) {
     }
 }
 
+// Declarative //
+pipeline {
+    agent any
+    triggers {
+        cron('0 10 * * *')
+    }
+    stages {
+        stage('Example') {
+            steps {
+                echo 'Hello World'
+            }
+        }
+    }
+}
+
 
 node {
     stage("Checkout") {
