@@ -93,12 +93,12 @@ if (BRANCH == "master") {
 
     // Only ask for manual approval when committing on this repo.
     // when (TIGGER_CAUSE == 'merge')  {
-    // when ("${cause}" == 'Push event to branch master') {
+    when ("${isUser}" == 'Push event to branch master') {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
         }
-    // }
+    }
 
     node {
         stage('Push production image') {
