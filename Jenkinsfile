@@ -3,17 +3,11 @@
 // trigger this pipeline also by time (besides triggering it by a merge)
 properties(
     [
-        parameters([
-            string(name: 'TIGGER_CAUSE', defaultValue: 'merge', description: 'what is the cause of running this pipeline?'),
-        ]),
-         pipelineTriggers([
-            parameterizedCron('''
-                0 9,12 * * 5,3 %TIGGER_CAUSE=timmer
-            ''')
-        ])
+        pipelineTriggers([cron('0 9,12 * * 5,3')])
     ]
 )
 
+def cause = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
@@ -35,6 +29,7 @@ node {
     stage("Checkout") {
         checkout scm
         echo sh(script: 'env', returnStdout: true)
+        echo "userName: ${cause.userName}"
     }
 
 //For now, there is nothing to test
@@ -95,12 +90,12 @@ if (BRANCH == "master") {
     }
 
     // Only ask for manual approval when committing on this repo.
-    when { expression { TIGGER_CAUSE == 'merge' } } {
+    // when (TIGGER_CAUSE == 'merge')  {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
         }
-    }
+    // }
 
     node {
         stage('Push production image') {
