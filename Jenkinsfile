@@ -36,6 +36,8 @@ node {
     stage("Checkout") {
         checkout scm
         echo sh(script: 'env', returnStdout: true)
+        buildUser()
+        echo $buildUser
     }
 
 //For now, there is nothing to test
