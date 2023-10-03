@@ -3,14 +3,12 @@
 // trigger this pipeline also by time (besides triggering it by a merge)
 properties(
     [
-        pipelineTriggers([cron('0 12,17 * * 5,2')])
-
+        pipelineTriggers([cron('0 9,12 * * 5,3')])
     ]
 )
 
-// check if pipeline was triggered by time or merge.
-def isStartedByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
-
+// get pipeline run cause description
+def cause = currentBuild.getBuildCauses()[0].shortDescription
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
@@ -91,12 +89,13 @@ if (BRANCH == "master") {
     }
 
     // Only ask for manual approval when committing on this repo.
-    // when { expression { return isStartedByUser == true } } {
+    // when (TIGGER_CAUSE == 'merge')  {
+    when ("${cause}" == 'Push event to branch master') {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
         }
-    // }
+    }
 
     node {
         stage('Push production image') {
