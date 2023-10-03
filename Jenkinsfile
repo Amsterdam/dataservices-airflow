@@ -9,13 +9,6 @@ properties(
 )
 
 
-// get build user to identify who triggered the pipeline. Empty if triggerd by time.
-def buildUser
-wrap([$class: 'BuildUser']) {
-    buildUser = env.BUILD_USER
-}
-
-
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
         block()
@@ -36,8 +29,6 @@ node {
     stage("Checkout") {
         checkout scm
         echo sh(script: 'env', returnStdout: true)
-        buildUser()
-        echo $buildUser
     }
 
 //For now, there is nothing to test
