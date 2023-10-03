@@ -7,7 +7,8 @@ properties(
     ]
 )
 
-def cause = currentBuild.getBuildCauses('hudson.model.Cause$UserIdCause')
+def cause = currentBuild.getBuildCauses('hudson.model.Cause$RemoteCause')
+def cause2 = currentBuild.getBuildCauses()[0].shortDescription
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
@@ -29,7 +30,8 @@ node {
     stage("Checkout") {
         checkout scm
         echo sh(script: 'env', returnStdout: true)
-        echo "userName: ${cause.userName}"
+        echo "cause: ${cause}"
+        echo "cause2: ${cause2}"
     }
 
 //For now, there is nothing to test
