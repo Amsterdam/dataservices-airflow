@@ -7,8 +7,8 @@ properties(
     ]
 )
 
-def cause = currentBuild.getBuildCauses('hudson.model.Cause$RemoteCause')
-def cause2 = currentBuild.getBuildCauses()[0].shortDescription
+// get pipeline run cause description
+def cause = currentBuild.getBuildCauses()[0].shortDescription
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
@@ -29,9 +29,6 @@ def tryStep(String message, Closure block, Closure tearDown = null) {
 node {
     stage("Checkout") {
         checkout scm
-        echo sh(script: 'env', returnStdout: true)
-        echo "cause: ${cause}"
-        echo "cause2: ${cause2}"
     }
 
 //For now, there is nothing to test
@@ -93,11 +90,12 @@ if (BRANCH == "master") {
 
     // Only ask for manual approval when committing on this repo.
     // when (TIGGER_CAUSE == 'merge')  {
+    when ("${cause}" == 'Push event to branch master') {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
         }
-    // }
+    }
 
     node {
         stage('Push production image') {
