@@ -87,7 +87,7 @@ if (BRANCH == "master") {
     }
 
     // Only ask for manual approval when committing on this repo.
-    if (${env.BUILD_CAUSE_TIMERTRIGGER} == true) {
+    if (${env.BUILD_CAUSE_TIMERTRIGGER} == false) {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
