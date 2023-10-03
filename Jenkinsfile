@@ -8,7 +8,8 @@ properties(
 )
 
 // get pipeline run cause description
-def cause = currentBuild.getBuildCauses()[0].shortDescription
+def isUser = currentBuild.getBuildCauses()[0].shortDescription
+def isTimer = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause')
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
@@ -29,6 +30,8 @@ def tryStep(String message, Closure block, Closure tearDown = null) {
 node {
     stage("Checkout") {
         checkout scm
+        echo "isUser = ${isUser}"
+        echo "isTimer = ${isTimer}"
     }
 
 //For now, there is nothing to test
