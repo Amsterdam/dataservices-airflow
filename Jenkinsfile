@@ -8,7 +8,8 @@ properties(
 )
 
 // get pipeline run cause description
-def cause = currentBuild.getBuildCauses()[0].shortDescription
+def isUser = currentBuild.getBuildCauses()[0].shortDescription
+def isTimer = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause')
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
@@ -29,6 +30,8 @@ def tryStep(String message, Closure block, Closure tearDown = null) {
 node {
     stage("Checkout") {
         checkout scm
+        echo "isUser = ${isUser}"
+        echo "isTimer = ${isTimer}"
     }
 
 //For now, there is nothing to test
@@ -90,7 +93,7 @@ if (BRANCH == "master") {
 
     // Only ask for manual approval when committing on this repo.
     // when (TIGGER_CAUSE == 'merge')  {
-    when ("${cause}" == 'Push event to branch master') {
+    when ("${isUser}" == 'Push event to branch master') {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
