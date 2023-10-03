@@ -62,8 +62,8 @@ node {
 
 
 String BRANCH  = "${env.BRANCH_NAME}"
-String isUser  = "${isUser}"
-String isTimer = "${isTimer}"
+String IS_USER  = "${isUser}"
+String IS_TIMER = "${isTimer}"
 
 
 if (BRANCH == "master") {
@@ -94,7 +94,7 @@ if (BRANCH == "master") {
     }
 
     // Only ask for manual approval when committing on this repo.
-    if (isUser == "Push event to branch master") {
+    if (IS_USER == "Push event to branch master") {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
