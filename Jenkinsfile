@@ -3,7 +3,8 @@
 // trigger this pipeline also by time (besides triggering it by a merge)
 properties(
     [
-        pipelineTriggers([cron('0 12,15,18 * * 5,2')]),
+        pipelineTriggers([cron('0 12,16 * * 5,2')]),
+        env.TRIGGER_TYPE = 'cron'
     ]
 )
 
@@ -87,7 +88,7 @@ if (BRANCH == "master") {
     }
 
     // Only ask for manual approval when committing on this repo.
-    if (BRANCH == "master") {
+    if (${TRIGGER_TYPE} != "cron") {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
