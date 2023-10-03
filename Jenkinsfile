@@ -1,5 +1,13 @@
 #!groovy
 
+// trigger this pipeline also by time (besides triggering it by a merge)
+properties(
+    [
+        pipelineTriggers([cron('0 12,15,18 * * 5,2')]),
+    ]
+)
+
+
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
         block()
@@ -15,22 +23,6 @@ def tryStep(String message, Closure block, Closure tearDown = null) {
         }
     }
 }
-
-// Declarative //
-pipeline {
-    agent any
-    triggers {
-        cron('0 10 * * *')
-    }
-    stages {
-        stage('Example') {
-            steps {
-                echo 'Hello World'
-            }
-        }
-    }
-}
-
 
 node {
     stage("Checkout") {
@@ -94,10 +86,12 @@ if (BRANCH == "master") {
         }
     }
 
-
-    stage('Waiting for approval') {
-        slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
-        input "Deploy to Production?"
+    // Only ask for manual approval when committing on this repo.
+    if (BRANCH == "master") {
+        stage('Waiting for approval') {
+            slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
+            input "Deploy to Production?"
+        }
     }
 
     node {
