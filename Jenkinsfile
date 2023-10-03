@@ -11,6 +11,7 @@ properties(
 def isUser = currentBuild.getBuildCauses()[0].shortDescription
 def isTimer = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause')
 
+
 def tryStep(String message, Closure block, Closure tearDown = null) {
     try {
         block()
@@ -60,8 +61,9 @@ node {
 }
 
 
-String BRANCH = "${env.BRANCH_NAME}"
-
+String BRANCH  = "${env.BRANCH_NAME}"
+String IsUser  = "${isUser}"
+String IsTimer = "${IsTimer}"
 
 
 if (BRANCH == "master") {
@@ -92,8 +94,7 @@ if (BRANCH == "master") {
     }
 
     // Only ask for manual approval when committing on this repo.
-    // when (TIGGER_CAUSE == 'merge')  {
-    when ("${isUser}" == 'Push event to branch master') {
+    if (IsUser == 'Push event to branch master') {
         stage('Waiting for approval') {
             slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
             input "Deploy to Production?"
