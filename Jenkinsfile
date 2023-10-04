@@ -8,8 +8,7 @@ properties(
 )
 
 // get pipeline run cause description
-def isUser = currentBuild.getBuildCauses()[0].shortDescription
-def isTimer = currentBuild.getBuildCauses('hudson.triggers.TimerTrigger$TimerTriggerCause')
+def isUserOrTimer = currentBuild.getBuildCauses()[0].shortDescription
 
 
 def tryStep(String message, Closure block, Closure tearDown = null) {
@@ -31,8 +30,6 @@ def tryStep(String message, Closure block, Closure tearDown = null) {
 node {
     stage("Checkout") {
         checkout scm
-        echo "isUser = ${isUser}"
-        echo "isTimer = ${isTimer}"
     }
 
 //For now, there is nothing to test
@@ -62,8 +59,7 @@ node {
 
 
 String BRANCH  = "${env.BRANCH_NAME}"
-String IS_USER  = "${isUser}"
-String IS_TIMER = "${isTimer}"
+String IS_USER_OR_TIMER  = "${isUserOrTimer}"
 
 
 if (BRANCH == "master") {
@@ -93,12 +89,12 @@ if (BRANCH == "master") {
         }
     }
 
-    // Only ask for manual approval when committing on this repo.
-    if (IS_USER == "Push event to branch master") {
         stage('Waiting for approval') {
-            slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
-            input "Deploy to Production?"
-        }
+                slackSend channel: '#ci-channel', color: 'warning', message: 'dataservices_airflow service is waiting for Production Release - please confirm'
+                // Only ask for manual approval when committing on this repo.
+                if (IS_USER_OR_TIMER == "Push event to branch master") {
+                    input "Deploy to Production?"
+                }
     }
 
     node {
