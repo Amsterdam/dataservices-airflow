@@ -3,7 +3,7 @@
 // trigger this pipeline also by time (besides triggering it by a merge)
 properties(
     [
-        pipelineTriggers([cron('0 9,10,11,12 * * 5,3')])
+        pipelineTriggers([cron('0 11 * * 5,3')])
     ]
 )
 
