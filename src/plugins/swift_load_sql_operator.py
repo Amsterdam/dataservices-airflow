@@ -75,12 +75,12 @@ class SwiftLoadSqlOperator(BaseOperator):
         swift_hook = SwiftHook(swift_conn_id=self.swift_conn_id)
         with tempfile.TemporaryDirectory() as tmpdirname:
             object_path = Path(self.container) / self.object_id
-            download_filepath = Path(tmpdirname) / object_path
+            download_filepath = Path('huishoudelijk') / object_path
             swift_hook.download(
                 self.container, self.object_id, download_filepath)
             if download_filepath.suffix == ".zip":
                 zip_hook = ZipHook(download_filepath)
-                filenames = zip_hook.unzip(tmpdirname)
+                filenames = zip_hook.unzip('huishoudelijk')
             else:
                 filenames = [object_path]
             psql_cmd_hook = PsqlCmdHook(
@@ -89,4 +89,4 @@ class SwiftLoadSqlOperator(BaseOperator):
                 db_search_path=self.db_search_path,
                 bash_cmd_before_psql=self.bash_cmd_before_psql
             )
-            psql_cmd_hook.run(Path(tmpdirname) / fn for fn in filenames)
+            psql_cmd_hook.run(Path('huishoudelijk') / fn for fn in filenames)
