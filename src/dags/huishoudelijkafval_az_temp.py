@@ -84,6 +84,9 @@ with DAG(
         # optionals
         # db_target_schema will create the schema if not present
         db_target_schema="pte",
+        db_search_path=["pte", "extensions", "public"],
+        bash_cmd_before_psql="sed 's/public.geometry/geometry/g' | sed 's/SELECT pg_catalog.set_config.*//g'",
+
     )
 
     # 4. DUMP FILE SOURCE
