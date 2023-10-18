@@ -23,7 +23,7 @@ from sqlalchemy.types import Date, Float, Integer, Text
 logger = logging.getLogger(__name__)
 
 # set connnection to azure with specific account
-os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"]
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
 
 DAG_ID: Final = "grex_az"
 DATASET_ID: Final = "grex"
