@@ -1,23 +1,29 @@
-from contextlib import closing
+import logging
 import os
+from contextlib import closing
 from typing import Final, Optional
 
 import pandas as pd
 from airflow import DAG
-from airflow.operators.python import PythonOperator
-from postgres_on_azure_operator import PostgresOnAzureOperator
+from airflow.operators.dummy import DummyOperator
+from airflow.operators.python import BranchPythonOperator, PythonOperator
+from airflow.utils.context import Context
 from common import default_args
 from common.db import DatabaseEngine, get_ora_engine, wkt_loads_wrapped
 from common.sql import SQL_CHECK_COUNT, SQL_CHECK_GEO
 from contact_point.callbacks import get_contact_point_on_failure_callback
 from geoalchemy2 import Geometry
+from importscripts.grex import _pick_branch
 from postgres_check_operator import PostgresCheckOperator
+from postgres_on_azure_operator import PostgresOnAzureOperator
 from postgres_permissions_operator import PostgresPermissionsOperator
 from psycopg2 import sql
 from sqlalchemy.types import Date, Float, Integer, Text
 
+logger = logging.getLogger(__name__)
+
 # set connnection to azure with specific account
-os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_SOEB"]
+os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"]
 
 DAG_ID: Final = "grex_az"
 DATASET_ID: Final = "grex"
@@ -33,7 +39,9 @@ SQL_TABLE_RENAME: Final = f"""
 """
 
 
-def load_grex_from_dwh(table_name: str, source_srid: int,  dataset_name:Optional[str]=None, **context) -> None:
+def load_grex_from_dwh(
+    table_name: str, source_srid: int, dataset_name: Optional[str] = None, **context: Context
+) -> Optional[set]:
     """Imports data from source into target database.
 
     Args:
@@ -49,14 +57,17 @@ def load_grex_from_dwh(table_name: str, source_srid: int,  dataset_name:Optional
     Executes:
         SQL statements
     """
-    context = context['dag'].dag_id
-    postgreshook_instance = DatabaseEngine(dataset_name=dataset_name, context=context).get_postgreshook_instance()
+    context = context["dag"].dag_id
+    postgreshook_instance = DatabaseEngine(
+        dataset_name=dataset_name, context=context
+    ).get_postgreshook_instance()
     db_engine = DatabaseEngine(dataset_name=dataset_name, context=context).get_engine()
     dwh_ora_engine = get_ora_engine("oracle_dwh_stadsdelen")
     with dwh_ora_engine.get_conn() as connection:
         df = pd.read_sql(
             """
             SELECT PLANNR as "id"
+                 , PLANNR
                  , PLANNAAM
                  , STARTDATUM
                  , PLANSTATUS
@@ -75,7 +86,22 @@ def load_grex_from_dwh(table_name: str, source_srid: int,  dataset_name:Optional
         # it seems that get_conn() makes the columns case sensitive
         # lowercase all columns so the database will handle them as case insensitive
         df.columns = map(str.lower, df.columns)
-        df["geometry"] = df["geometry"].apply(func=wkt_loads_wrapped, source_srid=source_srid, geom_type_family='polygon')
+
+        # remove duplicate ID's (if exists)
+        duplicate_ind = zip(df["plannr"], df["plannr"].duplicated(keep=False))
+        duplicate_ids = {plannr for plannr, ind_dup in duplicate_ind if ind_dup}
+        for plannr in duplicate_ids:
+            df = df[df["plannr"] != plannr]
+
+        # remove column, not needed anymore.
+        df = df.drop(["plannr"], axis=1)
+
+        # remove duplicates out of processing.
+        df = df.drop_duplicates(keep=False)
+
+        df["geometry"] = df["geometry"].apply(
+            func=wkt_loads_wrapped, source_srid=source_srid, geom_type_family="polygon"
+        )
         grex_rapportage_dtype = {
             "id": Integer(),
             "plannaam": Text(),
@@ -115,15 +141,19 @@ def load_grex_from_dwh(table_name: str, source_srid: int,  dataset_name:Optional
                 )
             )
 
+        logger.info("duplicate_ids = %d", duplicate_ids)
+        return duplicate_ids
+
 
 with DAG(
     DAG_ID,
     default_args=default_args,
     description="GrondExploitatie",
-    schedule_interval="0 7 * * *", # every day at 7 am (temporary: to avoid collision with non _az dags)
+    schedule_interval="0 7 * * *",
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
 ) as dag:
 
+    # 1. load data
     load_data = PythonOperator(
         task_id="load_data",
         python_callable=load_grex_from_dwh,
@@ -131,12 +161,32 @@ with DAG(
         op_args=[table_name_new, 4326, DATASET_ID],
     )
 
+    # 2. Pick next step based on existence of duplicate rows.
+    # if duplicates exists, then run task `notify_duplicate_rows` as
+    # the next step. Else run the step `check_count` and continue.
+    # To retrieve duplicates it uses the return value of the previous step (xcom)
+    pick_branch = BranchPythonOperator(
+        task_id="pick_branch",
+        python_callable=_pick_branch,
+        provide_context=True,
+    )
+
+    # 3. Dummy operator to indicate NO duplicates found in source data.
+    no_duplicates_found = DummyOperator(task_id="no_duplicates_found")
+
+    # 4. Dummy operator to indicate duplicates found in source data.
+    # This is merly an indictor to investigate the source data.
+    duplicates_found = DummyOperator(task_id="duplicates_found")
+
+    # 5. check num of records threshold
     check_count = PostgresCheckOperator(
         task_id="check_count",
         sql=SQL_CHECK_COUNT,
         params={"tablename": table_name_new, "mincount": 400},
+        trigger_rule="one_success",
     )
 
+    # 6. check geo types
     check_geo = PostgresCheckOperator(
         task_id="check_geo",
         sql=SQL_CHECK_GEO,
@@ -147,11 +197,23 @@ with DAG(
         },
     )
 
+    # 7. rename temp to final table
     rename_table = PostgresOnAzureOperator(task_id="rename_table", sql=SQL_TABLE_RENAME)
 
-    # Grant database permissions
+    # 8. Grant database permissions
     # set create_roles to False, since ref DB Azure already created them.
-    grant_db_permissions = PostgresPermissionsOperator(task_id="grants", dag_name=DATASET_ID, create_roles=False)
+    grant_db_permissions = PostgresPermissionsOperator(
+        task_id="grants", dag_name=DATASET_ID, create_roles=False
+    )
 
 
-load_data >> check_count >> check_geo >> rename_table >> grant_db_permissions
+# WORKFLOW
+(
+    load_data
+    >> pick_branch
+    >> [no_duplicates_found, duplicates_found]
+    >> check_count
+    >> check_geo
+    >> rename_table
+    >> grant_db_permissions
+)
