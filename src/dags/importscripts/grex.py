@@ -15,7 +15,7 @@ def _pick_branch(**context: Context) -> str:
         string containing name of desired step to execute next.
     """
     ti = context["ti"]  # get task instance object to do an xcom_pull.
-    duplicate_ids = (element for element in ti.xcom_pull(task_ids="load_data"))
+    duplicate_ids = [element for element in ti.xcom_pull(task_ids="load_data")]
     if duplicate_ids:
         for id_ in duplicate_ids:
             logger.info("Duplicate found!: %d", id_)
