@@ -1,4 +1,4 @@
-amsterdam-schema-tools==5.14.0
+amsterdam-schema-tools==5.17.17
 apache-airflow-providers-cncf-kubernetes==4.3.0
 apache-airflow-providers-microsoft-azure==3.2.0
 apache-airflow-providers-oracle==2.0.1
@@ -8,6 +8,7 @@ apache-airflow-providers-ssh==2.4.0
 apache-airflow[crypto,postgres,sentry,sendgrid]==2.7.0 --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.7.0/constraints-3.9.txt"
 authlib==1.0.1
 clevercsv==0.1.4
+connexion==3.0.1
 cryptography==39.0.1
 cx-Oracle==8.2.1
 datapunt-objectstore==2020.9.7
@@ -65,7 +66,7 @@ sqlalchemy==1.4.47
 sshtunnel==0.3.2
 supervisor==4.1.0
 validator-collection==1.4.1
-werkzeug==2.2.3
+werkzeug==3.0.1
 xlrd==1.2.0
 yamlip==0.0.2
 zeep==4.1.0
