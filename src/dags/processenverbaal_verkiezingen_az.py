@@ -68,6 +68,14 @@ with DAG(
         },
     )
 
+    # 4. remove temp table to avoid stuck data.
+    drop_temp_table = PostgresOnAzureOperator(
+        task_id="drop_temp_table",
+        sql=[
+            f"DROP TABLE IF EXISTS {schema_name}_{table_name}_new CASCADE",
+        ],
+    )
+
     # 5. Load data
     import_data = Ogr2OgrOperator(
         task_id="import_data",
@@ -148,6 +156,7 @@ with DAG(
     slack_at_start
     >> mkdir
     >> get_file_listing
+    >> drop_temp_table
     >> import_data
     >> set_pk
     >> provenance_trans
