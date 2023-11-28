@@ -55,6 +55,9 @@ COMPOSITE_KEYS: dict = {
 # set connnection to azure with specific account
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_DSOC"]
 
+# set specific user to access dag
+OWNER = "team_moss"
+
 DAG_ID: Final = "sport_az"
 DATASET_ID: Final = "sport"
 variables = Variable.get(DATASET_ID, deserialize_json=True)
@@ -102,7 +105,10 @@ def clean_data(file_name: str) -> None:
 with DAG(
     DAG_ID,
     description="sportfaciliteiten, -objecten en -aanbieders",
-    default_args=default_args,
+    default_args=default_args | {"owner": OWNER},
+    # the access_control defines perms on DAG level. Not needed in Azure
+    # since each datateam will get its own instance.
+    access_control={OWNER: {"can_dag_read", "can_dag_edit"}},
     schedule_interval="0 2 * * *", # every day at 2 am (temporary: to avoid collision with non _az dags)
     user_defined_filters={"quote": quote_string},
     on_failure_callback=get_contact_point_on_failure_callback(dataset_id=DATASET_ID),
