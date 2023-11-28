@@ -18,7 +18,7 @@ airflow users create -r User -u dataservices -e dataservices@example.com -f data
 airflow users create -r User -u team_ruimte -e team_ruimte@example.com -f team_ruimte -l team_ruimte -p ${AIRFLOW_USER_TEAM_RUIMTE_PASSWD:-team_ruimte}
 airflow users create -r User -u team_benk -e team_benk@example.com -f team_benk -l team_benk -p ${AIRFLOW_USER_TEAM_BENK_PASSWD:-team_benk}
 airflow users create -r User -u team_basisstatistiek -e team_basisstatistiek@example.com -f team_basisstatistiek -l team_basisstatistiek -p ${AIRFLOW_USER_TEAM_BASISSTATISTIEK:-team_basisstatistiek}
-airflow users create -r User -u team_moss -e team_moss@example.com -f team_moss -l team_moss -p ${AIRFLOW_USER_TEAM_MOSS:-team_moss}
+airflow users create -r User -u team_moss -e team_moss@example.com -f team_moss -l team_moss -p ${AIRFLOW_USER_TEAM_MOSS_PASSWD:-team_moss}
 
 
 # NOTE: Only needed for CloudVPS. On Azure each datateam has its own Airflow instance.
