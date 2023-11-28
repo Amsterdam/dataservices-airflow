@@ -38,6 +38,7 @@ airflow users add-role -r team_benk -u team_benk
 airflow users add-role -r team_ruimte -u team_ruimte
 airflow users add-role -r dataservices -u dataservices
 airflow users add-role -r team_basisstatistiek -u team_basisstatistiek
+airflow users add-role -r team_moss -u team_moss
 
 # Airflow does not support slack connection config through environment var
 # So we (re-)create the slack connection on startup.
