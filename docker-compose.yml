@@ -133,6 +133,7 @@ services:
       AIRFLOW_USER_DATASERVICES_PASSWD: ${dataservices_airflow_user_dataservices_passwd}
       AIRFLOW_USER_TEAM_RUIMTE_PASSWD: ${dataservices_airflow_user_team_ruimte_passwd}
       AIRFLOW_USER_TEAM_BENK_PASSWD: ${dataservices_airflow_user_team_benk_passwd}
+      AIRFLOW_USER_TEAM_MOSS_PASSWD: ${dataservices_airflow_user_team_moss_passwd}
       OIDC_TOKEN_ENDPOINT: ${OIDC_TOKEN_ENDPOINT}
       OIDC_CLIENT_ID: ${DATASERVICES_GOB_EXPORT_CLIENT_ID}
       OIDC_CLIENT_SECRET: ${DATASERVICES_GOB_EXPORT_CLIENT_SECRET}

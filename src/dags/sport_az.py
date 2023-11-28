@@ -56,7 +56,7 @@ COMPOSITE_KEYS: dict = {
 os.environ["AIRFLOW_CONN_POSTGRES_DEFAULT"] = os.environ["AIRFLOW_CONN_POSTGRES_AZURE_DSOC"]
 
 # set specific user to access dag
-OWNER = "team_moss"
+OWNER: Final = "team_moss"
 
 DAG_ID: Final = "sport_az"
 DATASET_ID: Final = "sport"
@@ -100,7 +100,6 @@ def clean_data(file_name: str) -> None:
     remove_unkown_karakter = re.sub("\uFFFD", "\u2014", remove_double_spaces)
     with open(file_name, "w") as output:
         output.write(remove_unkown_karakter)
-
 
 with DAG(
     DAG_ID,
