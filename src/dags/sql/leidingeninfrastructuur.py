@@ -68,7 +68,8 @@ SQL_KABELSBOVEN_OR_ONDERGRONDS_TABLE: Final = """
     bouwtype.naam as bouwtype,
     bereikbaar,
     lengte,
-    Zegel as zegel
+    Zegel as zegel,
+    OVS as ovs
     FROM  kabels k
     INNER JOIN inwinningstype ON inwinningstype.code = k.wijzeinw
     INNER JOIN hoofdcategorie ON hoofdcategorie.code = k.hoofdcat
