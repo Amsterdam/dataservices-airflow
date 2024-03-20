@@ -15,7 +15,7 @@ wheel == 0.41.2
 # 2022-02-02: black higher then
 # 20.8b1 gives issue with flask
 # in regards to click version 8
-black == 23.7.0
+black == 24.3.0
 isort
 
 mypy==1.5.1
