@@ -161,18 +161,22 @@ SQL_ALTER_DATATYPES: Final = """
     {% if 'punten' not in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN lengte TYPE numeric USING lengte::numeric;
     {% endif %}
-    {% if 'kabels' in params.tablename %}
+    {% if 'kabels' in params.tablename  %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN hoogte TYPE numeric USING hoogte::numeric;
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(MULTILINESTRING, 28992)
     USING ST_SetSRID(geometry, 28992);
     {% elif 'mantelbuizen' in params.tablename %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 28992)
     USING ST_SetSRID(geometry, 28992);
-    {% elif 'punten' in params.tablename %}
+    {% elif 'punten' in params.tablename  %}
     ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(POINT, 28992)
     USING ST_SetSRID(geometry, 28992);
     {% endif %}
     {% else %}
-    SELECT 'no DDL statement to excute';
+    SELECT 'no DDL statement to excute for {{ params.tablename }}';
+    {% endif %}
+    {% if 'lichtpunten' in params.tablename  %}
+    ALTER TABLE {{ params.tablename }} ALTER COLUMN geometry TYPE geometry(POINT, 28992)
+    USING ST_SetSRID(geometry, 28992);
     {% endif %}
 """
